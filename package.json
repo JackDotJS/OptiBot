@@ -1,0 +1,24 @@
+{
+  "name": "optibot",
+  "version": "2.0.0-b3",
+  "description": "Official OptiFine Discord Server bot.",
+  "homepage": "https://discord.gg/3mMpcwW",
+  "author": {
+    "name": "Kyle Edwards",
+    "email": "wingedasterisk@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/jackasterisk/optibot.git"
+  },
+  "scripts": {
+    "start": "run.bat"
+  },
+  "dependencies": {
+    "discord.js": "^11.4.2",
+    "jimp": "^0.6.0",
+    "nedb": "^1.8.0",
+    "request": "^2.88.0",
+    "string-similarity": "^3.0.0"
+  }
+}

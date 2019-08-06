@@ -1,0 +1,86 @@
+{
+    "basic": {
+        "trigger": "!",
+        "of_server": "423430686880301056",
+        "ob_server": "517649143590813707"
+    },
+    "musicbox": {
+        "default_channel": "518635877505695746"
+    },
+    "cd": {
+        "timer_min": 5,
+        "timer_max": 30,
+        "ol_threshold": 1,
+        "ol_timer": 2,
+        "post_timer_mult": 3,
+        "post_timer": 3,
+        "countdown_interval": 2,
+        "show_countdown": true
+    },
+    "db": {
+        "size": 64
+    },
+    "vs": {
+        "embed": {
+            "default": "E29F00",
+            "okay": "43B581",
+            "error": "DD2E44"
+        },
+        "typer": true
+    },
+    "superusers": [
+        "181214529340833792",
+        "271760054691037184"
+    ],
+    "roles": {
+        "shader_dev": "423834274601369601",
+        "texture_artist": "423836695301980171",
+        "mod_dev": "423839066631569408",
+        "muted": "551089007078015025",
+        "donator": "424169541346525194"
+    },
+    "channels": {
+        "blacklist": [
+            "479192475727167488",
+            "531622141393764352",
+            "531622838881484800",
+            "423433522842173451",
+            "468678768043753482"
+        ],
+        "mod": [
+            "519150952863891458",
+            "467073441904984074",
+            "545801068664324106"
+        ]
+    },
+    "servers": [
+        "423430686880301056",
+        "313125603924639766",
+        "237199950235041794",
+        "260939054818918407",
+        "354037679131721728",
+        "316679487955927050",
+        "todo"
+    ],
+    "splash": [
+        "uwu",
+        "<3",
+        "${splashtext}",
+        "if (\"true\" === \"true\") return !false",
+        "now in 3 new flavors",
+        "while yall here be sure to check out my soundcloud",
+        "lmao n00b gg ez",
+        "psp exclusive",
+        "bot of the year",
+        "this bot has gone 0 days bug-free",
+        "[next version] hype",
+        "optifine 1.14 when???",
+        "i cant read",
+        "establish communism",
+        "my wife left me",
+        "FUCK EPIC",
+        "the all new range rover sport",
+        "hilarious joke",
+        "JavaScript, also known as Java for short."
+    ]
+}

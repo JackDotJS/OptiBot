@@ -3602,14 +3602,17 @@ TOOLS.muteHandler = (m, args, action) => {
                         } else {
                             let measure;
                             let measure_string_sim = cstr.findBestMatch(((input_measure.length > 0) ? input_measure : args[2]), ['minutes', 'hours', 'days']).bestMatch.target;
-                            if(input_measure.length = 1) {
-                                if(input_measure = 'm') {
+
+                            log(input_measure, 'trace');
+                            log(measure_string_sim, 'trace');
+                            if(input_measure.length === 1) {
+                                if(input_measure === 'm') {
                                     measure = 'minutes';
                                 } else 
-                                if(input_measure = 'h') {
+                                if(input_measure === 'h') {
                                     measure = 'hours';
                                 } else 
-                                if(input_measure = 'd') {
+                                if(input_measure === 'd') {
                                     measure = 'days';
                                 } else {
                                     measure = measure_string_sim;
@@ -3617,6 +3620,8 @@ TOOLS.muteHandler = (m, args, action) => {
                             } else {
                                 measure = measure_string_sim;
                             }
+
+                            log('final measure === '+measure, 'trace');
 
                             if (measure === 'minutes') {
                                 if (Math.ceil(parseInt(args[1])) < 10) {

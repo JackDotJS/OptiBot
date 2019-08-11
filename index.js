@@ -61,7 +61,6 @@ class Command {
         if (!md.fn) {
             throw new Error('Command function is required.');
         } else {
-
             this.metadata = {
                 trigger: md.trigger,
                 short_desc: md.short_desc || 'This command has no set description.',
@@ -141,7 +140,8 @@ const memory = {
         docs: [],
         cdb: [],
         limitRemove: new events.EventEmitter().setMaxListeners(cfg.db.size + 1),
-        alog: 0
+        alog: 0,
+        log: []
     },
     cd: {
         active: false,
@@ -226,7 +226,9 @@ bot.login(keys.discord).then(() => {
 memory.bot.restart_check = bot.setInterval(() => {
     if (!memory.bot.shutdown) {
         let now = new Date();
-        if (now.getHours() === 2 && now.getMinutes() === 0) {
+        // AWS server in GMT time.
+        // 6 AM to OptiBot = 1 AM in US central time
+        if (now.getHours() === 7 && now.getMinutes() === 0) {
             memory.bot.shutdown = true;
             TOOLS.statusHandler(-1);
 
@@ -502,7 +504,7 @@ bot.on('ready', () => {
                         let timeEnd = new Date();
                         let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
                         log(`Successfully updated SMR database in ${timeTaken} seconds.`);
-                        finalReady();
+                        bootS5();
                     } else {
                         i++;
                         loop1();
@@ -512,12 +514,34 @@ bot.on('ready', () => {
         });
     }
 
+    function bootS5() {
+        log('Initialization: Booting (Stage 5)', 'debug');
+        let timeStart = new Date();
+        bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
+            memory.bot.log = [...audit.entries.values()];
+
+            let timeEnd = new Date();
+            let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
+            log(`Successfully updated Audit Log cache in ${timeTaken} seconds.`);
+            bootS6()
+        });
+    }
+
+    function bootS6() {
+        log('Initialization: Booting (Stage 6)', 'debug');
+        let timeStart = new Date();
+        CMD.sort();
+        let timeEnd = new Date();
+        let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
+        log(`Successfully sorted commands list in ${timeTaken} seconds.`);
+        finalReady();
+    }
+
     function finalReady() {
         memory.bot.booting = false;
-        TOOLS.statusHandler(1);
-        process.title = `OptiBot ${pkg.version} (Build ${build.num}) - ${Math.round(bot.ping)}ms Response Time`;
-
         if(memory.bot.debug) memory.bot.locked = true;
+
+        TOOLS.statusHandler(1);
 
         let width = 60; //inner width of box
         function centerText(text, totalWidth) {
@@ -535,7 +559,7 @@ bot.on('ready', () => {
         log('\x1b[93m' + centerText(`  `, width));
         log('\x1b[93m' + '/'.repeat(width + 4));
 
-        CMD.sort();
+        process.title = `OptiBot ${pkg.version} (Build ${build.num}) - ${Math.round(bot.ping)}ms Response Time`;
 
         memory.bot.title_check = bot.setInterval(() => {
             if (!memory.bot.shutdown) process.title = `OptiBot ${pkg.version} (Build ${build.num}) - ${Math.round(bot.ping)}ms Response Time`;
@@ -551,15 +575,15 @@ bot.on('messageReactionAdd', (mr, user) => {
     if (user.id === bot.user.id) return;
     if (mr.message.author.id === bot.user.id) return;
     bot.guilds.get(cfg.basic.of_server).fetchMember(user.id).then((member) => {
-        log('emoji detected', 'trace');
         if (mr.emoji.name === '🏅' && member.permissions.has("KICK_MEMBERS", true)) {
+            log('emoji detected', 'trace');
             
             if (mr.message.member.permissions.has("KICK_MEMBERS", true)) return;
 
             memory.db.mdlm.find({ msg_id: mr.message.id }, (err, res) => {
                 if (err) TOOLS.errorHandler({ err: err, m: mr.message });
                 else if (res.length === 0) {
-                    log(mr.message.author.username + ' was awarded a medal by ' + user.username);
+                    log(`${mr.message.author.username}#${mr.message.author.discriminator} was awarded a medal by ${user.username}#${user.discriminator}`);
 
                     let embed = new discord.RichEmbed()
                         .setColor(cfg.vs.embed.default)
@@ -582,7 +606,6 @@ bot.on('messageReactionAdd', (mr, user) => {
                     });
                 }
             });
-
         }
     });
 });
@@ -598,22 +621,94 @@ bot.on('messageDelete', m => {
     if (memory.bot.booting) return;
     if (m.content.toLowerCase().startsWith('!dr')) return;
 
-    let msg1 = `Recorded message deletion at ${new Date()}.`;
-    let msg2 = "\nDeleted by OP.";
+    log('messageDelete event', 'trace')
+
+    let now = new Date();
+
+    let msg1 = `Recorded message deletion at ${now}.`;
+    let msg2 = "\nDeleted by author.";
     let msg3 = `\nPosted by ${m.author.username}#${m.author.discriminator} `;
     let msg4 = `in #${m.channel.name} on ${m.createdAt} \nMessage Contents: \n"${m.content}"`;
 
-    bot.setTimeout(() => {
-        bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 1 }).then((audit) => {
-            let ad = audit.entries.first();
+    log('begin calculation of executor', 'trace')
+    bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
 
-            if (ad.action === 'MESSAGE_DELETE' && ad.target.id === m.member.id && ((ad.extra && ad.extra.count > memory.bot.alog) || ad.createdTimestamp + 3000 > new Date().getTime())) {
-                if(ad.extra && ad.extra.count) memory.bot.alog = ad.extra.count;
-                msg2 = `\nDeleted by ${ad.executor.username}#${ad.executor.discriminator}. ${(ad.reason) ? "Reason: " + ad.reason : ""}`;
-            } else {
-                ad.extra.count = 0;
+        let ad = [...audit.entries.values()];
+        let discord_log;
+        let cached_log;
+        let entryFound = false;
+        let newEntry = false;
+
+        for(let i=0; i<ad.length; i++) {
+            if(ad[i].target.id === m.author.id) {
+                discord_log = ad[i];
+                c1();
+                break;
+            } else
+            if(i+1 === ad.length) {
+                finalLog();
+            }
+        }
+
+        function c1() {
+            /*for(let i=0; i<memory.bot.log.length; i++) {
+                if(!discord_log) {
+                    break;
+                } else
+                if(memory.bot.log[i].id === discord_log.id) {
+                    break;
+                } else
+                if(i+1 === memory.bot.log.length) {
+                    log('entry does not exist in cache, must be new.', 'trace');
+                }
+            }*/
+
+            for(let i=0; i<memory.bot.log.length; i++) {
+                if(memory.bot.log[i].target.id === m.author.id && !cached_log) {
+                    cached_log = memory.bot.log[i];
+                }
+
+                if(memory.bot.log[i].id === discord_log.id) {
+                    entryFound = true;
+                }
+                
+                if(i+1 === memory.bot.log.length) {
+                    if(!cached_log) {
+                        finalLog();
+                        return;
+                    }
+
+                    if(!entryFound) {
+                        log('entry does not exist in cache, must be new.', 'trace');
+                        newEntry = true;  
+                    }
+
+                    c2();
+                }
             }
 
+            function c2() {
+                if(discord_log.id === cached_log.id) {
+                    log('same ID', 'trace')
+                } else {
+                    log('NOT same ID', 'trace');
+                }
+
+                log('cached count: '+cached_log.extra.count,'trace');
+                log('discord count: '+discord_log.extra.count,'trace');
+
+                if((cached_log.extra.count < discord_log.extra.count) || newEntry) {
+                    log('Deleted by admin', 'trace');
+                    msg2 = `\nDeleted by ${discord_log.executor.username}#${discord_log.executor.discriminator}.`
+                    finalLog();
+                } else {
+                    log('Deleted by author', 'trace');
+                    finalLog();
+                }
+            }
+        }
+
+        function finalLog() {
             try {
                 if (m.member.nickname) msg3 += `(aka "${m.member.nickname}") `;
             }
@@ -635,9 +730,15 @@ bot.on('messageDelete', m => {
 
             let finalLog = msg1 + msg2 + msg3 + msg4;
 
+            let calcEnd = new Date();
             log(finalLog, 'warn');
-        }).catch(err => log(err.stack, 'error'));
-    }, 500);
+            memory.bot.log = [...audit.entries.values()];
+
+            
+            let timeTaken = (calcEnd.getTime() - now.getTime()) / 1000;
+            log(`Successfully determined executor in ${timeTaken} seconds.`, 'debug');
+        }
+    }).catch(err => log(err.stack, 'error'));
 });
 
 ////////////////////////////////////////
@@ -869,6 +970,8 @@ bot.on('message', (m) => {
             TOOLS.typerHandler(m.channel, true);
             TOOLS.cooldownHandler(m, (isAdmin || isSuper));
 
+            log(`${(isAdmin) ? "[ADMIN]" : ""} ${(isSuper) ? "[SUDO]" : ""} COMMAND ISSUED BY ${m.author.username}#${m.author.discriminator}: ${cfg.basic.trigger+cmd} ${(cmd === 'dr') ? args.join(' ').replace(/\S/gi, '*') : args.join(' ')}`);
+
             bot.setTimeout(() => {
                 TOOLS.confirmationFinder({ member_id: m.author.id, channel_id: m.channel.id }, (index) => {
                     if (index > -1 && cmd !== 'confirm' && cmd !== 'cancel') {
@@ -899,8 +1002,8 @@ bot.on('message', (m) => {
 
                                     let closest = cstr.findBestMatch(cmd, commands_list);
 
-                                    log(commands_list)
-                                    log(closest.bestMatch)
+                                    log(commands_list, 'trace')
+                                    log(closest.bestMatch, 'trace')
 
                                     if(closest.bestMatch.rating > 0.2) {
                                         embed.setDescription(`Perhaps you meant \`${cfg.basic.trigger}${closest.bestMatch.target}\`? (${(closest.bestMatch.rating * 100).toFixed(1)}% match)`)
@@ -1943,32 +2046,6 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'medals',
-    short_desc: "View your medal count.",
-    hidden: false,
-    fn: (m) => {
-        memory.db.mdl.find({ user_id: m.author.id }, (err, res) => {
-            if (err) TOOLS.errorHandler({ err: err, m: m });
-            else if (res.length === 0) {
-                let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.default)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
-                    .setAuthor('You have not earned any medals.', 'attachment://icon.png')
-
-                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-            } else {
-                let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.default)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
-                    .setAuthor(`You have earned ${res[0].count} medal${(res[0].count === 1) ? '' : 's'}.`, 'attachment://icon.png')
-
-                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-            }
-        });
-    }
-}));
-
-CMD.register(new Command({
     trigger: 'shaders',
     short_desc: "Provides a link to the official shader pack list.",
     hidden: false,
@@ -2066,7 +2143,70 @@ CMD.register(new Command({
     }
 }));
 
+CMD.register(new Command({
+    trigger: 'jarfix',
+    fn: (m) => {
+        let embed = new discord.RichEmbed()
+            .setColor(cfg.vs.embed.default)
+            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "thumbnail.png"))
+            .setAuthor('Jarfix', 'attachment://thumbnail.png')
+            .setDescription('https://johann.loefflmann.net/en/software/jarfix/index.html');
+
+        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+    }
+}));
+
 // commands with arguments
+
+CMD.register(new Command({
+    trigger: 'medals',
+    short_desc: "View someones medal count. Defaults to yourself if no name is provided.",
+    usage: "[user]",
+    hidden: false,
+    fn: (m, args) => {
+        if(args[0]) {
+            TOOLS.getTargetUser(m, args[0], (userid, name) => {
+                if(userid) {
+                    if(userid === m.author.id) {
+                        log('search medals for self', 'trace');
+                        final(m.author.id);
+                    } else {
+                        log('search medals for another user', 'trace');
+                        final(userid, name);
+                    }
+                } else {
+                    log('failed to find user, search medals for self', 'trace');
+                    final(m.author.id);
+                }
+            });
+        } else {
+            log('search medals for self', 'trace');
+            final(m.author.id);
+        }
+
+        function final(userid, name) {
+            memory.db.mdl.find({ user_id: userid }, (err, res) => {
+                if (err) TOOLS.errorHandler({ err: err, m: m });
+                else if (res.length === 0) {
+                    let embed = new discord.RichEmbed()
+                        .setColor(cfg.vs.embed.default)
+                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
+                        .setAuthor(`${(name) ? name+' has' : 'You have' } not earned any medals.`, 'attachment://icon.png')
+    
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                } else {
+                    let embed = new discord.RichEmbed()
+                        .setColor(cfg.vs.embed.default)
+                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
+                        .setAuthor(`${(name) ? name+' has' : 'You have' } earned ${res[0].count} medal${(res[0].count === 1) ? '' : 's'}.`, 'attachment://icon.png')
+    
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                }
+            });
+        }
+        
+    }
+}));
 
 CMD.register(new Command({
     trigger: 'rule',
@@ -2268,16 +2408,35 @@ CMD.register(new Command({
     trigger: 'list',
     short_desc: 'Lists all OptiBot commands.',
     long_desc: "Lists all OptiBot commands, including a short description.",
-    usage: "[page # [admin]]",
+    usage: "[admin | page# [admin]]",
     hidden: false,
     dm: 2,
     fn: (m, args, member, misc) => {
         CMD.getAll((list) => {
             let filtered;
-            if(args[1] && args[1].toLowerCase() === 'sudo' && misc.isSuper) {
+            let menu;
+
+            if(args[0] && isNaN(args[0])) {
+                if((args[0].toLowerCase() === 'admin' || args[0].toLowerCase() === 'mod') && misc.isAdmin) {
+                    menu = 'admin'
+                } else
+                if(args[0].toLowerCase() === 'sudo' && misc.isSuper) {
+                    menu = 'sudo'
+                }
+            } else 
+            if(args[1] && isNaN(args[1])) {
+                if((args[1].toLowerCase() === 'admin' || args[1].toLowerCase() === 'mod') && misc.isAdmin) {
+                    menu = 'admin'
+                } else
+                if(args[1].toLowerCase() === 'sudo' && misc.isSuper) {
+                    menu = 'sudo'
+                }
+            }
+
+            if(menu === 'sudo') {
                 filtered = list.filter((cmd) => (cmd.getMetadata().hidden === true));
             } else
-            if(args[1] && (args[1].toLowerCase() === 'admin' || args[1].toLowerCase() === 'mod') && misc.isAdmin) {
+            if(menu === 'admin') {
                 filtered = list.filter((cmd) => (cmd.getMetadata().admin_only === true && cmd.getMetadata().hidden === false));
             } else {
                 filtered = list.filter((cmd) => (cmd.getMetadata().admin_only === false && cmd.getMetadata().hidden === false));
@@ -2289,11 +2448,20 @@ CMD.register(new Command({
                 pageNum = parseInt(args[0]);
             }
 
+            let special_text = ""
+
+            if(menu === 'sudo') {
+                special_text = 'Special menu: Super User\n\n';
+            } else 
+            if(menu === 'admin') {
+                special_text = 'Special menu: Administration/Moderation\n\n';
+            }
+
             let embed = new discord.RichEmbed()
                 .setColor(cfg.vs.embed.default)
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
                 .setAuthor(`OptiBot Commands List | Page ${pageNum}/${pageLimit}`, 'attachment://icon.png')
-                .setDescription('Use `'+cfg.basic.trigger+'help <command>` for more information on a particular command. \n\nIcons represent the usability of commands in bot DMs.')
+                .setDescription(`${special_text} Use \`${cfg.basic.trigger}help <command>\` for more information on a particular command. \n\nIcons represent the usability of commands in bot DMs.`)
                 .setFooter(`Viewing ${filtered.length} commands, out of ${list.length} total.`);
             
             let i = (pageNum > 1) ? (10 * (pageNum - 1)) : 0;
@@ -2430,7 +2598,7 @@ CMD.register(new Command({
 
 CMD.register(new Command({
     trigger: 'dr',
-    short_desc: 'Verifies your donator status. DMS ONLY.',
+    short_desc: 'Verifies your donator status.',
     long_desc: "Verifies your donator status. If successful, this will grant you the Donator role, and reset your Donator token in the process. \n\nYou can find your donator token by logging in through the website. https://optifine.net/login. Look at the bottom of the page for a string of random characters. **Remember that your \"Donation ID\" is NOT your token!**",
     usage: "<donation e-mail> <token>",
     icon: `memory.bot.images.get("token.png")`,
@@ -2476,35 +2644,53 @@ CMD.register(new Command({
     trigger: 'exec',
     usage: "<js>",
     fn: (m, args, member) => {
-        // this is a fairly simple eval command.
         // args and member arent used in this by default, but given this commands purpose, it just makes sense to have them available anyway.
         try {
-            let execute = eval(m.content.substring(5));
-            let encode = (typeof execute === 'string') ? "" : "javascript";
-            let msg = `\`\`\`${encode + '\n'}${execute}\`\`\``;
+            let debug;
+            let evaluation = eval(m.content.substring(5));
+
+            bot.setTimeout(() => {
+                let returnMsg = (debug) ? debug : evaluation;
+                let cb_lang = (typeof returnMsg === 'string') ? "" : "javascript";
+                let msg = `\`\`\`${cb_lang + '\n' + returnMsg}\`\`\``;
+
+                let file_encoding;
+
+                if(typeof returnMsg === 'string') file_encoding = 'txt';
+                else if(typeof returnMsg === 'function' || typeof returnMsg === 'undefined') file_encoding = 'js';
+                else file_encoding = 'json';
 
 
-            try {
-                msg = `\`\`\`${encode + '\n'}${(typeof execute === 'string') ? execute : JSON.stringify(execute)}\`\`\``;
-            } catch (e) { }
 
-            if(Buffer.isBuffer(execute)) {
-                TOOLS.typerHandler(m.channel, false);
-                m.channel.send(undefined, new discord.Attachment(execute, 'buffer.png'));
-            } else 
-            if (msg.length >= 2000) {
-                log(execute, 'warn');
-                TOOLS.typerHandler(m.channel, false);
-                m.channel.send('Output too long, see log.');
-            } else {
-                TOOLS.typerHandler(m.channel, false);
-                m.channel.send(msg);
-            }
+                try {
+                    msg = `\`\`\`${cb_lang + '\n'}${(typeof returnMsg === 'string') ? returnMsg : JSON.stringify(returnMsg)}\`\`\``;
+                } catch (e) { }
+
+                if(Buffer.isBuffer(returnMsg)) {
+                    TOOLS.typerHandler(m.channel, false);
+                    m.channel.send(undefined, new discord.Attachment(returnMsg, 'buffer.'+file_encoding));
+                } else 
+                if (msg.length >= 2000) {
+                    log(returnMsg, 'warn');
+                    TOOLS.typerHandler(m.channel, false);
+                    m.channel.send(`Output too long, see attached file.`, new discord.Attachment(Buffer.from(JSON.stringify(returnMsg)), 'output.json'));
+                } else {
+                    TOOLS.typerHandler(m.channel, false);
+                    m.channel.send(msg);
+                }
+            }, 500);
         }
         catch (err) {
             log("Error at eval(): " + err.stack, 'warn');
-            TOOLS.typerHandler(m.channel, false);
-            m.channel.send(`\`\`\`${err.stack}\`\`\``);
+            let errMsg = `\`\`\`${err.stack}\`\`\``;
+
+            if(errMsg.length >= 2000) {
+                TOOLS.typerHandler(m.channel, false);
+                m.channel.send('Error occurred during evaluation. (Stack trace too long, see log.)');
+            } else {
+                TOOLS.typerHandler(m.channel, false);
+                m.channel.send(errMsg);
+            }
         }
     }
 }));
@@ -2971,6 +3157,53 @@ CMD.register(new Command({
     }
 }));
 
+CMD.register(new Command({
+    trigger: 'award',
+    short_desc: 'Gives a medal to the specified user. This is an alternative to adding a medal emoji to someones message.',
+    usage: '<user>',
+    hidden: true,
+    fn: (m, args) => {
+        if(!args[0]) {
+            TOOLS.errorHandler({err: "You must specify a user to give an medal to.", m:m});
+        } else {
+            TOOLS.getTargetUser(m, args[0], (userid, name) => {
+                if(!userid) {
+                    TOOLS.errorHandler({err: "You must specify a valid user.", m:m});
+                } else {
+                    if(userid === bot.user.id) {
+                        TOOLS.errorHandler({err: "I'm not allowed to have medals. :(", m:m});
+                    } else
+                    if(userid === m.author.id) {
+                        let embed = new discord.RichEmbed()
+                            .attachFiles([new discord.Attachment(memory.bot.images.get('medal_self.png'), "image.png")])
+                            .setColor(cfg.vs.embed.error)
+                            .setImage('attachment://image.png');
+
+                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    } else {
+                        log(`${name} was awarded a medal by ${m.author.username}#${m.author.discriminator}`);
+            
+                        let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.default)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
+                            .setAuthor('Medal awarded', 'attachment://icon.png')
+                            .setDescription(`<@${userid}> was awarded a medal by ${m.author}!`)
+    
+                        m.channel.send({ embed: embed }).then(msg => {
+                            TOOLS.messageFinalize(m.author.id, msg);
+    
+                            memory.db.mdl.update({ user_id: userid }, { $inc: { count: 1 } }, { upsert: true }, (err, updated) => {
+                                if (err) TOOLS.errorHandler({ err: err, m: m });
+                                log('member medals update: ' + updated, 'debug');
+                            });
+                        });
+                    }
+                }
+            });
+        }
+    }
+}));
+
 ////////////////////////////////////////////////////////////////////////////////
 // Global Functions
 ////////////////////////////////////////////////////////////////////////////////
@@ -3367,8 +3600,25 @@ TOOLS.muteHandler = (m, args, action) => {
                             db_data.time = new Date(now.getTime() + (3600000 * num)).getTime();
                             finalize(db_data);
                         } else {
-                            let measure = cstr.findBestMatch(((input_measure.length > 0) ? input_measure : args[2]), ['minutes', 'hours', 'days']).bestMatch;
-                            if (measure.target === 'minutes') {
+                            let measure;
+                            let measure_string_sim = cstr.findBestMatch(((input_measure.length > 0) ? input_measure : args[2]), ['minutes', 'hours', 'days']).bestMatch.target;
+                            if(input_measure.length = 1) {
+                                if(input_measure = 'm') {
+                                    measure = 'minutes';
+                                } else 
+                                if(input_measure = 'h') {
+                                    measure = 'hours';
+                                } else 
+                                if(input_measure = 'd') {
+                                    measure = 'days';
+                                } else {
+                                    measure = measure_string_sim;
+                                }
+                            } else {
+                                measure = measure_string_sim;
+                            }
+
+                            if (measure === 'minutes') {
                                 if (Math.ceil(parseInt(args[1])) < 10) {
                                     TOOLS.errorHandler({ m: m, err: `Minimum time limit is 10 minutes.` });
                                 } else {
@@ -3377,11 +3627,11 @@ TOOLS.muteHandler = (m, args, action) => {
                                     finalize(db_data);
                                 }
                             } else
-                            if (measure.target === 'hours') {
+                            if (measure === 'hours') {
                                 db_data.time = new Date(now.getTime() + (3600000 * num)).getTime();
                                 finalize(db_data);
                             } else
-                            if (measure.target === 'days') {
+                            if (measure === 'days') {
                                 db_data.time = new Date(now.getTime() + (86400000 * num)).getTime();
                                 measureText = 3;
                                 finalize(db_data);
@@ -3496,13 +3746,13 @@ TOOLS.muteHandler = (m, args, action) => {
                 let i = 0;
 
                 log('checking '+res.length+' user(s) for mute time limit', 'debug');
-                for(let i=0;i<res.length;i++) {
-                    log(`checking ${i+1}/${res.length}`, 'trace')
-                    if (typeof res[i].time === 'number' && new Date().getTime() > res[i].time) {
-                        unmuteAgenda.push(res[i].member_id);
+                for(let i_s=0;i_s<res.length;i_s++) {
+                    log(`checking ${i_s+1}/${res.length}`, 'trace')
+                    if (typeof res[i_s].time === 'number' && (new Date().getTime() > res[i_s].time)) {
+                        unmuteAgenda.push(res[i_s].member_id);
                     }
 
-                    if(i+1 === res.length) {
+                    if(i_s+1 === res.length) {
                         log('loop finished', 'trace')
                         unmuteLooper();
                     }
@@ -3521,38 +3771,50 @@ TOOLS.muteHandler = (m, args, action) => {
                         return;
                     }
 
+                    log('unmuteAgenda[i] === '+unmuteAgenda[i], 'trace');
+                    log('retryCount === '+retryCount, 'trace')
+
                     if(i === 0 && retryCount === 0) log('Mute time limit expired for '+unmuteAgenda.length+' member(s).', 'warn');
 
                     bot.guilds.get(cfg.basic.of_server).fetchMember(unmuteAgenda[i]).then(member => {
                         if (member.roles.has(cfg.roles.muted)) {
                             member.removeRole(cfg.roles.muted, "Mute time limit expired.").then(() => {
-                                memory.db.muted.remove({ member_id: res[i].member_id }, (err) => {
-                                    if (err) {
-                                        TOOLS.errorHandler({ err: err });
-                                        retryCount++;
-                                        unmuteLooper();
-                                    } else {
-                                        retryCount = 0;
-                                        i++
-                                        unmuteLooper();
-                                    }
-                                });
+                                removeFromDB();
                             }).catch(err => {
                                 TOOLS.errorHandler({ err: err });
                                 retryCount++;
+                                log('Retrying unmute...', 'warn');
                                 unmuteLooper();
                             });
+                        } else {
+                            removeFromDB();
                         }
                     }).catch(err => {
-                        if(err.code === 10007) {
-                            i++
-                            unmuteLooper();
+                        if(err.message.indexOf('Invalid or uncached id provided') > -1) {
+                            log(`Muted user ${unmuteAgenda[i]} appears to no longer be in the server. Removing from database...`);
+                            removeFromDB();
                         } else {
                             TOOLS.errorHandler({ err: err });
                             retryCount++;
+                            log('Retrying unmute...', 'warn');
                             unmuteLooper();
                         }
                     });
+
+                    function removeFromDB() {
+                        memory.db.muted.remove({ member_id: unmuteAgenda[i] }, (err) => {
+                            if (err) {
+                                TOOLS.errorHandler({ err: err });
+                                retryCount++;
+                                log('Retrying unmute...', 'warn');
+                                unmuteLooper();
+                            } else {
+                                retryCount = 0;
+                                i++
+                                unmuteLooper();
+                            }
+                        });
+                    }
                 }
             }
         });
@@ -3561,32 +3823,32 @@ TOOLS.muteHandler = (m, args, action) => {
 
 TOOLS.getTargetUser = (m, target, cb) => {
     if (target.match(/^(<@).*(>)$/) !== null && m.mentions.members.size > 0) {
-        cb(m.mentions.members.first(1)[0].id);
+        cb(m.mentions.members.first(1)[0].id, `${m.mentions.members.first(1)[0].user.username}#${m.mentions.members.first(1)[0].user.discriminator}`);
     } else
-        if (target === "^") {
-            m.channel.fetchMessages({ limit: 25 }).then(msgs => {
-                let itr = msgs.values();
+    if (target === "^") {
+        m.channel.fetchMessages({ limit: 25 }).then(msgs => {
+            let itr = msgs.values();
 
-                (function search() {
-                    let thisID = itr.next();
-                    if (thisID.done) {
-                        TOOLS.errorHandler({ m: m, err: `Could not find a user.` });
-                    } else
-                        if (thisID.value.author.id !== m.author.id && thisID.value.author.id !== bot.user.id) {
-                            cb(thisID.value.author.id);
-                        } else search();
-                })();
-            }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-        } else
-            if (!isNaN(target)) {
-                bot.guilds.get(cfg.basic.of_server).fetchMember(target).then(mem => {
-                    cb(mem.user.id);
-                }).catch(err => {
-                    TOOLS.errorHandler({ m: m, err: err });
-                });
-            } else {
-                cb();
-            }
+            (function search() {
+                let thisID = itr.next();
+                if (thisID.done) {
+                    TOOLS.errorHandler({ m: m, err: `Could not find a user.` });
+                } else
+                    if (thisID.value.author.id !== m.author.id && thisID.value.author.id !== bot.user.id) {
+                        cb(thisID.value.author.id, `${thisID.value.author.username}#${thisID.value.author.discriminator}`);
+                    } else search();
+            })();
+        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+    } else
+    if (!isNaN(target)) {
+        bot.guilds.get(cfg.basic.of_server).fetchMember(target).then(mem => {
+            cb(mem.user.id, `${mem.user.username}#${mem.user.discriminator}`);
+        }).catch(err => {
+            TOOLS.errorHandler({ m: m, err: err });
+        });
+    } else {
+        cb();
+    }
 }
 
 TOOLS.ghRefs = (m, issues, isAdmin) => {

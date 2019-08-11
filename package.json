@@ -1,6 +1,6 @@
 {
   "name": "optibot",
-  "version": "2.0.0-b3",
+  "version": "2.0.0-b4",
   "description": "Official OptiFine Discord Server bot.",
   "homepage": "https://discord.gg/3mMpcwW",
   "author": {
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitlab.com/jackasterisk/optibot.git"
+    "url": "https://github.com/realjackasterisk/OptiBot"
   },
   "scripts": {
     "start": "run.bat"

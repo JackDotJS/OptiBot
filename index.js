@@ -970,7 +970,7 @@ bot.on('message', (m) => {
             TOOLS.typerHandler(m.channel, true);
             TOOLS.cooldownHandler(m, (isAdmin || isSuper));
 
-            log(`${(isAdmin) ? "[ADMIN]" : ""} ${(isSuper) ? "[SUDO]" : ""} COMMAND ISSUED BY ${m.author.username}#${m.author.discriminator}: ${cfg.basic.trigger+cmd} ${(cmd === 'dr') ? args.join(' ').replace(/\S/gi, '*') : args.join(' ')}`);
+            log(`${(isAdmin) ? "[ADMIN] " : ""}${(isSuper) ? "[SUDO] " : ""}COMMAND ISSUED BY ${m.author.username}#${m.author.discriminator}: ${cfg.basic.trigger+cmd} ${(cmd === 'dr') ? args.join(' ').replace(/\S/gi, '*') : args.join(' ')}`);
 
             bot.setTimeout(() => {
                 TOOLS.confirmationFinder({ member_id: m.author.id, channel_id: m.channel.id }, (index) => {
@@ -3695,7 +3695,6 @@ TOOLS.muteHandler = (m, args, action) => {
                                         log(`${db_data.executor} updated mute time limit for user ${mutedUser}. User will now be muted for ${num} day${(num === 1) ? "." : "s."}`, 'warn')
                                     }
 
-                                    memory.db.muted.insert(db_data);
                                     m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
                                 }
                             });

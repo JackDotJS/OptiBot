@@ -1258,18 +1258,22 @@ CMD.register(new Command({
     admin_only: true,
     hidden: true,
     fn: (m) => {
-        let embed = new discord.RichEmbed()
+        if(memory.bot.debug) {
+            let embed = new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_exit.png'), "icon.png"))
             .setAuthor('Resetting...', 'attachment://icon.png');
 
-        TOOLS.typerHandler(m.channel, false);
-        m.channel.send({ embed: embed }).then(msg => {
-            TOOLS.shutdownHandler(3);
-        }).catch(err => {
-            TOOLS.errorHandler({ err: err, m: m });
-            TOOLS.shutdownHandler(3);
-        });
+            TOOLS.typerHandler(m.channel, false);
+            m.channel.send({ embed: embed }).then(msg => {
+                TOOLS.shutdownHandler(3);
+            }).catch(err => {
+                TOOLS.errorHandler({ err: err, m: m });
+                TOOLS.shutdownHandler(3);
+            });
+        } else {
+            TOOLS.errorHandler({err: `Cannot reset outside of debug mode.`, m:m});
+        }
     }
 }));
 
@@ -1912,7 +1916,6 @@ CMD.register(new Command({
     trigger: 'perms',
     short_desc: "Lists OptiBot's permissions",
     long_desc: "Lists all Discord permissions, and whether they are enabled for OptiBot.",
-    admin_only: true,
     hidden: true,
     fn: (m) => {
         bot.guilds.get(cfg.basic.of_server).fetchMember(bot.user.id).then((member) => {
@@ -2145,6 +2148,9 @@ CMD.register(new Command({
 
 CMD.register(new Command({
     trigger: 'jarfix',
+    short_desc: 'Jarfix: The solution to everything!',
+    long_desc: `Provides a link to download Jarfix, a tool to fix .jar filetype associations.`,
+    hidden: false,
     fn: (m) => {
         let embed = new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
@@ -2750,13 +2756,15 @@ CMD.register(new Command({
 
 CMD.register(new Command({
     trigger: 'confirm',
+    short_desc: 'Confirms your previous request, if any is active.',
+    hidden: false,
     fn: (m, args) => {
         TOOLS.confirmationFinder({ member_id: m.author.id, channel_id: m.channel.id }, (index) => {
             if (index > -1) {
                 log('emitting', 'trace');
                 memory.bot.cdb[index].emitter.emit('confirm');
             } else {
-                m.channel.send('Nothing to confirm.');
+                TOOLS.errorHandler({err:'You have nothing to confirm.', m:m});
             }
         });
     }
@@ -2764,13 +2772,16 @@ CMD.register(new Command({
 
 CMD.register(new Command({
     trigger: 'cancel',
+    short_desc: 'Cancels your previous request, if any is active.',
+    long_desc: `Cancels your previous request, if any is active. It should be noted that requests will cancel themselves after 1 minute of inactivity.`,
+    hidden: false,
     fn: (m, args) => {
         TOOLS.confirmationFinder({ member_id: m.author.id, channel_id: m.channel.id }, (index) => {
             if (index > -1) {
                 log('emitting', 'trace');
                 memory.bot.cdb[index].emitter.emit('cancel');
             } else {
-                m.channel.send('Nothing to cancel.');
+                TOOLS.errorHandler({err:'You have nothing to cancel.', m:m});
             }
         });
     }
@@ -2938,6 +2949,7 @@ CMD.register(new Command({
     short_desc: "Toggle roles for users.",
     long_desc: "Gives or removes roles for the specified user. OptiBot uses string similarity for roles, so typos and capitalization don't matter.",
     usage: "<user> <role>",
+    admin_only: true,
     hidden: false,
     fn: (m, args) => {
         if(!args[0]) {
@@ -3132,7 +3144,6 @@ CMD.register(new Command({
     trigger: 'say',
     short_desc: 'Ventriloquism!',
     usage: '<message AND/OR attachment>',
-    hidden: true,
     fn: (m, args) => {
         if(!args[0]) {
             TOOLS.errorHandler({err: "You must specify a channel ID to speak in.", m:m});
@@ -3159,9 +3170,11 @@ CMD.register(new Command({
 
 CMD.register(new Command({
     trigger: 'award',
-    short_desc: 'Gives a medal to the specified user. This is an alternative to adding a medal emoji to someones message.',
+    short_desc: 'Give medals to users.',
+    long_desc: 'Gives a medal to the specified user. This is an alternative to adding a medal emoji to someones message.',
     usage: '<user>',
-    hidden: true,
+    admin_only: true,
+    hidden: false,
     fn: (m, args) => {
         if(!args[0]) {
             TOOLS.errorHandler({err: "You must specify a user to give an medal to.", m:m});
@@ -3240,7 +3253,7 @@ TOOLS.confirmationHandler = (m, cb) => {
                 cb(0);
             }
 
-            let timeout = bot.setTimeout(timedout, 30000);
+            let timeout = bot.setTimeout(timedout, 60000);
 
             c[index].emitter.addListener('confirm', confirmed);
 

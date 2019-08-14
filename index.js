@@ -2326,22 +2326,33 @@ CMD.register(new Command({
                                         if(docs.length > 0 && js.id === docs[0].mcid) {
                                             TOOLS.errorHandler({ err:'That username has already been saved.', m:m });
                                         } else {
-                                            memory.db.cape.update({ userid: userid }, dbdata, { upsert: true }, (err, numAffected, upsert) => {
+                                            memory.db.cape.find({ mcid: js.id }, (err, docs) => {
                                                 if(err) {
                                                     TOOLS.errorHandler({ err: err, m:m });
+                                                } else
+                                                if(docs.length > 0) {
+                                                    bot.guilds.get(cfg.basic.of_server).fetchMember(docs[0].userid).then(member => {
+                                                        TOOLS.errorHandler({ err: `That username has already been claimed by ${member.user.username}#${member.user.discriminator}`, m:m });
+                                                    });
                                                 } else {
-                                                    let embed = new discord.RichEmbed()
-                                                        .setColor(cfg.vs.embed.okay)
-                                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                
-                                                    if (upsert) {
-                                                        embed.setAuthor(`Added ${name} to verified cape owner list, with the username of "${js.name}"`, 'attachment://icon.png')
-                                                    } else {
-                                                        embed.setAuthor(`Updated. ${name}'s username is now "${js.name}"`, 'attachment://icon.png')
-                                                        .setFooter('Quick reminder: This is not needed for every username change! This is only needed for changing Minecraft accounts.')
-                                                    }
-                
-                                                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                                                    memory.db.cape.update({ userid: userid }, dbdata, { upsert: true }, (err, numAffected, upsert) => {
+                                                        if(err) {
+                                                            TOOLS.errorHandler({ err: err, m:m });
+                                                        } else {
+                                                            let embed = new discord.RichEmbed()
+                                                                .setColor(cfg.vs.embed.okay)
+                                                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                        
+                                                            if (upsert) {
+                                                                embed.setAuthor(`Added ${name} to verified cape owner list, with the username of "${js.name}"`, 'attachment://icon.png')
+                                                            } else {
+                                                                embed.setAuthor(`Updated. ${name}'s username is now "${js.name}"`, 'attachment://icon.png')
+                                                                .setFooter('Quick reminder: This is not needed for every username change! This is only needed for changing Minecraft accounts.')
+                                                            }
+                        
+                                                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                                                        }
+                                                    });
                                                 }
                                             });
                                         }

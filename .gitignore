@@ -10,3 +10,4 @@ package-lock.json
 todo.txt
 changelog.txt
 OptiBot 1.4.code-workspace
+*.zip

@@ -230,7 +230,7 @@ memory.bot.restart_check = bot.setInterval(() => {
     if (!memory.bot.shutdown) {
         let now = new Date();
         // AWS server in GMT time.
-        // 6 AM to OptiBot = 1 AM in US central time
+        // 8 AM to OptiBot = 2 AM in US central time
         if (now.getHours() === 7 && now.getMinutes() === 0) {
             memory.bot.shutdown = true;
             TOOLS.statusHandler(-1);

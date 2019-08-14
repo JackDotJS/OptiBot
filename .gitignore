@@ -1,7 +1,7 @@
 logs/*
 !logs/.gitkeep
 data/*
-!data/.gitkeep
+!data/build.json
 node_modules
 back
 dev

@@ -1,0 +1,107 @@
+[
+    {
+        "name": "Custom Panorama",
+        "aliases": ["Panorama", "background", "background.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/background.properties"]
+    },
+    {
+        "name": "Better Grass",
+        "aliases": ["grass", "bettergrass.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/bettergrass.properties"]
+    },
+    {
+        "name": "Custom Biome Palettes",
+        "aliases": ["biome palettes", "grid format", "grid", "biome_palettes.txt", "biome_palettes_grid.txt"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/biome_palettes.txt", "https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/biome_palettes_grid.txt"]
+    },
+    {
+        "name": "Custom Blocks",
+        "aliases": ["blocks", "render layer", "block.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/block.properties"]
+    },
+    {
+        "name": "Custom Entity Models",
+        "aliases": ["CEM", "cem_animation.txt", "cem_model.txt", "cem_part.txt"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/cem_animation.txt", "https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/cem_model.txt", "https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/cem_part.txt"]
+    },
+    {
+        "name": "Custom Item Textures",
+        "aliases": ["CIT", "items", "cit.properties", "cit_single.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/cit.properties", "https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/cit_single.properties"]
+    },
+    {
+        "name": "Custom Colors",
+        "aliases": ["color", "colormap", "color.properties", "colormap.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/color.properties", "https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/colormap.properties"]
+    },
+    {
+        "name": "Connected Textures Mod",
+        "aliases": ["CTM", "Connected Textures"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/ctm.properties"]
+    },
+    {
+        "name": "Custom Animations",
+        "aliases": ["animations", "entity texture animations", "custom_animations.txt"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/custom_animations.txt"]
+    },
+    {
+        "name": "Custom GUIs",
+        "aliases": ["gui", "guis", "container", "custom_guis.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/custom_guis.properties"]
+    },
+    {
+        "name": "Custom Lightmaps",
+        "aliases": ["lightmaps", "light", "torchlight", "custom_lightmaps.txt"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/custom_lightmaps.txt"]
+    },
+    {
+        "name": "Dynamic Lights",
+        "aliases": ["dynamic", "dynamic_lights.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/dynamic_lights.properties"]
+    },
+    {
+        "name": "Emissive Textures",
+        "aliases": ["emissive", "emissive.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/emissive.properties"]
+    },
+    {
+        "name": "HD Fonts",
+        "aliases": ["custom fonts", "fonts", "hd_fonts.txt"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/hd_fonts.txt"]
+    },
+    {
+        "name": "Custom Loading Screens",
+        "aliases": ["loading screen", "loading", "loading background", "loading bg", "loading.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/loading.properties"]
+    },
+    {
+        "name": "Natural Textures",
+        "aliases": ["natural", "natural.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/natural.properties"]
+    },
+    {
+        "name": "Random Entities",
+        "aliases": ["entity textures", "random mobs", "random_entities.properties", "random_mobs.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/random_entities.properties"]
+    },
+    {
+        "name": "Shaders",
+        "aliases": ["shaderpacks", "shaders.properties", "shaders.txt"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/shaders.properties", "https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/shaders.txt"]
+    },
+    {
+        "name": "Custom Sky",
+        "aliases": ["sky", "skies", "skybox", "cubemap", "sky.properties"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/sky.properties"]
+    },
+    {
+        "name": "System Properties",
+        "aliases": ["launch options", "jvm arguments", "arguments", "jvm", "launcher"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/system_properties.txt"]
+    },
+    {
+        "name": "Update to 1.13+",
+        "aliases": ["mcpatcher", "1.13", "numeric ids"],
+        "links": ["https://github.com/sp614x/optifine/blob/master/OptiFineDoc/doc/README.md"]
+    }
+]

@@ -1,6 +1,6 @@
 {
   "name": "optibot",
-  "version": "2.0.0-b5",
+  "version": "2.0.0-b6",
   "description": "Official OptiFine Discord Server bot.",
   "homepage": "https://discord.gg/3mMpcwW",
   "author": {
@@ -15,6 +15,7 @@
     "start": "run.bat"
   },
   "dependencies": {
+    "caller-id": "^0.1.0",
     "discord.js": "^11.4.2",
     "jimp": "^0.6.0",
     "nedb": "^1.8.0",

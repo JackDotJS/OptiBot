@@ -1,8 +1,10 @@
-// Written by Kyle Edwards <wingedasterisk@gmail.com>, May 2019
+// Written by Kyle Edwards <wingedasterisk@gmail.com>, August 2019
 // I put a lot of work into this, please don't redistribute it or anything.
+// ========================================================================
+// OptiBot 2.0 Child Node: Main Program
 
 ////////////////////////////////////////////////////////////////////////////////
-// Dependencies, Configuration files
+// Dependencies & Configuration files
 ////////////////////////////////////////////////////////////////////////////////
 
 const discord = require('discord.js');
@@ -12,6 +14,7 @@ const jimp = require('jimp');
 const fs = require('fs');
 const cstr = require('string-similarity');
 const database = require('nedb');
+const callerId = require('caller-id');
 
 const cfg = require('./cfg/config.json');
 const keys = require('./cfg/keys.json');
@@ -20,38 +23,24 @@ const build = require('./data/build.json');
 const cntbrs = require('./cfg/contributors.json');
 const dntrs = require('./cfg/donators.json');
 const serverlist = require('./cfg/servers.json');
+const docs_list = require('./cfg/docs.json');
 
 ////////////////////////////////////////////////////////////////////////////////
 // Pre-initialize
 ////////////////////////////////////////////////////////////////////////////////
 
-function log(msg, level) {
-    let content;
-    if (typeof msg === 'string') {
-        content = String(msg);
-    } else
-    if (typeof msg === null) {
-        content = String("null");
-    } else 
-    if (typeof msg === undefined) {
-        content = String("undefined");
-    } else {
-        try {
-            content = JSON.stringify(msg);
-            if(content.length === 0) {
-                content = String('Could not stringify JSON.')
-            }
-        }
-        catch (err) {
-            content = String(msg);
-        }
-    }
+const log = (message, level) => {
+    let path = callerId.getData().filePath;
+    let filename = path.substring(path.lastIndexOf('\\')+1);
+    let line = callerId.getData().lineNumber;
 
-    if(content.length === 0) {
-        content = String(' ');
-    }
+    let file = filename+':'+line;
 
-    process.send({ content, level });
+    process.send({
+        message,
+        level,
+        misc: file 
+    });
 }
 
 class Command {
@@ -126,7 +115,8 @@ const memory = {
         muted: new database({ filename: './data/muted.db', autoload: true }),
         cape: new database({ filename: './data/vcape.db', autoload: true }),
         mdl: new database({ filename: './data/mdl.db', autoload: true }),
-        mdlm: new database({ filename: './data/mdl_messages.db', autoload: true })
+        mdlm: new database({ filename: './data/mdl_messages.db', autoload: true }),
+        motd: new database({ filename: './data/motd.db', autoload: true })
     },
     bot: {
         debug: false,
@@ -139,12 +129,15 @@ const memory = {
         images: new ImageIndex(),
         smr: [],
         docs: [],
+        docs_cat: {},
         cdb: [],
         limitRemove: new events.EventEmitter().setMaxListeners(cfg.db.size + 1),
         alog: 0,
         log: [],
         servers: {},
-        avatar: {}
+        avatar: {},
+        status: {},
+        motd: {}
     },
     cd: {
         active: false,
@@ -220,37 +213,9 @@ bot.login(keys.discord).then(() => {
     log('Successfully logged in using token: ' + keys.discord, 'debug');
     TOOLS.statusHandler(0);
 }).catch(err => {
-    if (err.length > 0) {
-        log(err, 'error');
-        TOOLS.shutdownHandler(24);
-    }
+    log(err, 'error');
+    TOOLS.shutdownHandler(24);
 });
-
-memory.bot.restart_check = bot.setInterval(() => {
-    if (!memory.bot.shutdown) {
-        let now = new Date();
-        // AWS server in GMT time.
-        // 8 AM to OptiBot = 2 AM in US central time
-        if (now.getHours() === 7 && now.getMinutes() === 0) {
-            memory.bot.shutdown = true;
-            TOOLS.statusHandler(-1);
-
-            log('Scheduled restart initialized.', 'warn');
-
-            if (memory.bot.lastInt + 300000 > now.getTime()) {
-                log('Restarting in 5 minutes...', 'warn');
-                bot.setTimeout(() => {
-                    TOOLS.shutdownHandler(10);
-                }, 300000);
-            } else {
-                log('Restarting in 1 minute...', 'warn');
-                bot.setTimeout(() => {
-                    TOOLS.shutdownHandler(10);
-                }, 60000);
-            }
-        }
-    }
-}, 1000);
 
 memory.bot.activity_check = bot.setInterval(() => {
     if (!memory.bot.shutdown && !memory.bot.booting) {
@@ -262,6 +227,44 @@ memory.bot.activity_check = bot.setInterval(() => {
 memory.bot.mute_check = bot.setInterval(() => {
     if (!memory.bot.shutdown && !memory.bot.booting) TOOLS.muteHandler();
 }, 300000);
+
+memory.bot.restart_check = bot.setInterval(() => {
+    if (!memory.bot.shutdown) {
+        let now = new Date();
+        // AWS server in GMT time.
+        // 8 AM to OptiBot = 2 AM in US central time
+        if (now.getHours() === 8 && now.getMinutes() === 0) {
+            memory.bot.shutdown = true;
+            TOOLS.statusHandler(-1);
+
+            bot.clearInterval(memory.bot.mute_check);
+            bot.clearInterval(memory.bot.activity_check);
+
+            log('Scheduled restart initialized. Calculating based on previous interaction...', 'warn');
+
+            if (memory.bot.lastInt + 300000 > now.getTime()) {
+                let remaining = memory.bot.lastInt+300000 - now.getTime();
+
+                if(remaining < 60000) {
+                    log('Restarting in 1 minute...', 'warn');
+                    bot.setTimeout(() => {
+                        TOOLS.shutdownHandler(10);
+                    }, 60000);
+                } else {
+                    log(`Restarting in ${(remaining/(1000 * 60)).toFixed(1)} minutes...`, 'warn');
+                    bot.setTimeout(() => {
+                        TOOLS.shutdownHandler(10);
+                    }, remaining);
+                }
+            } else {
+                log('Restarting in 1 minute...', 'warn');
+                bot.setTimeout(() => {
+                    TOOLS.shutdownHandler(10);
+                }, 60000);
+            }
+        }
+    }
+}, 1000);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Event Handlers
@@ -583,10 +586,69 @@ bot.on('ready', () => {
                     let timeEnd = new Date();
                     let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
                     log(`Successfully generated bot avatar in ${timeTaken} seconds.`);
-                    finalReady();
+                    bootS9();
                 }
             });
         });
+    }
+
+    function bootS9() {
+        log('Initialization: Booting (Stage 9)');
+        let timeStart = new Date();
+
+        memory.db.motd.find({ motd: true }, (err, docs) => {
+            if(err) {
+                TOOLS.errorHandler({ err:err });
+            } else {
+                let embed = new discord.RichEmbed()
+                    .setColor(cfg.vs.embed.default)
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_fine.png'), "icon.png"))
+                    .setAuthor('Welcome to the official OptiFine Discord server!', 'attachment://icon.png')
+                    .setDescription(`Please be sure to read the <#479192475727167488> BEFORE posting, not to mention the <#531622141393764352>. If you're a donator, use the command \`${cfg.basic.trigger}help dr\` for instructions to get your donator role.`)
+                    .setFooter('Thank you for reading!')
+                
+                if(docs[0] && docs[0].message.length > 0) {
+                    embed.addField('A message from Moderators', docs[0].message);
+                }
+
+                memory.bot.motd = embed;
+
+                let timeEnd = new Date();
+                let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
+                log(`Successfully generated MOTD in ${timeTaken} seconds.`);
+                bootS10()
+            }
+        });
+    }
+
+    function bootS10() {
+        log('Initialization: Booting (Stage 10)');
+        let timeStart = new Date();
+
+        let i = 0;
+        (function parseItemLoop() {
+            let item = docs_list[i];
+
+            let data = {
+                name: item.name,
+                links: item.links
+            }
+
+            memory.bot.docs_cat[[item.name.toLowerCase()]] = data;
+            item.aliases.forEach(e => {
+                memory.bot.docs_cat[[e.toLowerCase()]] = data;
+            });
+
+            if(i+1 === docs_list.length) {
+                let timeEnd = new Date();
+                let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
+                log(`Successfully parsed categorized documentation in ${timeTaken} seconds.`);
+                finalReady();
+            } else {
+                i++;
+                parseItemLoop();
+            }
+        })();
     }
 
     function finalReady() {
@@ -624,6 +686,7 @@ bot.on('ready', () => {
 ////////////////////////////////////////
 
 bot.on('messageReactionAdd', (mr, user) => {
+    if (mr.message.guild.id !== cfg.basic.of_server) return;
     if (user.id === bot.user.id) return;
     if (mr.message.author.id === bot.user.id) return;
     bot.guilds.get(cfg.basic.of_server).fetchMember(user.id).then((member) => {
@@ -667,6 +730,7 @@ bot.on('messageReactionAdd', (mr, user) => {
 ////////////////////////////////////////
 
 bot.on('messageDelete', m => {
+    if (m.guild.id !== cfg.basic.of_server) return;
     if (m.author.system || m.author.bot) return;
     if (m.channel.type === 'dm') return;
     if (memory.bot.shutdown) return;
@@ -793,11 +857,16 @@ bot.on('messageDelete', m => {
     }).catch(err => log(err.stack, 'error'));
 });
 
+bot.on('messageDeleteBulk', m => {
+    log('multiple messages deleted', 'warn');
+});
+
 ////////////////////////////////////////
 // Message Edited Event
 ////////////////////////////////////////
 
 bot.on('messageUpdate', (m, mNew) => {
+    if (m.guild.id !== cfg.basic.of_server) return;
     if (m.author.system || m.author.bot) return;
     if (m.channel.type === 'dm') return;
     if (memory.bot.shutdown) return;
@@ -831,9 +900,9 @@ bot.on('messageUpdate', (m, mNew) => {
 ////////////////////////////////////////
 
 bot.on('guildMemberAdd', member => {
+    if (member.guild.id !== cfg.basic.of_server) return;
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
-    if (member.guild.id !== cfg.basic.of_server) return;
 
     let user = member.user.username + '#' + member.user.discriminator;
 
@@ -841,14 +910,7 @@ bot.on('guildMemberAdd', member => {
 
     if (memory.bot.debug && cfg.superusers.indexOf(member.user.id) === -1) return;
 
-    let embed = new discord.RichEmbed()
-        .setColor(cfg.vs.embed.default)
-        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_fine.png'), "icon.png"))
-        .setAuthor('Welcome to the official OptiFine Discord server!', 'attachment://icon.png')
-        .setDescription("Please be sure to read the <#479192475727167488> BEFORE posting, not to mention the <#531622141393764352>. If you're a donator, use the command `!help dr` for instructions to get your donator role.")
-        .setFooter('Thank you for reading!')
-
-    member.send({ embed: embed }).catch((err) => {
+    member.send({ embed: memory.bot.motd }).catch((err) => {
         if (err.code === 50007) {
             log('Could not send MOTD to new member ' + user + ' (User has server DMs disabled)', 'warn');
         } else {
@@ -911,6 +973,7 @@ bot.on('guildBanAdd', (guild, member) => {
 ////////////////////////////////////////
 
 bot.on('guildMemberRemove', member => {
+    if (member.guild.id !== cfg.basic.of_server) return;
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
     bot.setTimeout(() => {
@@ -972,6 +1035,38 @@ bot.on('disconnect', event => {
 
 bot.on('reconnecting', () => {
     log('Attempting to reconnect to websocket...', 'warn');
+});
+
+////////////////////////////////////////
+// General Warning
+////////////////////////////////////////
+
+bot.on('warn', info => {
+    log(info, 'warn');
+});
+
+////////////////////////////////////////
+// General Debug
+////////////////////////////////////////
+
+bot.on('debug', info => {
+    log(info, 'debug');
+});
+
+////////////////////////////////////////
+// WebSocket Resume
+////////////////////////////////////////
+
+bot.on('resume', replayed => {
+    log('WebSocket resumed, number of events replayed: '+replayed, 'warn');
+});
+
+////////////////////////////////////////
+// WebSocket Error
+////////////////////////////////////////
+
+bot.on('error', err => {
+    TOOLS.errorHandler({err:err});
 });
 
 ////////////////////////////////////////
@@ -1091,7 +1186,9 @@ bot.on('message', (m) => {
                                 m.delete();
                                 TOOLS.errorHandler({ err: 'This command can only be used in DMs.', m: m, temp: true });
                             } else {
-                                res.exec(m, args, member, { isAdmin: isAdmin, isSuper: isSuper });
+                                bot.setTimeout(() => {
+                                    res.exec(m, args, member, { isAdmin: isAdmin, isSuper: isSuper });
+                                }, 300);
                             }
                         });
                     }
@@ -1158,8 +1255,8 @@ bot.on('message', (m) => {
                 let issues = [...new Set(filtered.match(/(?<![a-z]#|\\#)(?<=#)(\d+)\b/gi))];
 
                 if (issues !== null) {
-                    //ignore first 10 issues, and numbers that are larger than 5 characters in length.
-                    if (issues.filter(e => (e.length < 4) && (parseInt(e) > 100)).length > 0) {
+                    //ignore first 10 issues, and numbers that are larger than 4 characters in length.
+                    if (issues.filter(e => (e.length < 5) && (parseInt(e) > 100)).length > 0) {
                         TOOLS.typerHandler(m.channel, true);
                         log('found GHREF match', 'trace');
                         let issueLinks = [];
@@ -1264,7 +1361,7 @@ bot.on('message', (m) => {
                                 log(body, 'trace');
                                 let json = JSON.parse(body);
 
-                                if(json.kind === "Listing" && json.data.children > 0 && json.data.children[0].kind === "t5") {
+                                if(json.kind === "Listing" && json.data.children.length > 0 && json.data.children[0].kind === "t5") {
                                     let firstResult = json.data.children[0].data;
                                     urls_final.push(`[${firstResult.display_name_prefixed}](https://www.reddit.com${firstResult.url})`);
                                 }
@@ -1279,7 +1376,7 @@ bot.on('message', (m) => {
                                         let embed = new discord.RichEmbed()
                                             .setColor(cfg.vs.embed.default)
                                             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_reddit.png'), "icon.png"))
-                                            .setAuthor('Subreddit Finder', 'attachment://icon.png')
+                                            .setAuthor('Subreddit Matcher', 'attachment://icon.png')
                                             .setDescription(`In response to [this](${m.url}) message...\n\n${urls_final.join('\n')}`);
 
                                         if(limited) {
@@ -1485,368 +1582,6 @@ CMD.register(new Command({
             .setFooter("Remember to download the JRE installer!");
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'status',
-    short_desc: 'Server statuses.',
-    long_desc: 'Displays current status of OptiFine and Minecraft/Mojang services.',
-    hidden: false,
-    fn: (m) => {
-        /* 
-        gray = pinging
-        green = online
-        yellow = partial outage
-        red = service unavailable
-        teal = unknown response
-        orange = error occurred during request
-        black = failed response
-        */
-
-
-        let responses = {
-            optifine: [
-                { server: "optifine.net", status: "gray", code: '...', desc: "Main OptiFine Web Server." },
-                { server: "s.optifine.net", status: "gray", code: '...', desc: "OptiFine Capes Service" },
-                { server: "optifined.net", status: "gray", code: '...', desc: "Secondary OptiFine Web Server." }
-            ],
-            mojang_web: [
-                { server: "minecraft.net", status: "gray", code: '...', desc: "Minecraft Main Website" },
-                { server: "account.mojang.com", status: "gray", code: '...', desc: "Mojang Accounts Website" },
-                { server: "mojang.com", status: "gray", code: '...', desc: "Mojang Main Website" }
-            ],
-            mojang: [
-                { server: "session.minecraft.net", status: "gray", code: '...', desc: "Minecraft Multiplayer Session Service" },
-                { server: "authserver.mojang.com", status: "gray", code: '...', desc: "Mojang Authentication Service" },
-                { server: "sessionserver.mojang.com", status: "gray", code: '...', desc: "Mojang Session Server" },
-                { server: "api.mojang.com", status: "gray", code: '...', desc: "Mojang Public API" },
-                { server: "textures.minecraft.net", status: "gray", code: '...', desc: "Minecraft Textures Service (aka Player Skins Service)" }
-            ]
-        };
-        let of_servers_text = '';
-        let mc_websites_text = '';
-        let mc_servers_text = '';
-        let footer = "Hover over the links for detailed information. - If you're having issues, check your internet connection.";
-
-        function translate(cb) {
-            log('translate()', 'trace');
-            of_servers_text = '';
-            mc_websites_text = '';
-            mc_servers_text = '';
-            function translator(target, index, cb1) {
-                if (target[index].status === 'gray') {
-                    cb1(`${bot.guilds.get(cfg.basic.ob_server).emojis.get('578346059965792258')} Pinging [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")...`);
-                } else
-                    if (target[index].status === 'green') {
-                        cb1(`<:okay:546570334233690132> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}") is online`);
-                    } else {
-                        footer = "Hover over the links for detailed information. - Maybe try again in 10 minutes?";
-                        if (target[index].status === 'teal') {
-                            cb1(`<:warn:546570334145609738> Unknown response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
-                        } else
-                            if (target[index].status === 'yellow') {
-                                cb1(`<:warn:546570334145609738> Partial outage at [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
-                            } else
-                                if (target[index].status === 'orange') {
-                                    cb1(`<:error:546570334120312834> An error occurred while pinging [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
-                                } else
-                                    if (target[index].status === 'red') {
-                                        cb1(`<:error:546570334120312834> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}") is down`);
-                                    } else
-                                        if (target[index].status === 'black') {
-                                            cb1(`<:error:546570334120312834> Failed to get any response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
-                                        }
-                    }
-            }
-
-            let mc_i1 = 0;
-            let mc_i2 = 0;
-            let mc_i3 = 0;
-
-            (function loop_of() {
-                log('optifine loop' + mc_i1, 'trace');
-                translator(responses.optifine, mc_i1, (result) => {
-                    of_servers_text += result + '\n';
-
-                    if (parseInt(mc_i1) + 1 === responses.optifine.length) {
-                        loop_mc1();
-                    } else {
-                        mc_i1++
-                        loop_of();
-                    }
-                });
-            })();
-
-            function loop_mc1() {
-                log('mojangweb loop' + mc_i2, 'trace');
-                translator(responses.mojang_web, mc_i2, (result) => {
-                    mc_websites_text += result + '\n';
-
-                    if (parseInt(mc_i2) + 1 === responses.mojang_web.length) {
-                        loop_mc2();
-                    } else {
-                        mc_i2++
-                        loop_mc1();
-                    }
-                });
-            }
-
-            function loop_mc2() {
-                log('mojang loop' + mc_i3, 'trace');
-                translator(responses.mojang, mc_i3, (result) => {
-                    mc_servers_text += result + '\n';
-
-                    if (parseInt(mc_i3) + 1 === responses.mojang.length) {
-                        if (cb) cb(of_servers_text, mc_websites_text, mc_servers_text);
-                    } else {
-                        mc_i3++
-                        loop_mc2();
-                    }
-                });
-            }
-        }
-
-        translate(() => {
-            log('length1: ' + of_servers_text.length, 'trace');
-            log('length2: ' + mc_servers_text.length, 'trace');
-
-            let embed = new discord.RichEmbed()
-                .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_connect.png'), "icon.png"))
-                .setAuthor('Server Status', 'attachment://icon.png')
-                .addField('OptiFine Servers', of_servers_text)
-                .addField('Mojang Websites', mc_websites_text)
-                .addField('Mojang Services', mc_servers_text)
-                .setFooter(footer);
-
-            m.channel.send("_ _", { embed: embed }).then(msg => {
-                TOOLS.messageFinalize(m.author.id, msg);
-
-                let s1 = false;
-                let s2 = false;
-                let s3 = false;
-                let s4 = false;
-
-                let current_of = JSON.parse(JSON.stringify(of_servers_text));
-                let current_mw = JSON.parse(JSON.stringify(mc_websites_text));
-                let current_mc = JSON.parse(JSON.stringify(mc_servers_text));
-
-                let thisLoop = 0;
-
-                let updateLoop = bot.setInterval(() => {
-                    thisLoop++;
-                    if (thisLoop === 5) embed.setDescription('This is taking a while. At this point, you could safely assume the remaining servers are down.');
-                    if (msg.deleted) {
-                        log('status message deleted', 'trace');
-                        bot.clearInterval(updateLoop);
-                    } else {
-                        log('checking update', 'trace');
-                        translate((newOF, newMW, newMC) => {
-                            if (current_of !== newOF || current_mc !== newMC || current_mw !== newMW || thisLoop === 5) {
-                                log(current_of, 'trace');
-                                log(newOF, 'trace');
-                                log('status changed', 'trace');
-                                embed.fields[0].value = newOF;
-                                embed.fields[1].value = newMW;
-                                embed.fields[2].value = newMC;
-                                embed.setFooter(footer);
-
-                                if (s1 && s2 && s3 && s4) {
-                                    embed.description = null;
-                                    msg.edit("_ _", { embed: embed });
-
-                                    log('status message updated', 'trace');
-                                    log('finished checking status', 'trace');
-                                    bot.clearInterval(updateLoop);
-                                } else {
-                                    msg.edit("_ _", { embed: embed });
-
-                                    log('status message updated', 'trace');
-                                    current_of = JSON.parse(JSON.stringify(newOF));
-                                    current_mc = JSON.parse(JSON.stringify(newMC));
-                                    current_mw = JSON.parse(JSON.stringify(newMW));
-                                }
-                            } else log('no update', 'trace');
-                        });
-                    }
-
-                }, 2000);
-
-                request({ url: 'http://optifine.net/home', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                    if (err) {
-                        if (err.code === 'ETIMEDOUT') {
-                            responses.optifine[0].status = 'red';
-                            responses.optifine[0].code = 'error';
-                            s1 = true;
-                        } else {
-                            responses.optifine[0].status = 'orange';
-                            responses.optifine[0].code = 'error';
-                            s1 = true;
-                            log(err.stack, 'error');
-                        }
-                    } else
-                        if (!res || !body) {
-                            responses.optifine[0].status = 'black';
-                            responses.optifine[0].code = 'error';
-                            s1 = true;
-                        } else
-                            if (res.statusCode === 200) {
-                                responses.optifine[0].status = 'green';
-                                responses.optifine[0].code = res.statusCode;
-                                s1 = true;
-                            } else
-                                if ([404, 503, 520, 522, 524].indexOf(res.statusCode) !== -1) {
-                                    responses.optifine[0].status = 'red';
-                                    responses.optifine[0].code = res.statusCode;
-                                    s1 = true;
-                                } else {
-                                    log('Unexpected response from ' + responses.optifine[0].server + ' - ' + res.statusCode, 'error');
-                                    responses.optifine[0].status = 'teal';
-                                    responses.optifine[0].code = res.statusCode;
-                                    s1 = true;
-                                }
-                });
-
-                request({ url: 'http://s.optifine.net', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                    if (err) {
-                        if (err.code === 'ETIMEDOUT') {
-                            responses.optifine[1].status = 'red';
-                            responses.optifine[1].code = 'Error';
-                            s2 = true;
-                        } else {
-                            responses.optifine[1].status = 'orange';
-                            responses.optifine[1].code = 'Error';
-                            s2 = true;
-                            log(err.stack, 'error');
-                        }
-                    } else
-                        if (!res) {
-                            responses.optifine[1].status = 'black';
-                            responses.optifine[1].code = 'Error';
-                            s2 = true;
-                        } else
-                            if (res.statusCode === 404) {
-                                responses.optifine[1].status = 'green';
-                                responses.optifine[1].code = res.statusCode;
-                                s2 = true;
-                            } else
-                                if ([503, 520, 522, 524].indexOf(res.statusCode) !== -1) {
-                                    responses.optifine[1].status = 'red';
-                                    responses.optifine[1].code = res.statusCode;
-                                    s2 = true;
-                                } else {
-                                    log('Unexpected response from ' + responses.optifine[1].server + ' - ' + res.statusCode, 'error');
-                                    responses.optifine[1].status = 'teal';
-                                    responses.optifine[1].code = res.statusCode;
-                                    s2 = true;
-                                }
-                });
-
-                request({ url: 'http://optifined.net', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                    if (err) {
-                        if (err.code === 'ETIMEDOUT') {
-                            responses.optifine[2].status = 'red';
-                            responses.optifine[2].code = 'error';
-                            s3 = true;
-                        } else {
-                            responses.optifine[2].status = 'orange';
-                            responses.optifine[2].code = 'error';
-                            s3 = true;
-                            log(err.stack, 'error');
-                        }
-                    } else
-                        if (!res || !body) {
-                            responses.optifine[2].status = 'black';
-                            responses.optifine[2].code = 'error';
-                            s3 = true;
-                        } else
-                            if (res.statusCode === 200) {
-                                responses.optifine[2].status = 'green';
-                                responses.optifine[2].code = res.statusCode;
-                                s3 = true;
-                            } else
-                                if ([404, 503, 520, 522, 524].indexOf(res.statusCode) !== -1) {
-                                    responses.optifine[2].status = 'red';
-                                    responses.optifine[2].code = res.statusCode;
-                                    s3 = true;
-                                } else {
-                                    log('Unexpected response from ' + responses.optifine[2].server + ' - ' + res.statusCode, 'error');
-                                    responses.optifine[2].status = 'teal';
-                                    responses.optifine[2].code = res.statusCode;
-                                    s3 = true;
-                                }
-                });
-
-                request({ url: 'https://status.mojang.com/check', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                    if (err) {
-                        if (err.code === 'ETIMEDOUT') {
-                            for (let i_m in responses.mojang) {
-                                responses.mojang[i_m].status = 'black';
-                                responses.mojang[i_m].code = 'error';
-                            }
-
-                            for (let i_m in responses.mojang_web) {
-                                responses.mojang_web[i_m].status = 'black';
-                                responses.mojang_web[i_m].code = 'error';
-                            }
-                            s4 = true;
-                        } else {
-                            s4 = true;
-                            log(err.stack, 'error');
-                        }
-                    } else
-                        if (!res || !body) {
-                            for (let i_m in responses.mojang) {
-                                responses.mojang[i_m].status = 'black';
-                                responses.mojang[i_m].code = 'error';
-                            }
-
-                            for (let i_m in responses.mojang_web) {
-                                responses.mojang_web[i_m].status = 'black';
-                                responses.mojang_web[i_m].code = 'error';
-                            }
-                            s4 = true;
-                        } else {
-                            let json = JSON.parse(body);
-
-                            /*
-                            // for testing only
-                            json[0][Object.keys(json[0])] = 'yellow';
-                            json[3][Object.keys(json[3])] = 'red';
-                            */
-
-                            let i_s = 0;
-                            let i_w = 0;
-                            let web = [responses.mojang_web[0].server, responses.mojang_web[1].server, responses.mojang_web[2].server];
-
-                            (function mojLoop() {
-                                log('MCR loop ' + i_s, 'trace');
-                                if (i_s === json.length) {
-                                    s4 = true;
-                                } else {
-                                    let index = web.indexOf(Object.keys(json[i_s])[0]);
-                                    let newData = json[i_s][Object.keys(json[i_s])];
-                                    if (index !== -1) {
-                                        responses.mojang_web[index].status = newData;
-                                        responses.mojang_web[index].code = newData;
-
-                                        i_w++;
-                                        i_s++;
-                                        mojLoop();
-                                    } else {
-                                        responses.mojang[i_s - i_w].status = newData;
-                                        responses.mojang[i_s - i_w].code = newData;
-
-                                        i_s++;
-                                        mojLoop();
-                                    }
-                                }
-                            })();
-                        }
-                });
-            });
-        });
     }
 }));
 
@@ -2222,7 +1957,7 @@ CMD.register(new Command({
 
         let embed = new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
+            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_snap.png'), "icon.png"))
             .setAuthor('The Thanos Method', 'attachment://icon.png')
             .setDescription('The Thanos Method is a debugging technique used to find mods that are incompatible with OptiFine.')
             .addField('How does it work?', `It's simple. Split your mods into 2 groups, not including OptiFine. Remove one group, and test in-game. Keep the group that has the problem, and repeat until only 1-2 mods are remaining. Now go report the incompatibility on GitHub!`)
@@ -2239,7 +1974,7 @@ CMD.register(new Command({
     fn: (m) => {
         let embed = new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
+            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_jarfix.png'), "icon.png"))
             .setAuthor('Jarfix', 'attachment://icon.png')
             .setDescription('https://johann.loefflmann.net/en/software/jarfix/index.html');
 
@@ -2271,6 +2006,472 @@ CMD.register(new Command({
 }));
 
 // commands with arguments
+
+CMD.register(new Command({
+    trigger: 'status',
+    short_desc: 'Server statuses.',
+    long_desc: 'Displays current server status of OptiFine. Alternatively, you can view the status of the Minecraft/Mojang services by typing `!status minecraft` or `!status mojang`.',
+    usage: '[minecraft|mojang|all]',
+    hidden: false,
+    fn: (m, args, member, misc) => {
+        let of_servers_text = '';
+        let mc_websites_text = '';
+        let mc_servers_text = '';
+        let footer = "Hover over the links for detailed information. - If you're having issues, check your internet connection.";
+
+        function translate(data, cb) {
+            log('translate()', 'trace');
+            of_servers_text = '';
+            mc_websites_text = '';
+            mc_servers_text = '';
+            function translator(target, index, cb1) {
+                if (target[index].status === 'gray') {
+                    cb1(`${bot.guilds.get(cfg.basic.ob_server).emojis.get('578346059965792258')} Pinging [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")...`);
+                } else
+                if (target[index].status === 'green') {
+                    cb1(`<:okay:546570334233690132> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}") is online`);
+                } else {
+                    footer = "Hover over the links for detailed information. - Maybe try again in 10 minutes?";
+                    if (target[index].status === 'teal') {
+                        cb1(`<:warn:546570334145609738> Unknown response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
+                    } else
+                    if (target[index].status === 'yellow') {
+                        cb1(`<:warn:546570334145609738> Partial outage at [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
+                    } else
+                    if (target[index].status === 'orange') {
+                        cb1(`<:error:546570334120312834> An error occurred while pinging [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
+                    } else
+                    if (target[index].status === 'red') {
+                        cb1(`<:error:546570334120312834> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}") is down`);
+                    } else
+                    if (target[index].status === 'black') {
+                        cb1(`<:error:546570334120312834> Failed to get any response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
+                    }
+                }
+            }
+
+            let mc_i1 = 0;
+            let mc_i2 = 0;
+            let mc_i3 = 0;
+
+            (function loop_of() {
+                if(data.optifine) {
+                    log('optifine loop' + mc_i1, 'trace');
+                    translator(data.optifine, mc_i1, (result) => {
+                        of_servers_text += result + '\n';
+
+                        if (parseInt(mc_i1) + 1 === data.optifine.length) {
+                            loop_mc1();
+                        } else {
+                            mc_i1++
+                            loop_of();
+                        }
+                    });
+                } else {
+                    loop_mc1();
+                }
+            })();
+
+            function loop_mc1() {
+                if (data.mojang_web) {
+                    log('mojangweb loop' + mc_i2, 'trace');
+                    translator(data.mojang_web, mc_i2, (result) => {
+                        mc_websites_text += result + '\n';
+
+                        if (parseInt(mc_i2) + 1 === data.mojang_web.length) {
+                            loop_mc2();
+                        } else {
+                            mc_i2++
+                            loop_mc1();
+                        }
+                    });
+                } else {
+                    loop_mc2();
+                }
+            }
+
+            function loop_mc2() {
+                if(data.mojang) {
+                    log('mojang loop' + mc_i3, 'trace');
+                    translator(data.mojang, mc_i3, (result) => {
+                        mc_servers_text += result + '\n';
+
+                        if (parseInt(mc_i3) + 1 === data.mojang.length) {
+                            if (cb) cb(of_servers_text, mc_websites_text, mc_servers_text);
+                        } else {
+                            mc_i3++
+                            loop_mc2();
+                        }
+                    });
+                } else
+                if (cb) cb(of_servers_text, mc_websites_text, mc_servers_text);
+            }
+        }
+
+        if(Object.keys(memory.bot.status).length !== 0 && !misc.isAdmin && !misc.isSuper) {
+            let agems = new Date().getTime() - memory.bot.status.timestamp;
+            let age = (agems/(1000*60)).toFixed(1);
+
+            let embed = new discord.RichEmbed()
+                .setColor(cfg.vs.embed.default)
+                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_connect.png'), "icon.png"))
+                .setAuthor('Server Status', 'attachment://icon.png')
+                .setDescription(`You are viewing a snapshot taken ${age} minute(s) ago. This is to help avoid ratelimiting. You can check the current status in a few minutes.`)
+                .setFooter(footer);
+
+                translate(memory.bot.status, () => {
+                    if(memory.bot.status.optifine) {
+                        embed.addField('OptiFine Servers', of_servers_text)
+                    }
+        
+                    if(memory.bot.status.mojang_web) {
+                        embed.addField('Mojang Websites', mc_websites_text)
+                    }
+        
+                    if(memory.bot.status.mojang) {
+                        embed.addField('Mojang Services', mc_servers_text)
+                    }
+        
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                });
+        } else {
+            /* 
+            gray = pinging
+            green = online
+            yellow = partial outage
+            red = service unavailable
+            teal = unknown response
+            orange = error occurred during request
+            black = failed response
+            */
+
+            let responses = {
+                optifine: [
+                    { server: "optifine.net", status: "gray", code: '...', desc: "Main OptiFine Web Server." },
+                    { server: "s.optifine.net", status: "gray", code: '...', desc: "OptiFine Capes Service" },
+                    { server: "optifined.net", status: "gray", code: '...', desc: "Secondary OptiFine Web Server." }
+                ],
+                mojang_web: [
+                    { server: "minecraft.net", status: "gray", code: '...', desc: "Minecraft Main Website" },
+                    { server: "account.mojang.com", status: "gray", code: '...', desc: "Mojang Accounts Website" },
+                    { server: "mojang.com", status: "gray", code: '...', desc: "Mojang Main Website" }
+                ],
+                mojang: [
+                    { server: "session.minecraft.net", status: "gray", code: '...', desc: "Minecraft Multiplayer Session Service" },
+                    { server: "authserver.mojang.com", status: "gray", code: '...', desc: "Mojang Authentication Service" },
+                    { server: "sessionserver.mojang.com", status: "gray", code: '...', desc: "Mojang Session Server" },
+                    { server: "api.mojang.com", status: "gray", code: '...', desc: "Mojang Public API" },
+                    { server: "textures.minecraft.net", status: "gray", code: '...', desc: "Minecraft Textures Service (aka Player Skins Service)" }
+                ]
+            };
+
+            if(args[0]) {
+                if(args[0].toLowerCase() === 'mojang' || args[0].toLowerCase() === 'minecraft' || args[0].toLowerCase() === 'mc') {
+                    delete responses.optifine;
+                } else
+                if(args[0].toLowerCase() !== 'all') {
+                    delete responses.mojang_web;
+                    delete responses.mojang;
+                }
+            } else {
+                delete responses.mojang_web;
+                delete responses.mojang;
+            }
+
+            log(responses, 'debug');
+
+            translate(responses, () => {
+                log('length1: ' + of_servers_text.length, 'trace');
+                log('length2: ' + mc_servers_text.length, 'trace');
+
+                let embed = new discord.RichEmbed()
+                    .setColor(cfg.vs.embed.default)
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_connect.png'), "icon.png"))
+                    .setAuthor('Server Status', 'attachment://icon.png')
+                    .setFooter(footer);
+
+                    if(responses.optifine) {
+                        embed.addField('OptiFine Servers', of_servers_text)
+                    }
+
+                    if(responses.mojang_web) {
+                        embed.addField('Mojang Websites', mc_websites_text)
+                    }
+
+                    if(responses.mojang) {
+                        embed.addField('Mojang Services', mc_servers_text)
+                    }
+
+                m.channel.send("_ _", { embed: embed }).then(msg => {
+                    TOOLS.messageFinalize(m.author.id, msg);
+
+                    let s1 = false;
+                    let s2 = false;
+                    let s3 = false;
+                    let s4 = false;
+
+                    let current_of = JSON.parse(JSON.stringify(of_servers_text));
+                    let current_mw = JSON.parse(JSON.stringify(mc_websites_text));
+                    let current_mc = JSON.parse(JSON.stringify(mc_servers_text));
+
+                    if(!responses.optifine) {
+                        s1 = true;
+                        s2 = true;
+                        s3 = true;
+                    }
+                    if(!responses.mojang || !responses.mojang_web) {
+                        s4 = true;
+                    }
+
+                    let thisLoop = 0;
+
+                    let updateLoop = bot.setInterval(() => {
+                        thisLoop++;
+                        if (thisLoop === 10) embed.setDescription('This is taking a while. At this point, you could safely assume the remaining servers are down.');
+                        if (msg.deleted) {
+                            log('status message deleted', 'trace');
+                            bot.clearInterval(updateLoop);
+                        } else {
+                            log('checking update', 'trace');
+                            translate(responses, (newOF, newMW, newMC) => {
+                                if (current_of !== newOF || current_mc !== newMC || current_mw !== newMW || thisLoop === 5) {
+                                    log(current_of, 'trace');
+                                    log(newOF, 'trace');
+                                    log('status changed', 'trace');
+
+
+                                    if (responses.optifine && !(responses.mojang_web || responses.mojang)) {
+                                        embed.fields[0].value = newOF;
+                                    } else
+                                    if ((responses.mojang_web || responses.mojang) && !responses.optifine) {
+                                        embed.fields[0].value = newMW;
+                                        embed.fields[1].value = newMC;
+                                    } else
+                                    if (responses.optifine && responses.mojang_web && responses.mojang) {
+                                        embed.fields[0].value = newOF;
+                                        embed.fields[1].value = newMW;
+                                        embed.fields[2].value = newMC;
+                                    }
+
+                                    embed.setFooter(footer);
+
+                                    if (s1 && s2 && s3 && s4) {
+                                        embed.description = null;
+                                        msg.edit("_ _", { embed: embed });
+
+                                        log('status message updated', 'trace');
+                                        log('finished checking status', 'trace');
+                                        bot.clearInterval(updateLoop);
+
+                                        responses.timestamp = new Date().getTime();
+                                        memory.bot.status = responses;
+                                        bot.setTimeout(() => {
+                                            if(memory.bot.status.timestamp === responses.timestamp) {
+                                                log('status expired', 'debug');
+                                                memory.bot.status = {}
+                                            }
+                                        }, (1000 * 60 * 5));
+                                    } else {
+                                        msg.edit("_ _", { embed: embed });
+
+                                        log('status message updated', 'trace');
+                                        current_of = JSON.parse(JSON.stringify(newOF));
+                                        current_mc = JSON.parse(JSON.stringify(newMC));
+                                        current_mw = JSON.parse(JSON.stringify(newMW));
+                                    }
+                                } else log('no update', 'trace');
+                            });
+                        }
+
+                    }, 1000);
+
+                    if(responses.optifine) {
+                        log('making optifine requests', 'trace');
+                        request({ url: 'http://optifine.net/home', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
+                            if (err) {
+                                if (err.code === 'ETIMEDOUT') {
+                                    responses.optifine[0].status = 'red';
+                                    responses.optifine[0].code = 'error';
+                                    s1 = true;
+                                } else {
+                                    responses.optifine[0].status = 'orange';
+                                    responses.optifine[0].code = 'error';
+                                    s1 = true;
+                                    log(err.stack, 'error');
+                                }
+                            } else
+                            if (!res || !body) {
+                                responses.optifine[0].status = 'black';
+                                responses.optifine[0].code = 'error';
+                                s1 = true;
+                            } else
+                            if (res.statusCode === 200) {
+                                responses.optifine[0].status = 'green';
+                                responses.optifine[0].code = res.statusCode;
+                                s1 = true;
+                            } else
+                            if ([404, 503, 520, 522, 524].indexOf(res.statusCode) !== -1) {
+                                responses.optifine[0].status = 'red';
+                                responses.optifine[0].code = res.statusCode;
+                                s1 = true;
+                            } else {
+                                log('Unexpected response from ' + responses.optifine[0].server + ' - ' + res.statusCode, 'error');
+                                responses.optifine[0].status = 'teal';
+                                responses.optifine[0].code = res.statusCode;
+                                s1 = true;
+                            }
+                        });
+
+                        request({ url: 'http://s.optifine.net', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
+                            if (err) {
+                                if (err.code === 'ETIMEDOUT') {
+                                    responses.optifine[1].status = 'red';
+                                    responses.optifine[1].code = 'Error';
+                                    s2 = true;
+                                } else {
+                                    responses.optifine[1].status = 'orange';
+                                    responses.optifine[1].code = 'Error';
+                                    s2 = true;
+                                    log(err.stack, 'error');
+                                }
+                            } else
+                            if (!res) {
+                                responses.optifine[1].status = 'black';
+                                responses.optifine[1].code = 'Error';
+                                s2 = true;
+                            } else
+                            if (res.statusCode === 404) {
+                                responses.optifine[1].status = 'green';
+                                responses.optifine[1].code = res.statusCode;
+                                s2 = true;
+                            } else
+                            if ([503, 520, 522, 524].indexOf(res.statusCode) !== -1) {
+                                responses.optifine[1].status = 'red';
+                                responses.optifine[1].code = res.statusCode;
+                                s2 = true;
+                            } else {
+                                log('Unexpected response from ' + responses.optifine[1].server + ' - ' + res.statusCode, 'error');
+                                responses.optifine[1].status = 'teal';
+                                responses.optifine[1].code = res.statusCode;
+                                s2 = true;
+                            }
+                        });
+
+                        request({ url: 'http://optifined.net', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
+                            if (err) {
+                                if (err.code === 'ETIMEDOUT') {
+                                    responses.optifine[2].status = 'red';
+                                    responses.optifine[2].code = 'error';
+                                    s3 = true;
+                                } else {
+                                    responses.optifine[2].status = 'orange';
+                                    responses.optifine[2].code = 'error';
+                                    s3 = true;
+                                    log(err.stack, 'error');
+                                }
+                            } else
+                            if (!res || !body) {
+                                responses.optifine[2].status = 'black';
+                                responses.optifine[2].code = 'error';
+                                s3 = true;
+                            } else
+                            if (res.statusCode === 200) {
+                                responses.optifine[2].status = 'green';
+                                responses.optifine[2].code = res.statusCode;
+                                s3 = true;
+                            } else
+                            if ([404, 503, 520, 522, 524].indexOf(res.statusCode) !== -1) {
+                                responses.optifine[2].status = 'red';
+                                responses.optifine[2].code = res.statusCode;
+                                s3 = true;
+                            } else {
+                                log('Unexpected response from ' + responses.optifine[2].server + ' - ' + res.statusCode, 'error');
+                                responses.optifine[2].status = 'teal';
+                                responses.optifine[2].code = res.statusCode;
+                                s3 = true;
+                            }
+                        });
+                    }
+
+                    if(responses.mojang || responses.mojang_web) {
+                        log('making mojang requests', 'trace');
+                        request({ url: 'https://status.mojang.com/check', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
+                            if (err) {
+                                if (err.code === 'ETIMEDOUT') {
+                                    for (let i_m in responses.mojang) {
+                                        responses.mojang[i_m].status = 'black';
+                                        responses.mojang[i_m].code = 'error';
+                                    }
+
+                                    for (let i_m in responses.mojang_web) {
+                                        responses.mojang_web[i_m].status = 'black';
+                                        responses.mojang_web[i_m].code = 'error';
+                                    }
+                                    s4 = true;
+                                } else {
+                                    s4 = true;
+                                    log(err.stack, 'error');
+                                }
+                            } else
+                            if (!res || !body) {
+                                for (let i_m in responses.mojang) {
+                                    responses.mojang[i_m].status = 'black';
+                                    responses.mojang[i_m].code = 'error';
+                                }
+
+                                for (let i_m in responses.mojang_web) {
+                                    responses.mojang_web[i_m].status = 'black';
+                                    responses.mojang_web[i_m].code = 'error';
+                                }
+                                s4 = true;
+                            } else {
+                                let json = JSON.parse(body);
+
+                                /*
+                                // for testing only
+                                json[0][Object.keys(json[0])] = 'yellow';
+                                json[3][Object.keys(json[3])] = 'red';
+                                */
+
+                                let i_s = 0;
+                                let i_w = 0;
+                                let web = [responses.mojang_web[0].server, responses.mojang_web[1].server, responses.mojang_web[2].server];
+
+                                (function mojLoop() {
+                                    log('MCR loop ' + i_s, 'trace');
+                                    if (i_s === json.length) {
+                                        s4 = true;
+                                    } else {
+                                        let index = web.indexOf(Object.keys(json[i_s])[0]);
+                                        let newData = json[i_s][Object.keys(json[i_s])];
+                                        if (index !== -1) {
+                                            responses.mojang_web[index].status = newData;
+                                            responses.mojang_web[index].code = newData;
+
+                                            i_w++;
+                                            i_s++;
+                                            mojLoop();
+                                        } else {
+                                            responses.mojang[i_s - i_w].status = newData;
+                                            responses.mojang[i_s - i_w].code = newData;
+
+                                            i_s++;
+                                            mojLoop();
+                                        }
+                                    }
+                                })();
+                            }
+                        });
+                    }
+
+                    if (!responses.optifine && !responses.mojang && !responses.mojang_web) {
+                        throw new Error('No servers to check.');
+                    }
+                });
+            });
+        }
+    }
+}));
 
 CMD.register(new Command({
     trigger: 'cv',
@@ -2943,66 +3144,137 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'json',
     short_desc: 'JSON Validator',
-    long_desc: "Checks if the attached file is written with valid JSON syntax.",
-    usage: "<file attachment>",
+    long_desc: "Checks if a file is written with valid JSON syntax. Discord CDN links only.",
+    usage: "<file attachment|file link|^ shortcut>",
     hidden: false,
-    fn: (m) => {
-        let file = m.attachments.first(1)[0];
-        if (!file) {
-            TOOLS.errorHandler({ err: 'You must upload a file attachment to validate.', m: m });
-        } else
-            if (file.filesize > 1048576) {
-                TOOLS.errorHandler({ err: 'File size cannot exceed 1MB.', m: m });
-            } else {
-                log(file.filename);
-                request({ url: file.url, headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                    if (err || !res || !body || res.statusCode !== 200) {
-                        TOOLS.errorHandler({ err: err || new Error('Unable to retrieve the message attachment.'), m: m });
-                    } else {
-                        const fileContent = body.toString('utf8', 0, Math.min(body.length, 0 + 24));
-                        for (let i = 0; i < fileContent.length; ++i) {
-                            const charCode = fileContent.charCodeAt(i);
-                            if (charCode === 65533 || charCode <= 8) {
-                                // binary
-                                TOOLS.errorHandler({ err: 'File must be text-only.', m: m });
-                                break;
+    fn: (m, args) => {
+
+        if(args[0]) {
+            if(args[0] === '^') {
+                m.channel.fetchMessages({ limit: 25 }).then(msgs => {
+                    let itr = msgs.values();
+        
+                    (function search() {
+                        let thisID = itr.next();
+                        if (thisID.done) {
+                            TOOLS.errorHandler({ m: m, err: `Could not find an attachment to validate.` });
+                        } else
+                        if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1) {
+                            if(thisID.value.attachments.first(1)[0] !== undefined) {
+                                finalValidate(thisID.value.attachments.first(1)[0].url)
+                            } else {
+                                TOOLS.errorHandler({ err: 'That message does not contain an attachment.', m: m });
                             }
+                        } else search();
+                    })();
+                }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+            } else {
+                try {
+                    let parseurl = new URL(args[0]);
+    
+                    if (parseurl.hostname === 'cdn.discordapp.com') {
+                        finalValidate(parseurl)
+                    } else {
+                        TOOLS.errorHandler({ err: 'Links outside of cdn.discordapp.com are not allowed.', m: m });
+                    }
+                }
+                catch(e) {
+                    TOOLS.errorHandler({ err: 'You must specify a valid link or upload a file attachment.', m: m });
+                }
+            }
+        } else
+        if(m.attachments.first(1)[0]) {
+            finalValidate(m.attachments.first(1)[0].url)
+        } else {
+            TOOLS.errorHandler({ err: 'You must upload or link a file attachment to validate.', m: m });
+        }
 
-                            if (i + 1 === fileContent.length) {
-                                // text
-                                try {
-                                    let validate = JSON.parse(body);
-
-                                    let embed = new discord.RichEmbed()
-                                        .setColor(cfg.vs.embed.okay)
-                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "thumbnail.png"))
-                                        .setAuthor('Valid JSON', 'attachment://thumbnail.png')
-                                        .setDescription('No issues were found.');
-
-                                    m.channel.send({ embed: embed }).then(msg => {
-                                        TOOLS.messageFinalize(m.author.id, msg)
-                                    }).catch(err => {
-                                        TOOLS.errorHandler({ err: err, m: m });
-                                    });
-                                }
-                                catch (err) {
-                                    let embed = new discord.RichEmbed()
-                                        .setColor(cfg.vs.embed.error)
-                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
-                                        .setAuthor('Invalid JSON', 'attachment://thumbnail.png')
-                                        .setDescription(`\`\`\`${err}\`\`\``);
-
-                                    m.channel.send({ embed: embed }).then(msg => {
-                                        TOOLS.messageFinalize(m.author.id, msg)
-                                    }).catch(err => {
-                                        TOOLS.errorHandler({ err: err, m: m });
-                                    });
-                                }
+        function finalValidate(finalURL) {
+            request({ url: finalURL, headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
+                if (err || !res || !body || res.statusCode !== 200) {
+                    TOOLS.errorHandler({ err: err || new Error('Unable to retrieve file from Discord API.'), m: m });
+                } else {
+                    if(body.length > 1048576) {
+                        TOOLS.errorHandler({ err: 'File cannot exceed 1MB in size.', m: m });
+                        return;
+                    } 
+                    const fileContent = body.toString('utf8', 0, Math.min(body.length, 0 + 24));
+                    for (let i = 0; i < fileContent.length; ++i) {
+                        const charCode = fileContent.charCodeAt(i);
+                        if (charCode === 65533 || charCode <= 8) {
+                            // binary
+                            TOOLS.errorHandler({ err: 'File must be text-only.', m: m });
+                            break;
+                        }
+    
+                        if (i + 1 === fileContent.length) {
+                            // text
+                            try {
+                                let validate = JSON.parse(body);
+    
+                                let embed = new discord.RichEmbed()
+                                    .setColor(cfg.vs.embed.okay)
+                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "thumbnail.png"))
+                                    .setAuthor('Valid JSON', 'attachment://thumbnail.png')
+    
+                                m.channel.send({ embed: embed }).then(msg => {
+                                    TOOLS.messageFinalize(m.author.id, msg)
+                                }).catch(err => {
+                                    TOOLS.errorHandler({ err: err, m: m });
+                                });
+                            }
+                            catch (err) {
+                                let embed = new discord.RichEmbed()
+                                    .setColor(cfg.vs.embed.error)
+                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
+                                    .setAuthor('Invalid JSON', 'attachment://thumbnail.png')
+                                    .setDescription(`\`\`\`${err}\`\`\``);
+    
+                                m.channel.send({ embed: embed }).then(msg => {
+                                    TOOLS.messageFinalize(m.author.id, msg)
+                                }).catch(err => {
+                                    TOOLS.errorHandler({ err: err, m: m });
+                                });
                             }
                         }
                     }
-                });
+                }
+            });
+        }
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'mock',
+    short_desc: 'MoCkInG tOnE translator',
+    long_desc: 'Rewrites a given message with a mOcKiNg tOnE. In other words, it makes every first character lowercase and every second character uppercase.',
+    usage: "<message>",
+    admin_only: true,
+    hidden: false,
+    fn: (m, args) => {
+        if(args[0]) {
+            let org = m.content.substring( (cfg.basic.trigger + 'mock ').length );
+            let newStr = '';
+
+            for(let i = 0; i < org.length; i++) {
+                let thisChar = org.charAt(i);
+
+                if(i % 2 === 1) {
+                    thisChar = thisChar.toUpperCase();
+                } else {
+                    thisChar = thisChar.toLowerCase();
+                }
+
+                newStr += thisChar;
+
+                if(i+1 === org.length) {
+                    TOOLS.typerHandler(m.channel, false);
+                    m.channel.send(`\`\`\`${newStr}\`\`\``);
+                }
             }
+        } else {
+            TOOLS.errorHandler({ err: "You must specify a message to translate.", m: m });
+        }
     }
 }));
 
@@ -3294,14 +3566,13 @@ CMD.register(new Command({
             }
 
             TOOLS.getTargetUser(m, args[0], (userid) => {
-                
                 if (userid) {
                     memory.db.cape.find({ userid: userid }, (err, docs) => {
                         if (err) {
                             TOOLS.errorHandler({ err: err, m: m });
                         } else
                         if (docs.length === 0) {
-                            TOOLS.errorHandler({ err: 'That user does not have a verified donator cape.', m: m });
+                            TOOLS.errorHandler({ err: `${(userid === m.author.id) ? 'You do' : 'That user does'} not have a verified donator cape.`, m: m });
                         } else {
                             request({ url: 'https://api.mojang.com/user/profiles/' + docs[0].mcid + '/names', encoding: null }, (err, res, data) => {
                                 if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
@@ -3510,12 +3781,41 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'docs',
-    short_desc: 'Link to OptiFine documentation.',
-    long_desc: "Search for files in the current version of OptiFine documentation. If no search query is provided, OptiBot will just give you a link to the documentation on GitHub",
-    usage: '!docs [query]',
+    trigger: 'docs', 
+    short_desc: 'Search OptiFine documentation.',
+    long_desc: "Search for various files in the current version of OptiFine documentation. If no search query is provided, OptiBot will just give you a link to the documentation on GitHub. \n\n**Note: This is the all new, somewhat experimental version of the `!docs` command.** This version provides \"categories\" of documentation, which makes things easier to look for. However, due to the nature of this new system, some files may be missing, especially if they've only been recently added. For the legacy version of this command, use `!docfile`. It will always be up-to-date, as it downloads directly from GitHub.",
+    usage: '[query]',
     hidden: false,
     fn: (m, args) => {
+        if(!args[0]) {
+            let embed = new discord.RichEmbed()
+            .setColor(cfg.vs.embed.default)
+            .attachFile(new discord.Attachment(memory.bot.icons.get("opti_docs.png"), "icon.png"))
+            .setAuthor("Official OptiFine Documentation", 'attachment://icon.png')
+            .addField("Main Directory", "https://github.com/sp614x/optifine/tree/master/OptiFineDoc/doc");
+
+            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        } else {
+            let query = m.content.substring((cfg.basic.trigger + 'docs ').length).toLowerCase();
+            let match = cstr.findBestMatch(query, Object.keys(memory.bot.docs_cat));
+
+            if(match.bestMatch.rating < 0.1) {
+                TOOLS.errorHandler({ err: "Could not find any files matching that query.", m:m });
+            } else {
+                let data = memory.bot.docs_cat[match.bestMatch.target];
+
+                let embed = new discord.RichEmbed()
+                .setColor(cfg.vs.embed.default)
+                .attachFile(new discord.Attachment(memory.bot.icons.get("opti_docs.png"), "icon.png"))
+                .setAuthor("Official OptiFine Documentation", 'attachment://icon.png')
+                .addField(data.name, data.links.join('\n\n'))
+                .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
+
+                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            }
+        }
+
+        /*
         let embed = new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get("opti_docs.png"), "thumbnail.png"))
@@ -3544,6 +3844,54 @@ CMD.register(new Command({
                         embed.setDescription("Could not find a file matching that query.")
 
                         m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    } else {
+                        if(match.bestMatch.target.endsWith('.png')) {
+                            embed.setImage(memory.bot.docs[match.bestMatchIndex].download_url);
+                        }
+    
+                        embed.addField(match.bestMatch.target, memory.bot.docs[match.bestMatchIndex].html_url)
+                        embed.setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
+    
+                        m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    }
+                }
+            }
+        }
+        */
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'docfile',
+    short_desc: 'Link to a direct file on the OptiFine documentation.',
+    long_desc: "Search for files in the current version of OptiFine documentation.",
+    usage: '[query]',
+    hidden: false,
+    fn: (m, args) => {
+        let embed = new discord.RichEmbed()
+            .setColor(cfg.vs.embed.default)
+            .attachFile(new discord.Attachment(memory.bot.icons.get("opti_docs.png"), "thumbnail.png"))
+            .setAuthor("Official OptiFine Documentation", 'attachment://thumbnail.png')
+
+        if(!args[0]) {
+            TOOLS.errorHandler({err: "You must specify a file to search for.", m:m});
+        } else {
+            let files = [];
+
+            for(let i = 0; i < memory.bot.docs.length; i++) {
+                files.push(memory.bot.docs[i].name);
+
+                if(i+1 === memory.bot.docs.length) {
+                    let search = [
+                        cstr.findBestMatch(m.content.substring(cfg.basic.trigger.length+5).toLowerCase(), files),
+                        cstr.findBestMatch(m.content.substring(cfg.basic.trigger.length+5).toUpperCase(), files),
+                        cstr.findBestMatch(m.content.substring(cfg.basic.trigger.length+5), files)
+                    ].sort((a, b) => a.bestMatch.rating > b.bestMatch.rating);
+
+                    let match = search[2];
+
+                    if(match.bestMatch.rating < 0.1) {
+                        TOOLS.errorHandler({err: "Could not find a file matching that query.", m:m});
                     } else {
                         if(match.bestMatch.target.endsWith('.png')) {
                             embed.setImage(memory.bot.docs[match.bestMatchIndex].download_url);
@@ -3761,7 +4109,7 @@ CMD.register(new Command({
                 (function search() {
                     log('search loop'+i, 'trace');
                     let question = messages[i].content.match(qrgx);
-                    let answer = messages[i].content.split('\n').slice(1).join('\n').replace(/A:/i, "").trim();
+                    let answer = messages[i].content.split('\n').slice(1).join('\n').replace(/A:/i, "").replace(/_\s+_\s*$/, "").trim();
 
                     if(question !== null) {
                         let match = cstr.compareTwoStrings(query, question[0]);
@@ -3780,9 +4128,9 @@ CMD.register(new Command({
                         } else {
                             let embed = new discord.RichEmbed()
                             .setColor(cfg.vs.embed.default)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_faq.png'), "icon.png"))
                             .setAuthor('Frequently Asked Questions', 'attachment://icon.png')
-                            .setDescription(`Click [here](${highest.message.url}) to go to the original message link.`)
+                            .setDescription(`Click [here](${highest.message.url}) to go to the original message link. Be sure to also check out the <#531622141393764352> channel for more questions and answers.`)
                             .addField(highest.question, (highest.answer) ? highest.answer : "_ _")
                             .setFooter(`${(highest.rating * 100).toFixed(1)}% match during search.`);
 
@@ -3808,8 +4156,138 @@ CMD.register(new Command({
     }
 }));
 
+CMD.register(new Command({
+    trigger: 'motd',
+    short_desc: 'View the MOTD.',
+    long_desc: 'View the MOTD, the message sent by OptiBot to every new user that joins the server. You can also set a message to be included. You can reset custom messages with `!clearmotd`',
+    usage: '[message]',
+    admin_only: true,
+    hidden: false,
+    fn: (m, args) => {
+        if(!args[0]) {
+            m.channel.send({ embed: memory.bot.motd }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        } else {
+            let newMsg = m.content.substring( (cfg.basic.trigger + 'motd ').length );
+
+            if(memory.bot.motd.fields[0] && memory.bot.motd.fields[0].value.toLowerCase() === newMsg.trim().toLowerCase()) {
+                TOOLS.errorHandler({ err: "New MOTD Message cannot be the same as the current message.", m: m });
+                return;
+            }
+
+            let confirm = new discord.RichEmbed()
+                .setColor(cfg.vs.embed.default)
+                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+                .setAuthor(`Are you sure want to change the MOTD message?`, 'attachment://icon.png')
+                .setDescription('This message will be shown to ALL users who join the server. \n\nType `!confirm` to continue.\nType `!cancel` or simply ignore this message to cancel.')
+
+            if(memory.bot.motd.fields[0]) {
+                confirm.addField('Current Message Preview', memory.bot.motd.fields[0].value);
+            }
+
+            confirm.addField('New Message Preview', newMsg.substring(0, 1024) )
+                .setFooter('Note that messages must be less than 1024 characters in length. Your message may have been automatically shortened to fit.');
+
+            
+            m.channel.send({ embed: confirm }).then(() => {
+                TOOLS.typerHandler(m.channel, false);
+                TOOLS.confirmationHandler(m, (result) => {
+                    if (result === 1) {
+                        memory.db.motd.update({motd: true}, {motd:true, message:newMsg.substring(0, 1024)}, { upsert: true }, (err) => {
+                            if(err) {
+                                TOOLS.errorHandler({ m:m, err:err });
+                            } else {
+                                if(memory.bot.motd.fields[0]) {
+                                    memory.bot.motd.fields[0].value = newMsg.substring(0, 1024);
+                                } else {
+                                    memory.bot.motd.addField('A message from Moderators', newMsg.substring(0, 1024))
+                                }
+        
+                                let embed = new discord.RichEmbed()
+                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                                    .setColor(cfg.vs.embed.okay)
+                                    .setAuthor("Message set.", "attachment://icon.png")
+                                    .setDescription(`Type \`${cfg.basic.trigger}motd\` to see how it looks.`)
+        
+                                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                            }
+                        });
+                    } else
+                    if (result === 0) {
+                        let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.okay)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                            .setAuthor(`Request cancelled.`, 'attachment://icon.png');
+
+                        m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    } else
+                    if (result === 2) {
+                        let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.okay)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                            .setAuthor(`Request timed out.`, 'attachment://icon.png');
+
+                        m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    }
+                });
+            })
+        }
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'clearmotd',
+    short_desc: 'Clear custom MOTD message.',
+    long_desc: 'Clears the custom MOTD message, which is set by using `!motd`.',
+    admin_only: true,
+    hidden: false,
+    fn: (m) => {
+        if(!memory.bot.motd.fields[0]) {
+            TOOLS.errorHandler({ err:'There is no message currently set.', m:m });
+        } else {
+            let confirm = new discord.RichEmbed()
+            .setColor(cfg.vs.embed.default)
+            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+            .setAuthor(`Are you sure want to remove the MOTD message?`, 'attachment://icon.png')
+            .setDescription('This will remove the current message set in the MOTD. \n\nType `!confirm` to continue.\nType `!cancel` or simply ignore this message to cancel.')
+
+            m.channel.send({embed:confirm}).then(msg => {
+                TOOLS.confirmationHandler(m, (result) => {
+                    let embed = new discord.RichEmbed()
+                    .setColor(cfg.vs.embed.okay)
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+
+                    if (result === 1) {
+                        memory.db.motd.update({motd: true}, {motd:true, message:''}, { upsert: true }, (err) => {
+                            if(err) {
+                                TOOLS.errorHandler({ err:err, m:m });
+                            } else {
+                                memory.bot.motd.fields = [];
+
+                                embed.setAuthor(`Successfully removed message.`, 'attachment://icon.png');
+                                m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });     
+                            }
+                        });
+                    } else
+                    if (result === 0) {
+                        embed.setAuthor(`Request cancelled.`, 'attachment://icon.png');
+                        m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    } else
+                    if (result === 2) {
+                        embed.setAuthor(`Request timed out.`, 'attachment://icon.png');
+                        m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    }
+                });
+            });
+        }
+    }
+}));
+
 ////////////////////////////////////////////////////////////////////////////////
-// Global Functions
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// TOOLS
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 TOOLS.confirmationHandler = (m, cb) => {
@@ -4352,19 +4830,23 @@ TOOLS.muteHandler = (m, args, action) => {
                 let retryCount = 0;
                 let i = 0;
 
-                /*
-                bot.guilds.get(cfg.basic.of_server).fetchBans().then(bans => {
-                    // todo: remove users from database if they've been banned
-                    // need permissions before working on this
-                    // see: #27
-                }).catch(err => {
-                    TOOLS.errorHandler({err:err});
-                });
-                */
+                let bannedUsersRemoved = 0;
 
-                log('checking '+res.length+' user(s) for mute time limit', 'debug');
+                
+                bot.guilds.get(cfg.basic.of_server).fetchBans().then(bans => {
+                    log('checking '+res.length+' user(s) for muteHandler', 'debug');
                     for(let i_s=0;i_s<res.length;i_s++) {
                         log(`checking ${i_s+1}/${res.length}`, 'trace')
+
+                        if(bans.has(res[i_s].member_id)) {
+                            memory.db.muted.remove({ member_id: res[i_s].member_id }, (err) => {
+                                if (err) {
+                                    TOOLS.errorHandler({ err: err });
+                                } else {
+                                    bannedUsersRemoved++;
+                                }
+                            });
+                        } else
                         if (typeof res[i_s].time === 'number' && (new Date().getTime() > res[i_s].time)) {
                             unmuteAgenda.push(res[i_s].member_id);
                         }
@@ -4378,6 +4860,10 @@ TOOLS.muteHandler = (m, args, action) => {
                     function unmuteLooper() {
                         if(unmuteAgenda.length === 0) {
                             log('No users to unmute.', 'debug')
+
+                            if(bannedUsersRemoved > 0) {
+                                log(`Removed ${bannedUsersRemoved} banned user(s) from muted list.`)
+                            }
                             return;
                         }
                         if(unmuteAgenda[i] === undefined) return;
@@ -4433,6 +4919,9 @@ TOOLS.muteHandler = (m, args, action) => {
                             });
                         }
                     }
+                }).catch(err => {
+                    TOOLS.errorHandler({err:err});
+                });
             }
         });
     }
@@ -4445,6 +4934,9 @@ TOOLS.getTargetUser = (m, target, cb) => {
     log(m.mentions.users.size > 0, 'trace');
     log(target.match(/^(<@).*(>)$/) !== null && m.mentions.users.size > 0, 'trace');
 
+    if(target.toLowerCase() === 'me') {
+        cb(m.author.id, `${m.author.username}#${m.author.discriminator}`)
+    } else
     if (target.match(/^(<@).*(>)$/) !== null && m.mentions.users.size > 0) {
         cb(m.mentions.users.first(1)[0].id, `${m.mentions.users.first(1)[0].username}#${m.mentions.users.first(1)[0].discriminator}`);
     } else
@@ -4457,7 +4949,7 @@ TOOLS.getTargetUser = (m, target, cb) => {
                 if (thisID.done) {
                     TOOLS.errorHandler({ m: m, err: `Could not find a user.` });
                 } else
-                    if (thisID.value.author.id !== m.author.id && thisID.value.author.id !== bot.user.id) {
+                    if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1) {
                         cb(thisID.value.author.id, `${thisID.value.author.username}#${thisID.value.author.discriminator}`);
                     } else search();
             })();

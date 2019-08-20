@@ -4862,6 +4862,8 @@ TOOLS.muteHandler = (m, args, action) => {
                             log('No users to unmute.', 'debug')
 
                             if(bannedUsersRemoved > 0) {
+                                // todo: this message isnt showing for some reason
+                                // apart from that, the new system for removing banned users seems to work so i guess thats cool
                                 log(`Removed ${bannedUsersRemoved} banned user(s) from muted list.`)
                             }
                             return;

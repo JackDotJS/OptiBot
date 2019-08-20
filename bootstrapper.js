@@ -61,11 +61,13 @@ const log = (m, lvl, data) => {
             message_color = '\x1b[93m';
         } else
         if(lvl.toLowerCase() === 'debug') {
+            if(!env.debug) return;
             level = '[DEBUG]';
             level_color = '\x1b[35m';
             message_color = '\x1b[35m';
         } else
         if(lvl.toLowerCase() === 'trace') {
+            if(!env.debug) return;
             level = '[TRACE]';
             level_color = '\x1b[35m';
             message_color = '\x1b[35m';

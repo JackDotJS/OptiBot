@@ -27,7 +27,7 @@ const env = {
     rl: readline.createInterface({
         input: process.stdin,
         output: process.stdout
-    })
+    }),
 }
 
 const log = (m, lvl, data) => {
@@ -104,22 +104,24 @@ const log = (m, lvl, data) => {
             try {
                 // try Map
                 Map.prototype.has.call(m);
-                message =JSON.stringify(Object.fromEntries(m));
+                message = JSON.stringify(Object.fromEntries(m), null, 4);
                 finalSend();
             } 
             catch(e2) {
                 try {
                     // try Set
                     Set.prototype.has.call(m);
-                    message = JSON.stringify(Array.from(m));
+                    message = JSON.stringify(Array.from(m), null, 4);
                     finalSend();
                 }
                 catch(e3) {
                     try {
                         // try JSON
-                        message = JSON.stringify(m);
+                        message = JSON.stringify(m, null, 4);
+                        finalSend();
                     }
                     catch(e) {
+                        console.log('failed interp');
                         finalSend();
                     }
                     
@@ -149,17 +151,27 @@ const log = (m, lvl, data) => {
 
 process.title = `OptiBot ${pkg.version}`;
 
-(function setup() {
+(function setup_dirs() {
+    init_q1();
+    return;
+
     (function check_cfg() {
-        // todo
-        check_data();
+        fs.mkdir('./cfg', (err) => {
+            if(err) {
+                if(err.code === 'EEXIST') {
+                    check_data();
+                } else throw err;
+            } else {
+                
+            }
+        });
     })();
 
     function check_data() {
+        return;
         let buildTemplate = {
             num:0,
             hash:"nodata"
-        
         }
     
         fs.mkdir('./data', (err) => {
@@ -167,8 +179,7 @@ process.title = `OptiBot ${pkg.version}`;
                 if(err.code === 'EEXIST') {
                     check_logs();
                 } else throw err;
-            }
-            else {
+            } else {
                 fs.writeFile('./data/build.json', JSON.stringify(buildTemplate), (err) => {
                     if(err) throw err;
                     else {
@@ -180,14 +191,104 @@ process.title = `OptiBot ${pkg.version}`;
     }
 
     function check_logs() {
+        return;
         fs.mkdir('./logs', (err) => {
             if(err && err.code !== 'EEXIST') throw err;
             else {
-                init_q1();
+                setup_files()
             }
         });
     }
 })();
+
+function setup_files() {
+    return;
+    // todo: check if files exist before writing
+
+    let default_config = {
+        "basic": {
+            "trigger": "!",
+            "of_server": "423430686880301056",
+            "ob_server": "517649143590813707"
+        },
+        "cd": {
+            "timer_min": 5,
+            "timer_max": 30,
+            "ol_threshold": 1,
+            "ol_timer": 2,
+            "post_timer_mult": 3,
+            "post_timer": 3,
+            "countdown_interval": 2,
+            "show_countdown": true
+        },
+        "db": {
+            "size": 64
+        },
+        "vs": {
+            "embed": {
+                "default": "E29F00",
+                "okay": "43B581",
+                "error": "DD2E44"
+            },
+            "typer": true
+        },
+        "superusers": [
+            "181214529340833792",
+            "271760054691037184"
+        ],
+        "roles": {
+            "shader_dev": "423834274601369601",
+            "texture_artist": "423836695301980171",
+            "mod_dev": "423839066631569408",
+            "muted": "551089007078015025",
+            "donator": "424169541346525194",
+            "moderator": "467060304145023006"
+        },
+        "channels": {
+            "blacklist": [
+                "479192475727167488",
+                "531622141393764352",
+                "531622838881484800",
+                "423433522842173451",
+                "468678768043753482"
+            ],
+            "mod": [
+                "519150952863891458",
+                "467073441904984074",
+                "545801068664324106"
+            ]
+        },
+        "splash": [
+            "uwu",
+            "<3",
+            "${splashtext}",
+            "if (\"true\" === \"true\") return !false",
+            "now in 3 new flavors",
+            "while yall here be sure to check out my soundcloud",
+            "lmao n00b gg ez",
+            "psp exclusive",
+            "bot of the year",
+            "this bot has gone 0 days bug-free",
+            "[next version] hype",
+            "optifine 1.14 when???",
+            "i cant read",
+            "establish communism",
+            "my wife left me",
+            "FUCK EPIC",
+            "the all new range rover sport",
+            "hilarious joke",
+            "JavaScript, also known as Java for short."
+        ]
+    }
+
+    fs.writeFile('./cfg/config.json', JSON.stringify(default_config), (err) => {
+        if(err) throw err;
+        else {
+        }
+    });
+
+
+}
 
 function init_q1() {
     env.rl.question('Start OptiBot? [Y/N]', (res) => {
@@ -252,74 +353,83 @@ function init_build() {
 
 function init_final() {
     let now = new Date();
-    env.logName = now.toString().replace(/[/\\?%*:|"<>]/g, '.');
+    env.logName = now.toUTCString().replace(/[/\\?%*:|"<>]/g, '.');
     env.log = fs.createWriteStream(`./logs/${env.logName}.log`);
 
+    log('Initialization: Copying profiles for safety', 'debug');
+    fs.copyFile(`./data/profiles.db`, `./archive/data/profiles_before_${env.logName}.db`, (err) => {
+        if(err) throw err
+        else {
+            process.stdout.write('\033c');
+            log('Initialization: Spawning child process (index.js)', 'debug');
+            const optibot = spawn('node', ['index.js', env.debug, env.init.getTime(), env.logName], {
+                stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+            });
 
-    process.stdout.write('\033c');
-    log('Initialization: Spawning child process (index.js)', 'debug');
-    const optibot = spawn('node', ['index.js', env.debug, env.init.getTime()], {
-        stdio: ['pipe', 'pipe', 'pipe', 'ipc']
-    });
+            optibot.stdout.on('data', (data) => {
+                log(data, undefined, 'index.js:NULL');
+            });
 
-    optibot.stdout.on('data', (data) => {
-        log(data);
-    });
+            optibot.stderr.on('data', (data) => {
+                log(data, 'fatal', 'index.js:NULL');
+            });
 
-    optibot.stderr.on('data', (data) => {
-        log(data, 'fatal');
-    });
+            optibot.on('message', (data) => {
+                if(typeof data.misc !== 'undefined') {
+                    log(data.message, data.level, data.misc);
+                }
+            });
 
-    optibot.on('message', (data) => {
-        if(typeof data.misc !== 'undefined') {
-            log(data.message, data.level, data.misc);
+            optibot.on('exit', (code) => {
+                setTimeout(() => {
+                    log(`Child process ended with exit code ${code}`);
+
+                    if(code === 0) {
+                        log('OptiBot is now shutting down at user request.');
+                        end(code, true);
+                    } else
+                    if(code === 1) {
+                        log('OptiBot seems to have crashed. Restarting...');
+                        end(code, false, 'CRASH');
+                    } else
+                    if(code === 2) {
+                        log('OptiBot is now restarting at user request...');
+                        end(code, false);
+                    } else
+                    if(code === 3) {
+                        log('Resetting message cache and restarting at user request...');
+                        fs.unlink('./data/messages.db', (err) => {
+                            if(err) log('Failed to delete messages database.', 'fatal');
+                            end(code, false);
+                        });
+                    } else
+                    if(code === 4) {
+                        log('OptiBot is being updated...');
+                        update();
+                    } else
+                    if(code === 10) {
+                        log('OptiBot is now undergoing scheduled restart.');
+                        end(code, false);
+                    } else
+                    if(code === 24) {
+                        log(`OptiBot encountered a fatal error and is shutting down to prevent any further damage. This is likely a problem that the program cannot solve on it's own.`);
+                        end(code, true, 'FATAL');
+                    } else
+                    if(code === 1000) {
+                        log(`OptiBot was forcefully shut down.`, 'fatal');
+                        end(code, true, 'OBES');
+                    }
+                }, 1000);
+            });
         }
     });
 
-    optibot.on('exit', (code) => {
-        setTimeout(() => {
-            log(`Child process ended with exit code ${code}`);
-
-            if(code === 0) {
-                log('OptiBot is now shutting down at user request.');
-                end(code, true);
-            } else
-            if(code === 1) {
-                log('OptiBot seems to have crashed. Restarting...');
-                end(code, false, true);
-            } else
-            if(code === 2) {
-                log('OptiBot is now restarting at user request...');
-                end(code, false);
-            } else
-            if(code === 3) {
-                log('Resetting message cache and restarting at user request...');
-                fs.unlink('./data/messages.db', (err) => {
-                    if(err) log('Failed to delete messages database.', 'fatal');
-                    end(code, false);
-                });
-            } else
-            if(code === 4) {
-                log('OptiBot is being updated...');
-                update();
-            } else
-            if(code === 10) {
-                log('OptiBot is now undergoing scheduled restart.');
-                end(code, false);
-            } else
-            if(code === 24) {
-                log(`OptiBot encountered a fatal error and is shutting down to prevent any further damage. This is likely a problem that the program cannot solve on it's own.`);
-                end(code, true, true);
-            }
-        }, 1000);
-    });
-
-    function end(code, exit, error) {
+    function end(code, exit, log_suffix) {
         setTimeout(() => {
             env.log.end();
 
-            if(error) {
-                fs.rename(`./logs/${env.logName}.log`, `./logs/${env.logName}_CRASH.log`, (err) => {
+            if(log_suffix) {
+                fs.rename(`./logs/${env.logName}.log`, `./logs/${env.logName}_${log_suffix}.log`, (err) => {
                     if(err) throw err;
                     else {
                         if(exit) {

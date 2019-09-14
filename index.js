@@ -15,13 +15,12 @@ const fs = require('fs');
 const cstr = require('string-similarity');
 const database = require('nedb');
 const callerId = require('caller-id');
+const archive = require('adm-zip');
 
 const cfg = require('./cfg/config.json');
 const keys = require('./cfg/keys.json');
 const pkg = require('./package.json');
 const build = require('./data/build.json');
-const cntbrs = require('./cfg/contributors.json');
-const dntrs = require('./cfg/donators.json');
 const serverlist = require('./cfg/servers.json');
 const docs_list = require('./cfg/docs.json');
 
@@ -29,17 +28,16 @@ const docs_list = require('./cfg/docs.json');
 // Pre-initialize
 ////////////////////////////////////////////////////////////////////////////////
 
-const log = (message, level) => {
-    let path = callerId.getData().filePath;
+const log = (message, level, linenum) => {
+    let cid = callerId.getData();
+    let path = (cid.evalFlag) ? 'eval()' : cid.filePath;
     let filename = path.substring(path.lastIndexOf('\\')+1);
-    let line = callerId.getData().lineNumber;
-
-    let file = filename+':'+line;
+    let line = cid.lineNumber;
 
     process.send({
-        message,
-        level,
-        misc: file 
+        message: message,
+        level: level,
+        misc: (linenum) ? linenum : filename+':'+line 
     });
 }
 
@@ -58,7 +56,6 @@ class Command {
                 usage: (md.usage) ? cfg.basic.trigger + md.trigger + ' ' + md.usage : cfg.basic.trigger + md.trigger,
                 icon: md.icon || false,
                 admin_only: md.admin_only || false,
-                donator_only: md.donator_only || false,
                 hidden: (typeof md.hidden === 'boolean') ? md.hidden : true,
                 dm: (typeof md.dm === 'number') ? md.dm : 1 // 0 = cant use in DM, 1 = can use in DM, 2 = can ONLY use in DM
             }
@@ -112,11 +109,14 @@ class ImageIndex {
 const memory = {
     db: {
         msg: new database({ filename: './data/messages.db', autoload: true }),
-        muted: new database({ filename: './data/muted.db', autoload: true }),
-        cape: new database({ filename: './data/vcape.db', autoload: true }),
-        mdl: new database({ filename: './data/mdl.db', autoload: true }),
-        mdlm: new database({ filename: './data/mdl_messages.db', autoload: true }),
-        motd: new database({ filename: './data/motd.db', autoload: true })
+        muted: new database({ filename: './data/muted.db', autoload: true }), // REMOVE
+        cape: new database({ filename: './data/vcape.db', autoload: true }), // REMOVE
+        mdl: new database({ filename: './data/mdl.db', autoload: true }), // REMOVE
+        mdlm: new database({ filename: './data/mdl_messages.db', autoload: true }), // REMOVE
+        motd: new database({ filename: './data/motd.db', autoload: true }),
+        profiles: new database({ filename: './data/profiles.db', autoload: true }),
+        stats: new database({ filename: './data/statistics.db', autoload: true }),
+        smr: new database({ filename: './data/smr.db', autoload: true })
     },
     bot: {
         debug: false,
@@ -137,7 +137,10 @@ const memory = {
         servers: {},
         avatar: {},
         status: {},
-        motd: {}
+        motd: {},
+    },
+    stats: {
+        unique: []
     },
     cd: {
         active: false,
@@ -204,8 +207,8 @@ log('Logging into Discord API...', 'warn');
 process.title = 'Logging in...';
 
 memory.db.msg.persistence.setAutocompactionInterval(300000);
-memory.db.muted.persistence.setAutocompactionInterval(7200000);
-memory.db.cape.persistence.setAutocompactionInterval(7200000);
+memory.db.profiles.persistence.setAutocompactionInterval(100000);
+memory.db.stats.persistence.setAutocompactionInterval(10000);
 
 const bot = new discord.Client();
 bot.login(keys.discord).then(() => {
@@ -265,6 +268,101 @@ memory.bot.restart_check = bot.setInterval(() => {
         }
     }
 }, 1000);
+
+memory.bot.profile_check = bot.setInterval(() => {
+    if (!memory.bot.shutdown) {
+        memory.db.profiles.find({}, (err, docs) => {
+            if(err) {
+                TOOLS.errorHandler({ err: err });
+            } else {
+                let remove_list = [];
+                for(let i in docs) {
+                    if(Object.keys(docs[i]).length === 1 || (Object.keys(docs[i]).length === 2 && docs[i].warns && docs[i].warns.current.length === 0)) {
+                        remove_list.push(docs[i].member_id);
+                    }
+
+                    if(i+1 === docs.length) {
+                        if(remove_list.length === 0) {
+                            log(`All current users in database have some significant data.`, 'debug');
+                        } else {
+                            remove_loop();
+                        }
+                    }
+                }
+
+                let i2 = 0;
+                function remove_loop() {
+                    memory.db.profiles.remove({ member_id: remove_list[i2] }, {multi:true}, (err) => {
+                        if(err) {
+                            TOOLS.errorHandler({ err: err });
+                        } else 
+                        if (i2+1 === remove_list.length) {
+                            log(`Removed ${remove_list.length} users from profiles database for containing no significant data.`);
+                        } else {
+                            remove_loop();
+                        }
+                    })
+                }
+            }
+        });
+    }
+}, 300000);
+
+memory.bot.warn_check = bot.setInterval(() => {
+    if(!memory.bot.shutdown) {
+        memory.db.profiles.find({ warns: { $exists: true } }, (err, docs) => {
+            if(err) {
+                TOOLS.errorHandler({ err: err });
+            } else 
+            if(!docs[0]) {
+                log('No users with warnings.', 'debug');
+            } else {
+                let i = 0;
+                let warns_expired = 0;
+                (function loopover() {
+                    if(i === docs.length) {
+                        if(warns_expired > 0) {
+                            log(`${warns_expired} user warnings have expired.`);
+
+                        } else {
+                            log(`No user warnings have expired.`, 'debug');
+                        }
+                    } else
+                    if(docs[i].warns.current.length === 0) {
+                        i++;
+                        loopover();
+                    } else {
+                        for(let i2 in docs[i].warns.current) {
+                            if(new Date().getTime() > docs[i].warns.current[i2].expiration) {
+                                delete docs[i].warns.current[i2];
+                                warns_expired++;
+                            }
+
+                            if(parseInt(i2)+1 === docs[i].warns.current.length) {
+                                i++;
+                                loopover();
+                            }
+                        }
+                    }
+                })();
+
+                for(let i in docs) {
+                    if(Object.keys(docs[i]).length === 1 || (Object.keys(docs[i]).length === 2 && docs[i].warns && docs[i].warns.current.length === 0)) {
+                        remove_list.push(docs[i].member_id);
+                    }
+
+                    if(i+1 === docs.length) {
+                        if(remove_list.length === 0) {
+                            log(`All current users in database have some significant data.`, 'debug');
+                        } else {
+                            remove_loop();
+                        }
+                    }
+                }
+            }
+        })
+    }
+}, 300000);
 
 ////////////////////////////////////////////////////////////////////////////////
 // Event Handlers
@@ -364,7 +462,7 @@ bot.on('ready', () => {
                     return;
                 }
 
-                memory.bot.docs = result;
+                memory.bot.docs = result.filter(e => { if(e.type !== 'dir') return true });;
 
                 s2();
             }
@@ -489,18 +587,42 @@ bot.on('ready', () => {
                 let lines = body.match(/(?<=\|).*(?=\|)/g);
                 let smr_data = [];
 
+
+                memory.db.smr.find({}, (err, docs) => {
+                    if(err) {
+                        TOOLS.errorHandler({ err: err });
+                    } else
+                    if(!docs[0]) {
+                        loop1()
+                    } else {
+                        for(let i2 in docs) {
+                            smr_data.push(docs[i2].url);
+
+                            if(parseInt(i2)+1 === docs.length) {
+                                loop1();
+                            }
+                        }
+                    }
+                });
+
                 let i = 2; // ignoring the first two because they're just part of github's table formatting.
-                (function loop1() {
+                function loop1() {
                     let thisLine = lines[i].split("|");
-                    let tld = {
+                    
+                    /*let tld = {
                         url: thisLine[0].trim().replace(" ", "."),
                         rating_ad: thisLine[1].trim(),
                         rating_dist: thisLine[2].trim(),
                         rating_misc: thisLine[3].trim(),
                         note: thisLine[4].trim()
                     };
+                    */
 
-                    if (tld.url.match(/^-+$/) === null && tld.url.length !== 0) {
+                    // i once had the idea to display the ratings and other data when a url is detected, but now i wanna keep it simple
+
+                    let tld = thisLine[0].trim().replace(/\s/g, ".");
+
+                    if (tld.match(/^-+$/) === null && tld.length !== 0) {
                         smr_data.push(tld);
                     }
 
@@ -515,7 +637,7 @@ bot.on('ready', () => {
                         i++;
                         loop1();
                     }
-                })();
+                }
             }
         });
     }
@@ -608,7 +730,7 @@ bot.on('ready', () => {
                     .setFooter('Thank you for reading!')
                 
                 if(docs[0] && docs[0].message.length > 0) {
-                    embed.addField('A message from Moderators', docs[0].message);
+                    embed.addField(`A message from Moderators (Posted on ${docs[0].date.toUTCString()})`, docs[0].message);
                 }
 
                 memory.bot.motd = embed;
@@ -643,12 +765,54 @@ bot.on('ready', () => {
                 let timeEnd = new Date();
                 let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
                 log(`Successfully parsed categorized documentation in ${timeTaken} seconds.`);
-                finalReady();
+                bootS11()
             } else {
                 i++;
                 parseItemLoop();
             }
         })();
+    }
+
+    function bootS11() {
+        log('Initialization: Booting (Stage 11)');
+        let timeStart = new Date();
+
+        // need to reset this at the beginning of every month
+        // also need to archive results of the entire month BEFORE resetting.
+
+        let data = {
+            day: new Date().getDate(),
+            users: {
+                join: 0,
+                leave: 0,
+                bans: 0,
+                kicks: 0,
+                mutes: 0,
+                unique: 0
+            },
+            messages: 0,
+            dms: 0,
+            commands: 0
+        }
+
+        memory.db.stats.find({ day: data.day }, (err, docs) => {
+            if(err) TOOLS.errorHandler({err:err});
+            else if (docs.length === 0) {
+                memory.db.stats.insert(data, (err) => {
+                    if(err) TOOLS.errorHandler({err:err});
+                    else finishStage()
+                })
+            } else {
+                finishStage();
+            }
+        });
+
+        function finishStage() {
+            let timeEnd = new Date();
+            let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
+            log(`Successfully loaded statistics module in ${timeTaken} seconds.`);
+            finalReady();
+        }
     }
 
     function finalReady() {
@@ -665,13 +829,13 @@ bot.on('ready', () => {
             return '//' + (' '.repeat(leftMargin)) + text + (' '.repeat(rightMargin)) + '//';
         }
 
-        log('\x1b[93m' + '/'.repeat(width + 4));
-        log('\x1b[93m' + centerText(`  `, width));
-        log('\x1b[93m' + centerText(`OptiBot ${pkg.version} (Build ${build.num})`, width));
-        log('\x1b[93m' + centerText(TOOLS.randomizer(cfg.splash), width));
-        log('\x1b[93m' + centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2019`, width));
-        log('\x1b[93m' + centerText(`  `, width));
-        log('\x1b[93m' + '/'.repeat(width + 4));
+        log('/'.repeat(width + 4));
+        log(centerText(`  `, width));
+        log(centerText(`OptiBot ${pkg.version} (Build ${build.num})`, width));
+        log(centerText(TOOLS.randomizer(cfg.splash), width));
+        log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2019`, width));
+        log(centerText(`  `, width));
+        log('/'.repeat(width + 4));
 
         process.title = `OptiBot ${pkg.version} (Build ${build.num}) - ${Math.round(bot.ping)}ms Response Time`;
 
@@ -686,43 +850,50 @@ bot.on('ready', () => {
 ////////////////////////////////////////
 
 bot.on('messageReactionAdd', (mr, user) => {
+    if (mr.message.channel.type === 'dm') return;
     if (mr.message.guild.id !== cfg.basic.of_server) return;
     if (user.id === bot.user.id) return;
     if (mr.message.author.id === bot.user.id) return;
-    bot.guilds.get(cfg.basic.of_server).fetchMember(user.id).then((member) => {
-        if (mr.emoji.name === '🏅' && member.permissions.has("KICK_MEMBERS", true)) {
-            log('emoji detected', 'trace');
-            
-            if (mr.message.member.permissions.has("KICK_MEMBERS", true)) return;
+    if (mr.message.member.permissions.has("KICK_MEMBERS", true)) return;
 
-            memory.db.mdlm.find({ msg_id: mr.message.id }, (err, res) => {
-                if (err) TOOLS.errorHandler({ err: err, m: mr.message });
-                else if (res.length === 0) {
-                    log(`${mr.message.author.username}#${mr.message.author.discriminator} was awarded a medal by ${user.username}#${user.discriminator}`);
-
-                    let embed = new discord.RichEmbed()
-                        .setColor(cfg.vs.embed.default)
-                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
-                        .setAuthor('Medal awarded', 'attachment://icon.png')
-                        .setDescription(mr.message.author + ' was awarded a medal by ' + user + '!')
-
-                    mr.message.channel.send({ embed: embed }).then(msg => {
-                        memory.db.mdlm.insert({ msg_id: mr.message.id }, (err) => {
-                            if (err) TOOLS.errorHandler({ err: err, m: mr.message });
-                            else {
-                                TOOLS.messageFinalize(user.id, msg)
-                            }
-                        });
-
-                        memory.db.mdl.update({ user_id: mr.message.author.id }, { $inc: { count: 1 } }, { upsert: true }, (err, updated) => {
-                            if (err) TOOLS.errorHandler({ err: err, m: mr.message });
-                            log('member medals update: ' + updated, 'debug');
-                        });
+    if(mr.emoji.name === '🏅') {
+        bot.guilds.get(cfg.basic.of_server).fetchMember(user.id).then((member) => {
+            if (member.permissions.has("KICK_MEMBERS", true)) {
+                log('emoji detected', 'trace');
+    
+                TOOLS.getProfile(mr.message, mr.message.author.id, (profile) => {
+                    if(profile.medals) {
+                        profile.medals.count++;
+                        profile.medals.msgs.push(mr.message.id);
+                    } else {
+                        profile.medals = {
+                            count: 1,
+                            msgs: [
+                                mr.message.id
+                            ]
+                        }
+                    }
+    
+                    memory.db.profiles.update({member_id: mr.message.author.id}, profile, (err) => {
+                        if (err) TOOLS.errorHandler({ err: err, m: mr.message });
+                        else {
+                            log(`${mr.message.author.username}#${mr.message.author.discriminator} was awarded a medal by ${user.username}#${user.discriminator}`);
+    
+                            let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.default)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
+                            .setAuthor('Medal awarded', 'attachment://icon.png')
+                            .setDescription(`${mr.message.author} was awarded a medal by ${user}!`);
+    
+                            mr.message.channel.send({ embed: embed }).then(msg => {
+                                TOOLS.messageFinalize(user.id, msg);
+                            });
+                        }
                     });
-                }
-            });
-        }
-    });
+                });
+            }
+        });
+    }
 });
 
 ////////////////////////////////////////
@@ -730,12 +901,12 @@ bot.on('messageReactionAdd', (mr, user) => {
 ////////////////////////////////////////
 
 bot.on('messageDelete', m => {
+    if (m.channel.type === 'dm') return;
     if (m.guild.id !== cfg.basic.of_server) return;
     if (m.author.system || m.author.bot) return;
-    if (m.channel.type === 'dm') return;
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
-    if (m.content.toLowerCase().startsWith('!dr')) return;
+    if (m.content.toLowerCase().startsWith(`${cfg.basic.trigger}dr`)) return;
 
     log('messageDelete event', 'trace')
 
@@ -866,18 +1037,18 @@ bot.on('messageDeleteBulk', m => {
 ////////////////////////////////////////
 
 bot.on('messageUpdate', (m, mNew) => {
-    if (m.guild.id !== cfg.basic.of_server) return;
-    if (m.author.system || m.author.bot) return;
     if (m.channel.type === 'dm') return;
+    if (mNew.guild.id !== cfg.basic.of_server) return;
+    if (m.author.system || m.author.bot) return;
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
     if (m.content.trim().toLowerCase() == mNew.content.trim().toLowerCase()) return;
-    if (m.content.toLowerCase().startsWith('!dr')) return;
+    if (m.content.toLowerCase().startsWith(`${cfg.basic.trigger}dr`)) return;
 
     let msg1 = `Recorded message edit at ${new Date()}`;
     let msg2 = `\nPosted by ${m.author.username}#${m.author.discriminator} `;
-    let msg3 = `in #${m.channel.name} on ${m.createdAt} \nOriginal Message Contents: \n"${m.content}"`
-    let msg4 = `\n\nNew Message Contents: \n"${mNew.content}"`
+    let msg3 = `in #${m.channel.name} on ${m.createdAt} \nOriginal Message Contents: \n"${m.content}"`;
+    let msg4 = `\n\nNew Message Contents: \n"${mNew.content}"`;
 
     try {
         if (mNew.member.nickname) msg2 += `(aka "${mNew.member.nickname}") `;
@@ -904,6 +1075,10 @@ bot.on('guildMemberAdd', member => {
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
 
+    memory.db.stats.update({day: new Date().getDate()}, { $inc: { "users.join": 1 } }, (err) => {
+        if(err) TOOLS.errorHandler({err:err});
+    });
+
     let user = member.user.username + '#' + member.user.discriminator;
 
     log('User has joined the server: ' + user + ' (' + member.user.id + ')');
@@ -924,19 +1099,25 @@ bot.on('guildMemberAdd', member => {
         }
     }, 600000);
 
-    memory.db.muted.find({ member_id: member.user.id }, (err, res) => {
+    if (memory.bot.debug) return;
+
+    memory.db.profiles.find({ member_id: member.user.id }, (err, res) => {
         if (err) TOOLS.errorHandler({ err: err });
-        else if (res.length > 0) {
+        else if (res.length > 0 && res[0].mute) {
             log(`User ${user} attempted to circumvent mute.`, 'warn');
-            member.addRole(cfg.roles.muted, `User left and rejoined. Reinstated mute issued by ${res[0].executor}.`).then(() => {
-                if (res[0].time !== false) {
-                    memory.db.muted.update({ member_id: member.user.id }, { $set: { time: new Date(res[0].time + 3600000) } }, (err) => {
-                        if (err) TOOLS.errorHandler({ err: err });
-                        else {
-                            log(`Mute for user ${user} has been extended by one hour.`, 'warn');
-                        }
-                    });
-                }
+            bot.guilds.get(cfg.basic.of_server).fetchMember(res[0].mute.executor).then(executor => {
+                member.addRole(cfg.roles.muted, `User left and rejoined. Reinstated mute issued by ${executor.user.username}#${executor.user.discriminator}.`).then(() => {
+                    if (typeof res[0].mute.end === 'number') {
+                        res[0].mute.end += 3600000;
+    
+                        memory.db.profiles.update({ member_id: member.user.id }, res[0], (err) => {
+                            if (err) TOOLS.errorHandler({ err: err });
+                            else {
+                                log(`Mute for user ${user} has been extended by one hour.`, 'warn');
+                            }
+                        });
+                    }
+                }).catch(err => TOOLS.errorHandler({ err: err }));
             }).catch(err => TOOLS.errorHandler({ err: err }));
         }
     });
@@ -951,17 +1132,21 @@ bot.on('guildBanAdd', (guild, member) => {
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
 
+    memory.db.stats.update({day: new Date().getDate()}, { $inc: { "users.bans": 1 } }, (err) => {
+        if(err) TOOLS.errorHandler({err:err});
+    });
+
     bot.setTimeout(() => {
         bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 1 }).then((audit) => {
             let ad = audit.entries.first();
             if (ad.action === 'MEMBER_BAN_ADD' && ad.target.id === member.id && ad.createdTimestamp + 3000 > new Date().getTime()) {
-                let msg = 'User ' + member.username + '#' + member.discriminator + ' (' + member.id + ') was banned by ' + ad.executor.username + '#' + ad.executor.discriminator;
+                let msg = `User ${member.username}#${member.discriminator} (${member.id}) was banned by ${ad.executor.username}#${ad.executor.discriminator}`;
 
                 if (ad.reason) msg += '\nReason: ' + ad.reason;
 
                 log(msg, 'warn');
             } else {
-                log('User ' + member.username + '#' + member.discriminator + ' (' + member.id + ') was banned from the server.', 'warn');
+                log(`User ${member.username}#${member.discriminator} (${member.id}) was banned from the server.`, 'warn');
                 log('Could not determine ban executor.', 'warn');
             }
         }).catch(err => log(err.stack, 'error'));
@@ -984,11 +1169,19 @@ bot.on('guildMemberRemove', member => {
 
                 if (ad.reason) msg += '\nReason: ' + ad.reason;
 
+                memory.db.stats.update({day: new Date().getDate()}, { $inc: { "users.kicks": 1 } }, (err) => {
+                    if(err) TOOLS.errorHandler({err:err});
+                });
+
                 log(msg, 'warn');
             } else
                 if (ad.action === 'MEMBER_BAN_ADD' && ad.target.id === member.user.id && ad.createdTimestamp + 3000 > new Date().getTime()) {
                     return;
                 } else {
+                    memory.db.stats.update({day: new Date().getDate()}, { $inc: { "users.leave": 1 } }, (err) => {
+                        if(err) TOOLS.errorHandler({err:err});
+                    });
+
                     log('User has left the server: ' + member.user.username + '#' + member.user.discriminator + ' (' + member.user.id + ')', 'warn');
                 }
         }).catch(err => log(err.stack, 'error'));
@@ -1075,17 +1268,46 @@ bot.on('error', err => {
 
 bot.on('message', (m) => {
     if (m.author.bot || m.author.system) return; // message was posted by system or bot
+
+    if(m.channel.type !== 'dm' && m.content.toLowerCase().startsWith(`${cfg.basic.trigger}obs`) && m.member.permissions.has("KICK_MEMBERS", true)) {
+        log('Emergency shutdown initiated.', 'fatal');
+        bot.destroy();
+        setTimeout(() => {
+            process.exit(1000);
+        }, 1000);
+        return;
+    }
+
     if (memory.bot.booting) return; // bot is still loading required assets
     if (memory.bot.shutdown) return; // bot is shutting down or going under a scheduled restart
     if (cfg.channels.blacklist.indexOf(m.channel.id) > -1) return; // channel is on blacklist
+
+    memory.db.stats.update({day: new Date().getDate()}, { $inc: { messages: 1 } }, (err) => {
+        if(err) TOOLS.errorHandler({err:err});
+    });
+
+    if(memory.stats.unique.indexOf(m.author.id) === -1) {
+        memory.stats.unique.push(m.author.id);
+
+        memory.db.stats.update({day: new Date().getDate()}, { $set: { "users.unique": memory.stats.unique.length } }, (err) => {
+            if(err) TOOLS.errorHandler({err:err});
+        });
+    }
+
+    if(m.channel.type === 'dm') {
+        memory.db.stats.update({day: new Date().getDate()}, { $inc: { dms: 1 } }, (err) => {
+            if(err) TOOLS.errorHandler({err:err});
+        });
+    }
 
     if (memory.cd.active) return;
 
     let input = m.content.trim().split("\n", 1)[0];
     let cmd = input.toLowerCase().split(" ")[0].substr(1);
     let args = input.split(" ").slice(1).filter(function (e) { return e.length != 0 });
-    let isSuper = cfg.superusers.indexOf(m.author.id) > -1;
     let cmdValidator = input.match(new RegExp("\\" + cfg.basic.trigger + "\\w"));
+
+    let isSuper = cfg.superusers.indexOf(m.author.id) > -1;
 
     if (memory.bot.debug && !isSuper && memory.bot.locked) {
         // bot is in debug mode and restricted to superuser access only.
@@ -1116,6 +1338,10 @@ bot.on('message', (m) => {
             ////////////////////////////////////////////////////////////////
             // COMMANDS
             ////////////////////////////////////////////////////////////////
+
+            memory.db.stats.update({day: new Date().getDate()}, { $inc: { commands: 1 } }, (err) => {
+                if(err) TOOLS.errorHandler({err:err});
+            });
 
             log('isAdmin: '+isAdmin, 'trace');
             log('isSuper: '+isSuper, 'trace');
@@ -1208,21 +1434,21 @@ bot.on('message', (m) => {
                 m.channel.send({ embed: embed });
             } else
             // 
-            if (memory.bot.smr.some(badlink => m.content.includes(badlink.url))) {
+            if (memory.bot.smr.some(badlink => m.content.includes(badlink))) {
                 TOOLS.typerHandler(m.channel, true);
                 let foundLinks = [];
                 for (let i = 0; i < memory.bot.smr.length; i++) {
-                    if (m.content.indexOf(memory.bot.smr[i].url) > -1) {
-                        foundLinks.push(memory.bot.smr[i].url);
+                    if (m.content.indexOf(memory.bot.smr[i]) > -1) {
+                        foundLinks.push(memory.bot.smr[i]);
                     }
 
-                    if (i + 1 === memory.bot.smr.length) {
+                    if (i+1 === memory.bot.smr.length) {
                         let embed = new discord.RichEmbed()
                             .setColor(cfg.vs.embed.default)
                             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                             .setAuthor('StopModReposts', 'attachment://icon.png')
                             .setDescription(`A link to an illegal Minecraft mod website was detected in [this](${m.url}) message. Remember to avoid suspicious links, and proceed with caution. \nhttps://stopmodreposts.org/`)
-                            .addField((foundLinks.length === 1) ? "Detected URL" : "Detected URLs", "```" + foundLinks.join(', ') + "```");
+                            .addField("Detected URL(s)", "```" + foundLinks.join(', ') + "```");
 
                         TOOLS.typerHandler(m.channel, false);
                         m.channel.send({ embed: embed });
@@ -1447,6 +1673,23 @@ bot.on('message', (m) => {
 ////////////////////////////////////////////////////////////////////////////////
 
 CMD.register(new Command({
+    trigger: 'obs',
+    short_desc: 'Emergency Shutoff',
+    long_desc: `To be used in the event that OptiBot encounters a fatal error and does not shut down automatically. This should especially be used in the case of the bot spamming a text channel. \n\n**This is a last resort option, which could potentially corrupt data if used incorrectly. If at all possible, you should attempt to use the \`${cfg.basic.trigger}stop\` command first.**`,
+    admin_only: true,
+    hidden: false,
+    dm: 2,
+    fn: (m) => {
+        log('Emergency shutdown initiated.', 'fatal');
+        bot.destroy();
+        setTimeout(() => {
+            process.exit(1000);
+        }, 1000);
+        return;
+    }
+}));
+
+CMD.register(new Command({
     trigger: 'restart',
     short_desc: 'Makes the bot restart.',
     admin_only: true,
@@ -1609,6 +1852,9 @@ CMD.register(new Command({
                 return days + " Days"
             }
         }
+
+        let cntbrs = require('./cfg/contributors.json');
+        let dntrs = require('./cfg/donators.json');
 
         let embed = new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
@@ -1776,7 +2022,7 @@ CMD.register(new Command({
             });
 
             let embed = new discord.RichEmbed()
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
                 .setColor(cfg.vs.embed.default)
                 .setAuthor("Permissions List", "attachment://icon.png")
                 .setDescription('https://discordapp.com/developers/docs/topics/permissions')
@@ -1841,36 +2087,33 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'website',
-    short_desc: "Provides a link to both OptiFine official websites.",
+    trigger: 'mojira',
+    short_desc: "Provides a link to the Minecraft: Java Edition Bug Tracker.",
     hidden: false,
     fn: (m) => {
         let embed = new discord.RichEmbed()
+            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_jira.png'), "icon.png"))
             .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_fine.png'), "thumbnail.png"))
-            .setAuthor('OptiFine Official Websites', 'attachment://thumbnail.png')
-            .setDescription('Primary: https://optifine.net/home' +
-                '\nAlternate: https://optifined.net/');
+            .setAuthor('Minecraft: Java Edition Bug Tracker', 'attachment://icon.png')
+            .setDescription('https://bugs.mojang.com/projects/MC/summary');
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
     }
 }));
 
 CMD.register(new Command({
-    trigger: 'dl',
-    short_desc: "Provides a link to download OptiFine.",
+    trigger: 'download',
+    short_desc: "Provides links to download OptiFine.",
     hidden: false,
     fn: (m) => {
-        // yes its almost exactly the same as !website but
-        // uh
-        // shut up, builder wanted it
-
         let embed = new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_fine.png'), "thumbnail.png"))
             .setAuthor('Download OptiFine', 'attachment://thumbnail.png')
-            .setDescription('Primary: https://optifine.net/downloads' +
-                '\nAlternate: https://optifined.net/');
+            .setDescription(`This embed includes ALL official download links for every version of OptiFine. Other websites may claim to be official. **Do not trust them.**`)
+            .addField('Main Website', 'https://optifine.net/downloads')
+            .addField('Alternate/Backup', 'https://optifined.net/downloads')
+            .addField('Older Versions (b1.4 - 1.9)', '[OptiFine History at minecraftforum.net](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/1286605-b1-4-1-9-optifine-history)')
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
     }
@@ -1896,12 +2139,155 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
+    trigger: 'stats',
+    short_desc: "General OptiBot/Server statistics.",
+    fn: (m) => {
+        memory.db.stats.find({ day: new Date().getDate() }, (err, docs) => {
+            if(err) {
+                TOOLS.errorHandler({ err: err, m:m });
+            } else {
+                let embed = new discord.RichEmbed()
+                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_stats.png'), "icon.png"))
+                .setColor(cfg.vs.embed.default)
+                .setAuthor('OptiStats', 'attachment://icon.png')
+                .setDescription('General OptiBot/Server statistics. Not all data may be 100% accurate, this is all just for fun.')
+                .addField('Messages', `Total Messages Received: ${docs[0].messages} \nDirect Messages: ${docs[0].dms} \nCommands: ${docs[0].commands} \n\nApproximately ${((docs[0].dms / docs[0].messages) * 100).toFixed(3)}% of all messages received are via DM. \nApproximately ${((docs[0].commands / docs[0].messages) * 100).toFixed(3)}% of all messages received are OptiBot instructions.`)
+
+                let usermsg = `Users Joined: ${docs[0].users.join} \nUsers Left: ${docs[0].users.leave} \n\nA total of ${docs[0].users.unique} unique users were active today.`;
+                
+
+                if(docs[0].users.join === docs[0].users.leave) {
+                    usermsg += '\nThere seems to be no change in the amount of users in the server.';
+                } else
+                if(docs[0].users.join > docs[0].users.leave) {
+                    usermsg += '\nThere is currently a **net gain** in the amount of users in the server.';
+                } else {
+                    usermsg += 'There is currently a **net loss** in the amount of users in the server.';
+                }
+
+                embed.addField('Users', usermsg)
+                .addField('Moderation', `Users Banned: ${docs[0].users.bans} \nUsers Kicked: ${docs[0].users.kicks} \nUsers Muted: ${docs[0].users.mutes}`)
+
+                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            }
+        });
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'rulestest',
+    short_desc: 'WARNING: This command is a bit spammy (3 large embed messages in a row)',
+    fn: (m) => {
+        let s = (`<:spacer:621259217193402370>`);
+
+
+
+        let rules = [
+            `Do not spam.`,
+            `Keep discussions friendly, respectful, and above all, civil.`,
+            `Keep topics to their respective channels at all times.`,
+            `Follow Discord's Community Guidelines (https://discordapp.com/guidelines) **and** Terms of Service. (https://discordapp.com/terms)`,
+            `Do not ping or DM moderators for trivial issues.`,
+            `Do not beg for free capes.`
+        ];
+
+        for(let i in rules) {
+            rules[i] = `${parseInt(i)+1}) ${rules[i]}`;
+        }
+
+        let rules_embed = new discord.RichEmbed()
+        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
+        .setColor(cfg.vs.embed.default)
+        .setAuthor("Rules", 'attachment://icon.png')
+        .setDescription(s+rules.join(`\n${s}`));
+
+
+
+        let content = [
+            `Advertisements. (unless granted permission by a moderator)`,
+            `Offensive content. (bigotry, nazism, etc.)`,
+            `Pornographic, questionable, and other NSFW content.`,
+            `Disturbing, NSFL content.`,
+            `Politics and religion.`,
+            `Piracy.`,
+            `Flashing animated pictures.`
+        ];
+        let content_embed = new discord.RichEmbed()
+        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
+        .setColor(cfg.vs.embed.error)
+        .setAuthor("You are NOT allowed to post, upload, or discuss any of the following", 'attachment://icon.png')
+        .setDescription(`${s}• `+content.join(`\n${s}• `));
+
+
+
+        let guidelines = [
+            `Use common sense. Please. It's not difficult, I promise.`,
+            `**PLEASE** at least try reading the #faq, channel descriptions, pinned messages, #announcements, and recent chat history **BEFORE** blindly posting a question.`,
+            `This is an English-speaking server. If you cannot fluently write in English, please try using a translator.`,
+            `If you see something, say something. We encourage you to ping @moderator if you notice someone breaking the rules.`,
+            `If you'd like to invite a friend to this server, we encourage you to use this permanent invite link: \`\`\`https://discord.gg/3mMpcwW\`\`\` `
+        ]
+
+        let guidelines_embed = new discord.RichEmbed()
+        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+        .setColor(cfg.vs.embed.okay)
+        .setAuthor("Guidelines & Other Things", 'attachment://icon.png')
+        .setDescription(`${s}• `+guidelines.join(`\n${s}• `));
+
+        m.channel.send({embed: rules_embed}).then(() => {
+            m.channel.send({embed: content_embed}).then(() => {
+                m.channel.send({embed: guidelines_embed}).then(() => {
+                    TOOLS.typerHandler(m.channel, false);
+                })
+            });
+        });
+    }
+}));
+
+CMD.register(new Command({
     trigger: 'open',
     short_desc: "Open text channel.",
     long_desc: "Opens the active text channel, if already closed.",
     admin_only: true,
+    dm: 0,
     fn: (m) => {
-        // todo
+        m.guild.fetchMember(bot.user.id).then(bot_member => {
+            let everyone = m.channel.permissionOverwrites.get(m.guild.id);
+            if(m.channel.memberPermissions(bot_member).serialize().MANAGE_ROLES_OR_PERMISSIONS === false) {
+                TOOLS.errorHandler({ err: "OptiBot does not have permission to modify this channel.", m:m });
+            } else 
+            if(everyone && new discord.Permissions(everyone.allow).serialize().SEND_MESSAGES === true) {
+                TOOLS.errorHandler({ err: "Channel is already open.", m:m });
+            } else {
+                {
+                    let permissions = {
+                        SEND_MESSAGES: null
+                    }
+            
+                    m.channel.overwritePermissions(m.guild.id, permissions, `Channel opened by ${m.author.username}#${m.author.discriminator}.`).then(() => {
+                        if(m.channel.memberPermissions(bot_member).serialize().SEND_MESSAGES === false) {
+                            m.channel.overwritePermissions(bot_member, { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
+                                // cfg.roles.moderator
+                                m.channel.overwritePermissions('518607343357788191', { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
+                                    success();
+                                });
+                            });
+                        } else {
+                            success();
+                        }
+                    });
+                }
+
+                function success() {
+                    let embed = new discord.RichEmbed()
+                    .setColor(cfg.vs.embed.okay)
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                    .setAuthor(`Channel successfully opened.`, 'attachment://icon.png')
+
+                    m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                }
+            }
+        });
     }
 }));
 
@@ -1910,8 +2296,45 @@ CMD.register(new Command({
     short_desc: "Close text channel.",
     long_desc: "Closes the active text channel, preventing users from sending messages. Only works if the channel is already open, obviously.",
     admin_only: true,
+    dm: 0,
     fn: (m) => {
-        // todo
+        m.guild.fetchMember(bot.user.id).then(bot_member => {
+            let everyone = m.channel.permissionOverwrites.get(m.guild.id);
+            if(m.channel.memberPermissions(bot_member).serialize().MANAGE_ROLES_OR_PERMISSIONS === false) {
+                TOOLS.errorHandler({ err: "OptiBot does not have permission to modify this channel.", m:m });
+            } else 
+            if(everyone && new discord.Permissions(everyone.deny).serialize().SEND_MESSAGES === true) {
+                TOOLS.errorHandler({ err: "Channel is already closed.", m:m });
+            } else {
+                {
+                    let permissions = {
+                        SEND_MESSAGES: false
+                    }
+            
+                    m.channel.overwritePermissions(m.guild.id, permissions, `Channel closed by ${m.author.username}#${m.author.discriminator}.`).then(() => {
+                        if(m.channel.memberPermissions(bot_member).serialize().SEND_MESSAGES === false) {
+                            m.channel.overwritePermissions(bot_member, { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
+
+                                m.channel.overwritePermissions('518607343357788191', { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
+                                    success();
+                                });
+                            });
+                        } else {
+                            success();
+                        }
+                    });
+                }
+
+                function success() {
+                    let embed = new discord.RichEmbed()
+                    .setColor(cfg.vs.embed.okay)
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                    .setAuthor(`Channel successfully closed.`, 'attachment://icon.png')
+
+                    m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                }
+            }
+        });
     }
 }));
 
@@ -1987,7 +2410,7 @@ CMD.register(new Command({
     short_desc: 'Display all server rules',
     hidden: false,
     fn: (m) => {
-        bot.guilds.get(cfg.basic.of_server).channels.get('479192475727167488').fetchMessage('592778532132880425').then((msg) => {
+        bot.guilds.get(cfg.basic.of_server).channels.get('479192475727167488').fetchMessage('621909657858080779').then((msg) => {
             let rules = msg.content.match(/\d\).+$/gmi);
 
             let embed = new discord.RichEmbed()
@@ -2001,23 +2424,270 @@ CMD.register(new Command({
             });
 
             m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        }).catch(err => {
+            TOOLS.errorHandler({ err: err, m:m });
         });
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'cdb',
+    fn: (m) => {
+        let finaldocs = {}
+        let finaldata = [];
+
+        let i = 0;
+        (function loadNextExisting() {
+            let list = ['muted', 'cape', 'mdl'];
+            memory.db[[list[i]]].find({}, (err, docs) => {
+                if(err) {
+                    TOOLS.errorHandler({ err: err, m:m });
+                } else {
+                    for(let iu = 0; iu < docs.length; iu++) {
+                        if(i === 0) {
+                            if(!finaldocs[[docs[iu].member_id]]) finaldocs[[docs[iu].member_id]] = {};
+                            finaldocs[[docs[iu].member_id]].muted = {
+                                executor: docs[iu].executor,
+                                time: docs[iu].time
+                            }
+                        } else
+                        if(i === 1) {
+                            if(!finaldocs[[docs[iu].userid]]) finaldocs[[docs[iu].userid]] = {};
+                            finaldocs[[docs[iu].userid]].cape = {
+                                mcid: docs[iu].mcid
+                            }
+                        } else
+                        if(i === 2) {
+                            if(!finaldocs[[docs[iu].user_id]]) finaldocs[[docs[iu].user_id]] = {};
+                            finaldocs[[docs[iu].user_id]].mdl = {
+                                count: docs[iu].count
+                            }
+                        }
+
+                        if(iu+1 === docs.length) {
+                            if(i === 2) {
+                                i = 0;
+                                final();
+                            } else {
+                                i++;
+                                loadNextExisting();
+                            }
+                        }
+                    }
+                }
+            });
+        })();
+
+        function final() {
+            log(finaldocs, 'trace');
+
+            let profile = {
+                member_id: Object.keys(finaldocs)[i]
+            }
+
+            let user = finaldocs[[profile.member_id]];
+            
+            if(user.mdl) {
+                profile.medals = {
+                    count: user.mdl.count,
+                    msgs: []
+                }
+            }
+
+            if(user.cape) {
+                profile.cape = {
+                    uuid: user.cape.mcid
+                }
+            }
+
+            if(user.muted) {
+                profile.mute = {
+                    start: 0,
+                    end: user.muted.time,
+                    executor: user.muted.executor,
+                    updater: ""
+                }
+            }
+
+            if(Object.keys(profile).length > 1) {
+                finaldata.push(profile);
+            }
+
+            if(i+1 === Object.keys(finaldocs).length) {
+                memory.db.profiles.insert(finaldata, (err) => {
+                    if(err) {
+                        TOOLS.errorHandler({ err: err, m:m });
+                    } else {
+                        m.channel.send("Successfully converted databases.").then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    }
+                })
+            } else {
+                i++
+                final();
+            }
+        }
     }
 }));
 
 // commands with arguments
 
 CMD.register(new Command({
+    trigger: 'warn',
+    short_desc: 'Adds a warning to a user.',
+    long_desc: `Adds warnings to a user, which will be saved and remembered for about one week. This will automatically punish the user, depending on how many warnings they have already. First offenders will be given a simple verbal warning, and all others will be given a mute with increasing time limits.`,
+    admin_only: true,
+    hidden: false,
+    dm: 0,
+    fn: (m, args) => {
+        if(!args[0]) {
+            TOOLS.errorHandler({ err: "You must specify a user to give a warning to.", m:m });
+        } else {
+            TOOLS.getTargetUser(m, args[0], (userid, name) => {
+                if(!userid) {
+                    TOOLS.errorHandler({ err: "You must specify a valid user.", m:m });
+                } else {
+                    TOOLS.getProfile(m, userid, (profile) => {
+                        let first_offense = false;
+                        let mute_added = false;
+                        let now = new Date().getTime();
+                        let executor = m.author.username+'#'+m.author.discriminator;
+                        let mute_hours;
+                        
+
+                        if(typeof profile.warns === 'undefined') {
+                            first_offense = true;
+                            profile.warns = {
+                                lifetime: 1,
+                                current: []
+                            };
+                        } else {
+                            profile.warns.lifetime++;
+
+                            mute_hours = (5**profile.warns.current.length >= 168) ? 168 : 5**profile.warns.current.length; // starts at 1 hour. multiplies exponentially by 5 depending on the mute count. maxes out at 168 hours, or one week.
+
+                            if(typeof profile.mute === 'undefined') {
+                                profile.mute = {
+                                    start: now,
+                                    end: now + (1000*60*60 * mute_hours), 
+                                    executor: m.author.id,
+                                    updater: ""
+                                };
+
+                                mute_added = true;
+                            }
+                        }
+
+                        profile.warns.current.push({
+                            expiration: now + (1000*60*60*24*7),
+                            executor: m.author.id,
+                        });
+
+                        memory.db.profiles.update({ member_id: userid }, profile, {}, (err) => {
+                            if(err) {
+                                TOOLS.errorHandler({ m: m, err: err });
+                            } else {
+                                if(first_offense) {
+                                    let embed = new discord.RichEmbed()
+                                    .setColor(cfg.vs.embed.default)
+                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+                                    .setAuthor(`User Warnings`, 'attachment://icon.png')
+                                    .setDescription(`<@${userid}> has been warned. This is their first offense, so no punishment will be handed out.`);
+        
+                                    m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                } else
+                                if(profile.mute && mute_added === false) {
+                                    let embed = new discord.RichEmbed()
+                                    .setColor(cfg.vs.embed.default)
+                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+                                    .setAuthor(`User Warnings`, 'attachment://icon.png')
+                                    .setDescription(`<@${userid}> has been warned. They have ${profile.warns.current.length-1} other warning(s) on record. No punishment will be added, as they have already been muted.`);
+        
+                                    m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                } else {
+                                    bot.guilds.get(cfg.basic.of_server).fetchMember(userid).then(target => {
+                                        target.addRole(cfg.roles.muted, `User muted by ${executor} (via ${cfg.basic.trigger}warn)`).then(() => {
+                                            log(`User ${name} was muted by ${executor} (via ${cfg.basic.trigger}warn)`, 'warn');
+
+                                            let remaining = profile.mute.end - now;
+                                            let minutes = Math.round(remaining/1000/60)
+                                            let hours = Math.round(remaining/(1000*60*60))
+                                            let days = Math.round(remaining/(1000*60*60*24))
+                                            let final;
+
+                                            if(minutes < 60) {
+                                                final = `${minutes} minute(s)`;
+                                            } else
+                                            if(hours < 24) {
+                                                final = `${hours} hour(s)`;
+                                            } else {
+                                                final = `${days} day(s)`;
+                                            }
+        
+                                            let embed = new discord.RichEmbed()
+                                            .setColor(cfg.vs.embed.default)
+                                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+                                            .setAuthor(`User Warnings`, 'attachment://icon.png')
+                                            .setDescription(`<@${userid}> has been warned. They have ${profile.warns.current.length-1} other warning(s) on record. They have been muted for ${final}.`);
+        
+                                            m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                                    }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                                }
+                            }
+                        });
+                    });
+                }
+            });
+        }
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'bat',
+    short_desc: "Generates a .bat file for debugging purposes.",
+    long_desc: `Generates a .bat file to help find issues with the OptiFine installer. This only works on Windows. \n\n**Make sure the capitalization matches the filename exactly!** To simplify things, you can select the OptiFine installer in File Explorer, right-click and rename (F2), select all text (CTRL+A), and then copy (CTRL+C).`,
+    usage: "<filename>",
+    hidden: false,
+    fn: (m, args) => {
+        if(!args[0]) {
+            let embed = new discord.RichEmbed()
+            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
+            .setColor(cfg.vs.embed.error)
+            .setAuthor("You must specify the file name of the OptiFine installer.", "attachment://icon.png")
+            .setDescription(`For detailed instructions, type \`${cfg.basic.trigger}help bat\``)
+
+            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        } else {
+            let filename = args[0];
+            if(!(args[0].toLowerCase().endsWith('.jar'))) {
+                filename += '.jar';
+            }
+
+            let bat_content = `@echo off\ncall java -jar ${filename} >> output.txt\npause`;
+
+            let embed = new discord.RichEmbed()
+            .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"), new discord.Attachment(Buffer.from(bat_content), "debug.bat")])
+            .setColor(cfg.vs.embed.default)
+            .setAuthor("OptiFine Installation Debugger", "attachment://icon.png")
+            .setDescription('Download and place this file in the same folder as the OptiFine installer, then run the .bat file.')
+            .addField('What does this do?', `This [Windows Batch file](https://simple.wikipedia.org/wiki/Batch_file) will attempt to run the OptiFine installer, while recording the debug information the installer generates. This information is saved to a new text file in the same folder simply called \`output.txt\`.`)
+
+            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        }
+    }
+}));
+
+CMD.register(new Command({
     trigger: 'status',
     short_desc: 'Server statuses.',
-    long_desc: 'Displays current server status of OptiFine. Alternatively, you can view the status of the Minecraft/Mojang services by typing `!status minecraft` or `!status mojang`.',
+    long_desc: `Displays current server status of OptiFine. Alternatively, you can view the status of the Minecraft/Mojang services by typing \`${cfg.basic.trigger}status minecraft\` or \`${cfg.basic.trigger}status mojang\`.`,
     usage: '[minecraft|mojang|all]',
     hidden: false,
-    fn: (m, args, member, misc) => {
+    fn: (m, args, not_used, misc) => {
         let of_servers_text = '';
         let mc_websites_text = '';
         let mc_servers_text = '';
-        let footer = "Hover over the links for detailed information. - If you're having issues, check your internet connection.";
+        let footer = "Hover over the links for detailed information. | If you're having issues, check your internet connection.";
 
         function translate(data, cb) {
             log('translate()', 'trace');
@@ -2026,26 +2696,26 @@ CMD.register(new Command({
             mc_servers_text = '';
             function translator(target, index, cb1) {
                 if (target[index].status === 'gray') {
-                    cb1(`${bot.guilds.get(cfg.basic.ob_server).emojis.get('578346059965792258')} Pinging [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")...`);
+                    cb1(`${bot.guilds.get(cfg.basic.ob_server).emojis.get('578346059965792258')} Pinging [${target[index].server}](https://${target[index].server}/ "Awaiting response... | ${target[index].desc}")...`);
                 } else
                 if (target[index].status === 'green') {
-                    cb1(`<:okay:546570334233690132> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}") is online`);
+                    cb1(`<:okay:546570334233690132> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}") is online`);
                 } else {
-                    footer = "Hover over the links for detailed information. - Maybe try again in 10 minutes?";
+                    footer = "Hover over the links for detailed information. | Maybe try again in 10 minutes?";
                     if (target[index].status === 'teal') {
-                        cb1(`<:warn:546570334145609738> Unknown response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
+                        cb1(`<:warn:546570334145609738> Unknown response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
                     } else
                     if (target[index].status === 'yellow') {
-                        cb1(`<:warn:546570334145609738> Partial outage at [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
+                        cb1(`<:warn:546570334145609738> Partial outage at [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
                     } else
                     if (target[index].status === 'orange') {
-                        cb1(`<:error:546570334120312834> An error occurred while pinging [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
+                        cb1(`<:error:546570334120312834> An error occurred while pinging [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
                     } else
                     if (target[index].status === 'red') {
-                        cb1(`<:error:546570334120312834> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}") is down`);
+                        cb1(`<:error:546570334120312834> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}") is down`);
                     } else
                     if (target[index].status === 'black') {
-                        cb1(`<:error:546570334120312834> Failed to get any response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} - ${target[index].desc}")`);
+                        cb1(`<:error:546570334120312834> Failed to get any response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
                     }
                 }
             }
@@ -2227,14 +2897,14 @@ CMD.register(new Command({
 
                     let updateLoop = bot.setInterval(() => {
                         thisLoop++;
-                        if (thisLoop === 10) embed.setDescription('This is taking a while. At this point, you could safely assume the remaining servers are down.');
+                        if (thisLoop === 10) embed.setDescription('Seems like this is taking a while. At this point, you could pretty safely assume the remaining servers are down.');
                         if (msg.deleted) {
                             log('status message deleted', 'trace');
                             bot.clearInterval(updateLoop);
                         } else {
                             log('checking update', 'trace');
                             translate(responses, (newOF, newMW, newMC) => {
-                                if (current_of !== newOF || current_mc !== newMC || current_mw !== newMW || thisLoop === 5) {
+                                if (current_of !== newOF || current_mc !== newMC || current_mw !== newMW || thisLoop === 10) {
                                     log(current_of, 'trace');
                                     log(newOF, 'trace');
                                     log('status changed', 'trace');
@@ -2474,9 +3144,108 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
+    trigger: 'blacklist',
+    short_desc: `Add a URL to OptiBot's StopModReposts URL Blacklist.`,
+    long_desc: `Add a URL to OptiBot's StopModReposts URL Blacklist. \n\nNote that this requires the ENTIRE URL, not just the name.`,
+    usage: `<URL>`,
+    admin_only: true,
+    fn: (m, args) => {
+        if(!args[0]) {
+            TOOLS.errorHandler({ err: "You must specify a URL.", m:m });
+        } else {
+            try {
+                let whitelist = require('./cfg/url_whitelist.json');
+                let url = new URL(args[0]);
+                let hostname = url.hostname;
+
+                if(hostname.startsWith('www.')) {
+                    hostname = url.hostname.substring(4);
+                }
+
+                
+                if(hostname.length === 0) {
+                    TOOLS.errorHandler({ err: `You must specify a complete, valid URL.`, m:m });
+                } else 
+                if(whitelist.indexOf(hostname) > -1) {
+                    TOOLS.errorHandler({ err: `That URL has been whitelisted.`, m:m });
+                } else {
+                    memory.db.smr.find({ url: hostname }, (err, docs) => {
+                        if(err) {
+                            TOOLS.errorHandler({ err: err, m:m });
+                        } else
+                        if(docs[0]) {
+                            TOOLS.errorHandler({ err: `That URL has already been blacklisted.`, m:m });
+                        } else {
+                            let confirm = new discord.RichEmbed()
+                                .setColor(cfg.vs.embed.default)
+                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+                                .setAuthor(`Are you sure want to blacklist this URL?`, 'attachment://icon.png')
+                                .setDescription(`\`\`\`${hostname}\`\`\` \nType \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`);
+
+                            m.channel.send({embed: confirm}).then(msg => {
+                                TOOLS.typerHandler(m.channel, false);
+                                TOOLS.confirmationHandler(m, (result) => {
+                                    if (result === 1) {
+                                        let db_data = {
+                                            url: hostname,
+                                            writer: m.author.id,
+                                            date: new Date().getTime()
+                                        }
+            
+                                        memory.db.smr.insert(db_data, (err) => {
+                                            if(err) {
+                                                TOOLS.errorHandler({ err: err, m:m });
+                                            } else {
+                                                memory.bot.smr.push(hostname);
+
+                                                let embed = new discord.RichEmbed()
+                                                .setColor(cfg.vs.embed.okay)
+                                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                                                .setAuthor('Successfully added URL to blacklist.', 'attachment://icon.png')
+
+                                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                            }
+                                        });
+                                    } else
+                                    if (result === 0) {
+                                        let embed = new discord.RichEmbed()
+                                        .setColor(cfg.vs.embed.default)
+                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                                        .setAuthor(`Request cancelled.`, 'attachment://icon.png')
+                                        .setDescription('URL has not been blacklisted.')
+
+                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                    } else
+                                    if (result === 2) {
+                                        let embed = new discord.RichEmbed()
+                                        .setColor(cfg.vs.embed.default)
+                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                                        .setAuthor(`Request timed out.`, 'attachment://icon.png')
+                                        .setDescription('URL has not been blacklisted.')
+                                        
+                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                    }
+                                });
+                            });
+                        }
+                    });
+                }
+            }
+            catch(err) {
+                if(err.message.toLowerCase().indexOf('invalid url') > -1) {
+                    TOOLS.errorHandler({ err: `You must specify a complete, valid URL.`, m:m });
+                } else {
+                    TOOLS.errorHandler({ err: err, m:m });
+                }
+            }
+        }
+    }
+}));
+
+CMD.register(new Command({
     trigger: 'cv',
     short_desc: 'Verifies cape ownership.',
-    long_desc: `Adds a user to the list of "verified" cape owners. This adds a checkmark along with a user tag to the embeds used in the \`!cape\` command (It doesn't ping anyone, don't worry. It just lets you to view someones profile/nickname.) Usernames are translated into Minecraft UUIDs by using the Mojang API, so it's not necessary to use this again when someone changes their username.`,
+    long_desc: `Adds a user to the list of "verified" cape owners. This adds a checkmark along with a user tag to the embeds used in the \`${cfg.basic.trigger}cape\` command (It doesn't ping anyone, don't worry. It just lets you to view someones profile/nickname.) Usernames are translated into Minecraft UUIDs by using the Mojang API, so it's not necessary to use this again when someone changes their username.`,
     usage: '<user> <minecraft username>',
     admin_only: true,
     hidden: false,
@@ -2508,10 +3277,6 @@ CMD.register(new Command({
                             TOOLS.errorHandler({ err: new Error('Unexpected response code from Mojang API: '+res.statusCode), m: m });
                         } else {
                             let js = JSON.parse(data)
-                            let dbdata = {
-                                userid: userid,
-                                mcid: js.id
-                            }
 
                             request({ url: 'https://optifine.net/capes/'+encodeURIComponent(js.name)+'.png', encoding: null }, (err_o, res_o, data_o) => {
                                 if(err_o || !res_o || !data_o) {
@@ -2520,35 +3285,35 @@ CMD.register(new Command({
                                 if(res_o.statusCode === 404) {
                                     TOOLS.errorHandler({ err: 'There is no OptiFine cape linked to that Minecraft account.', m: m });
                                 } else {
-                                    memory.db.cape.find({ userid: userid }, (err, docs) => {
-                                        if(err) {
-                                            TOOLS.errorHandler({ err: err, m:m });
-                                        } else
-                                        if(docs.length > 0 && js.id === docs[0].mcid) {
+                                    TOOLS.getProfile(m, userid, (profile) => {
+                                        if(profile.cape && profile.cape.uuid === js.id) {
                                             TOOLS.errorHandler({ err:'That username has already been saved.', m:m });
                                         } else {
-                                            memory.db.cape.find({ mcid: js.id }, (err, docs) => {
-                                                if(err) {
-                                                    TOOLS.errorHandler({ err: err, m:m });
-                                                } else
+                                            memory.db.profiles.find({"cape.uuid": js.id}, (err, docs) => {
+                                                if(err) TOOLS.errorHandler({ err: err, m:m });
+                                                else
                                                 if(docs.length > 0) {
-                                                    bot.guilds.get(cfg.basic.of_server).fetchMember(docs[0].userid).then(member => {
+                                                    bot.guilds.get(cfg.basic.of_server).fetchMember(docs[0].member_id).then(member => {
                                                         TOOLS.errorHandler({ err: `That username has already been claimed by ${member.user.username}#${member.user.discriminator}`, m:m });
                                                     });
                                                 } else {
-                                                    memory.db.cape.update({ userid: userid }, dbdata, { upsert: true }, (err, numAffected, upsert) => {
-                                                        if(err) {
-                                                            TOOLS.errorHandler({ err: err, m:m });
-                                                        } else {
+                                                    let updated = (profile.cape && profile.cape.uuid.length > 0);
+                                                    profile.cape = {
+                                                        uuid: js.id
+                                                    }
+
+                                                    memory.db.profiles.update({ member_id: userid }, profile, (err) => {
+                                                        if(err) TOOLS.errorHandler({ err: err, m:m });
+                                                        else {
                                                             let embed = new discord.RichEmbed()
                                                                 .setColor(cfg.vs.embed.okay)
                                                                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
                         
-                                                            if (upsert) {
-                                                                embed.setAuthor(`Added ${name} to verified cape owner list, with the username of "${js.name}"`, 'attachment://icon.png')
-                                                            } else {
+                                                            if (updated) {
                                                                 embed.setAuthor(`Updated. ${name}'s username is now "${js.name}"`, 'attachment://icon.png')
-                                                                .setFooter('Quick reminder: This is not needed for every username change! This is only needed for changing Minecraft accounts.')
+                                                                .setFooter('Reminder: This is not needed for every username change! This is only needed for changing Minecraft accounts.')
+                                                            } else {
+                                                                embed.setAuthor(`Added ${name} to verified cape owner list, with the username of "${js.name}"`, 'attachment://icon.png')
                                                             }
                         
                                                             m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
@@ -2583,18 +3348,15 @@ CMD.register(new Command({
                 if (!userid) {
                     TOOLS.errorHandler({ err: "You must specify a valid user @mention, ID#, or shortcut (^)", m:m });
                 } else {
-                    memory.db.cape.find({ userid: userid }, (err, docs) => {
-                        if (err) {
-                            TOOLS.errorHandler({err:err, m:m});
-                        } else
-                        if(docs.length === 0) {
+                    TOOLS.getProfile(m, userid, (profile) => {
+                        if(!profile.cape) {
                             TOOLS.errorHandler({err:'That user does not have a verified cape.', m:m});
                         } else {
                             let confirm = new discord.RichEmbed()
                                 .setColor(cfg.vs.embed.default)
                                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                                 .setAuthor(`Are you sure want to remove ${name} from the verified cape owner list?`, 'attachment://icon.png')
-                                .setDescription('Type `!confirm` to continue.\nType `!cancel` or simply ignore this message to cancel.');
+                                .setDescription(`Type \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`);
 
                             m.channel.send({embed: confirm}).then(msg => {
                                 TOOLS.typerHandler(m.channel, false);
@@ -2603,7 +3365,8 @@ CMD.register(new Command({
                                         .setColor(cfg.vs.embed.okay)
                                         .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
                                     if (result === 1) {
-                                        memory.db.cape.remove({ userid: userid }, (err) => {
+                                        delete profile.cape;
+                                        memory.db.profiles.update({member_id: userid}, profile, (err) => {
                                             if (err) {
                                                 TOOLS.errorHandler({err:err, m:m});
                                             } else {
@@ -2613,11 +3376,22 @@ CMD.register(new Command({
                                         });
                                     } else
                                     if (result === 0) {
-                                        embed.setAuthor(`Request cancelled.`, 'attachment://icon.png');
+                                        let embed = new discord.RichEmbed()
+                                        .setColor(cfg.vs.embed.default)
+                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                                        .setAuthor(`Request cancelled.`, 'attachment://icon.png')
+                                        .setDescription('User has not been removed from verified cape owner list.')
+
                                         m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                                     } else
                                     if (result === 2) {
-                                        TOOLS.errorHandler({err: "Request timed out.", m:m, temp:true});
+                                        let embed = new discord.RichEmbed()
+                                        .setColor(cfg.vs.embed.default)
+                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                                        .setAuthor(`Request timed out.`, 'attachment://icon.png')
+                                        .setDescription('User has not been removed from verified cape owner list.')
+                                        
+                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                                     }
                                 });
                             });
@@ -2796,21 +3570,16 @@ CMD.register(new Command({
         }
 
         function final(userid, name) {
-            memory.db.mdl.find({ user_id: userid }, (err, res) => {
-                if (err) TOOLS.errorHandler({ err: err, m: m });
-                else if (res.length === 0) {
-                    let embed = new discord.RichEmbed()
-                        .setColor(cfg.vs.embed.default)
-                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
-                        .setAuthor(`${(name) ? name+' has' : 'You have' } not earned any medals.`, 'attachment://icon.png')
-    
+            TOOLS.getProfile(m, userid, (profile) => {
+                let embed = new discord.RichEmbed()
+                .setColor(cfg.vs.embed.default)
+                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
+
+                if(profile.medals.count === 0) {
+                    embed.setAuthor(`${(name) ? name+' has' : 'You have' } not earned any medals.`, 'attachment://icon.png')
                     m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
                 } else {
-                    let embed = new discord.RichEmbed()
-                        .setColor(cfg.vs.embed.default)
-                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
-                        .setAuthor(`${(name) ? name+' has' : 'You have' } earned ${res[0].count} medal${(res[0].count === 1) ? '' : 's'}.`, 'attachment://icon.png')
-    
+                    embed.setAuthor(`${(name) ? name+' has' : 'You have' } earned ${profile.medals.count} medal(s).`, 'attachment://icon.png')
                     m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
                 }
             });
@@ -2831,7 +3600,7 @@ CMD.register(new Command({
         if (isNaN(args[0])) {
             TOOLS.errorHandler({ err: "You must specify a valid number.", m:m });
         } else {
-            bot.guilds.get(cfg.basic.of_server).channels.get('479192475727167488').fetchMessage('592778532132880425').then((msg) => {
+            bot.guilds.get(cfg.basic.of_server).channels.get('479192475727167488').fetchMessage('621909657858080779').then((msg) => {
                 let rules_rgx = msg.content.match(/\d\).+$/gmi);
 
                 let rules = {}
@@ -2854,7 +3623,7 @@ CMD.register(new Command({
                         joke = '.tsixe ton seod elur tahT';
                     } else
                     if(parseInt(args[0]) === 0) {
-                        joke = '⠀';
+                        joke = 'undefined';
                     } else
                     if(args[0] === '007') {
                         joke = 'No, Mr. Bond, I expect you to die.';
@@ -2932,6 +3701,8 @@ CMD.register(new Command({
                     }
                     TOOLS.errorHandler({ err: joke, m:m });
                 }
+            }).catch(err => {
+                TOOLS.errorHandler({ err: err, m:m });
             });
         }
     }
@@ -2940,7 +3711,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'help',
     short_desc: 'Information hub for OptiBot functions.',
-    long_desc: `Information hub for OptiBot functions. \n||Lol, that's meta.||`,
+    long_desc: `Information hub for OptiBot functions. ||_ _ Lol, meta. _ _||`,
     usage: "[command]",
     hidden: false,
     dm: 2,
@@ -2967,37 +3738,37 @@ CMD.register(new Command({
                 } else {
                     let md = cmd.getMetadata();
                     let files = [new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png")];
-                    let role_restriction = [];
                     let embed = new discord.RichEmbed()
                         .setColor(cfg.vs.embed.default)
-                        .setDescription(md.long_desc);
+                        .setDescription(md.long_desc+`\n\`\`\`${md.usage}\`\`\``)
 
-                    if (md.hidden) {
-                        role_restriction.push('Developers');
-                    } else
-                        if (md.admin_only) {
-                            role_restriction.push('Moderators/Administrators');
-                        } else
-                            if (md.donator_only) {
-                                role_restriction.push('Donators');
-                            }
-
-                    if (role_restriction.length > 0) {
-                        embed.addField('Restricted Command', ':lock: This command can only be used by: ' + role_restriction.join(', ') + ".");
-                    }
+                    let role_restriction = `🔓 This command can be used by all members.`;
+                    let usage = `<:okay:546570334233690132> This command can be used in DMs (Direct Messages)`;
+                        
 
                     if (md.dm === 0) {
-                        embed.setFooter("This command can NOT be used in DMs.", 'https://cdn.discordapp.com/emojis/546570334120312834.png');
+                        usage = `<:error:546570334120312834> This command can *not* be used in DMs (Direct Messages)`;
                     } else
-                        if (md.dm === 1) {
-                            embed.setFooter("This command can be used in DMs.", 'https://cdn.discordapp.com/emojis/546570334233690132.png');
-                        } else
-                            if (md.dm === 2) {
-                                embed.setFooter("This command can ONLY be used in DMs.", 'https://cdn.discordapp.com/emojis/546570334145609738.png');
-                            }
+                    if (md.dm === 2) {
+                        usage = `<:warn:546570334145609738> This command can *only* be used in DMs (Direct Messages)`;
+                    }
+
+                    if (md.admin_only) {
+                        role_restriction = '🔒 This command can *only* be used by Moderators & Administrators.';
+                    } else
+                    if (md.hidden) {
+                        role_restriction = `🔒 This command can *only* be used by OptiBot developers.`;
+                    }
+
+                    embed.addField('Usage Restrictions', role_restriction+'\n'+usage);
+
+                    
+
+                    log(md.icon)
+                    log(typeof md.icon)
 
                     if (md.icon) {
-                        files.push(new discord.Attachment(eval(md.icon), "thumbnail.png"));
+                        files.push(new discord.Attachment(memory.bot.images.get(md.icon), "thumbnail.png"));
                         embed.attachFiles(files)
                             .setAuthor('OptiBot Command: ' + cfg.basic.trigger + md.trigger, 'attachment://icon.png')
                             .setThumbnail('attachment://thumbnail.png');
@@ -3005,8 +3776,6 @@ CMD.register(new Command({
                         embed.attachFiles(files)
                             .setAuthor('OptiBot Command: ' + cfg.basic.trigger + md.trigger, 'attachment://icon.png');
                     }
-
-                    embed.addField('Usage', "```" + md.usage + "```");
 
                     m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
                 }
@@ -3109,7 +3878,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'donate',
     short_desc: 'Donation information.',
-    long_desc: "Provides detailed information about OptiFine donations. \nIf you'd like to support OptiBot donations instead, see page 2.",
+    long_desc: "Provides detailed information about OptiFine donations. \nIf you'd like to see OptiBot donations instead, see page 2.",
     usage: "[page #]",
     hidden: false,
     fn: (m, args) => {
@@ -3119,7 +3888,7 @@ CMD.register(new Command({
                     .setColor(cfg.vs.embed.default)
                     .attachFile(new discord.Attachment(memory.bot.icons.get('opti_donate.png'), "thumbnail.png"))
                     .setAuthor('Donation Info | Page 1/2', 'attachment://thumbnail.png')
-                    .addField('OptiFine Donations', "Support OptiFine's development with one-time donation of $10, and optionally receive an OptiFine player cape in recognition of your awesomeness. In addition, you may request the Donator role on this very Discord server. This grants instant access to the exclusive, donator-only text channel. (type `" + cfg.basic.trigger + "help dr` in DMs for instructions) \n\nhttps://optifine.net/donate")
+                    .addField('OptiFine Donations', `Support OptiFine's development with one-time donation of $10, and optionally receive an OptiFine cape in recognition of your awesomeness. This cape can have one of two types of designs: The standard "OF" cape with fully custom colors, or a full banner design. These designs can be updated and changed at any time. In addition, you may request the Donator role on this very Discord server. This grants instant access to the exclusive, donator-only text channel. (type \`${cfg.basic.trigger+"help dr"}\` in DMs for instructions) \n\nhttps://optifine.net/donate`)
                     .setFooter('Thank you for your consideration!')
             },
             {
@@ -3128,7 +3897,7 @@ CMD.register(new Command({
                     .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_donate.png'), "thumbnail.png"), new discord.Attachment(memory.bot.images.get('jack_donate.png'), "jack.png")])
                     .setAuthor('Donation Info | Page 2/2', 'attachment://thumbnail.png')
                     .setThumbnail('attachment://jack.png')
-                    .addField('OptiBot Donations', "OptiBot is developed entirely on my free time out of love for a great community. I don't really expect much in return, I just like coding from time to time. However, on the off chance that you'd like to support OptiBot's development, you can [buy me a coffee! ☕](http://ko-fi.com/jackasterisk \"Not literally though. I hate coffee.\")")
+                    .addField('OptiBot Donations', "OptiBot is developed entirely on my free time out of love for a great community. I don't really expect much in return, I just like coding from time to time. However, on the off chance that you'd like to support OptiBot's development, you can [buy me a coffee! â](http://ko-fi.com/jackasterisk \"Not literally though. I hate coffee.\")")
                     .setFooter('Thank you for your consideration!')
             }
         ];
@@ -3281,14 +4050,14 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'dr',
     short_desc: 'Verifies your donator status.',
-    long_desc: "Verifies your donator status. If successful, this will grant you the Donator role, and reset your Donator token in the process. \n\nYou can find your donator token by logging in through the website. https://optifine.net/login. Look at the bottom of the page for a string of random characters. **Remember that your \"Donation ID\" is NOT your token!**",
+    long_desc: "Verifies your donator status. If successful, this will grant you the <@&424169541346525194> role, and reset your Donator token in the process. \n\nYou can find your donator token by logging in through the website. https://optifine.net/login. Look at the bottom of the page for a string of random characters. (see picture for example) \n**Remember that your \"Donation ID\" is NOT your token!**",
     usage: "<donation e-mail> <token>",
-    icon: `memory.bot.images.get("token.png")`,
+    icon: `token.png`,
     hidden: false,
     dm: 2,
     fn: (m, args, member) => {
         if (member.roles.has(cfg.roles.donator)) {
-            TOOLS.errorHandler({ err: "You already have the donator role!", m: m });
+            TOOLS.errorHandler({ err: "You already have the donator role.", m: m });
         } else
         if (!args[0]) {
             TOOLS.errorHandler({ err: "You must provide the e-mail you used when donating.", m: m});
@@ -3307,7 +4076,7 @@ CMD.register(new Command({
                     member.addRole(cfg.roles.donator, 'Donator status verified.').then(() => {
                         let embed = new discord.RichEmbed()
                             .setColor(cfg.vs.embed.okay)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_success.png'), "icon.png"))
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
                             .setAuthor('Thank you for your contribution! Your donator role has been granted.', 'attachment://icon.png')
                             .setFooter('Please note, your token has now been renewed.');
 
@@ -3345,7 +4114,7 @@ CMD.register(new Command({
 
 
                 try {
-                    msg = `\`\`\`${cb_lang + '\n'}${(typeof returnMsg === 'string') ? returnMsg : JSON.stringify(returnMsg)}\`\`\``;
+                    msg = `\`\`\`${cb_lang + '\n'}${(typeof returnMsg === 'string') ? returnMsg : JSON.stringify(returnMsg, null, 4)}\`\`\``;
                 } catch (e) { }
 
                 if(Buffer.isBuffer(returnMsg)) {
@@ -3360,7 +4129,7 @@ CMD.register(new Command({
                     TOOLS.typerHandler(m.channel, false);
                     m.channel.send(msg);
                 }
-            }, 500);
+            }, 1500);
         }
         catch (err) {
             log("Error at eval(): " + err.stack, 'warn');
@@ -3380,8 +4149,8 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'mute',
     short_desc: "Mute a user.",
-    long_desc: "Enables text mute for the specified user. User must be an @mention, or the 'last active user' shortcut. (^) Time limit is optional, but will default to 1 hour. If the time limit is specified, it must be followed by h (hours) or m (minutes)",
-    usage: "<target user> [time limit <time limit measure>]",
+    long_desc: "Enables text mute for the specified user. Time limit is optional, and will default to 1 hour if not specified. You can also specify the time measure in (m)inutes, (h)ours, and (d)ays. The absolute maximum time limit is 99 days. Additionally, you can adjust time limits for users by simply running this command again with the desired time.",
+    usage: "<target user> [time limit] [time measurement]",
     hidden: false,
     admin_only: true,
     dm: 0,
@@ -3466,157 +4235,154 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'cape',
     short_desc: "Donator Cape Viewer",
-    long_desc: "Displays donator capes for a specified user. Usernames are not case-sensitive. If someone has a verified cape, you can use their @mention in place of their Minecraft username.",
-    usage: "<minecraft username OR discord user>",
+    long_desc: "Displays donator capes for a specified user. \n\nIf someone has a *verified* cape, you can use their @mention in place of their Minecraft username. Additionally, if no username is provided, this will default to yourself.",
+    usage: "[minecraft username OR discord user]",
     hidden: false,
     fn: (m, args) => {
-        if (!args[0]) {
-            TOOLS.errorHandler({ err: 'Please specify the Minecraft username or @mention of the cape owner.', m: m });
-        } else {
-            function getOFcape(result) {
-                let username = result.name;
-                request({ url: 'https://optifine.net/capes/' + username + '.png', encoding: null }, (err, res, data) => {
-                    if (err || !res || !data || [200, 404].indexOf(res.statusCode) === -1) {
-                        TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the OptiFine API'), m: m });
-                    } else
-                        if (res.statusCode === 404) {
-                            TOOLS.errorHandler({ err: 'That user does not have an OptiFine cape', m: m });
-                        } else {
-                            jimp.read(data, (err_j, image) => {
-                                if (err_j) TOOLS.errorHandler({ err: err, m: m });
-                                else {
-                                    let full = false;
-                                    if ((args[1] && args[1].toLowerCase() === 'full') || (image.bitmap.width < 46)) {
-                                        full = true;
-                                        image.resize(256, jimp.AUTO, jimp.RESIZE_NEAREST_NEIGHBOR);
-                                        finalize(image);
-                                    } else {
-                                        if (jimp.intToRGBA(image.getPixelColor(1, 1)).a !== 0) {
-                                            // standard capes
-                                            let elytra = image.clone();
-                                            let cape = image.clone();
+        let target = (args[0]) ? args[0] : m.author.id;
 
-                                            cape.crop(1, 1, 10, 16);
-                                            elytra.crop(36, 2, 10, 20);
+        function getOFcape(result) {
+            let username = result.name;
+            request({ url: 'https://optifine.net/capes/' + username + '.png', encoding: null }, (err, res, data) => {
+                if (err || !res || !data || [200, 404].indexOf(res.statusCode) === -1) {
+                    TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the OptiFine API'), m: m });
+                } else
+                    if (res.statusCode === 404) {
+                        TOOLS.errorHandler({ err: 'That player does not have an OptiFine cape', m: m });
+                    } else {
+                        jimp.read(data, (err_j, image) => {
+                            if (err_j) TOOLS.errorHandler({ err: err, m: m });
+                            else {
+                                let full = false;
+                                if ((args[1] && args[1].toLowerCase() === 'full') || (image.bitmap.width < 46)) {
+                                    full = true;
+                                    image.resize(256, jimp.AUTO, jimp.RESIZE_NEAREST_NEIGHBOR);
+                                    finalize(image);
+                                } else {
+                                    if (jimp.intToRGBA(image.getPixelColor(1, 1)).a !== 0) {
+                                        // standard capes
+                                        let elytra = image.clone();
+                                        let cape = image.clone();
 
-                                            new jimp(21, 20, (err_s2, image_s2) => {
-                                                if (err_s2) TOOLS.errorHandler({ err: err_s2, m: m });
-                                                else {
-                                                    image_s2.composite(cape, 0, 0);
-                                                    image_s2.composite(elytra, 11, 0);
-                                                    image_s2.resize(jimp.AUTO, 200, jimp.RESIZE_NEAREST_NEIGHBOR);
+                                        cape.crop(1, 1, 10, 16);
+                                        elytra.crop(36, 2, 10, 20);
 
-                                                    finalize(image_s2);
-                                                }
-                                            });
-                                        } else {
-                                            // banner capes
-                                            let elytra = image.clone();
-                                            let cape = image.clone();
-
-                                            cape.crop(2, 2, 20, 32);
-                                            elytra.crop(72, 4, 20, 40);
-
-                                            new jimp(42, 40, (err_s2, image_s2) => {
-                                                if (err_s2) TOOLS.errorHandler({ err: err_s2, m: m });
-                                                else {
-                                                    image_s2.composite(cape, 0, 0);
-                                                    image_s2.composite(elytra, 22, 0);
-                                                    image_s2.resize(jimp.AUTO, 200, jimp.RESIZE_NEAREST_NEIGHBOR);
-
-                                                    finalize(image_s2);
-                                                }
-                                            });
-                                        }
-                                    }
-
-                                    function finalize(image_p) {
-                                        image_p.getBuffer(jimp.AUTO, (err_b, imgFinal) => {
-                                            if (err_b) TOOLS.errorHandler({ err: err_b, m: m });
+                                        new jimp(21, 20, (err_s2, image_s2) => {
+                                            if (err_s2) TOOLS.errorHandler({ err: err_s2, m: m });
                                             else {
-                                                let embed = new discord.RichEmbed()
-                                                    .setColor(cfg.vs.embed.default)
-                                                    .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_cape.png'), "thumbnail.png"), new discord.Attachment(imgFinal, "cape.png")])
-                                                    .setImage('attachment://cape.png')
-                                                    .setFooter('IGN: ' + username);
+                                                image_s2.composite(cape, 0, 0);
+                                                image_s2.composite(elytra, 11, 0);
+                                                image_s2.resize(jimp.AUTO, 200, jimp.RESIZE_NEAREST_NEIGHBOR);
 
-                                                memory.db.cape.find({ mcid: result.id }, (dberr, dbdocs) => {
-                                                    if (dberr) TOOLS.errorHandler({ err: dberr, m: m });
-                                                    else {
-                                                        if (dbdocs.length !== 0) {
-                                                            embed.setDescription('<:okay:546570334233690132> Cape owned by <@' + dbdocs[0].userid + '>');
-                                                        }
+                                                finalize(image_s2);
+                                            }
+                                        });
+                                    } else {
+                                        // banner capes
+                                        let elytra = image.clone();
+                                        let cape = image.clone();
 
-                                                        if (full) {
-                                                            embed.setAuthor('Donator Cape (Full Texture)', 'attachment://thumbnail.png');
-                                                        } else {
-                                                            embed.setAuthor('Donator Cape', 'attachment://thumbnail.png');
-                                                        }
+                                        cape.crop(2, 2, 20, 32);
+                                        elytra.crop(72, 4, 20, 40);
 
-                                                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                                                    }
-                                                });
+                                        new jimp(42, 40, (err_s2, image_s2) => {
+                                            if (err_s2) TOOLS.errorHandler({ err: err_s2, m: m });
+                                            else {
+                                                image_s2.composite(cape, 0, 0);
+                                                image_s2.composite(elytra, 22, 0);
+                                                image_s2.resize(jimp.AUTO, 200, jimp.RESIZE_NEAREST_NEIGHBOR);
+
+                                                finalize(image_s2);
                                             }
                                         });
                                     }
                                 }
-                            });
-                        }
-                });
-            }
 
-            TOOLS.getTargetUser(m, args[0], (userid) => {
-                if (userid) {
-                    memory.db.cape.find({ userid: userid }, (err, docs) => {
-                        if (err) {
-                            TOOLS.errorHandler({ err: err, m: m });
-                        } else
-                        if (docs.length === 0) {
-                            TOOLS.errorHandler({ err: `${(userid === m.author.id) ? 'You do' : 'That user does'} not have a verified donator cape.`, m: m });
-                        } else {
-                            request({ url: 'https://api.mojang.com/user/profiles/' + docs[0].mcid + '/names', encoding: null }, (err, res, data) => {
-                                if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-                                    TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the Mojang API'), m: m });
-                                } else
-                                if (res.statusCode === 204) {
-                                    TOOLS.errorHandler({ err: new Error('Unable to get Minecraft UUID of that user.'), m: m });
-                                } else {
-                                    let dp = JSON.parse(data);
-                                    let dataNormalized = {
-                                        name: dp[dp.length - 1]["name"],
-                                        id: docs[0].mcid
-                                    }
-                                    getOFcape(dataNormalized);
+                                function finalize(image_p) {
+                                    image_p.getBuffer(jimp.AUTO, (err_b, imgFinal) => {
+                                        if (err_b) TOOLS.errorHandler({ err: err_b, m: m });
+                                        else {
+                                            let embed = new discord.RichEmbed()
+                                                .setColor(cfg.vs.embed.default)
+                                                .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_cape.png'), "thumbnail.png"), new discord.Attachment(imgFinal, "cape.png")])
+                                                .setImage('attachment://cape.png')
+                                                .setFooter('IGN: ' + username);
+
+                                            
+
+                                            memory.db.profiles.find({ "cape.uuid": result.id }, (dberr, dbdocs) => {
+                                                if (dberr) TOOLS.errorHandler({ err: dberr, m: m });
+                                                else {
+                                                    if (dbdocs.length !== 0) {
+                                                        embed.setDescription('<:okay:546570334233690132> Cape owned by <@' + dbdocs[0].member_id + '>');
+                                                    }
+
+                                                    if (full) {
+                                                        embed.setAuthor('Donator Cape (Full Texture)', 'attachment://thumbnail.png');
+                                                    } else {
+                                                        embed.setAuthor('Donator Cape', 'attachment://thumbnail.png');
+                                                    }
+
+                                                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                                                }
+                                            });
+                                        }
+                                    });
                                 }
-                            });
-                        }
-                    });
-                } else
-                if (args[0].match(/\W+/) !== null) {
-                    TOOLS.errorHandler({ err: 'Minecraft usernames can only contain upper/lowercase letters, numbers, and underscores (_)', m: m });
-                } else
-                if (args[0].length > 16) {
-                    TOOLS.errorHandler({ err: 'Minecraft usernames cannot exceed 16 characters in length.', m: m });
-                } else {
-                    request({ url: 'https://api.mojang.com/users/profiles/minecraft/' + args[0], encoding: null }, (err, res, data) => {
-                        if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-                            TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the Mojang API'), m: m });
-                        } else
-                        if (res.statusCode === 204) {
-                            let embed = new discord.RichEmbed()
-                                .setColor(cfg.vs.embed.error)
-                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
-                                .setAuthor('That user does not exist.', 'attachment://thumbnail.png')
-                                .setFooter('Maybe check your spelling?');
-
-                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                        } else {
-                            getOFcape(JSON.parse(data));
-                        }
-                    });
-                }
+                            }
+                        });
+                    }
             });
         }
+
+        TOOLS.getTargetUser(m, target, (userid, name) => {
+            if (userid) {
+                TOOLS.getProfile(m, userid, (profile) => {
+                    if(!profile.cape) {
+                        TOOLS.errorHandler({ err: `${(userid === m.author.id) ? 'You do' : name+' does'} not have a verified donator cape.`, m: m });
+                    } else {
+                        request({ url: 'https://api.mojang.com/user/profiles/' + profile.cape.uuid + '/names', encoding: null }, (err, res, data) => {
+                            if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
+                                TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the Mojang API'), m: m });
+                            } else
+                            if (res.statusCode === 204) {
+                                TOOLS.errorHandler({ err: new Error('Unable to get Minecraft UUID of that user.'), m: m });
+                            } else {
+                                let dp = JSON.parse(data);
+                                let dataNormalized = {
+                                    name: dp[dp.length - 1]["name"],
+                                    id: profile.cape.uuid
+                                }
+                                getOFcape(dataNormalized);
+                            }
+                        });
+                    }
+                });
+            } else
+            if (target.match(/\W+/) !== null) {
+                TOOLS.errorHandler({ err: 'Minecraft usernames can only contain upper/lowercase letters, numbers, and underscores (_)', m: m });
+            } else
+            if (target.length > 16) {
+                TOOLS.errorHandler({ err: 'Minecraft usernames cannot exceed 16 characters in length.', m: m });
+            } else {
+                request({ url: 'https://api.mojang.com/users/profiles/minecraft/' + target, encoding: null }, (err, res, data) => {
+                    if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
+                        TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the Mojang API'), m: m });
+                    } else
+                    if (res.statusCode === 204) {
+                        let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.error)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
+                            .setAuthor('That user does not exist.', 'attachment://thumbnail.png')
+                            .setFooter('Maybe check your spelling?');
+
+                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    } else {
+                        getOFcape(JSON.parse(data));
+                    }
+                });
+            }
+        });
     }
 }));
 
@@ -3713,7 +4479,7 @@ CMD.register(new Command({
 
 CMD.register(new Command({
     trigger: 'purge',
-    short_desc: 'Delete the last [x amount] messages.',
+    short_desc: 'Delete several messages at once.',
     long_desc: "Delete the last [x amount] messages. Useful for mass spam. \n\nWhen using this command, OptiBot will ask you to CONFIRM your request before proceeding. The bot will retain the position the original command was used at, meaning that messages that happen to be posted while you're confirming the request will be ignored.",
     usage: '<# of messages>',
     admin_only: true,
@@ -3740,23 +4506,20 @@ CMD.register(new Command({
                 .setColor(cfg.vs.embed.default)
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                 .setAuthor(`Are you sure want to remove ${amount} messages?`, 'attachment://icon.png')
-                .setDescription('This action cannot be undone. \n\nType `!confirm` to continue.\nType `!cancel` or simply ignore this message to cancel.')
+                .setDescription(`This action cannot be undone. \n\nType \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`)
 
             m.channel.send({embed: confirm}).then(msg => {
                 TOOLS.typerHandler(m.channel, false);
                 TOOLS.confirmationHandler(m, (result) => {
-                    let embed = new discord.RichEmbed()
-                        .setColor(cfg.vs.embed.okay)
-                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"));
-                    
                     if (result === 1) {
                         m.channel.fetchMessages({before: m.id, limit: amount}).then(index_messages=> {
                             m.channel.bulkDelete(index_messages).then(deleted_messages => {
-                                embed.setAuthor(`Deleted ${amount} messages.`, 'attachment://icon.png');
+                                let embed = new discord.RichEmbed()
+                                .setColor(cfg.vs.embed.okay)
+                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                                .setAuthor(`Successfully deleted ${amount} messages.`, 'attachment://icon.png');
                                 
-                                m.channel.send({embed: embed}).then(msg2 => {
-                                    TOOLS.messageFinalize(m.author.id, msg2);
-                                });
+                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                             }).catch(err => {
                                 TOOLS.errorHandler({err: err, m:m});    
                             })
@@ -3765,14 +4528,22 @@ CMD.register(new Command({
                         });
                     } else
                     if (result === 0) {
-                        embed.setAuthor(`Cancelled. No messages have been deleted.`, 'attachment://icon.png');
+                        let embed = new discord.RichEmbed()
+                        .setColor(cfg.vs.embed.default)
+                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                        .setAuthor(`Request cancelled.`, 'attachment://icon.png')
+                        .setDescription('No messages have been deleted.')
 
-                        m.channel.send({embed: embed}).then(msg2 => {
-                            TOOLS.messageFinalize(m.author.id, msg2);
-                        });
+                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                     } else
                     if (result === 2) {
-                        TOOLS.errorHandler({err: "Request timed out.", m:m, temp:true});
+                        let embed = new discord.RichEmbed()
+                        .setColor(cfg.vs.embed.default)
+                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                        .setAuthor(`Request timed out.`, 'attachment://icon.png')
+                        .setDescription('No messages have been deleted.')
+                        
+                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                     }
                 });
             });
@@ -3783,7 +4554,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'docs', 
     short_desc: 'Search OptiFine documentation.',
-    long_desc: "Search for various files in the current version of OptiFine documentation. If no search query is provided, OptiBot will just give you a link to the documentation on GitHub. \n\n**Note: This is the all new, somewhat experimental version of the `!docs` command.** This version provides \"categories\" of documentation, which makes things easier to look for. However, due to the nature of this new system, some files may be missing, especially if they've only been recently added. For the legacy version of this command, use `!docfile`. It will always be up-to-date, as it downloads directly from GitHub.",
+    long_desc: `Search for various files in the current version of OptiFine documentation. If no search query is provided, OptiBot will just give you a link to the documentation on GitHub. \n\n**Note: This is the all new, somewhat experimental version of the \`${cfg.basic.trigger}docs\` command.** This version provides \"categories\" of documentation, which makes things easier to look for. However, due to the nature of this new system, some files may be missing, especially if they've only been recently added. For the legacy version of this command, use \`${cfg.basic.trigger}docfile\`. It will always be up-to-date, as it downloads directly from GitHub.`,
     usage: '[query]',
     hidden: false,
     fn: (m, args) => {
@@ -3808,64 +4579,40 @@ CMD.register(new Command({
                 .setColor(cfg.vs.embed.default)
                 .attachFile(new discord.Attachment(memory.bot.icons.get("opti_docs.png"), "icon.png"))
                 .setAuthor("Official OptiFine Documentation", 'attachment://icon.png')
+                .setDescription(`You can link to individual files by using the \`${cfg.basic.trigger}docfile\` command.`)
                 .addField(data.name, data.links.join('\n\n'))
                 .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
 
                 m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
             }
         }
+    }
+}));
 
-        /*
-        let embed = new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get("opti_docs.png"), "thumbnail.png"))
-            .setAuthor("Official OptiFine Documentation", 'attachment://thumbnail.png')
+CMD.register(new Command({
+    trigger: 'log',
+    short_desc: `Retrieves OptiBot's current running log file.`,
+    admin_only: true,
+    hidden: false,
+    fn: (m) => {
+        log(`User ${m.author.username}#${m.author.discriminator} requested OptiBot log.`);
 
-        if(!args[0]) {
-            embed.addField("Main Directory", "https://github.com/sp614x/optifine/tree/master/OptiFineDoc/doc");
-
-            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-        } else {
-            let files = [];
-
-            for(let i = 0; i < memory.bot.docs.length; i++) {
-                files.push(memory.bot.docs[i].name);
-
-                if(i+1 === memory.bot.docs.length) {
-                    let search = [
-                        cstr.findBestMatch(m.content.substring(cfg.basic.trigger.length+5).toLowerCase(), files),
-                        cstr.findBestMatch(m.content.substring(cfg.basic.trigger.length+5).toUpperCase(), files),
-                        cstr.findBestMatch(m.content.substring(cfg.basic.trigger.length+5), files)
-                    ].sort((a, b) => a.bestMatch.rating > b.bestMatch.rating);
-
-                    let match = search[2];
-
-                    if(match.bestMatch.rating < 0.1) {
-                        embed.setDescription("Could not find a file matching that query.")
-
-                        m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                    } else {
-                        if(match.bestMatch.target.endsWith('.png')) {
-                            embed.setImage(memory.bot.docs[match.bestMatchIndex].download_url);
-                        }
-    
-                        embed.addField(match.bestMatch.target, memory.bot.docs[match.bestMatchIndex].html_url)
-                        embed.setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
-    
-                        m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                    }
+        bot.setTimeout(() => {
+            fs.readFile(`./logs/${process.argv[4]}.log`, (err, data) => {
+                if(err) TOOLS.errorHandler({err:err, m:m});
+                else {
+                    m.channel.send(new discord.Attachment(data, `${process.argv[4]}.log`)).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
                 }
-            }
-        }
-        */
+            });
+        }, 500);
     }
 }));
 
 CMD.register(new Command({
     trigger: 'docfile',
-    short_desc: 'Link to a direct file on the OptiFine documentation.',
+    short_desc: 'Search/link a single file in the OptiFine documentation.',
     long_desc: "Search for files in the current version of OptiFine documentation.",
-    usage: '[query]',
+    usage: '[query] [line #]',
     hidden: false,
     fn: (m, args) => {
         let embed = new discord.RichEmbed()
@@ -3882,22 +4629,23 @@ CMD.register(new Command({
                 files.push(memory.bot.docs[i].name);
 
                 if(i+1 === memory.bot.docs.length) {
-                    let search = [
-                        cstr.findBestMatch(m.content.substring(cfg.basic.trigger.length+5).toLowerCase(), files),
-                        cstr.findBestMatch(m.content.substring(cfg.basic.trigger.length+5).toUpperCase(), files),
-                        cstr.findBestMatch(m.content.substring(cfg.basic.trigger.length+5), files)
-                    ].sort((a, b) => a.bestMatch.rating > b.bestMatch.rating);
-
-                    let match = search[2];
+                    let match = cstr.findBestMatch(args[0], files)
 
                     if(match.bestMatch.rating < 0.1) {
                         TOOLS.errorHandler({err: "Could not find a file matching that query.", m:m});
                     } else {
+                        let title = match.bestMatch.target;
+                        let url = memory.bot.docs[match.bestMatchIndex].html_url;
+
                         if(match.bestMatch.target.endsWith('.png')) {
                             embed.setImage(memory.bot.docs[match.bestMatchIndex].download_url);
+                        } else
+                        if(args[1] && !isNaN(args[1]) && Math.round(parseInt(args[1])) > 0) {
+                            url += '#L'+Math.round(parseInt(args[1]));
+                            title += ' | Line '+Math.round(parseInt(args[1]));
                         }
     
-                        embed.addField(match.bestMatch.target, memory.bot.docs[match.bestMatchIndex].html_url)
+                        embed.addField(title, url)
                         embed.setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
     
                         m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
@@ -3950,35 +4698,45 @@ CMD.register(new Command({
             TOOLS.getTargetUser(m, args[0], (userid, name) => {
                 if(!userid) {
                     TOOLS.errorHandler({err: "You must specify a valid user.", m:m});
-                } else {
-                    if(userid === bot.user.id) {
-                        TOOLS.errorHandler({err: "I'm not allowed to have medals. :(", m:m});
-                    } else
-                    if(userid === m.author.id) {
-                        let embed = new discord.RichEmbed()
-                            .attachFiles([new discord.Attachment(memory.bot.images.get('medal_self.png'), "image.png")])
-                            .setColor(cfg.vs.embed.error)
-                            .setImage('attachment://image.png');
+                } else
+                if(userid === bot.user.id) {
+                    TOOLS.errorHandler({err: "I'm not allowed to have medals. :(", m:m});
+                } else
+                if(userid === m.author.id) {
+                    let embed = new discord.RichEmbed()
+                        .attachFiles([new discord.Attachment(memory.bot.images.get('medal_self.png'), "image.png")])
+                        .setColor(cfg.vs.embed.error)
+                        .setImage('attachment://image.png');
 
-                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                    } else {
-                        log(`${name} was awarded a medal by ${m.author.username}#${m.author.discriminator}`);
-            
-                        let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.default)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
-                            .setAuthor('Medal awarded', 'attachment://icon.png')
-                            .setDescription(`<@${userid}> was awarded a medal by ${m.author}!`)
-    
-                        m.channel.send({ embed: embed }).then(msg => {
-                            TOOLS.messageFinalize(m.author.id, msg);
-    
-                            memory.db.mdl.update({ user_id: userid }, { $inc: { count: 1 } }, { upsert: true }, (err, updated) => {
-                                if (err) TOOLS.errorHandler({ err: err, m: m });
-                                log('member medals update: ' + updated, 'debug');
-                            });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                } else {
+                    TOOLS.getProfile(m, userid, (profile) => {
+                        if(!profile.medals) {
+                            profile.medals = {
+                                count: 1,
+                                msgs: []
+                            }
+                        } else {
+                            profile.medals.count++;
+                        }
+                        
+                        memory.db.profiles.update({ member_id: userid }, profile, (err) => {
+                            if (err) TOOLS.errorHandler({ err: err, m: m });
+                            else {
+                                log(`${name} was awarded a medal by ${m.author.username}#${m.author.discriminator}`);
+        
+                                let embed = new discord.RichEmbed()
+                                    .setColor(cfg.vs.embed.default)
+                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
+                                    .setAuthor('Medal awarded', 'attachment://icon.png')
+                                    .setDescription(`<@${userid}> was awarded a medal by ${m.author}!`)
+
+                                m.channel.send({ embed: embed }).then(msg => {
+                                    TOOLS.messageFinalize(m.author.id, msg);
+                                });
+                            }
                         });
-                    }
+                    });
                 }
             });
         }
@@ -3989,98 +4747,54 @@ CMD.register(new Command({
     trigger: 'chkmute',
     short_desc: 'Check the status of a muted user.',
     long_desc: 'Checks the status of a muted user, and provides an approximate date for when the user will be unmuted, if at all.',
-    usage: '[user]',
+    usage: '<user>',
+    admin_only: true,
+    hidden: false,
     fn: (m, args) => {
-        // todo
-
-        // IMPORTANT: ADD ALL EXISTING MUTED USERS TO DATABASE BEFORE PROCEEDING WITH THIS COMMAND
         if(args[0]) {
             TOOLS.getTargetUser(m, args[0], (userid, name) => {
                 if(!userid) {
-                    TOOLS.errorHandler({err: "You must specify a valid user. (Leave blank to check yourself)", m:m});
+                    TOOLS.errorHandler({err: "You must specify a valid user.", m:m});
                 } else {
-                    getFinal(userid);
+                    getFinal(userid, name);
                 }
             });
         } else {
-            getFinal(m.author.id);
+            TOOLS.errorHandler({err: "You must specify a user to check.", m:m});
         }
 
-        function getFinal(target) {
-            memory.db.muted.find({ member_id: target }, (err, docs) => {
-                if(err) {
-                    TOOLS.errorHandler({err:err, m:m});
+        function getFinal(target, name) {
+            TOOLS.getProfile(m, target, (profile) => {
+                if(!profile.mute) {
+                    let embed = new discord.RichEmbed()
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
+                    .setColor(cfg.vs.embed.error)
+                    .setAuthor(`${name} is not muted.`, "attachment://icon.png")
+                    .setDescription('If this information is false, contact <@181214529340833792> immediately.');
+
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                } else
+                if(typeof profile.mute.end === 'number') {
+                    let embed = new discord.RichEmbed()
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                    .setColor(cfg.vs.embed.default)
+                    .setAuthor(`Mute Status`, "attachment://icon.png")
+                    .setDescription(`Status of mute for user <@${target}>`)
+                    .addField('Mute start date', `User was muted by <@${profile.mute.executor}> on ${new Date(profile.mute.start).toUTCString()}.`)
+                    .addField('Mute end date', `User will be unmuted on ${new Date(profile.mute.end).toUTCString()}. ${(profile.mute.updater.length > 0) ? `This time limit was last updated by <@${profile.mute.updater}>` : ""} \n\n**This is an approximation.** Due to the nature of OptiBot's mute system, it may take up to 5 minutes for a user to be unmuted automatically. If it's been more than 5 minutes, or any of this information is otherwise false, please contact <@181214529340833792> immediately.`)
+
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
                 } else {
-                    bot.guilds.get(cfg.basic.of_server).fetchMember(target).then(member => {
-                        if(docs.length === 0) {
-                            if(member.roles.has(cfg.roles.muted)) {
-                                member.removeRole(cfg.roles.muted, 'Mute removed due to inconsistency.').then(() => {
-                                    let embed = new discord.RichEmbed()
-                                    .setColor(cfg.vs.embed.default)
-                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-                                    .setAuthor(`It seems there was an inconsistency. The user's mute has been removed.`, 'attachment://icon.png')
+                    let embed = new discord.RichEmbed()
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                    .setColor(cfg.vs.embed.default)
+                    .setAuthor(`Mute Status`, "attachment://icon.png")
+                    .setDescription(`Status of mute for user <@${target}>`)
+                    .addField('Mute start date', `User was muted by <@${profile.mute.executor}> on ${new Date(profile.mute.start).toUTCString()}.`)
+                    .addField('Mute end date', `This user will never be unmuted. ${(profile.mute.updater.length > 0) ? `This was last updated by <@${profile.mute.updater}>` : ""} \n\nIf any of this information is false, please contact <@181214529340833792> immediately.`)
 
-                                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                                }).catch(err => {
-                                    TOOLS.errorHandler({err:err, m:m});
-                                });
-                            } else {
-                                if(target === m.author.id) {
-                                    TOOLS.errorHandler({err:'You have not been muted.', m:m});
-                                } else {
-                                    TOOLS.errorHandler({err:'That user has not been muted.', m:m});
-                                }
-                            }
-                        } else {
-                            let embed = new discord.RichEmbed()
-                                .setColor(cfg.vs.embed.default)
-                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-                                .setAuthor('Mute Status', 'attachment://icon.png')
-                            if(member.roles.has(cfg.roles.muted)) {
-                                if(docs[0].time !== false) {
-                                    let remaining = docs[0].time - new Date().getTime();
-                                    let minutes = (remaining/1000/60).toFixed(1);
-                                    let hours = Math.round(remaining/(1000*60*60)).toFixed(1);
-                                    let days = Math.round(remaining/(1000*60*60*24)).toFixed(1);
-                                    let final;
-
-                                    if(minutes < 15) {
-                                        final = `Less than 15 minutes.`;
-
-                                        if(minutes < 1) {
-                                            embed.setFooter(`If it's been well over 15 minutes and the user has still not been unmuted, please contact a moderator.`)
-                                        }
-                                    } else
-                                    if(minutes < 60) {
-                                        final = `Approximately ${minutes} minutes(s)`;
-                                    } else
-                                    if(hours < 24) {
-                                        final = `Approximately ${hours} hours(s)`;
-                                    } else {
-                                        final = `Approximately ${days} day(s)`;
-                                    }
-
-                                    embed.setDescription(`${member.user} is currently muted. Time remaining: ${final}`);
-                                } else {
-                                    embed.setDescription(`${member.user} is currently muted, and will remain muted for the foreseeable future.`);
-                                }
-
-                                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                            } else {
-                                if(target === m.author.id) {
-                                    embed.setDescription(`You are *supposed* to be muted, but you do not seem to have the muted role. Strange.`)
-                                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                                } else {
-                                    embed.setDescription(`${member.user} is *supposed* to be muted, but does not seem to have the muted role. Strange.`)
-                                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                                }
-                            }
-                        }
-                    }).catch(err => {
-                        TOOLS.errorHandler({err:err, m:m});
-                    });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
                 }
-                
             });
         }
     }
@@ -4112,7 +4826,7 @@ CMD.register(new Command({
                     let answer = messages[i].content.split('\n').slice(1).join('\n').replace(/A:/i, "").replace(/_\s+_\s*$/, "").trim();
 
                     if(question !== null) {
-                        let match = cstr.compareTwoStrings(query, question[0]);
+                        let match = cstr.compareTwoStrings(query.toLowerCase(), question[0].toLowerCase());
 
                         if(match > highest.rating) {
                             highest.rating = match;
@@ -4130,9 +4844,22 @@ CMD.register(new Command({
                             .setColor(cfg.vs.embed.default)
                             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_faq.png'), "icon.png"))
                             .setAuthor('Frequently Asked Questions', 'attachment://icon.png')
-                            .setDescription(`Click [here](${highest.message.url}) to go to the original message link. Be sure to also check out the <#531622141393764352> channel for more questions and answers.`)
-                            .addField(highest.question, (highest.answer) ? highest.answer : "_ _")
                             .setFooter(`${(highest.rating * 100).toFixed(1)}% match during search.`);
+
+                            let infotext = `Click [here](${highest.message.url}) to go to the original message link. Be sure to also check out the <#531622141393764352> channel for more questions and answers.`;
+                            
+                            if(highest.answer) {
+                                if(highest.answer.length < 512) {
+                                    embed.setDescription(infotext)
+                                    .addField(highest.question, highest.answer);
+                                } else {
+                                    embed.setDescription(`**The answer to this question is too long to show in an embed.** \n${infotext}`)
+                                    .addField(highest.question, highest.answer.substring(0, 512)+'...');
+                                }
+                            } else {
+                                embed.setDescription(infotext)
+                                .addField(highest.question, "_ _");
+                            }
 
                             if(highest.message.attachments.size > 0) {
                                 if(highest.message.attachments.first(1)[0].url.match(/.(jpg|jpeg|png|gif)$/i) !== null) {
@@ -4157,17 +4884,61 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'motd',
-    short_desc: 'View the MOTD.',
-    long_desc: 'View the MOTD, the message sent by OptiBot to every new user that joins the server. You can also set a message to be included. You can reset custom messages with `!clearmotd`',
-    usage: '[message]',
-    admin_only: true,
+    trigger: 'mcwiki',
+    short_desc: 'Search the Minecraft Wiki.',
+    query: '[query]',
     hidden: false,
     fn: (m, args) => {
+        let embed = new discord.RichEmbed()
+        .setColor(cfg.vs.embed.default)
+        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_mcwiki.png'), "icon.png"))
+        .setAuthor('Official Minecraft Wiki', 'attachment://icon.png');
+
         if(!args[0]) {
+            embed.setDescription('https://minecraft.gamepedia.com/Minecraft_wiki')
+            .setFooter('To link a specific article, please specify a search query.')
+
+            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        } else {
+            let query = m.content.split("\n", 1)[0].substring( (cfg.basic.trigger+'mcwiki ').length ).trim();
+            let url = "https://minecraft.gamepedia.com/api.php?action=query&format=json&generator=search&gsrsearch="+encodeURIComponent(query)+"&gsrlimit=1&prop=info&inprop=url";
+            if(query.toLowerCase() === 'random') url = "https://minecraft.gamepedia.com/api.php?action=query&format=json&generator=random&prop=info&inprop=url";
+
+            request(url, (err, res, data) => {
+                if(err || !res || !data) {
+                    TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the Minecraft Wiki API'), m: m });
+                } else {
+                    let result = JSON.parse(data);
+
+                    if(!result.query) {
+                        embed.setDescription('https://minecraft.gamepedia.com/Minecraft_wiki')
+                        .setFooter('Could not find a page matching that query.')
+
+                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    } else {
+                        let resultID = Object.keys(result.query.pages)[0];
+                        embed.addField(result.query.pages[resultID].title, result.query.pages[resultID].fullurl);
+
+                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    }
+                }
+            });
+        }
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'motd',
+    short_desc: 'View the MOTD.',
+    long_desc: `View the MOTD, the message sent by OptiBot to every new user that joins the server. \n\nModerators can additionally include a message to be added, which can be reset again with \`${cfg.basic.trigger}clearmotd\``,
+    usage: '[new message]',
+    hidden: false,
+    fn: (m, args, not_used, misc) => {
+        if(!args[0] || !(misc.isAdmin || misc.isSuper)) {
             m.channel.send({ embed: memory.bot.motd }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
         } else {
             let newMsg = m.content.substring( (cfg.basic.trigger + 'motd ').length );
+            let messageformatted = '> '+newMsg.replace('\n', '> \n').substring(0, 1024);
 
             if(memory.bot.motd.fields[0] && memory.bot.motd.fields[0].value.toLowerCase() === newMsg.trim().toLowerCase()) {
                 TOOLS.errorHandler({ err: "New MOTD Message cannot be the same as the current message.", m: m });
@@ -4178,13 +4949,13 @@ CMD.register(new Command({
                 .setColor(cfg.vs.embed.default)
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                 .setAuthor(`Are you sure want to change the MOTD message?`, 'attachment://icon.png')
-                .setDescription('This message will be shown to ALL users who join the server. \n\nType `!confirm` to continue.\nType `!cancel` or simply ignore this message to cancel.')
+                .setDescription(`This message will be shown to ALL users who join the server. \n\nType \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`)
 
             if(memory.bot.motd.fields[0]) {
                 confirm.addField('Current Message Preview', memory.bot.motd.fields[0].value);
             }
 
-            confirm.addField('New Message Preview', newMsg.substring(0, 1024) )
+            confirm.addField('New Message Preview', messageformatted)
                 .setFooter('Note that messages must be less than 1024 characters in length. Your message may have been automatically shortened to fit.');
 
             
@@ -4192,14 +4963,21 @@ CMD.register(new Command({
                 TOOLS.typerHandler(m.channel, false);
                 TOOLS.confirmationHandler(m, (result) => {
                     if (result === 1) {
-                        memory.db.motd.update({motd: true}, {motd:true, message:newMsg.substring(0, 1024)}, { upsert: true }, (err) => {
+                        let motd_data = {
+                            motd: true,
+                            date: new Date(),
+                            message: messageformatted,
+                        }
+                        
+                        memory.db.motd.update({motd: true}, motd_data, { upsert: true }, (err) => {
                             if(err) {
                                 TOOLS.errorHandler({ m:m, err:err });
                             } else {
                                 if(memory.bot.motd.fields[0]) {
-                                    memory.bot.motd.fields[0].value = newMsg.substring(0, 1024);
+                                    memory.bot.motd.fields[0].name = `A message from Moderators (Posted on ${motd_data.date.toUTCString()})`;
+                                    memory.bot.motd.fields[0].value = messageformatted;
                                 } else {
-                                    memory.bot.motd.addField('A message from Moderators', newMsg.substring(0, 1024))
+                                    memory.bot.motd.addField(`A message from Moderators (Posted on ${motd_data.date.toUTCString()})`, messageformatted)
                                 }
         
                                 let embed = new discord.RichEmbed()
@@ -4214,19 +4992,21 @@ CMD.register(new Command({
                     } else
                     if (result === 0) {
                         let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.okay)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                            .setAuthor(`Request cancelled.`, 'attachment://icon.png');
+                        .setColor(cfg.vs.embed.default)
+                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                        .setAuthor(`Request cancelled.`, 'attachment://icon.png')
+                        .setDescription('MOTD message has not been changed.')
 
-                        m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                     } else
                     if (result === 2) {
                         let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.okay)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                            .setAuthor(`Request timed out.`, 'attachment://icon.png');
-
-                        m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        .setColor(cfg.vs.embed.default)
+                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                        .setAuthor(`Request timed out.`, 'attachment://icon.png')
+                        .setDescription('MOTD message has not been changed.')
+                        
+                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                     }
                 });
             })
@@ -4237,7 +5017,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'clearmotd',
     short_desc: 'Clear custom MOTD message.',
-    long_desc: 'Clears the custom MOTD message, which is set by using `!motd`.',
+    long_desc: `Clears the custom MOTD message, which is set by using \`${cfg.basic.trigger}motd\`.`,
     admin_only: true,
     hidden: false,
     fn: (m) => {
@@ -4248,7 +5028,7 @@ CMD.register(new Command({
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
             .setAuthor(`Are you sure want to remove the MOTD message?`, 'attachment://icon.png')
-            .setDescription('This will remove the current message set in the MOTD. \n\nType `!confirm` to continue.\nType `!cancel` or simply ignore this message to cancel.')
+            .setDescription(`This will remove the current message set in the MOTD. \n\nType \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`)
 
             m.channel.send({embed:confirm}).then(msg => {
                 TOOLS.confirmationHandler(m, (result) => {
@@ -4257,7 +5037,7 @@ CMD.register(new Command({
                     .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
 
                     if (result === 1) {
-                        memory.db.motd.update({motd: true}, {motd:true, message:''}, { upsert: true }, (err) => {
+                        memory.db.motd.update({motd: true}, {motd:true, message:'', date: new Date()}, { upsert: true }, (err) => {
                             if(err) {
                                 TOOLS.errorHandler({ err:err, m:m });
                             } else {
@@ -4269,14 +5049,144 @@ CMD.register(new Command({
                         });
                     } else
                     if (result === 0) {
-                        embed.setAuthor(`Request cancelled.`, 'attachment://icon.png');
-                        m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        let embed = new discord.RichEmbed()
+                        .setColor(cfg.vs.embed.default)
+                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                        .setAuthor(`Request cancelled.`, 'attachment://icon.png')
+                        .setDescription('MOTD message has not been removed.')
+
+                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                     } else
                     if (result === 2) {
-                        embed.setAuthor(`Request timed out.`, 'attachment://icon.png');
-                        m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        let embed = new discord.RichEmbed()
+                        .setColor(cfg.vs.embed.default)
+                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                        .setAuthor(`Request timed out.`, 'attachment://icon.png')
+                        .setDescription('MOTD message has not been removed.')
+                        
+                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                     }
                 });
+            });
+        }
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'split',
+    short_desc: 'Split a texture into smaller textures.',
+    long_desc: `Split a given image attachment into smaller textures. Define the size of each block with the \`width\` and \`height\` arguments. **All numbers must be EVEN, including the resolution of your intial image texture!**`,
+    usage:`<width> <height>`,
+    fn: (m, args) => {
+        // todo: make minimum block size dependent on the total image size.
+        let timeStart = new Date().getTime();
+        if(m.attachments.size === 0) {
+            TOOLS.errorHandler({ err:'You must include an image to dice.', m:m });
+        } else
+        if(!args[0]) {
+            TOOLS.errorHandler({ err:'You must specify the width of the grid blocks.', m:m });
+        } else
+        if(!args[1]) {
+            TOOLS.errorHandler({ err:'You must specify the height of the grid blocks.', m:m });
+        } else
+        if(isNaN(args[0]) || isNaN(args[1])) {
+            TOOLS.errorHandler({ err:'You must specify valid numbers.', m:m });
+        } else
+        if(parseInt(args[0]) % 2 === 1 || parseInt(args[0]) % 2 === 1) {
+            TOOLS.errorHandler({ err:'You cannot use odd numbers.', m:m });
+        } else
+        if(parseInt(args[0]) < 8 || parseInt(args[0]) < 8) {
+            TOOLS.errorHandler({ err:'Blocks cannot be smaller than 8x8 pixels.', m:m });
+        } else {
+            jimp.read(m.attachments.first(1)[0].url, (err, image) => {
+                if(err) {
+                    TOOLS.errorHandler({ err:err, m:m });
+                } else
+                if(image.bitmap.width % 2 === 1 || image.bitmap.height % 2 === 1) {
+                    TOOLS.errorHandler({ err:'Image must have an even width and height.', m:m });
+                } else 
+                if(image.bitmap.width > 1024 || image.bitmap.height > 1024) {
+                    TOOLS.errorHandler({ err:'Image cannot exceed 1024 pixels in width or height.', m:m });
+                } else 
+                if(image.bitmap.width < parseInt(args[0]) || image.bitmap.height < parseInt(args[1])) {
+                    TOOLS.errorHandler({ err:'Block size cannot exceed image dimensions.', m:m });
+                } else {
+                    let column = 0;
+                    let row = 0;
+                    
+                    let filenum = 0;
+                    let zip = new archive();
+
+                    (function splitter() {
+                        log(`now doing c${column+1} r${row+1}`, 'trace');
+                        log(`this image at x${parseInt(args[0]) * column} y${parseInt(args[1]) * row}`)
+                        let newimg = image.clone();
+
+                        newimg.crop((parseInt(args[0]) * column), (parseInt(args[1]) * row), parseInt(args[0]), parseInt(args[1]))
+                        .getBuffer(jimp.AUTO, (err, buffer) => {
+                            if(err) {
+                                TOOLS.errorHandler({ err:err, m:m });
+                            } else {
+                                zip.addFile(`${filenum}.png`, buffer);
+
+                                filenum++;
+                                if(column+2 > (image.bitmap.width / parseInt(args[0])) ) {
+                                    if(row+2 > (image.bitmap.height / parseInt(args[1])) ) {
+                                        let embed = new discord.RichEmbed()
+                                        .setColor(cfg.vs.embed.okay)
+                                        .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"), new discord.Attachment(zip.toBuffer(), "output.zip")])
+                                        .setAuthor(`Successfully generated ${filenum} images in ${(new Date().getTime() - timeStart) / 1000} seconds.`, 'attachment://icon.png')
+
+                                        m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg));
+                                    } else {
+                                        column = 0;
+                                        row++;
+                                        splitter();
+                                    }
+                                } else {
+                                    column++;
+                                    splitter();
+                                }
+                            }
+                        });
+                    })();
+                }
+            });
+        }
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'join',
+    short_desc: 'Stitch several textures together.',
+    long_desc: `Stitches a series of given images into a single texture. You must include all images to join, in the form of a .zip file. Define the size of the canvas the \`width\` and \`height\` arguments. **All numbers must be EVEN, including the resolution of your intial image textures!**`,
+    usage:`<width> <height>`,
+    fn: (m, args) => {
+        let timeStart = new Date().getTime();
+        if(m.attachments.size === 0) {
+            TOOLS.errorHandler({ err:'You must include a zip file.', m:m });
+        } else
+        if(!args[0]) {
+            TOOLS.errorHandler({ err:'You must specify the width of the canvas.', m:m });
+        } else
+        if(!args[1]) {
+            TOOLS.errorHandler({ err:'You must specify the height of the canvas.', m:m });
+        } else
+        if(isNaN(args[0]) || isNaN(args[1])) {
+            TOOLS.errorHandler({ err:'You must specify valid numbers.', m:m });
+        } else
+        if(parseInt(args[0]) % 2 === 1 || parseInt(args[0]) % 2 === 1) {
+            TOOLS.errorHandler({ err:'You cannot use odd numbers.', m:m });
+        } else {
+            request(m.attachments.first(1)[0].url, (err, res, data) => {
+                if(err || res.statusCode === 404) {
+                    TOOLS.errorHandler({ err:err||new Error('Unable to download attachment.'), m:m });
+                } else {
+                    let zip = new archive(data);
+                    let entries = zip.getEntries();
+
+                    // todo
+                }
             });
         }
     }
@@ -4390,7 +5300,7 @@ TOOLS.statusHandler = (type) => {
         } else {
             ACT_status = 'online';
             ACT_type = 'WATCHING';
-            ACT_game = '!help';
+            ACT_game = `${cfg.basic.trigger}help`;
         }
     } else
     if (type === 2) {
@@ -4445,39 +5355,49 @@ TOOLS.messageFinalize = (author, botm) => {
 
 TOOLS.errorHandler = (data) => {
     let embed = new discord.RichEmbed()
-        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
-        .setColor(cfg.vs.embed.error);
+    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
+    .setColor(cfg.vs.embed.error);
 
-    if (data.err) {
-        if (data.err.stack) log(data.err.stack, 'error');
-        if (typeof data.err === "string") {
-            // display error only, minified
-            embed.setAuthor(data.err, 'attachment://icon.png');
-        } else {
-            // display contact message + error
-            embed.setFooter(data.err)
-                .setAuthor('Error', 'attachment://icon.png')
-                .setDescription('Something went wrong while doing that. Oops. \n\nIf this continues, try contacting <@181214529340833792>, and give him this error message:');
-        }
+    let cid = callerId.getData();
+    let path = (cid.evalFlag) ? 'eval()' : cid.filePath;
+    let filename = path.substring(path.lastIndexOf('\\')+1);
+    let line = cid.lineNumber;
+
+    if (!data || typeof data !== 'object' || data.constructor !== Object) {
+        log(`An error occured during operation and was caught, but no valid data was passed to the handler. [method call @ ${filename}:${line}]`, 'fatal');
     } else {
-        log(new Error('An error occured during operation and was caught, but no error object was passed to the handler.').stack, 'fatal');
-        embed.setDescription('Something went wrong while doing that. If this continues, try contacting <@181214529340833792>.')
-            .setAuthor('Error', 'attachment://icon.png');
-    }
-
-    if (data.m) {
-        if(data.temp) {
-            embed.setFooter('This message will self-destruct in 10 seconds.')
-            data.m.channel.send({ embed: embed }).then(msg => {
-                TOOLS.typerHandler(data.m.channel, false);
-                bot.setTimeout(() => {
-                    if(!msg.deleted) {
-                        msg.delete();
-                    }
-                }, 10000);
-            });
+        if ((data.err === undefined || data.err === null) || ((data.err instanceof Error) && data.err.message.length === 0)) {
+            log(`An error occured during operation and was caught, but no error object or string was passed to the handler. [method call @ ${filename}:${line}]`, 'fatal');
+    
+            embed.setAuthor('Something went wrong while doing that. Oops.', 'attachment://icon.png')
+            .setDescription('If this continues, please contact <@181214529340833792>.')
         } else {
-            data.m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(data.m.author.id, msg) });
+            if (data.err instanceof Error) {
+                log(data.err.stack, 'error', filename+':'+line);
+    
+                // display contact message + error
+                embed.setAuthor('Something went wrong while doing that. Oops.', 'attachment://icon.png')
+                .setDescription(`\`\`\`[Ln ${line}] ${data.err}\`\`\` \nIf this continues, please contact <@181214529340833792>.`)
+            } else {
+                // display error only, minified
+                embed.setAuthor(data.err, 'attachment://icon.png');
+            }
+        }
+    
+        if (data.m) {
+            if(data.temp) {
+                embed.setFooter('This message will self-destruct in 10 seconds.')
+                data.m.channel.send({ embed: embed }).then(msg => {
+                    TOOLS.typerHandler(data.m.channel, false);
+                    bot.setTimeout(() => {
+                        if(!msg.deleted) {
+                            msg.delete();
+                        }
+                    }, 10000);
+                });
+            } else {
+                data.m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(data.m.author.id, msg) });
+            }
         }
     }
 }
@@ -4634,194 +5554,213 @@ TOOLS.deleteMessageHandler = (data) => {
 
 TOOLS.muteHandler = (m, args, action) => {
     if (m) {
+        let now = new Date().getTime();
+        let update = false;
         TOOLS.getTargetUser(m, args[0], (userid) => {
-            if (userid) muteS2(userid);
-            else {
+            if (userid) {
+                validateMute(userid);
+            } else {
                 TOOLS.errorHandler({ m: m, err: `You must specify a valid user @mention, user ID, or the 'last active user' shortcut. (^)` });
             }
         });
 
-        function muteS2(S1userid) {
-            if (S1userid === m.author.id || S1userid === bot.user.id) {
-                TOOLS.errorHandler({ m: m, err: `Nice try.` });
-                return;
+        function validateMute(target) {
+            if (target === m.author.id || target === bot.user.id) {
+                TOOLS.errorHandler({ err: `Nice try.`, m:m });
+            } else {
+                bot.guilds.get(cfg.basic.of_server).fetchMember(target).then(member => {
+                    if (member.permissions.has("KICK_MEMBERS", true)) {
+                        TOOLS.errorHandler({ m: m, err: `That user is too powerful to be ${(action) ? "muted." : "muted in the first place."}` });
+                    } else
+                    if(action && member.roles.has(cfg.roles.muted)) {
+                        if(!args[1]) {
+                            TOOLS.errorHandler({ m: m, err: `That user has already been muted. If you'd like to change or add a time limit, please specify.` });
+                        } else {
+                            update = true;
+                            getTimeLimit(member);
+                        }
+                    } else
+                    if(!action && !member.roles.has(cfg.roles.muted)) {
+                        TOOLS.errorHandler({ m: m, err: "That user is not muted." });
+                    } else {
+                        getTimeLimit(member);
+                    }
+                }).catch(err => {
+                    TOOLS.errorHandler({ m: m, err: err });
+                });
             }
-            bot.guilds.get(cfg.basic.of_server).fetchMember(S1userid).then(member => {
-                let measureText = 2;
-                let numSplit;
-                let num;
-                let input_measure;
+        }
 
-                if(action && args[1]) {
-                    numSplit = args[1].split(/\D/, 1)
-                    num = Math.round(parseInt(numSplit[0]));
-                    input_measure = args[1].substring(numSplit[0].length).replace(/\./g, "").toLowerCase();
+        function getTimeLimit(target) {
+            let data = {
+                start: now,
+                end: now + (1000*60*60), // default to 1 hour
+                executor: m.author.id,
+                updater: ""
+            }
+
+            if(!action) {
+                finalMute(target);
+            } else
+            if(!args[1]) {
+                finalMute(target, data);
+            } else {
+                let number = parseInt(args[1]);
+                let measure = (args[2]) ? args[2].toLowerCase() : 'hours';
+
+                if(isNaN(args[1])) {
+                    log('is not a number', 'trace');
+                    let num_split = args[1].split(/\D/, 1);
+                    log(num_split, 'trace');
+                    if(isNaN(num_split[0]) || num_split[0].length === 0) {
+                        TOOLS.errorHandler({ m: m, err: `You must specify a valid time limit.` });
+                        return;
+                    } else {
+                        number = Math.round(parseInt(num_split[0]));
+                        measure = args[1].substring(num_split[0].length).replace(/\./g, "").toLowerCase();
+
+                        if(measure.length === 1) {
+                            if(measure === 'm') {
+                                measure = 'minutes';
+                            } else
+                            if(measure === 'h') {
+                                measure = 'hours';
+                            } else
+                            if(measure === 'd') {
+                                measure = 'days';
+                            }
+                        }
+                    }
                 }
 
-                if (member.permissions.has("KICK_MEMBERS", true)) TOOLS.errorHandler({ m: m, err: `That user is too powerful to be ${(action) ? "muted." : "muted in the first place."}` });
-                else if (!action && !member.roles.has(cfg.roles.muted)) TOOLS.errorHandler({ m: m, err: "That user is not muted." });
-                else if (action) {
-                    let now = new Date();
-                    if (args[1]) {
-                        let db_data = {
-                            member_id: member.user.id,
-                            executor: m.author.username + '#' + m.author.discriminator
-                        };
+                if(number <= 0) {
+                    data.end = null;
+                    finalMute(target, data);
+                } else {
+                    let measure_match = cstr.findBestMatch(measure, ['minutes', 'hours', 'days']);
 
-                        if (isNaN(args[1]) && isNaN(num)) {
-                            TOOLS.errorHandler({ m: m, err: `Time limit must be a number. (0 for no limit)` });
+                    log(number, 'trace')
+                    log(measure, 'trace')
+                    log(measure_match.bestMatch.target, 'trace')
+
+                    if(measure_match.bestMatch.target === 'minutes') {
+                        if(number < 10) {
+                            TOOLS.errorHandler({ m: m, err: `Time limit must be greater than 10 minutes.` });
                         } else
-                        if (num < 0 || num > 99) {
+                        if(number > 10080) {
+                            TOOLS.errorHandler({ m: m, err: `Time limit cannot exceed 7 days.` });
+                        } else {
+                            data.end = now + (1000*60*number);
+                            finalMute(target, data);
+                        }
+                    } else
+                    if(measure_match.bestMatch.target === 'hours') {
+                        if(number < 1) {
                             TOOLS.errorHandler({ m: m, err: `Be reasonable.` });
                         } else
-                        if (num === 0) {
-                            db_data.time = false;
-                            finalize(db_data);
+                        if(number > 168) {
+                            TOOLS.errorHandler({ m: m, err: `Time limit cannot exceed 7 days.` });
+                        } else {
+                            data.end = now + (1000*60*60*number);
+                            finalMute(target, data);
+                        }
+                        
+                    } else
+                    if(measure_match.bestMatch.target === 'days') {
+                        if(number < 1) {
+                            TOOLS.errorHandler({ m: m, err: `Be reasonable.` });
                         } else
-                        if (!args[2] && input_measure.length === 0) {
-                            db_data.time = new Date(now.getTime() + (3600000 * num)).getTime();
-                            finalize(db_data);
+                        if(number > 7) {
+                            TOOLS.errorHandler({ m: m, err: `Time limit cannot exceed 7 days.` });
                         } else {
-                            let measure;
-                            let measure_string_sim = cstr.findBestMatch(((input_measure.length > 0) ? input_measure : args[2].toLowerCase()), ['minutes', 'hours', 'days']).bestMatch.target;
-
-                            log(input_measure, 'trace');
-                            log(measure_string_sim, 'trace');
-                            if(input_measure.length === 1) {
-                                if(input_measure === 'm') {
-                                    measure = 'minutes';
-                                } else 
-                                if(input_measure === 'h') {
-                                    measure = 'hours';
-                                } else 
-                                if(input_measure === 'd') {
-                                    measure = 'days';
-                                } else {
-                                    measure = measure_string_sim;
-                                }
-                            } else {
-                                measure = measure_string_sim;
-                            }
-
-                            log('final measure === '+measure, 'trace');
-
-                            if (measure === 'minutes') {
-                                if (Math.ceil(parseInt(args[1])) < 10) {
-                                    TOOLS.errorHandler({ m: m, err: `Minimum time limit is 10 minutes.` });
-                                } else {
-                                    db_data.time = new Date(now.getTime() + (60000 * num)).getTime();
-                                    measureText = 1;
-                                    finalize(db_data);
-                                }
-                            } else
-                            if (measure === 'hours') {
-                                db_data.time = new Date(now.getTime() + (3600000 * num)).getTime();
-                                finalize(db_data);
-                            } else
-                            if (measure === 'days') {
-                                db_data.time = new Date(now.getTime() + (86400000 * num)).getTime();
-                                measureText = 3;
-                                finalize(db_data);
-                            }
+                            data.end = now + (1000*60*60*24*number);
+                            finalMute(target, data);
                         }
-                    } else {
-                        // no time limit specified, default to 1 hour.
-                        let db_data = {
-                            member_id: member.user.id,
-                            executor: m.author.username + '#' + m.author.discriminator,
-                            time: now.setHours(now.getHours() + 1)
-                        };
-
-                        num = 1;
-                        finalize(db_data);
-                    }
-                } else finalize();
-
-                function finalize(db_data) {
-                    let mutedUser = member.user.username + '#' + member.user.discriminator;
-                    let muter = m.author.username + '#' + m.author.discriminator;
-                    let embed = new discord.RichEmbed()
-                        .setColor(cfg.vs.embed.okay)
-                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"));
-
-                    if (action) {
-                        if (member.roles.has(cfg.roles.muted)) {
-                            if (!args[0]) {
-                                TOOLS.errorHandler({ m: m, err: `That user has already been muted. If you'd like to change or add a time limit, please specify a number of hours.` });
-                                return;
-                            }
-                            memory.db.muted.find({ member_id: member.user.id }, (err, docs) => {
-                                if (err) TOOLS.errorHandler({ m: m, err: err });
-                                else if (docs.length === 0) {
-                                    memory.db.muted.insert(db_data, (err) => {
-                                        if (err) TOOLS.errorHandler({ m: m, err: err });
-                                        else addLimitFinalize();
-                                    });
-                                } else {
-                                    memory.db.muted.update({ member_id: member.user.id }, db_data, {}, (err) => {
-                                        if (err) TOOLS.errorHandler({ m: m, err: err });
-                                        else addLimitFinalize();
-                                    });
-                                }
-
-                                function addLimitFinalize() {
-                                    if (db_data.time === false) {
-                                        embed.setAuthor(`Updated. ${mutedUser} will now be muted until hell freezes over.`, 'attachment://icon.png');
-                                        log(`${db_data.executor} updated mute time limit for user ${mutedUser}. User will remain muted forever.`, 'warn')
-                                    } else
-                                    if (measureText === 1) {
-                                        embed.setAuthor(`Updated. ${mutedUser} will now be muted for ${num} minute${(num === 1) ? "." : "s."}`, 'attachment://icon.png');
-                                        log(`${db_data.executor} updated mute time limit for user ${mutedUser}. User will now be muted for ${num} minute${(num === 1) ? "." : "s."}`, 'warn')
-                                    } else
-                                    if (measureText === 2) {
-                                        embed.setAuthor(`Updated. ${mutedUser} will now be muted for ${num} hour${(num === 1) ? "." : "s."}`, 'attachment://icon.png');
-                                        log(`${db_data.executor} updated mute time limit for user ${mutedUser}. User will now be muted for ${num} hour${(num === 1) ? "." : "s."}`, 'warn')
-                                    } else {
-                                        embed.setAuthor(`Updated. ${mutedUser} will now be muted for ${num} day${(num === 1) ? "." : "s."}`, 'attachment://icon.png');
-                                        log(`${db_data.executor} updated mute time limit for user ${mutedUser}. User will now be muted for ${num} day${(num === 1) ? "." : "s."}`, 'warn')
-                                    }
-
-                                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                                }
-                            });
-                        } else {
-                            member.addRole(cfg.roles.muted, 'User muted by ' + muter).then(() => {
-                                if (db_data.time === false) {
-                                    embed.setAuthor(`Muted. ${mutedUser} will be muted until hell freezes over.`, 'attachment://icon.png');
-                                    log(`User ${mutedUser} was muted by ${db_data.executor} until hell freezes over`, 'warn')
-                                } else
-                                if (measureText === 1) {
-                                    embed.setAuthor(`Muted ${mutedUser} for ${num} minute${(num === 1) ? "." : "s."}`, 'attachment://icon.png');
-                                    log(`User ${mutedUser} was muted by ${db_data.executor} for ${num} minute${(num === 1) ? "." : "s."}`, 'warn')
-                                } else
-                                if (measureText === 2) {
-                                    embed.setAuthor(`Muted ${mutedUser} for ${num} hour${(num === 1) ? "." : "s."}`, 'attachment://icon.png');
-                                    log(`User ${mutedUser} was muted by ${db_data.executor} for ${num} hour${(num === 1) ? "." : "s."}`, 'warn')
-                                } else {
-                                    embed.setAuthor(`Muted ${mutedUser} for ${num} day${(num === 1) ? "." : "s."}`, 'attachment://icon.png');
-                                    log(`User ${mutedUser} was muted by ${db_data.executor} for ${num} day${(num === 1) ? "." : "s."}`, 'warn')
-                                }
-
-                                memory.db.muted.insert(db_data);
-                                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                            }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                        }
-                    } else {
-                        member.removeRole(cfg.roles.muted, 'User unmuted by ' + muter).then(() => {
-                            memory.db.muted.remove({ member_id: member.user.id });
-
-                            embed.setAuthor(`${mutedUser} has been unmuted.`, 'attachment://icon.png');
-
-                            log(`User ${mutedUser} was unmuted by ${m.author.username + '#' + m.author.discriminator}`, 'warn')
-
-                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                        
                     }
                 }
-            }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+            }
+        }
+
+        function finalMute(target, data) {
+            let muted_name = target.user.username+'#'+target.user.discriminator;
+            let executor = m.author.username+'#'+m.author.discriminator;
+
+            TOOLS.getProfile(m, target.user.id, profile => {
+                if(action) {
+                    if(profile.mute) {
+                        data.start = profile.mute.start;
+                        data.updater = data.executor;
+                        data.executor = profile.mute.executor;
+                    }
+    
+                    profile.mute = data;
+                } else {
+                    delete profile.mute;
+                }
+
+                memory.db.profiles.update({ member_id: target.user.id }, profile, {}, (err) => {
+                    if(err) {
+                        TOOLS.errorHandler({ m: m, err: err });
+                    } else
+                    if(action) {
+                        target.addRole(cfg.roles.muted, `User muted by ${executor} (via ${cfg.basic.trigger}mute)`).then(() => {
+                            log(`User ${muted_name} was muted by ${executor} (via ${cfg.basic.trigger}mute)`, 'warn');
+                            resultMsg(target, data.end);
+                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                    } else {
+                        target.removeRole(cfg.roles.muted, `User unmuted by ${executor}`).then(() => {
+                            log(`User ${muted_name} was unmuted by ${executor}`, 'warn');
+                            resultMsg(target);
+                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                    }
+                })
+            });
+        }
+
+        function resultMsg(target, time) {
+            let muted_name = target.user.username+'#'+target.user.discriminator;
+            let embed = new discord.RichEmbed()
+            .setColor(cfg.vs.embed.okay)
+            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"));
+
+            if(action) {
+                let remaining = time - now;
+                let minutes = Math.round(remaining/1000/60)
+                let hours = Math.round(remaining/(1000*60*60))
+                let days = Math.round(remaining/(1000*60*60*24))
+                let final;
+
+                if(minutes < 60) {
+                    final = `${minutes} minute(s)`;
+                } else
+                if(hours < 24) {
+                    final = `${hours} hour(s)`;
+                } else {
+                    final = `${days} day(s)`;
+                }
+
+                if(update) {
+                    if(time === null) {
+                        embed.setAuthor(`Updated. ${muted_name} will now be muted forever.`, 'attachment://icon.png');
+                    } else {
+                        embed.setAuthor(`Updated. ${muted_name} will now be muted for ${final}.`, 'attachment://icon.png');   
+                    }
+                } else {
+                    if(time === null) {
+                        embed.setAuthor(`Muted ${muted_name} until hell freezes over.`, 'attachment://icon.png');
+                    } else {
+                        embed.setAuthor(`Muted ${muted_name} for ${final}.`, 'attachment://icon.png');
+                    }
+                }
+            } else {
+                embed.setAuthor(`Unmuted ${muted_name}.`, 'attachment://icon.png');
+            }
+
+            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
         }
     } else {
-        memory.db.muted.find({}, (err, res) => {
+        memory.db.profiles.find({ mute: { $exists: true }}, (err, res) => {
             if (err) TOOLS.errorHandler({ err: err });
             else if (res.length === 0) {
                 log('No muted users in database.', 'debug');
@@ -4839,7 +5778,7 @@ TOOLS.muteHandler = (m, args, action) => {
                         log(`checking ${i_s+1}/${res.length}`, 'trace')
 
                         if(bans.has(res[i_s].member_id)) {
-                            memory.db.muted.remove({ member_id: res[i_s].member_id }, (err) => {
+                            memory.db.profiles.remove({ member_id: res[i_s].member_id }, {multi: true}, (err) => {
                                 if (err) {
                                     TOOLS.errorHandler({ err: err });
                                 } else {
@@ -4847,7 +5786,7 @@ TOOLS.muteHandler = (m, args, action) => {
                                 }
                             });
                         } else
-                        if (typeof res[i_s].time === 'number' && (new Date().getTime() > res[i_s].time)) {
+                        if (typeof res[i_s].end === 'number' && (new Date().getTime() > res[i_s].end)) {
                             unmuteAgenda.push(res[i_s].member_id);
                         }
 
@@ -4895,7 +5834,7 @@ TOOLS.muteHandler = (m, args, action) => {
                                 removeFromDB();
                             }
                         }).catch(err => {
-                            if(err.message.indexOf('Invalid or uncached id provided') > -1) {
+                            if(err.message.toLowerCase().indexOf('invalid or uncached id provided') > -1 || err.message.toLowerCase().indexOf('unknown member') > -1) {
                                 log(`Muted user ${unmuteAgenda[i]} appears to no longer be in the server. Removing from database...`);
                                 removeFromDB();
                             } else {
@@ -4907,7 +5846,7 @@ TOOLS.muteHandler = (m, args, action) => {
                         });
 
                         function removeFromDB() {
-                            memory.db.muted.remove({ member_id: unmuteAgenda[i] }, (err) => {
+                            memory.db.profiles.update({ member_id: unmuteAgenda[i] }, { $unset: "mute" }, (err) => {
                                 if (err) {
                                     TOOLS.errorHandler({ err: err });
                                     retryCount++;
@@ -4927,6 +5866,67 @@ TOOLS.muteHandler = (m, args, action) => {
             }
         });
     }
+}
+
+TOOLS.getProfile = (m, userid, cb) => {
+    memory.db.profiles.find({ member_id: userid }, (err, docs) => {
+        if(err) {
+            TOOLS.errorHandler({ m:m, err:err });
+        } else 
+        if(docs[0]) {
+            cb(docs[0]);
+        } else {
+            let profile = {
+                member_id: userid
+            }
+
+            let profilecomplete = {
+                member_id: userid,
+                cape: {
+                    uuid: ""
+                },
+                medals: {
+                    count: 1,
+                    msgs: []
+                },
+                warnings: [],
+                mute: {
+                    start: 0,
+                    end: null,
+                    executor: "",
+                    updater: ""
+                }
+            }
+
+            /*
+            let profile = {
+                member_id: userid,
+                cape: {
+                    uuid: ""
+                },
+                medals: {
+                    count: 0,
+                    msgs: []
+                },
+                warnings: [],
+                mute: {
+                    status: 0,
+                    start: 0,
+                    expiration: 0,
+                    executor: "",
+                }
+            }
+            */
+
+            memory.db.profiles.insert(profile, (err) => {
+                if(err) {
+                    TOOLS.errorHandler({ m:m, err:err });
+                } else {
+                    cb(profile);
+                }
+            });
+        }
+    });
 }
 
 TOOLS.getTargetUser = (m, target, cb) => {
@@ -4949,9 +5949,15 @@ TOOLS.getTargetUser = (m, target, cb) => {
             (function search() {
                 let thisID = itr.next();
                 if (thisID.done) {
-                    TOOLS.errorHandler({ m: m, err: `Could not find a user.` });
+                    let embed = new discord.RichEmbed()
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
+                    .setColor(cfg.vs.embed.error)
+                    .setAuthor(`Could not find a user.`, "attachment://icon.png")
+                    .setFooter('Note that this shortcut will skip yourself, and all bots. This includes OptiBot, obviously.');
+
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
                 } else
-                    if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1) {
+                    if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1 && !thisID.value.author.bot) {
                         cb(thisID.value.author.id, `${thisID.value.author.username}#${thisID.value.author.discriminator}`);
                     } else search();
             })();
@@ -4961,7 +5967,11 @@ TOOLS.getTargetUser = (m, target, cb) => {
         bot.guilds.get(cfg.basic.of_server).fetchMember(target).then(mem => {
             cb(mem.user.id, `${mem.user.username}#${mem.user.discriminator}`);
         }).catch(err => {
-            TOOLS.errorHandler({ m: m, err: err });
+            if(err.stack.indexOf('Invalid or uncached') > -1) {
+                TOOLS.errorHandler({ err:`That user does not exist.`, m:m })
+            } else {
+                TOOLS.errorHandler({ m:m, err:err })
+            }
         });
     } else {
         cb();

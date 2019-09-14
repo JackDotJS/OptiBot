@@ -1704,7 +1704,7 @@ CMD.register(new Command({
     long_desc: `To be used in the event that OptiBot encounters a fatal error and does not shut down automatically. This should especially be used in the case of the bot spamming a text channel. \n\n**This is a last resort option, which could potentially corrupt data if used incorrectly. If at all possible, you should attempt to use the \`${cfg.basic.trigger}stop\` command first.**`,
     admin_only: true,
     hidden: false,
-    dm: 2,
+    dm: 0,
     fn: (m) => {
         log('Emergency shutdown initiated.', 'fatal');
         bot.destroy();
@@ -1978,6 +1978,7 @@ CMD.register(new Command({
     long_desc: "Disables usage restriction, AKA Mods-Only mode.",
     admin_only: true,
     hidden: false,
+    dm: 0,
     fn: (m) => {
         if (memory.bot.debug) {
             memory.bot.locked = false;
@@ -2005,6 +2006,7 @@ CMD.register(new Command({
     long_desc: "Enables usage restriction, AKA Mod-Only Mode.",
     admin_only: true,
     hidden: false,
+    dm: 0,
     fn: (m) => {
         if (memory.bot.debug) {
             memory.bot.locked = true;
@@ -3275,6 +3277,7 @@ CMD.register(new Command({
     usage: '<user> <minecraft username>',
     admin_only: true,
     hidden: false,
+    dm: 0,
     fn: (m, args) => {
         if(!args[0]) {
             TOOLS.errorHandler({ err: "You must specify a user.", m:m });
@@ -3366,6 +3369,7 @@ CMD.register(new Command({
     usage: '<user>',
     admin_only: true,
     hidden: false,
+    dm: 0,
     fn: (m, args) => {
         if(!args[0]) {
             TOOLS.errorHandler({ err: "You must specify a user.", m:m });
@@ -3787,11 +3791,6 @@ CMD.register(new Command({
                     }
 
                     embed.addField('Usage Restrictions', role_restriction+'\n'+usage);
-
-                    
-
-                    log(md.icon)
-                    log(typeof md.icon)
 
                     if (md.icon) {
                         files.push(new discord.Attachment(memory.bot.images.get(md.icon), "thumbnail.png"));
@@ -4419,6 +4418,7 @@ CMD.register(new Command({
     usage: "<user> <role>",
     admin_only: true,
     hidden: false,
+    dm: 0,
     fn: (m, args) => {
         if(!args[0]) {
             TOOLS.errorHandler({err: "Please specify the user to give a role to.", m:m});
@@ -4478,7 +4478,7 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'lmgtfy',
+    trigger: 'google',
     short_desc: 'Let me Google that for you.',
     usage: '<query>',
     hidden: false,
@@ -4717,6 +4717,7 @@ CMD.register(new Command({
     usage: '<user>',
     admin_only: true,
     hidden: false,
+    dm: 0,
     fn: (m, args) => {
         if(!args[0]) {
             TOOLS.errorHandler({err: "You must specify a user to give an medal to.", m:m});
@@ -4956,11 +4957,11 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'motd',
     short_desc: 'View the MOTD.',
-    long_desc: `View the MOTD, the message sent by OptiBot to every new user that joins the server. \n\nModerators can additionally include a message to be added, which can be reset again with \`${cfg.basic.trigger}clearmotd\``,
+    long_desc: `View the MOTD, the message sent by OptiBot to every new user that joins the server. \n\nModerators can additionally include a message to be added, which can be reset again with \`${cfg.basic.trigger}clearmotd\` (These can NOT be done in DMs.)`,
     usage: '[new message]',
     hidden: false,
     fn: (m, args, not_used, misc) => {
-        if(!args[0] || !(misc.isAdmin || misc.isSuper)) {
+        if(!args[0] || !(misc.isAdmin || misc.isSuper) || m.channel.type === 'dm') {
             m.channel.send({ embed: memory.bot.motd }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
         } else {
             let newMsg = m.content.substring( (cfg.basic.trigger + 'motd ').length );
@@ -5046,6 +5047,7 @@ CMD.register(new Command({
     long_desc: `Clears the custom MOTD message, which is set by using \`${cfg.basic.trigger}motd\`.`,
     admin_only: true,
     hidden: false,
+    dm: 0,
     fn: (m) => {
         if(!memory.bot.motd.fields[0]) {
             TOOLS.errorHandler({ err:'There is no message currently set.', m:m });

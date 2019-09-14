@@ -222,13 +222,17 @@ bot.login(keys.discord).then(() => {
 
 memory.bot.activity_check = bot.setInterval(() => {
     if (!memory.bot.shutdown && !memory.bot.booting) {
+        log('begin activity_check', 'trace');
         bot.user.setStatus(memory.activity.status);
         bot.user.setActivity(memory.activity.game, { url: memory.activity.url, type: memory.activity.type });
     }
 }, 900000);
 
 memory.bot.mute_check = bot.setInterval(() => {
-    if (!memory.bot.shutdown && !memory.bot.booting) TOOLS.muteHandler();
+    if (!memory.bot.shutdown && !memory.bot.booting) {
+        log('begin mute_check', 'trace');
+        TOOLS.muteHandler();
+    }
 }, 300000);
 
 memory.bot.restart_check = bot.setInterval(() => {
@@ -271,35 +275,56 @@ memory.bot.restart_check = bot.setInterval(() => {
 
 memory.bot.profile_check = bot.setInterval(() => {
     if (!memory.bot.shutdown) {
+        log('begin profile_check', 'trace');
         memory.db.profiles.find({}, (err, docs) => {
             if(err) {
                 TOOLS.errorHandler({ err: err });
             } else {
+                log(`user profiles: ${docs.length}`, 'trace');
                 let remove_list = [];
                 for(let i in docs) {
-                    if(Object.keys(docs[i]).length === 1 || (Object.keys(docs[i]).length === 2 && docs[i].warns && docs[i].warns.current.length === 0)) {
+                    log(`profile_check this: ${docs[i].member_id}`, 'trace');
+                    if(Object.keys(docs[i]).length === 2) {
+                        log('insignificant profile found', 'trace');
                         remove_list.push(docs[i].member_id);
-                    }
-
-                    if(i+1 === docs.length) {
-                        if(remove_list.length === 0) {
-                            log(`All current users in database have some significant data.`, 'debug');
-                        } else {
-                            remove_loop();
+                    } else {
+                        if (Object.keys(docs[i]).length === 3 && docs[i].warns && docs[i].warns.current.length === 0) {
+                            bot.guilds.get(cfg.basic.of_server).fetchMember(docs[i].member_id).catch((err) => {
+                                if(err.message.toLowerCase().indexOf('invalid or uncached id provided') > -1 || err.message.toLowerCase().indexOf('unknown member') > -1) {
+                                    log('insignificant profile found', 'trace');
+                                    remove_list.push(docs[i].member_id);
+                                } else {
+                                    TOOLS.errorHandler({ err: err });
+                                }
+                            })
                         }
                     }
+
+                    bot.setTimeout(() => {
+                        log(parseInt(i)+1 === docs.length, 'trace');
+                        if(parseInt(i)+1 === docs.length) {
+                            if(remove_list.length === 0) {
+                                log(`All current users in database have some significant data.`, 'debug');
+                            } else {
+                                remove_loop();
+                            }
+                        }
+                    }, 5000);
                 }
 
                 let i2 = 0;
                 function remove_loop() {
+                    log(`removing ${i2}`, 'trace');
                     memory.db.profiles.remove({ member_id: remove_list[i2] }, {multi:true}, (err) => {
                         if(err) {
                             TOOLS.errorHandler({ err: err });
-                        } else 
-                        if (i2+1 === remove_list.length) {
-                            log(`Removed ${remove_list.length} users from profiles database for containing no significant data.`);
                         } else {
-                            remove_loop();
+                            log(`removed ${remove_list[i2]}`, 'trace');
+                            if (i2+1 === remove_list.length) {
+                                log(`Removed ${remove_list.length} users from profiles database for containing no significant data.`);
+                            } else {
+                                remove_loop();
+                            }
                         }
                     })
                 }
@@ -310,6 +335,7 @@ memory.bot.profile_check = bot.setInterval(() => {
 
 memory.bot.warn_check = bot.setInterval(() => {
     if(!memory.bot.shutdown) {
+        log('begin warn_check', 'trace');
         memory.db.profiles.find({ warns: { $exists: true } }, (err, docs) => {
             if(err) {
                 TOOLS.errorHandler({ err: err });
@@ -5786,17 +5812,20 @@ TOOLS.muteHandler = (m, args, action) => {
                                 }
                             });
                         } else
-                        if (typeof res[i_s].end === 'number' && (new Date().getTime() > res[i_s].end)) {
+                        if (typeof res[i_s].mute.end === 'number' && (new Date().getTime() > res[i_s].mute.end)) {
                             unmuteAgenda.push(res[i_s].member_id);
                         }
 
                         if(i_s+1 === res.length) {
                             log('loop finished', 'trace')
-                            unmuteLooper();
+                            bot.setTimeout(() => {
+                                unmuteLooper();
+                            }, 2500);
                         }
                     }
                     
                     function unmuteLooper() {
+                        log(`this: ${i}`, 'trace');
                         if(unmuteAgenda.length === 0) {
                             log('No users to unmute.', 'debug')
 
@@ -5807,7 +5836,10 @@ TOOLS.muteHandler = (m, args, action) => {
                             }
                             return;
                         }
-                        if(unmuteAgenda[i] === undefined) return;
+                        if(unmuteAgenda[i] === undefined) {
+                            log('Finished checking mute database.', 'debug');
+                            return;
+                        }
                         if(retryCount === 2) {
                             log(`Failed to unmute user (ID#${unmuteAgenda[i]})`, 'fatal');
                             i++;
@@ -5823,7 +5855,7 @@ TOOLS.muteHandler = (m, args, action) => {
                         bot.guilds.get(cfg.basic.of_server).fetchMember(unmuteAgenda[i]).then(member => {
                             if (member.roles.has(cfg.roles.muted)) {
                                 member.removeRole(cfg.roles.muted, "Mute time limit expired.").then(() => {
-                                    removeFromDB();
+                                    removeFromDB(unmuteAgenda[i]);
                                 }).catch(err => {
                                     TOOLS.errorHandler({ err: err });
                                     retryCount++;
@@ -5831,12 +5863,12 @@ TOOLS.muteHandler = (m, args, action) => {
                                     unmuteLooper();
                                 });
                             } else {
-                                removeFromDB();
+                                removeFromDB(unmuteAgenda[i]);
                             }
                         }).catch(err => {
                             if(err.message.toLowerCase().indexOf('invalid or uncached id provided') > -1 || err.message.toLowerCase().indexOf('unknown member') > -1) {
                                 log(`Muted user ${unmuteAgenda[i]} appears to no longer be in the server. Removing from database...`);
-                                removeFromDB();
+                                removeFromDB(unmuteAgenda[i]);
                             } else {
                                 TOOLS.errorHandler({ err: err });
                                 retryCount++;
@@ -5844,21 +5876,22 @@ TOOLS.muteHandler = (m, args, action) => {
                                 unmuteLooper();
                             }
                         });
+                    }
 
-                        function removeFromDB() {
-                            memory.db.profiles.update({ member_id: unmuteAgenda[i] }, { $unset: "mute" }, (err) => {
-                                if (err) {
-                                    TOOLS.errorHandler({ err: err });
-                                    retryCount++;
-                                    log('Retrying unmute...', 'warn');
-                                    unmuteLooper();
-                                } else {
-                                    retryCount = 0;
-                                    i++
-                                    unmuteLooper();
-                                }
-                            });
-                        }
+                    function removeFromDB(userid) {
+                        memory.db.profiles.update({ member_id: userid }, { $unset: { mute: true } }, (err) => {
+                            if (err) {
+                                TOOLS.errorHandler({ err: err });
+                                retryCount++;
+                                log('Retrying unmute...', 'warn');
+                                unmuteLooper();
+                            } else {
+                                log(`User ${userid} successfully removed from DB.`, 'trace');
+                                retryCount = 0;
+                                i++
+                                unmuteLooper();
+                            }
+                        });
                     }
                 }).catch(err => {
                     TOOLS.errorHandler({err:err});

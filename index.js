@@ -4124,7 +4124,7 @@ CMD.register(new Command({
                     .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_donate.png'), "thumbnail.png"), new discord.Attachment(memory.bot.images.get('jack_donate.png'), "jack.png")])
                     .setAuthor('Donation Info | Page 2/2', 'attachment://thumbnail.png')
                     .setThumbnail('attachment://jack.png')
-                    .addField('OptiBot Donations', "OptiBot is developed entirely on my free time out of love for a great community. I don't really expect much in return, I just like coding from time to time. However, on the off chance that you'd like to support OptiBot's development, you can [buy me a coffee! Ă˘ÂÂ](http://ko-fi.com/jackasterisk \"Not literally though. I hate coffee.\")")
+                    .addField('OptiBot Donations', "OptiBot is developed entirely on my free time out of love for a great community. I don't really expect much in return, I just like coding from time to time. However, on the off chance that you'd like to support OptiBot's development, you can [buy me a coffee! ☕](http://ko-fi.com/jackasterisk \"Not literally though. I hate coffee.\")")
                     .setFooter('Thank you for your consideration!')
             }
         ];

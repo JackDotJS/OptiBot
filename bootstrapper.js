@@ -28,6 +28,8 @@ const env = {
         input: process.stdin,
         output: process.stdout
     }),
+    rph: 0, // resets per hour
+    currentHour: 0,
 }
 
 const log = (m, lvl, data) => {
@@ -150,6 +152,14 @@ const log = (m, lvl, data) => {
 ////////////////////////////////////////////////////////////////////////////////
 
 process.title = `OptiBot ${pkg.version}`;
+
+setInterval(() => {
+    let now = new Date();
+    if(now.getHours() !== env.currentHour) {
+        env.rph = 0;
+        env.currentHour = now.getHours();
+    }
+}, 1000);
 
 (function setup_dirs() {
     init_q1();
@@ -356,75 +366,85 @@ function init_final() {
     env.logName = now.toUTCString().replace(/[/\\?%*:|"<>]/g, '.');
     env.log = fs.createWriteStream(`./logs/${env.logName}.log`);
 
-    log('Initialization: Copying profiles for safety', 'debug');
-    fs.copyFile(`./data/profiles.db`, `./archive/data/profiles_before_${env.logName}.db`, (err) => {
-        if(err) throw err
-        else {
-            process.stdout.write('\033c');
-            log('Initialization: Spawning child process (index.js)', 'debug');
-            const optibot = spawn('node', ['index.js', env.debug, env.init.getTime(), env.logName], {
-                stdio: ['pipe', 'pipe', 'pipe', 'ipc']
-            });
+    setTimeout(() => {
+        if(env.rph > 32 && !env.debug) {
+            log(`Reset limit exceeded.`, 'fatal');
+            log(`OptiBot encountered too many fatal errors and is shutting down to prevent any further damage. This is likely a problem that the program cannot solve on it's own.`);
+            end(code, true, 'FATAL');
+        } else {
+            log('Initialization: Copying profiles for safety', 'debug');
+            fs.copyFile(`./data/profiles.db`, `./archive/data/profiles_before_${env.logName}.db`, (err) => {
+                if(err) throw err
+                else {
+                    process.stdout.write('\033c');
+                    log('Initialization: Spawning child process (index.js)', 'debug');
+                    const optibot = spawn('node', ['index.js', env.debug, env.init.getTime(), env.logName], {
+                        stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+                    });
 
-            optibot.stdout.on('data', (data) => {
-                log(data, undefined, 'index.js:NULL');
-            });
+                    optibot.stdout.on('data', (data) => {
+                        log(data, undefined, 'index.js:NULL');
+                    });
 
-            optibot.stderr.on('data', (data) => {
-                log(data, 'fatal', 'index.js:NULL');
-            });
+                    optibot.stderr.on('data', (data) => {
+                        log(data, 'fatal', 'index.js:NULL');
+                    });
 
-            optibot.on('message', (data) => {
-                if(typeof data.misc !== 'undefined') {
-                    log(data.message, data.level, data.misc);
+                    optibot.on('message', (data) => {
+                        if(typeof data.misc !== 'undefined') {
+                            log(data.message, data.level, data.misc);
+                        }
+                    });
+
+                    optibot.on('exit', (code) => {
+                        setTimeout(() => {
+                            log(`Child process ended with exit code ${code}`);
+
+                            if(code === 0) {
+                                log('OptiBot is now shutting down at user request.');
+                                end(code, true);
+                            } else
+                            if(code === 1) {
+                                log('OptiBot seems to have crashed. Restarting...');
+                                end(code, false, 'CRASH');
+                            } else
+                            if(code === 2) {
+                                log('OptiBot is now restarting at user request...');
+                                end(code, false);
+                            } else
+                            if(code === 3) {
+                                log('Resetting message cache and restarting at user request...');
+                                fs.unlink('./data/messages.db', (err) => {
+                                    if(err) log('Failed to delete messages database.', 'fatal');
+                                    end(code, false);
+                                });
+                            } else
+                            if(code === 4) {
+                                log('OptiBot is being updated...');
+                                update();
+                            } else
+                            if(code === 10) {
+                                log('OptiBot is now undergoing scheduled restart.');
+                                end(code, false);
+                            } else
+                            if(code === 24) {
+                                log(`OptiBot encountered a fatal error and is shutting down to prevent any further damage. This is likely a problem that the program cannot solve on it's own.`);
+                                end(code, true, 'FATAL');
+                            } else
+                            if(code === 1000) {
+                                log(`OptiBot was forcefully shut down.`, 'fatal');
+                                end(code, true, 'OBES');
+                            }
+                        }, 1000);
+                    });
                 }
             });
-
-            optibot.on('exit', (code) => {
-                setTimeout(() => {
-                    log(`Child process ended with exit code ${code}`);
-
-                    if(code === 0) {
-                        log('OptiBot is now shutting down at user request.');
-                        end(code, true);
-                    } else
-                    if(code === 1) {
-                        log('OptiBot seems to have crashed. Restarting...');
-                        end(code, false, 'CRASH');
-                    } else
-                    if(code === 2) {
-                        log('OptiBot is now restarting at user request...');
-                        end(code, false);
-                    } else
-                    if(code === 3) {
-                        log('Resetting message cache and restarting at user request...');
-                        fs.unlink('./data/messages.db', (err) => {
-                            if(err) log('Failed to delete messages database.', 'fatal');
-                            end(code, false);
-                        });
-                    } else
-                    if(code === 4) {
-                        log('OptiBot is being updated...');
-                        update();
-                    } else
-                    if(code === 10) {
-                        log('OptiBot is now undergoing scheduled restart.');
-                        end(code, false);
-                    } else
-                    if(code === 24) {
-                        log(`OptiBot encountered a fatal error and is shutting down to prevent any further damage. This is likely a problem that the program cannot solve on it's own.`);
-                        end(code, true, 'FATAL');
-                    } else
-                    if(code === 1000) {
-                        log(`OptiBot was forcefully shut down.`, 'fatal');
-                        end(code, true, 'OBES');
-                    }
-                }, 1000);
-            });
         }
-    });
+    }, 1000);
 
     function end(code, exit, log_suffix) {
+        env.rph++;
+
         setTimeout(() => {
             env.log.end();
 

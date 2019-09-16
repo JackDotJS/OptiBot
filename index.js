@@ -730,7 +730,7 @@ bot.on('ready', () => {
                             log('getSMRSite()', 'trace');
                             try {
                                 for(let i=0; i<sitelist.length; i++) {
-                                    smr_data.push(sitelist[0].domain);
+                                    smr_data.push(sitelist[i].domain);
                                     log('item added', 'trace');
         
                                     if(i+1 === sitelist.length) {

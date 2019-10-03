@@ -320,9 +320,10 @@ memory.bot.profile_check = bot.setInterval(() => {
                             TOOLS.errorHandler({ err: err });
                         } else {
                             log(`removed ${remove_list[i2]}`, 'trace');
-                            if (i2+1 === remove_list.length) {
+                            if (i2+1 >= remove_list.length) {
                                 log(`Removed ${remove_list.length} users from profiles database for containing no significant data.`);
                             } else {
+                                i2++;
                                 remove_loop();
                             }
                         }
@@ -610,7 +611,7 @@ bot.on('ready', () => {
                                                     getEmoji.fetchUsers().then(u => {
                                                         try {
                                                             if (u.has(docs[i].user)) {
-                                                                memory.db.msg.remove(e, (err) => {
+                                                                memory.db.msg.remove(docs[i], (err) => {
                                                                     if (err) {
                                                                         log(err.stack, 'error');
                                                                         m.delete();
@@ -733,7 +734,7 @@ bot.on('ready', () => {
                                     smr_data.push(sitelist[i].domain);
                                     log('item added', 'trace');
         
-                                    if(i+1 === sitelist.length) {
+                                    if(i+1 >= sitelist.length) {
                                         memory.bot.smr = smr_data;
             
                                         let timeEnd = new Date();
@@ -1074,7 +1075,6 @@ bot.on('messageReactionAdd', (mr, user) => {
     if (mr.message.guild.id !== cfg.basic.of_server) return;
     if (user.id === bot.user.id) return;
     if (mr.message.author.id === bot.user.id) return;
-    if (mr.message.member.permissions.has("KICK_MEMBERS", true)) return;
 
     if (mr.emoji.name === '🏅') {
         bot.guilds.get(cfg.basic.of_server).fetchMember(user.id).then((member) => {
@@ -1137,119 +1137,146 @@ bot.on('messageDelete', m => {
     let msg3 = `\nPosted by ${m.author.username}#${m.author.discriminator} `;
     let msg4 = `in #${m.channel.name} on ${m.createdAt} \nMessage Contents: \n"${m.content}"`;
 
-    log('begin calculation of executor', 'trace')
-    bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
+    bot.setTimeout(() => {
+        log('begin calculation of executor', 'trace')
+        bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
 
-        let ad = [...audit.entries.values()];
-        let discord_log;
-        let cached_log;
-        let entryFound = false;
-        let newEntry = false;
+            let ad = [...audit.entries.values()];
+            let discord_log;
+            let cached_log;
+            let entryFound = false;
+            let newEntry = false;
 
-        for(let i=0; i<ad.length; i++) {
-            if (ad[i].target.id === m.author.id) {
-                discord_log = ad[i];
-                c1();
-                break;
-            } else
-            if (i+1 === ad.length) {
-                finalLog();
+            for(let i=0; i<ad.length; i++) {
+                if (ad[i].target.id === m.author.id) {
+                    discord_log = ad[i];
+                    c1();
+                    break;
+                } else
+                if (i+1 === ad.length) {
+                    finalLog();
+                }
             }
-        }
 
-        function c1() {
-            /*for(let i=0; i<memory.bot.log.length; i++) {
-                if (!discord_log) {
-                    break;
-                } else
-                if (memory.bot.log[i].id === discord_log.id) {
-                    break;
-                } else
-                if (i+1 === memory.bot.log.length) {
-                    log('entry does not exist in cache, must be new.', 'trace');
-                }
-            }*/
-
-            for(let i=0; i<memory.bot.log.length; i++) {
-                if (memory.bot.log[i].target.id === m.author.id && !cached_log) {
-                    cached_log = memory.bot.log[i];
-                }
-
-                if (memory.bot.log[i].id === discord_log.id) {
-                    entryFound = true;
-                }
-                
-                if (i+1 === memory.bot.log.length) {
-                    if (!cached_log) {
-                        finalLog();
-                        return;
-                    }
-
-                    if (!entryFound) {
+            function c1() {
+                /*for(let i=0; i<memory.bot.log.length; i++) {
+                    if (!discord_log) {
+                        break;
+                    } else
+                    if (memory.bot.log[i].id === discord_log.id) {
+                        break;
+                    } else
+                    if (i+1 === memory.bot.log.length) {
                         log('entry does not exist in cache, must be new.', 'trace');
-                        newEntry = true;  
+                    }
+                }*/
+
+                for(let i=0; i<memory.bot.log.length; i++) {
+                    if (memory.bot.log[i].target.id === m.author.id && !cached_log) {
+                        cached_log = memory.bot.log[i];
                     }
 
-                    c2();
+                    if (memory.bot.log[i].id === discord_log.id) {
+                        entryFound = true;
+                    }
+                    
+                    if (i+1 === memory.bot.log.length) {
+                        if (!cached_log) {
+                            finalLog();
+                            return;
+                        }
+
+                        if (!entryFound) {
+                            log('entry does not exist in cache, must be new.', 'trace');
+                            newEntry = true;  
+                        }
+
+                        c2();
+                    }
+                }
+
+                function c2() {
+                    if (discord_log.id === cached_log.id) {
+                        log('same ID', 'trace')
+                    } else {
+                        log('NOT same ID', 'trace');
+                    }
+
+                    log('cached count: '+cached_log.extra.count,'trace');
+                    log('discord count: '+discord_log.extra.count,'trace');
+
+                    if ((cached_log.extra.count < discord_log.extra.count) || newEntry) {
+                        log('Deleted by admin', 'trace');
+                        msg2 = `\nDeleted by ${discord_log.executor.username}#${discord_log.executor.discriminator}.`
+                        finalLog();
+                    } else {
+                        log('Deleted by author', 'trace');
+                        finalLog();
+                    }
                 }
             }
 
-            function c2() {
-                if (discord_log.id === cached_log.id) {
-                    log('same ID', 'trace')
-                } else {
-                    log('NOT same ID', 'trace');
-                }
-
-                log('cached count: '+cached_log.extra.count,'trace');
-                log('discord count: '+discord_log.extra.count,'trace');
-
-                if ((cached_log.extra.count < discord_log.extra.count) || newEntry) {
-                    log('Deleted by admin', 'trace');
-                    msg2 = `\nDeleted by ${discord_log.executor.username}#${discord_log.executor.discriminator}.`
-                    finalLog();
-                } else {
-                    log('Deleted by author', 'trace');
-                    finalLog();
-                }
-            }
-        }
-
-        function finalLog() {
-            try {
-                if (m.member.nickname) msg3 += `(aka "${m.member.nickname}") `;
-            }
-            catch (err) {
+            function finalLog() {
                 try {
-                    log(typeof m.member, 'warn');
-                } catch (err2) {
-                    log(err.stack, 'error');
-                    log(err2.stack, 'error');
+                    if (m.member.nickname) msg3 += `(aka "${m.member.nickname}") `;
                 }
+                catch (err) {
+                    try {
+                        log(typeof m.member, 'warn');
+                    } catch (err2) {
+                        log(err.stack, 'error');
+                        log(err2.stack, 'error');
+                    }
+                }
+
+                if (m.attachments.size > 0) {
+                    msg4 += '\n\nMessage Attachments: '
+                    m.attachments.tap(at => {
+                        msg4 += "\n" + at.url
+                    });
+                }
+
+                let finalLog = msg1 + msg2 + msg3 + msg4;
+
+                let calcEnd = new Date();
+                log(finalLog, 'warn');
+                memory.bot.log = [...audit.entries.values()];
+
+                
+                let timeTaken = (calcEnd.getTime() - now.getTime()) / 1000;
+                log(`Successfully determined executor in ${timeTaken} seconds.`, 'debug');
             }
-
-            if (m.attachments.size > 0) {
-                msg4 += '\n\nMessage Attachments: '
-                m.attachments.tap(at => {
-                    msg4 += "\n" + at.url
-                });
-            }
-
-            let finalLog = msg1 + msg2 + msg3 + msg4;
-
-            let calcEnd = new Date();
-            log(finalLog, 'warn');
-            memory.bot.log = [...audit.entries.values()];
-
-            
-            let timeTaken = (calcEnd.getTime() - now.getTime()) / 1000;
-            log(`Successfully determined executor in ${timeTaken} seconds.`, 'debug');
-        }
-    }).catch(err => log(err.stack, 'error'));
+        }).catch(err => log(err.stack, 'error'));
+    }, 500);
 });
 
 bot.on('messageDeleteBulk', m => {
-    log('multiple messages deleted', 'warn');
+    log(`${m.size} messages were deleted. This may have been the result of a ban.`, 'warn');
+    let messages = [];
+    m.forEach((e) => {
+        let m1 = `Message Author: ${e.author.username}#${e.author.discriminator} (${e.author.id})`;
+        let m2 = ``;
+        let m3 = ``;
+
+        if(e.content.length > 0) {
+            m2 = `Message Contents: ${e.content}`;
+        }
+
+        if(e.attachments.size > 0) {
+            m3 = `Message Attachments: `;
+            e.attachments.forEach((at) => {
+                m3 += '\n'+at.url;
+            });
+        }
+
+        messages.push(`${m1}\n${m2}\n${m3}`);
+    });
+
+    bot.setTimeout(() => {
+        messages.forEach((msg) => {
+            log(msg);
+        });
+    }, 1000);
 });
 
 ////////////////////////////////////////
@@ -1647,9 +1674,9 @@ bot.on('message', (m) => {
 
             if (m.channel.type === 'dm') {
                 let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.default)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-                    .setAuthor(`Hi there! For a list of commands, type "${cfg.basic.trigger}help". If you've donated and you would like to receive your donator role, type "${cfg.basic.trigger}help dr" for detailed instructions.`, 'attachment://icon.png');
+                .setColor(cfg.vs.embed.default)
+                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
+                .setAuthor(`Hi there! For a list of commands, type "${cfg.basic.trigger}list". If you've donated and you would like to receive your donator role, type "${cfg.basic.trigger}help dr" for detailed instructions.`, 'attachment://icon.png');
 
                 m.channel.send({ embed: embed });
             } else
@@ -1891,6 +1918,15 @@ bot.on('message', (m) => {
 ////////////////////////////////////////////////////////////////////////////////
 // Command Handlers
 ////////////////////////////////////////////////////////////////////////////////
+
+CMD.register(new Command({
+    trigger: 'crash',
+    short_desc: "Throws an error that won't be catched.",
+    long_desc: "It crashes the bot. Literally. There's no fanfare at all, just a single line of code here using the `throw` statement.",
+    fn: (m) => {
+        throw new Error('User-initiated error.');
+    }
+}));
 
 CMD.register(new Command({
     trigger: 'obs',
@@ -2368,6 +2404,7 @@ CMD.register(new Command({
             if (err) {
                 TOOLS.errorHandler({ err: err, m:m });
             } else {
+                log(docs[0], 'debug');
                 let embed = new discord.RichEmbed()
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_stats.png'), "icon.png"))
                 .setColor(cfg.vs.embed.default)
@@ -2471,6 +2508,7 @@ CMD.register(new Command({
     short_desc: "Open text channel.",
     long_desc: "Opens the active text channel, if already closed.",
     admin_only: true,
+    hidden: false,
     dm: 0,
     fn: (m) => {
         m.guild.fetchMember(bot.user.id).then(bot_member => {
@@ -2518,6 +2556,7 @@ CMD.register(new Command({
     short_desc: "Close text channel.",
     long_desc: "Closes the active text channel, preventing users from sending messages. Only works if the channel is already open, obviously.",
     admin_only: true,
+    hidden: false,
     dm: 0,
     fn: (m) => {
         m.guild.fetchMember(bot.user.id).then(bot_member => {
@@ -2903,7 +2942,7 @@ CMD.register(new Command({
     trigger: 'status',
     short_desc: 'Server statuses.',
     long_desc: `Displays current server status of OptiFine. Alternatively, you can view the status of the Minecraft/Mojang services by typing \`${cfg.basic.trigger}status minecraft\` or \`${cfg.basic.trigger}status mojang\`.`,
-    usage: '[minecraft|mojang|all]',
+    usage: '["minecraft"|"mojang"|"all"]',
     hidden: false,
     fn: (m, args, not_used, misc) => {
         let of_servers_text = '';
@@ -3468,7 +3507,7 @@ CMD.register(new Command({
     trigger: 'cv',
     short_desc: 'Verifies cape ownership.',
     long_desc: `Adds a user to the list of "verified" cape owners. This adds a checkmark along with a user tag to the embeds used in the \`${cfg.basic.trigger}cape\` command (It doesn't ping anyone, don't worry. It just lets you to view someones profile/nickname.) Usernames are translated into Minecraft UUIDs by using the Mojang API, so it's not necessary to use this again when someone changes their username.`,
-    usage: '<user> <minecraft username>',
+    usage: '<discord user> <minecraft username>',
     admin_only: true,
     hidden: false,
     dm: 0,
@@ -3560,7 +3599,7 @@ CMD.register(new Command({
     trigger: 'removecv',
     short_desc: 'Removes cape ownership from a user.',
     long_desc: `Removes a user from the list of "verified" cape owners. OptiBot will ask you to confirm before proceeding.`,
-    usage: '<user>',
+    usage: '<discord user>',
     admin_only: true,
     hidden: false,
     dm: 0,
@@ -3712,7 +3751,7 @@ CMD.register(new Command({
     trigger: 'server',
     short_desc: 'Link a specific Discord server.',
     long_desc: `Searches for a Discord server with the given name, and then provides an invite link. \n\nNote that this only searches within a specially picked group of servers. (See \`${cfg.basic.trigger}serverlist\`) This command does **not** search through ALL servers across the entirety of Discord.`,
-    usage: '<name>',
+    usage: '<server name?>',
     hidden: false,
     fn: (m, args) => {
         if (!args[0]) {
@@ -3770,7 +3809,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'medals',
     short_desc: "View someones medal count. Defaults to yourself if no name is provided.",
-    usage: "[user]",
+    usage: "[discord user]",
     hidden: false,
     fn: (m, args) => {
         if (args[0]) {
@@ -3946,7 +3985,7 @@ CMD.register(new Command({
                 .setColor(cfg.vs.embed.default)
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
                 .setAuthor('OptiBot Help', 'attachment://icon.png')
-                .setDescription("> **Please note that OptiBot is currently in an open BETA.** Some features may be missing, and others may be slightly broken. Please report any and all issues to <@181214529340833792>. Thanks! \n\nTo get started with OptiBot, use either of the following commands:")
+                .setDescription("To get started with OptiBot, use either of the following commands:")
                 .addField('Assistant Functions', `\`\`\`${cfg.basic.trigger}assist\`\`\``)
                 .addField('Commands List', `\`\`\`${cfg.basic.trigger}list\`\`\` \nIf you'd like to view detailed information about a specific command, use this: \`\`\`${cfg.basic.trigger}help [command]\`\`\``)
 
@@ -4007,7 +4046,7 @@ CMD.register(new Command({
     trigger: 'list',
     short_desc: 'Lists all OptiBot commands.',
     long_desc: `Lists all OptiBot commands. This includes a short description, and an icon representing the usability of the command in DMs: \n\n<:okay:546570334233690132> - This command can be used in DMS.\n<:error:546570334120312834> - This command can *not* be used in DMs\n<:warn:546570334145609738> - This command can *only* be used in DMs\n\n"Special" pages can be specified before or after the page number. It works either way. For example, if you're a moderator, you can list Moderator-only commands by typing "mod" or "admin".`,
-    usage: "[page# [special] | special [page#]]",
+    usage: "[page # [special] | special [page#]]",
     hidden: false,
     dm: 2,
     fn: (m, args, member, misc) => {
@@ -4141,12 +4180,12 @@ CMD.register(new Command({
     trigger: 'json',
     short_desc: 'JSON Validator',
     long_desc: "Checks if a file is written with valid JSON syntax. Discord CDN links only.",
-    usage: "<file attachment|file link|^ shortcut>",
+    usage: "<attachment|URL|^ shortcut>",
     hidden: false,
     fn: (m, args) => {
 
         if (args[0]) {
-            if (args[0] === '^') {
+            if (args[0] === '^' || args[0].toLowerCase() === 'that') {
                 m.channel.fetchMessages({ limit: 25 }).then(msgs => {
                     let itr = msgs.values();
         
@@ -4244,7 +4283,7 @@ CMD.register(new Command({
     trigger: 'mock',
     short_desc: 'MoCkInG tOnE translator',
     long_desc: 'Rewrites a given message with a mOcKiNg tOnE. In other words, it makes every first character lowercase and every second character uppercase.',
-    usage: "<message>",
+    usage: "<text>",
     admin_only: true,
     hidden: false,
     fn: (m, args) => {
@@ -4377,7 +4416,7 @@ CMD.register(new Command({
     trigger: 'mute',
     short_desc: "Mute a user.",
     long_desc: "Enables text mute for the specified user. Time limit is optional, and will default to 1 hour if not specified. You can also specify the time measure in (m)inutes, (h)ours, and (d)ays. The absolute maximum time limit is 99 days. Additionally, you can adjust time limits for users by simply running this command again with the desired time.",
-    usage: "<target user> [time limit] [time measurement]",
+    usage: "<discord user> [time limit] [time measurement?]",
     hidden: false,
     admin_only: true,
     dm: 0,
@@ -4394,7 +4433,7 @@ CMD.register(new Command({
     trigger: 'unmute',
     short_desc: "Unmute a user.",
     long_desc: "Disables text mute for the specified user.",
-    usage: "<target user>",
+    usage: "<discord user>",
     hidden: false,
     admin_only: true,
     dm: 0,
@@ -4462,8 +4501,8 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'cape',
     short_desc: "Donator Cape Viewer",
-    long_desc: "Displays donator capes for a specified user. \n\nIf someone has a *verified* cape, you can use their @mention in place of their Minecraft username. Additionally, if no username is provided, this will default to yourself.",
-    usage: "[minecraft username OR discord user]",
+    long_desc: `Displays donator capes for a specified user. \n\nIf someone has a *verified* cape, you can use their @mention in place of their Minecraft username. Additionally, if no username is provided, this will default to yourself. Finally, you can view the full cape texture by typing "full" after the username.`,
+    usage: `[minecraft username OR discord user] ["full"]`,
     hidden: false,
     fn: (m, args) => {
         let target = (args[0]) ? args[0] : m.author.id;
@@ -4474,91 +4513,102 @@ CMD.register(new Command({
                 if (err || !res || !data || [200, 404].indexOf(res.statusCode) === -1) {
                     TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the OptiFine API'), m: m });
                 } else
-                    if (res.statusCode === 404) {
-                        TOOLS.errorHandler({ err: 'That player does not have an OptiFine cape', m: m });
-                    } else {
-                        jimp.read(data, (err_j, image) => {
-                            if (err_j) TOOLS.errorHandler({ err: err, m: m });
-                            else {
-                                let full = false;
-                                if ((args[1] && args[1].toLowerCase() === 'full') || (image.bitmap.width < 46)) {
-                                    full = true;
-                                    image.resize(256, jimp.AUTO, jimp.RESIZE_NEAREST_NEIGHBOR);
-                                    finalize(image);
-                                } else {
-                                    if (jimp.intToRGBA(image.getPixelColor(1, 1)).a !== 0) {
-                                        // standard capes
-                                        let elytra = image.clone();
-                                        let cape = image.clone();
+                if (res.statusCode === 404) {
+                    TOOLS.errorHandler({ err: 'That player does not have an OptiFine cape', m: m });
+                } else {
+                    jimp.read(data, (err_j, image) => {
+                        if (err_j) TOOLS.errorHandler({ err: err, m: m });
+                        else {
+                            let full = false;
+                            let fallback = false;
+                            if (args[1] && args[1].toLowerCase() === 'full' && image.bitmap.width <= 92) {
+                                full = true;
+                                image.resize(276, jimp.AUTO, jimp.RESIZE_NEAREST_NEIGHBOR);
+                                finalize(image);
+                            } else
+                            if(image.bitmap.width > 92) {
+                                fallback = true;
+                                finalize(image);
+                            } else
+                            if (jimp.intToRGBA(image.getPixelColor(1, 1)).a !== 0) {
+                                // standard capes
+                                let elytra = image.clone();
+                                let cape = image.clone();
 
-                                        cape.crop(1, 1, 10, 16);
-                                        elytra.crop(36, 2, 10, 20);
+                                cape.crop(1, 1, 10, 16);
+                                elytra.crop(36, 2, 10, 20);
 
-                                        new jimp(21, 20, (err_s2, image_s2) => {
-                                            if (err_s2) TOOLS.errorHandler({ err: err_s2, m: m });
+                                new jimp(21, 20, (err_s2, image_s2) => {
+                                    if (err_s2) TOOLS.errorHandler({ err: err_s2, m: m });
+                                    else {
+                                        image_s2.composite(cape, 0, 0);
+                                        image_s2.composite(elytra, 11, 0);
+                                        image_s2.resize(jimp.AUTO, 200, jimp.RESIZE_NEAREST_NEIGHBOR);
+
+                                        finalize(image_s2);
+                                    }
+                                });
+                            } else {
+                                // banner capes
+                                let elytra = image.clone();
+                                let cape = image.clone();
+
+                                cape.crop(2, 2, 20, 32);
+                                elytra.crop(72, 4, 20, 40);
+
+                                new jimp(42, 40, (err_s2, image_s2) => {
+                                    if (err_s2) TOOLS.errorHandler({ err: err_s2, m: m });
+                                    else {
+                                        image_s2.composite(cape, 0, 0);
+                                        image_s2.composite(elytra, 22, 0);
+                                        image_s2.resize(jimp.AUTO, 200, jimp.RESIZE_NEAREST_NEIGHBOR);
+
+                                        finalize(image_s2);
+                                    }
+                                });
+                            }
+
+                            function finalize(image_p) {
+                                image_p.getBuffer(jimp.AUTO, (err_b, imgFinal) => {
+                                    if (err_b) TOOLS.errorHandler({ err: err_b, m: m });
+                                    else {
+                                        let embed = new discord.RichEmbed()
+                                            .setColor(cfg.vs.embed.default)
+                                            .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_cape.png'), "thumbnail.png"), new discord.Attachment(imgFinal, "cape.png")])
+                                            .setImage('attachment://cape.png')
+                                            .setFooter('IGN: ' + username);
+
+                                        let desc = "";
+
+                                        memory.db.profiles.find({ "cape.uuid": result.id }, (dberr, dbdocs) => {
+                                            if (dberr) TOOLS.errorHandler({ err: dberr, m: m });
                                             else {
-                                                image_s2.composite(cape, 0, 0);
-                                                image_s2.composite(elytra, 11, 0);
-                                                image_s2.resize(jimp.AUTO, 200, jimp.RESIZE_NEAREST_NEIGHBOR);
+                                                if (dbdocs.length !== 0) {
+                                                    desc += '<:okay:546570334233690132> Cape owned by <@' + dbdocs[0].member_id + '>';
+                                                }
+                                                if (fallback && (!args[1] || (args[1] && args[1].toLowerCase() !== 'full'))) {
+                                                    desc += `This image could not be cropped because the cape texture has an unusual resolution.`;
+                                                }
 
-                                                finalize(image_s2);
-                                            }
-                                        });
-                                    } else {
-                                        // banner capes
-                                        let elytra = image.clone();
-                                        let cape = image.clone();
+                                                if (full || fallback) {
+                                                    embed.setAuthor('Donator Cape (Full Texture)', 'attachment://thumbnail.png');
+                                                } else {
+                                                    embed.setAuthor('Donator Cape', 'attachment://thumbnail.png');
+                                                }
 
-                                        cape.crop(2, 2, 20, 32);
-                                        elytra.crop(72, 4, 20, 40);
+                                                if (desc.length > 0) {
+                                                    embed.setDescription(desc);
+                                                }
 
-                                        new jimp(42, 40, (err_s2, image_s2) => {
-                                            if (err_s2) TOOLS.errorHandler({ err: err_s2, m: m });
-                                            else {
-                                                image_s2.composite(cape, 0, 0);
-                                                image_s2.composite(elytra, 22, 0);
-                                                image_s2.resize(jimp.AUTO, 200, jimp.RESIZE_NEAREST_NEIGHBOR);
-
-                                                finalize(image_s2);
+                                                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
                                             }
                                         });
                                     }
-                                }
-
-                                function finalize(image_p) {
-                                    image_p.getBuffer(jimp.AUTO, (err_b, imgFinal) => {
-                                        if (err_b) TOOLS.errorHandler({ err: err_b, m: m });
-                                        else {
-                                            let embed = new discord.RichEmbed()
-                                                .setColor(cfg.vs.embed.default)
-                                                .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_cape.png'), "thumbnail.png"), new discord.Attachment(imgFinal, "cape.png")])
-                                                .setImage('attachment://cape.png')
-                                                .setFooter('IGN: ' + username);
-
-                                            
-
-                                            memory.db.profiles.find({ "cape.uuid": result.id }, (dberr, dbdocs) => {
-                                                if (dberr) TOOLS.errorHandler({ err: dberr, m: m });
-                                                else {
-                                                    if (dbdocs.length !== 0) {
-                                                        embed.setDescription('<:okay:546570334233690132> Cape owned by <@' + dbdocs[0].member_id + '>');
-                                                    }
-
-                                                    if (full) {
-                                                        embed.setAuthor('Donator Cape (Full Texture)', 'attachment://thumbnail.png');
-                                                    } else {
-                                                        embed.setAuthor('Donator Cape', 'attachment://thumbnail.png');
-                                                    }
-
-                                                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
+                                });
                             }
-                        });
-                    }
+                        }
+                    });
+                }
             });
         }
 
@@ -4566,7 +4616,18 @@ CMD.register(new Command({
             if (userid) {
                 TOOLS.getProfile(m, userid, (profile) => {
                     if (!profile.cape) {
-                        TOOLS.errorHandler({ err: `${(userid === m.author.id) ? 'You do' : name+' does'} not have a verified donator cape.`, m: m });
+                        if(userid === m.author.id) {
+                            let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.error)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
+                            .setAuthor('You must specify a Minecraft username, @mention, or Discord user ID.', 'attachment://thumbnail.png')
+                            .setDescription(`If you're a donator and you're trying to view your own cape, you need to verify your cape first. [See this <#531622141393764352> entry](https://discordapp.com/channels/423430686880301056/531622141393764352/622494425616089099) for details.`);
+                            
+
+                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        } else {
+                            TOOLS.errorHandler({ err: `${name} does not have a verified donator cape.`, m: m });
+                        }
                     } else {
                         request({ url: 'https://api.mojang.com/user/profiles/' + profile.cape.uuid + '/names', encoding: null }, (err, res, data) => {
                             if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
@@ -4617,7 +4678,7 @@ CMD.register(new Command({
     trigger: 'role',
     short_desc: "Toggle roles for users.",
     long_desc: "Gives or removes roles for the specified user. OptiBot uses string similarity for roles, so typos and capitalization don't matter.",
-    usage: "<user> <role>",
+    usage: "<discord user> <role?>",
     admin_only: true,
     hidden: false,
     dm: 0,
@@ -4783,7 +4844,7 @@ CMD.register(new Command({
     trigger: 'docs', 
     short_desc: 'Search OptiFine documentation.',
     long_desc: `Search for various files in the current version of OptiFine documentation. If no search query is provided, OptiBot will just give you a link to the documentation on GitHub. \n\n**Note: This is the all new, somewhat experimental version of the \`${cfg.basic.trigger}docs\` command.** This version provides \"categories\" of documentation, which makes things easier to look for. However, due to the nature of this new system, some files may be missing, especially if they've only been recently added. For the legacy version of this command, use \`${cfg.basic.trigger}docfile\`. It will always be up-to-date, as it downloads directly from GitHub.`,
-    usage: '[query]',
+    usage: '[query?]',
     hidden: false,
     fn: (m, args) => {
         if (!args[0]) {
@@ -4840,7 +4901,7 @@ CMD.register(new Command({
     trigger: 'docfile',
     short_desc: 'Search/link a single file in the OptiFine documentation.',
     long_desc: "Search for files in the current version of OptiFine documentation.",
-    usage: '[query] [line #]',
+    usage: '<query?> [line #]',
     hidden: false,
     fn: (m, args) => {
         let embed = new discord.RichEmbed()
@@ -4916,7 +4977,7 @@ CMD.register(new Command({
     trigger: 'award',
     short_desc: 'Give medals to users.',
     long_desc: 'Gives a medal to the specified user. This is an alternative to adding a medal emoji to someones message.',
-    usage: '<user>',
+    usage: '<discord user>',
     admin_only: true,
     hidden: false,
     dm: 0,
@@ -4976,7 +5037,7 @@ CMD.register(new Command({
     trigger: 'chkmute',
     short_desc: 'Check the status of a muted user.',
     long_desc: 'Checks the status of a muted user, and provides an approximate date for when the user will be unmuted, if at all.',
-    usage: '<user>',
+    usage: '<discord user>',
     admin_only: true,
     hidden: false,
     fn: (m, args) => {
@@ -5033,7 +5094,7 @@ CMD.register(new Command({
     trigger: 'faq',
     short_desc: 'Search for a question in <#531622141393764352>',
     long_desc: 'Searches for an answered question in the <#531622141393764352> channel. Due to the complexity of this command, results may vary.',
-    usage: '<query>',
+    usage: '<query?>',
     hidden: false,
     fn: (m, args) => {
         if (!args[0]) {
@@ -5083,7 +5144,7 @@ CMD.register(new Command({
                                     .addField(highest.question, highest.answer);
                                 } else {
                                     embed.setDescription(`**The answer to this question is too long to show in an embed.** \n${infotext}`)
-                                    .addField(highest.question, highest.answer.substring(0, 512)+'...');
+                                    .addField(highest.question, highest.answer.substring(0, 512).trim()+'...');
                                 }
                             } else {
                                 embed.setDescription(infotext)
@@ -5160,7 +5221,7 @@ CMD.register(new Command({
     trigger: 'motd',
     short_desc: 'View the MOTD.',
     long_desc: `View the MOTD, the message sent by OptiBot to every new user that joins the server. \n\nModerators can additionally include a message to be added, which can be reset again with \`${cfg.basic.trigger}clearmotd\` (These can NOT be done in DMs.)`,
-    usage: '[new message]',
+    usage: '[new message text]',
     hidden: false,
     fn: (m, args, not_used, misc) => {
         if (!args[0] || !(misc.isAdmin || misc.isSuper) || m.channel.type === 'dm') {
@@ -5514,19 +5575,20 @@ TOOLS.statusHandler = (type) => {
         // booting
         ACT_status = 'idle';
         ACT_type = 'WATCHING';
-        ACT_game = 'assets load';
+        ACT_game = 'assets load 🔄';
     } else
     if (type === 1) {
         // default state
-        if (memory.bot.debug) {
-            ACT_status = 'dnd';
-            ACT_type = 'PLAYING';
-            ACT_game = 'Code Mode';
-        } else 
         if (memory.bot.locked) {
-            ACT_status = 'dnd';
-            ACT_type = 'PLAYING';
-            ACT_game = 'Mod Mode';
+            if (memory.bot.debug) {
+                ACT_status = 'dnd';
+                ACT_type = 'PLAYING';
+                ACT_game = 'Code Mode 💻';
+            } else {
+                ACT_status = 'dnd';
+                ACT_type = 'PLAYING';
+                ACT_game = 'Mod Mode 🔒';
+            }
         } else {
             ACT_status = 'online';
             ACT_type = 'WATCHING';
@@ -5707,7 +5769,7 @@ TOOLS.deleteMessageHandler = (data) => {
                     if (rUsers[rri] !== undefined) {
                         if (rUsers[rri] === data.userid) {
                             data.m.delete();
-                            log('Message (id# ' + data.cacheData.message + ') deleted at user request.', 'warn');
+                            log('Bot message deleted at user request.', 'warn');
 
                             memory.db.msg.remove(data.cacheData, (err) => {
                                 if (err) {
@@ -6173,13 +6235,13 @@ TOOLS.getTargetUser = (m, target, cb) => {
     log(m.mentions.users.size > 0, 'trace');
     log(target.match(/^(<@).*(>)$/) !== null && m.mentions.users.size > 0, 'trace');
 
-    if (target.toLowerCase() === 'me') {
+    if (target.toLowerCase() === 'me' || target.toLowerCase() === 'myself' || target.toLowerCase() === 'self') {
         cb(m.author.id, `${m.author.username}#${m.author.discriminator}`)
     } else
     if (target.match(/^(<@).*(>)$/) !== null && m.mentions.users.size > 0) {
         cb(m.mentions.users.first(1)[0].id, `${m.mentions.users.first(1)[0].username}#${m.mentions.users.first(1)[0].discriminator}`);
     } else
-    if (target === "^") {
+    if (target === "^" || target.toLowerCase() === "him" || target.toLowerCase() === "her" || target.toLowerCase() === "them" || target.toLowerCase() === "it") {
         m.channel.fetchMessages({ limit: 25 }).then(msgs => {
             let itr = msgs.values();
 

@@ -428,7 +428,7 @@ function init_final() {
                                 end(code, false);
                             } else
                             if(code === 24) {
-                                log(`OptiBot encountered a fatal error and is shutting down to prevent any further damage. This is likely a problem that the program cannot solve on it's own.`);
+                                log(`OptiBot encountered a fatal error. This is likely a problem that the program cannot solve on it's own.`, 'fatal');
                                 end(code, true, 'FATAL');
                             } else
                             if(code === 1000) {

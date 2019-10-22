@@ -375,12 +375,14 @@ memory.bot.warn_check = bot.setInterval(() => {
                         if (warns_expired > 0) {
                             let i3 = 0;
                             (function loopUpdate() {
+                                log(warn_expired_indexes, 'trace');
+                                log("expired:" + warns_expired, 'trace');
                                 log(`updating profile ${docs[warn_expired_indexes[i3]].member_id}`, 'trace');
                                 memory.db.profiles.update({member_id: docs[warn_expired_indexes[i3]].member_id}, docs[warn_expired_indexes[i3]], {}, (err) => {
                                     if(err) {
                                         TOOLS.errorHandler({ err: err });
                                     } else {
-                                        if(i3 === warn_expired_indexes.length) {
+                                        if(i3+1 >= warn_expired_indexes.length) {
                                             log(`${warns_expired} user warning(s) have expired.`);
                                         } else {
                                             i3++;
@@ -706,9 +708,20 @@ bot.on('ready', () => {
                                             TOOLS.shutdownHandler(24);
                                         }
                                     }).catch(err => {
-                                        log('Failed to load cached message: ' + err.stack, 'error');
-                                        i++
-                                        fetchNext();
+                                        if(err.stack.toLowerCase().indexOf('unknown message') > -1) {
+                                            memory.db.msg.remove({ message: docs[i].message }, {}, (err) => {
+                                                if(err) {
+                                                    log(`Failed to remove deleted message: ${err}`)
+                                                }
+
+                                                i++
+                                                fetchNext();
+                                            });
+                                        } else {
+                                            log('Failed to load cached message: ' + err.stack, 'error');
+                                            i++
+                                            fetchNext();
+                                        }
                                     });
                                 }
                             }
@@ -1728,7 +1741,7 @@ bot.on('message', (m) => {
                             if (res.getMetadata().tags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (cfg.channels.mod.indexOf(m.channel.id) === -1 && cfg.channels.bot.indexOf(m.channel.id) === -1) && (!isAdmin || !isSuper)) {
                                 checkMisuse('This command can only be used in DMs OR the #optibot channel.')
                             } else 
-                            if (res.getMetadata().tags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (cfg.channels.mod.indexOf(m.channel.id) === -1 && cfg.channels.bot.indexOf(m.channel.id) === -1) && !isSuper) {
+                            if (res.getMetadata().tags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && cfg.channels.mod.indexOf(m.channel.id) === -1 && !isSuper) {
                                 checkMisuse('This command can only be used in moderator-only channels.')
                             } else {
                                 res.exec(m, args, member, { isAdmin: isAdmin, isSuper: isSuper });
@@ -2940,96 +2953,107 @@ CMD.register(new Command({
             TOOLS.getTargetUser(m, args[0], (userid, name) => {
                 if (!userid) {
                     TOOLS.errorHandler({ err: "You must specify a valid user.", m:m });
+                } else 
+                if (userid === m.author.id || userid === bot.user.id ) { 
+                    TOOLS.errorHandler({ err: `Nice try.`, m:m });
                 } else {
-                    TOOLS.getProfile(m, userid, (profile) => {
-                        let first_offense = false;
-                        let mute_added = false;
-                        let now = new Date().getTime();
-                        let executor = m.author.username+'#'+m.author.discriminator;
-                        let mute_hours;
-                        
-
-                        if (typeof profile.warns === 'undefined') {
-                            first_offense = true;
-                            profile.warns = {
-                                lifetime: 1,
-                                current: []
-                            };
+                    bot.guilds.get(cfg.basic.of_server).fetchMember(userid).then(member => {
+                        if (member.permissions.has("KICK_MEMBERS", true)) {
+                            TOOLS.errorHandler({ m: m, err: `That user is too powerful to be given a warning.` });
                         } else {
-                            profile.warns.lifetime++;
-
-                            mute_hours = (5**profile.warns.current.length >= 168) ? 168 : 5**profile.warns.current.length; // starts at 1 hour. multiplies exponentially by 5 depending on the mute count. maxes out at 168 hours, or one week.
-
-                            if (typeof profile.mute === 'undefined') {
-                                profile.mute = {
-                                    start: now,
-                                    end: now + (1000*60*60 * mute_hours), 
-                                    executor: m.author.id,
-                                    updater: ""
-                                };
-
-                                mute_added = true;
-                            }
-                        }
-
-                        profile.warns.current.push({
-                            expiration: now + (1000*60*60*24*7),
-                            executor: m.author.id,
-                        });
-
-                        memory.db.profiles.update({ member_id: userid }, profile, {}, (err) => {
-                            if (err) {
-                                TOOLS.errorHandler({ m: m, err: err });
-                            } else {
-                                if (first_offense) {
-                                    let embed = new discord.RichEmbed()
-                                    .setColor(cfg.vs.embed.default)
-                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-                                    .setAuthor(`User Warnings`, 'attachment://icon.png')
-                                    .setDescription(`<@${userid}> has been warned. This is their first offense, so no punishment will be handed out.`);
+                            TOOLS.getProfile(m, userid, (profile) => {
+                                let first_offense = false;
+                                let mute_added = false;
+                                let now = new Date().getTime();
+                                let executor = m.author.username+'#'+m.author.discriminator;
+                                let mute_hours;
+                                
         
-                                    m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
-                                } else
-                                if (profile.mute && mute_added === false) {
-                                    let embed = new discord.RichEmbed()
-                                    .setColor(cfg.vs.embed.default)
-                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-                                    .setAuthor(`User Warnings`, 'attachment://icon.png')
-                                    .setDescription(`<@${userid}> has been warned. They have ${profile.warns.current.length-1} other warning(s) on record. No punishment will be added, as they have already been muted.`);
-        
-                                    m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                if (typeof profile.warns === 'undefined') {
+                                    first_offense = true;
+                                    profile.warns = {
+                                        lifetime: 1,
+                                        current: []
+                                    };
                                 } else {
-                                    bot.guilds.get(cfg.basic.of_server).fetchMember(userid).then(target => {
-                                        target.addRole(cfg.roles.muted, `User muted by ${executor} (via ${cfg.basic.trigger}warn)`).then(() => {
-                                            log(`User ${name} was muted by ${executor} (via ${cfg.basic.trigger}warn)`, 'warn');
-
-                                            let remaining = profile.mute.end - now;
-                                            let minutes = Math.round(remaining/1000/60)
-                                            let hours = Math.round(remaining/(1000*60*60))
-                                            let days = Math.round(remaining/(1000*60*60*24))
-                                            let final;
-
-                                            if (minutes < 60) {
-                                                final = `${minutes} minute(s)`;
-                                            } else
-                                            if (hours < 24) {
-                                                final = `${hours} hour(s)`;
-                                            } else {
-                                                final = `${days} day(s)`;
-                                            }
+                                    profile.warns.lifetime++;
         
+                                    mute_hours = (5**profile.warns.current.length >= 168) ? 168 : 5**profile.warns.current.length; // starts at 1 hour. multiplies exponentially by 5 depending on the mute count. maxes out at 168 hours, or one week.
+        
+                                    if (typeof profile.mute === 'undefined') {
+                                        profile.mute = {
+                                            start: now,
+                                            end: now + (1000*60*60 * mute_hours), 
+                                            executor: m.author.id,
+                                            updater: ""
+                                        };
+        
+                                        mute_added = true;
+                                    }
+                                }
+        
+                                profile.warns.current.push({
+                                    expiration: now + (1000*60*60*24*7),
+                                    executor: m.author.id,
+                                });
+        
+                                memory.db.profiles.update({ member_id: userid }, profile, {}, (err) => {
+                                    if (err) {
+                                        TOOLS.errorHandler({ m: m, err: err });
+                                    } else {
+                                        if (first_offense) {
                                             let embed = new discord.RichEmbed()
                                             .setColor(cfg.vs.embed.default)
                                             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                                             .setAuthor(`User Warnings`, 'attachment://icon.png')
-                                            .setDescription(`<@${userid}> has been warned. They have ${profile.warns.current.length-1} other warning(s) on record. They have been muted for ${final}.`);
-        
+                                            .setDescription(`<@${userid}> has been warned. This is their first offense, so no punishment will be handed out.`);
+                
                                             m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
-                                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                                    }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                                }
-                            }
-                        });
+                                        } else
+                                        if (profile.mute && mute_added === false) {
+                                            let embed = new discord.RichEmbed()
+                                            .setColor(cfg.vs.embed.default)
+                                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+                                            .setAuthor(`User Warnings`, 'attachment://icon.png')
+                                            .setDescription(`<@${userid}> has been warned. They have ${profile.warns.current.length-1} other warning(s) on record. No punishment will be added, as they have already been muted.`);
+                
+                                            m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                        } else {
+                                            bot.guilds.get(cfg.basic.of_server).fetchMember(userid).then(target => {
+                                                target.addRole(cfg.roles.muted, `User muted by ${executor} (via ${cfg.basic.trigger}warn)`).then(() => {
+                                                    log(`User ${name} was muted by ${executor} (via ${cfg.basic.trigger}warn)`, 'warn');
+        
+                                                    let remaining = profile.mute.end - now;
+                                                    let minutes = Math.round(remaining/1000/60)
+                                                    let hours = Math.round(remaining/(1000*60*60))
+                                                    let days = Math.round(remaining/(1000*60*60*24))
+                                                    let final;
+        
+                                                    if (minutes < 60) {
+                                                        final = `${minutes} minute(s)`;
+                                                    } else
+                                                    if (hours < 24) {
+                                                        final = `${hours} hour(s)`;
+                                                    } else {
+                                                        final = `${days} day(s)`;
+                                                    }
+                
+                                                    let embed = new discord.RichEmbed()
+                                                    .setColor(cfg.vs.embed.default)
+                                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+                                                    .setAuthor(`User Warnings`, 'attachment://icon.png')
+                                                    .setDescription(`<@${userid}> has been warned. They have ${profile.warns.current.length-1} other warning(s) on record. They have been muted for ${final}.`);
+                
+                                                    m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                                }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                                            }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                                        }
+                                    }
+                                });
+                            });
+                        }
+                    }).catch(err => {
+                        TOOLS.errorHandler({ m: m, err: err });
                     });
                 }
             });

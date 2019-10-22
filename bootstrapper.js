@@ -317,46 +317,14 @@ function init_q2() {
     env.rl.question('Enable Development Flags? [Y/N]', (res) => {
         if(res.trim().toLowerCase() === 'y') {
             env.debug = true;
-            init_build()
+            env.rl.close();
+            init_final()
         } else
         if(res.trim().toLowerCase() === 'n') {
-            init_build()
+            env.rl.close();
+            init_final()
         } else {
             init_q2();
-        }
-    });
-}
-
-function init_build() {
-    env.rl.close();
-
-    // check build#
-    fs.readFile('./index.js', (err, data) => {
-        if(err) throw err;
-        else {
-            fs.readFile('./data/build.json', (err, hash) => {
-                if(err) throw err;
-                else {
-                    let old_build = JSON.parse(hash);
-                    let new_build = crypto.createHmac('sha256', 'optibot').update(data).digest('hex');
-
-                    if(old_build.hash !== new_build) {
-                        let build_data = {
-                            num: old_build.num+1,
-                            hash: new_build
-                        }
-
-                        fs.writeFile('./data/build.json', JSON.stringify(build_data), (err) => {
-                            if(err) throw err;
-                            else {
-                                init_final();
-                            }
-                        });
-                    } else {
-                        init_final();
-                    }
-                }
-            });
         }
     });
 }
@@ -376,67 +344,99 @@ function init_final() {
             fs.copyFile(`./data/profiles.db`, `./archive/data/profiles_before_${env.logName}.db`, (err) => {
                 if(err) throw err
                 else {
-                    process.stdout.write('\033c');
-                    log('Initialization: Spawning child process (index.js)', 'debug');
-                    const optibot = spawn('node', ['index.js', env.debug, env.init.getTime(), env.logName], {
-                        stdio: ['pipe', 'pipe', 'pipe', 'ipc']
-                    });
-
-                    optibot.stdout.on('data', (data) => {
-                        log(data, undefined, 'index.js:NULL');
-                    });
-
-                    optibot.stderr.on('data', (data) => {
-                        log(data, 'fatal', 'index.js:NULL');
-                    });
-
-                    optibot.on('message', (data) => {
-                        if(typeof data.misc !== 'undefined') {
-                            log(data.message, data.level, data.misc);
+                    // check build #
+                    fs.readFile('./index.js', (err, data) => {
+                        if(err) throw err;
+                        else {
+                            fs.readFile('./data/build.json', (err, hash) => {
+                                if(err) throw err;
+                                else {
+                                    let old_build = JSON.parse(hash);
+                                    let new_build = crypto.createHmac('sha256', 'optibot').update(data).digest('hex');
+                
+                                    if(old_build.hash !== new_build) {
+                                        let build_data = {
+                                            num: old_build.num+1,
+                                            hash: new_build
+                                        }
+                
+                                        fs.writeFile('./data/build.json', JSON.stringify(build_data), (err) => {
+                                            if(err) throw err;
+                                            else {
+                                                startBot()
+                                            }
+                                        });
+                                    } else {
+                                        startBot()
+                                    }
+                                }
+                            });
                         }
                     });
 
-                    optibot.on('exit', (code) => {
-                        setTimeout(() => {
-                            log(`Child process ended with exit code ${code}`);
+                    function startBot() {
+                        process.stdout.write('\033c');
+                        log('Initialization: Spawning child process (index.js)', 'debug');
+                        const optibot = spawn('node', ['index.js', env.debug, env.init.getTime(), env.logName], {
+                            stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+                        });
 
-                            if(code === 0) {
-                                log('OptiBot is now shutting down at user request.');
-                                end(code, true);
-                            } else
-                            if(code === 1) {
-                                log('OptiBot seems to have crashed. Restarting...');
-                                end(code, false, 'CRASH');
-                            } else
-                            if(code === 2) {
-                                log('OptiBot is now restarting at user request...');
-                                end(code, false);
-                            } else
-                            if(code === 3) {
-                                log('Resetting message cache and restarting at user request...');
-                                fs.unlink('./data/messages.db', (err) => {
-                                    if(err) log('Failed to delete messages database.', 'fatal');
-                                    end(code, false);
-                                });
-                            } else
-                            if(code === 4) {
-                                log('OptiBot is being updated...');
-                                update();
-                            } else
-                            if(code === 10) {
-                                log('OptiBot is now undergoing scheduled restart.');
-                                end(code, false);
-                            } else
-                            if(code === 24) {
-                                log(`OptiBot encountered a fatal error. This is likely a problem that the program cannot solve on it's own.`, 'fatal');
-                                end(code, true, 'FATAL');
-                            } else
-                            if(code === 1000) {
-                                log(`OptiBot was forcefully shut down.`, 'fatal');
-                                end(code, true, 'OBES');
+                        optibot.stdout.on('data', (data) => {
+                            log(data, undefined, 'index.js:NULL');
+                        });
+
+                        optibot.stderr.on('data', (data) => {
+                            log(data, 'fatal', 'index.js:NULL');
+                        });
+
+                        optibot.on('message', (data) => {
+                            if(typeof data.misc !== 'undefined') {
+                                log(data.message, data.level, data.misc);
                             }
-                        }, 1000);
-                    });
+                        });
+
+                        optibot.on('exit', (code) => {
+                            setTimeout(() => {
+                                log(`Child process ended with exit code ${code}`);
+
+                                if(code === 0) {
+                                    log('OptiBot is now shutting down at user request.');
+                                    end(code, true);
+                                } else
+                                if(code === 1) {
+                                    log('OptiBot seems to have crashed. Restarting...');
+                                    end(code, false, 'CRASH');
+                                } else
+                                if(code === 2) {
+                                    log('OptiBot is now restarting at user request...');
+                                    end(code, false);
+                                } else
+                                if(code === 3) {
+                                    log('Resetting message cache and restarting at user request...');
+                                    fs.unlink('./data/messages.db', (err) => {
+                                        if(err) log('Failed to delete messages database.', 'fatal');
+                                        end(code, false);
+                                    });
+                                } else
+                                if(code === 4) {
+                                    log('OptiBot is being updated...');
+                                    update();
+                                } else
+                                if(code === 10) {
+                                    log('OptiBot is now undergoing scheduled restart.');
+                                    end(code, false);
+                                } else
+                                if(code === 24) {
+                                    log(`OptiBot encountered a fatal error. This is likely a problem that the program cannot solve on it's own.`, 'fatal');
+                                    end(code, true, 'FATAL');
+                                } else
+                                if(code === 1000) {
+                                    log(`OptiBot was forcefully shut down.`, 'fatal');
+                                    end(code, true, 'OBES');
+                                }
+                            }, 1000);
+                        });
+                    }
                 }
             });
         }

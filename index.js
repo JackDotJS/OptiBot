@@ -1,5 +1,5 @@
-// Written by Kyle Edwards <wingedasterisk@gmail.com>, August 2019
-// I put a lot of work into this, please don't redistribute it or anything.
+// Written by Kyle Edwards <wingedasterisk@gmail.com>, October 2019
+// 6,000+ lines of complete and utter shit coming right up.
 // ========================================================================
 // OptiBot 2.0 Child Node: Main Program
 
@@ -57,19 +57,17 @@ class Command {
                 usage: (md.usage) ? cfg.basic.trigger + md.trigger + ' ' + md.usage : cfg.basic.trigger + md.trigger,
                 icon: md.icon || false,
                 tags: {
-                    MODERATOR_ONLY: false,
-                    DEVELOPER_ONLY: false,
-                    NO_DM: false,
-                    DM_OPTIONAL: false,
-                    DM_ONLY: false,
-                    BOT_CHANNEL_ONLY: false,
-                    MOD_CHANNEL_ONLY: false,
-                    DELETE_ON_MISUSE: false,
-                },
-                //tags: (Array.isArray(md.tags)) ? md.tags : [ 'DEVELOPER_ONLY', 'DM_OPTIONAL' ],
-                //admin_only: md.admin_only || false,
-                //hidden: (typeof md.hidden === 'boolean') ? md.hidden : true,
-                //dm: (typeof md.dm === 'number') ? md.dm : 1 // 0 = cant use in DM, 1 = can use in DM, 2 = can ONLY use in DM
+                    MODERATOR_ONLY: false, // Only moderators and admins can use this command
+                    DEVELOPER_ONLY: false, // Only developers can use this command
+                    NO_DM: false, // Cannot be used in Direct Messages
+                    DM_OPTIONAL: false, // Can be used in server chat OR Direct Messages
+                    DM_ONLY: false, // Can ONLY be used in Direct Messages
+                    BOT_CHANNEL_ONLY: false, // If in server, can only be used in the designated bot channels. Mutually exclusive with DM_ONLY and NO_DM
+                    MOD_CHANNEL_ONLY: false, // Can only be used in moderator-only channels. 
+                    DELETE_ON_MISUSE: false, // Deletes the users message if any restriction results in the command not firing.
+                    STRICT: false, // TODO: Restrictions apply to all members, including moderators and developers.
+                    HIDDEN: false // TODO: Command is treated as non-existent to any user apart from developers.
+                }
             }
 
             if(Array.isArray(md.tags)) {
@@ -77,7 +75,26 @@ class Command {
                     if(typeof this.metadata.tags[t] === 'boolean') {
                         this.metadata.tags[t] = true;
                     }
-                })
+                });
+
+                if((this.metadata.tags['NO_DM'] && this.metadata.tags['DM_OPTIONAL'])) {
+                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags NO_DM and DM_OPTIONAL are mutually exclusive.`);
+                }
+                if(this.metadata.tags['DM_OPTIONAL'] && this.metadata.tags['DM_ONLY']) {
+                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags DM_OPTIONAL and DM_ONLY are mutually exclusive.`);
+                }
+                if(this.metadata.tags['NO_DM'] && this.metadata.tags['DM_ONLY']) {
+                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags NO_DM and DM_ONLY are mutually exclusive.`);
+                }
+                if(this.metadata.tags['BOT_CHANNEL_ONLY'] && this.metadata.tags['DM_ONLY']) {
+                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags BOT_CHANNEL_ONLY and DM_ONLY are mutually exclusive.`);
+                }
+                if(this.metadata.tags['BOT_CHANNEL_ONLY'] && this.metadata.tags['NO_DM']) {
+                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags BOT_CHANNEL_ONLY and NO_DM are mutually exclusive.`);
+                }
+                if(this.metadata.tags['MODERATOR_ONLY'] && this.metadata.tags['DEVELOPER_ONLY']) {
+                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags MODERATOR_ONLY and DEVELOPER_ONLY are mutually exclusive.`);
+                }
             } else {
                 this.metadata.tags['DEVELOPER_ONLY'] = true;
                 this.metadata.tags['DM_OPTIONAL'] = true;
@@ -161,6 +178,7 @@ const memory = {
         avatar: {},
         status: {},
         motd: {},
+        actMods: []
     },
     stats: {
         unique: []
@@ -310,17 +328,6 @@ memory.bot.profile_check = bot.setInterval(() => {
                     if (Object.keys(docs[i]).length === 2) {
                         log('insignificant profile found', 'trace');
                         remove_list.push(docs[i].member_id);
-                    } else {
-                        if (Object.keys(docs[i]).length === 3 && docs[i].warns && docs[i].warns.current.length === 0) {
-                            bot.guilds.get(cfg.basic.of_server).fetchMember(docs[i].member_id).catch((err) => {
-                                if (err.message.toLowerCase().indexOf('invalid or uncached id provided') > -1 || err.message.toLowerCase().indexOf('unknown member') > -1) {
-                                    log('insignificant profile found', 'trace');
-                                    remove_list.push(docs[i].member_id);
-                                } else {
-                                    TOOLS.errorHandler({ err: err });
-                                }
-                            })
-                        }
                     }
 
                     bot.setTimeout(() => {
@@ -365,7 +372,88 @@ memory.bot.warn_check = bot.setInterval(() => {
                 TOOLS.errorHandler({ err: err });
             } else 
             if (!docs[0]) {
-                log('No users with warnings.', 'debug');
+                log('All "warn" properties already removed. (remove this check pls)', 'error');
+            } else {
+                let i = 0;
+                (function loopover() {
+                    delete docs[i].warns
+
+                    memory.db.profiles.update({member_id: docs[i].member_id}, docs[i], {}, (err) => {
+                        if (err) {
+                            TOOLS.errorHandler({ err: err });
+                        } else
+                        if (i+1 === docs.length) {
+                            log('All "warn" properties removed.', 'info');
+                        } else {
+                            i++
+                            loopover();
+                        }
+                    });
+                })();
+            }
+        });
+
+        memory.db.profiles.find({ warnings: { $exists: true } }, (err, docs) => {
+            if (err) {
+                TOOLS.errorHandler({ err: err });
+            } else 
+            if (!docs[0]) {
+                log('No users with warnings.', 'info');
+            } else {
+                let i = 0;
+                let expired_indexes = [];
+                (function loopover() {
+                    if (i >= docs.length) {
+                        if (expired_indexes.length > 0) {
+                            let i3 = 0;
+                            (function loopUpdate() {
+                                log(expired_indexes, 'trace');
+                                log("expired:" + expired_indexes.length, 'trace');
+                                log(`updating profile ${docs[expired_indexes[i3]].member_id}`, 'trace');
+                                memory.db.profiles.update({member_id: docs[expired_indexes[i3]].member_id}, docs[expired_indexes[i3]], {}, (err) => {
+                                    if(err) {
+                                        TOOLS.errorHandler({ err: err });
+                                    } else {
+                                        if(i3+1 >= expired_indexes.length) {
+                                            log(`${expired_indexes.length} user warning(s) have expired.`, 'info');
+                                        } else {
+                                            i3++;
+                                            loopUpdate();
+                                        }
+                                    }
+                                });
+                            })();
+                        } else {
+                            log(`No user warnings have expired.`, 'info');
+                        }
+                    } else
+                    if (docs[i].warnings.length === 0) {
+                        i++;
+                        loopover();
+                    } else {
+                        for(let i2 in docs[i].warnings) {
+                            if (new Date().getTime() > docs[i].warnings[i2].expiration) {
+                                delete docs[i].warnings[i2];
+                                expired_indexes.push(i);
+                            }
+
+                            if (parseInt(i2)+1 >= docs[i].warnings.length) {
+                                i++;
+                                loopover();
+                            }
+                        }
+                    }
+                })();
+            }
+        });
+
+        /*
+        memory.db.profiles.find({ warnings: { $exists: true } }, (err, docs) => {
+            if (err) {
+                TOOLS.errorHandler({ err: err });
+            } else 
+            if (!docs[0]) {
+                log('No users with warnings.', 'info');
             } else {
                 let i = 0;
                 let warns_expired = 0;
@@ -428,7 +516,8 @@ memory.bot.warn_check = bot.setInterval(() => {
                     }
                 }
             }
-        })
+        });
+        */
     }
 }, 300000);
 
@@ -618,6 +707,7 @@ bot.on('ready', () => {
     }
 
     function bootS3() {
+        // todo: remove this in favor of 'raw' event handler.
         log('Initialization: Booting (Stage 3, Sub-Op 1)');
         let timeStart = new Date();
         try {
@@ -1066,13 +1156,39 @@ bot.on('ready', () => {
                     let timeEnd = new Date();
                     let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
                     log(`Successfully loaded statistics module in ${timeTaken} seconds.`);
-                    finalReady();
+                    bootS12();
                 }
                 catch (err) {
                     log(err.stack, 'fatal')
                     TOOLS.shutdownHandler(24);
                 }
             }
+        }
+        catch (err) {
+            log(err.stack, 'fatal')
+            TOOLS.shutdownHandler(24);
+        }
+    }
+
+    function bootS12() {
+        log('Initialization: Booting (Stage 12)');
+        let timeStart = new Date();
+
+        try {
+            bot.guilds.get(cfg.basic.of_server).roles.get(cfg.roles.moderator).members.tap(mod => {
+                if(mod.id !== '202558206495555585') {
+                    memory.bot.actMods.push({
+                        id: mod.id,
+                        status: mod.presence.status,
+                        last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
+                    });
+                }
+            });
+
+            let timeEnd = new Date();
+            let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
+            log(`Successfully loaded moderator presence statuses in ${timeTaken} seconds.`);
+            finalReady();
         }
         catch (err) {
             log(err.stack, 'fatal')
@@ -1123,16 +1239,66 @@ bot.on('ready', () => {
 });
 
 ////////////////////////////////////////
+// Guild Presence Update
+////////////////////////////////////////
+
+bot.on('presenceUpdate', (oldMem, newMem) => {
+    if (oldMem.guild.id !== cfg.basic.of_server) return;
+    if (oldMem.id === bot.user.id) return;
+
+    memory.bot.actMods.forEach((mod, i) => {
+        if(mod.id === oldMem.id) {
+            log('moderator updated', 'trace');
+            log('OLD', 'trace')
+            log(mod, 'trace')
+
+            let newData = {
+                id: mod.id,
+                status: newMem.presence.status,
+                last_message: (newMem.lastMessage) ? newMem.lastMessage.createdTimestamp : mod.last_message
+            }
+
+            log('NEW', 'trace')
+            log(newData, 'trace')
+
+            memory.bot.actMods[i] = newData;
+        }
+    });
+});
+
+////////////////////////////////////////
+// Raw Packet Data
+////////////////////////////////////////
+
+bot.on('raw', packet => {
+    if(packet.t === 'MESSAGE_REACTION_ADD') {
+        let channel = bot.channels.get(packet.d.channel_id);
+        if (channel.messages.has(packet.d.message_id)) return;
+        channel.fetchMessage(packet.d.message_id).then(m => {
+            let emoji = packet.d.emoji.id ? `${packet.d.emoji.name}:${packet.d.emoji.id}` : packet.d.emoji.name;
+            let reaction = m.reactions.get(emoji);
+
+            if (reaction) {
+                reaction.users.set(packet.d.user_id, bot.users.get(packet.d.user_id));
+            }
+
+            log('old emoji detected', 'debug');
+            bot.emit('messageReactionAdd', reaction, bot.users.get(packet.d.user_id));
+        });
+    }
+});
+
+////////////////////////////////////////
 // Message Reaction Add
 ////////////////////////////////////////
 
 bot.on('messageReactionAdd', (mr, user) => {
     if (mr.message.channel.type === 'dm') return;
-    if (mr.message.guild.id !== cfg.basic.of_server) return;
     if (user.id === bot.user.id) return;
-    if (mr.message.author.id === bot.user.id) return;
 
     if (mr.emoji.name === '🏅') {
+        if (mr.message.guild.id !== cfg.basic.of_server) return;
+        if (mr.message.author.id === bot.user.id) return;
         bot.guilds.get(cfg.basic.of_server).fetchMember(user.id).then((member) => {
             if (!member.permissions.has("KICK_MEMBERS", true)) {
                 log('emoji detected', 'trace');
@@ -1169,11 +1335,13 @@ bot.on('messageReactionAdd', (mr, user) => {
                 });
             }
         });
+    } else {
+        // todo: handler for deletable messages
     }
 });
 
 ////////////////////////////////////////
-// Message Deleted Event
+// Message Deletion Events
 ////////////////////////////////////////
 
 bot.on('messageDelete', m => {
@@ -1303,7 +1471,7 @@ bot.on('messageDelete', m => {
                 log(`Successfully determined executor in ${timeTaken} seconds.`, 'debug');
             }
         }).catch(err => log(err.stack, 'error'));
-    }, 500);
+    }, 1000);
 });
 
 bot.on('messageDeleteBulk', m => {
@@ -1645,6 +1813,18 @@ bot.on('message', (m) => {
             if (memory.bot.locked && !isAdmin && !isSuper) return; // bot is in mods-only mode and the user is not a mod/superuser.
     
             memory.bot.lastInt = new Date().getTime();
+
+            if(m.channel.type !== 'dm' && m.guild.id === cfg.basic.of_server) {
+                memory.bot.actMods.forEach((mod, i) => {
+                    if(mod.id === m.author.id) {
+                        memory.bot.actMods[i] = {
+                            id: mod.id,
+                            status: m.author.presence.status,
+                            last_message: m.createdTimestamp
+                        };
+                    }
+                });
+            }
     
             if (cmdValidator && input.indexOf(cmdValidator[0]) === 0) {
                 ////////////////////////////////////////////////////////////////
@@ -1798,6 +1978,11 @@ bot.on('message', (m) => {
                         if (cmd) {
                             cmd.exec(m);
                         }
+                    });
+                } else
+                if (m.content.toLowerCase().trim() === 'f') {
+                    m.react('🇫').catch((err) => {
+                        TOOLS.errorHandler({ err: err });
                     });
                 } else
                 if (m.content.indexOf('#') > -1) {
@@ -2039,11 +2224,27 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'ping',
-    short_desc: 'Websocket ping.',
-    tags: ['MODERATOR_ONLY', 'DM_OPTIONAL'],
+    trigger: 'dev',
+    tags: ['DEVELOPER_ONLY', 'DM_OPTIONAL'],
     fn: (m) => {
-        m.channel.send(Math.round(bot.ping) + "ms").then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        function uptime(ut) {
+            let seconds = (ut / 1000).toFixed(1);
+            let minutes = (ut / (1000 * 60)).toFixed(1);
+            let hours = (ut / (1000 * 60 * 60)).toFixed(1);
+            let days = (ut / (1000 * 60 * 60 * 24)).toFixed(1);
+
+            if (seconds < 60) {
+                return seconds + " Seconds";
+            } else if (minutes < 60) {
+                return minutes + " Minutes";
+            } else if (hours < 24) {
+                return hours + " Hours";
+            } else {
+                return days + " Days"
+            }
+        }
+
+        m.channel.send(`Latency: ${Math.round(bot.ping)}ms \nSession Uptime: ${uptime(process.uptime() * 1000)} \nConsole Uptime: ${uptime(new Date().getTime() - memory.bot.startup)} \n`)
     }
 }));
 
@@ -2081,11 +2282,9 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'about',
     short_desc: 'About OptiBot',
-    long_desc: 'Displays basic information about OptiBot, including credits and the current version.',
+    long_desc: 'Displays basic information about OptiBot.',
     tags: ['DM_OPTIONAL'],
     fn: (m) => {
-        let pkg2 = JSON.parse(fs.readFileSync('./node_modules/discord.js/package.json'));
-
         function uptime(ut) {
             let seconds = (ut / 1000).toFixed(1);
             let minutes = (ut / (1000 * 60)).toFixed(1);
@@ -2111,11 +2310,9 @@ CMD.register(new Command({
             .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"), new discord.Attachment(memory.bot.avatar, "thumbnail.png")])
             .setAuthor('About', 'attachment://icon.png')
             .setThumbnail('attachment://thumbnail.png')
-            .setDescription(`The official OptiFine Discord server bot. Developed independently by <@181214529340833792> out of love for a great community.\n\nSpecial thanks to these great people for various contributions to OptiBot's development: ${cntbrs.join(', ')} `)
+            .setDescription(`The official OptiFine Discord server bot. Developed independently by <@181214529340833792> out of love for a great community.\n\nSpecial thanks to these awesome people for various contributions to OptiBot's development: ${cntbrs.join(', ')} `)
             .addField('OptiBot', `Version ${pkg.version}\n(Build ${build.num})`, true)
-            .addField('Uptime', `Session: ${uptime(process.uptime() * 1000)}\nTotal: ${uptime(new Date().getTime() - memory.bot.startup)}`, true)
-            //.addField('Discord.js', `Version ${pkg2.version}`, true)
-            //.addField('Node.js', `Version ${process.version.replace('v', '')}`, true)
+            .addField('Uptime', `Session: ${uptime(process.uptime() * 1000)}`, true)
             .addField(`Support OptiBot's Development`, `OptiBot is developed entirely on my free time. Admittedly, I don't expect much (if anything) in return. I just like coding from time to time. However, if you'd still like to help somehow, you can [buy me a coffee! ☕](http://ko-fi.com/jackasterisk)`)
             .addField('Donators', dntrs.join(', '))
 
@@ -2495,7 +2692,7 @@ CMD.register(new Command({
     trigger: 'open',
     short_desc: "Open text channel.",
     long_desc: "Opens the active text channel, if already closed.",
-    //tags: TODO
+    tags: ['NO_DM', 'MODERATOR_ONLY'],
     admin_only: true,
     hidden: false,
     dm: 0,
@@ -2544,7 +2741,7 @@ CMD.register(new Command({
     trigger: 'close',
     short_desc: "Close text channel.",
     long_desc: "Closes the active text channel, preventing users from sending messages. Only works if the channel is already open, obviously.",
-    //tags: TODO
+    tags: ['NO_DM', 'MODERATOR_ONLY'],
     admin_only: true,
     hidden: false,
     dm: 0,
@@ -2924,6 +3121,45 @@ CMD.register(new Command({
     }
 }));
 
+CMD.register(new Command({
+    trigger: 'modping',
+    short_desc: 'Ping all "active" moderators.',
+    long_desc: `Pings all "active" moderators. As an alternative to pinging the @moderator role, this command only pings those who are online, or those who have sent a message in server chat in the past 10 minutes. This should generally be used for all non-emergencies.`,
+    tags: ['NO_DM'],
+    fn: (m) => {
+        let pings_msg = [];
+        let pings_status = [];
+        for(let i = 0; i < memory.bot.actMods.length; i++) {
+            let mod = memory.bot.actMods[i];
+            if(mod.status === 'online') {
+                pings_status.push(`<@${mod.id}>`);
+            }
+            if((mod.last_message + 600000) > new Date().getTime()) {
+                pings_msg.push(`<@${mod.id}>`);
+            }
+
+            if(i+1 === memory.bot.actMods.length) {
+                if(pings_msg.length === 0) {
+                    if(pings_status.length === 0) {
+                        m.channel.send(`Sorry, it seems like no moderators are active right now. \nIf this is a genuine emergency, please ping the moderator role and we will try to get on as soon as possible.`).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                    } else
+                    if(pings_status.length === 1) {
+                        m.channel.send(`${m.author}, moderator ${pings_status[0]} should be with you soon!`).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                    } else {
+                        m.channel.send(`${m.author}, one of the following moderators should be with you soon! \n\n${pings_status.join(', ')}`).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                    }
+                } else 
+                if(pings_msg.length === 1) {
+                    m.channel.send(`${m.author}, moderator ${pings_msg[0]} should be with you soon!`).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                } else {
+                    m.channel.send(`${m.author}, one of the following moderators should be with you soon! \n\n${pings_msg.join(', ')}`).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                }
+            }
+        }
+        //m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+    }
+}));
+
 // commands with arguments
 // commands with arguments
 // commands with arguments
@@ -2941,10 +3177,172 @@ CMD.register(new Command({
 // commands with arguments
 
 CMD.register(new Command({
+    trigger: 'records',
+    short_desc: "Get violation history of a given user.",
+    long_desc: `Gets violation history of a given user. **WARNING: THIS MAY RESPOND WITH LARGE MESSAGES.**`,
+    usage: "<discord user> [page #]",
+    tags: ['DM_OPTIONAL', 'MODERATOR_ONLY', 'MOD_CHANNEL_ONLY'],
+    fn: (m, args) => {
+        if(!args[0]) {
+            TOOLS.errorHandler({ err: `You must specify a Discord user.`, m: m });
+        } else {
+            TOOLS.getTargetUser(m, args[0], (userid, name) => {
+                if (!userid) {
+                    TOOLS.errorHandler({ err: "You must specify a valid user.", m:m });
+                } else 
+                if (userid === m.author.id || userid === bot.user.id ) { 
+                    TOOLS.errorHandler({ err: `Nice try.`, m:m });
+                } else {
+                    TOOLS.getProfile(m, userid, (profile) => {
+                        let embed = new discord.RichEmbed()
+                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
+                        .setColor(cfg.vs.embed.default)
+                        .setFooter(`Note that existing violations before October 30th, 2019 will not show here.`);
+
+                        if(typeof profile.violations === 'undefined') {
+                            embed.setAuthor("User Records", "attachment://icon.png")
+                            .setDescription(`<@${userid}> has no violations on record.`)
+
+                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        } else {
+                            let pageNum = 1
+                            let pageLimit = Math.ceil(profile.violations.length / 10);
+                            if (args[1] && parseInt(args[1]) > 0 && parseInt(args[1]) <= pageLimit) {
+                                pageNum = parseInt(args[1]);
+                            }
+
+                            embed.setAuthor(`User Records | Page ${pageNum}/${pageLimit}`, "attachment://icon.png")
+                            .setDescription(`<@${userid}> has ${profile.violations.length} violation(s) on record.`);
+
+                            let i = (pageNum > 1) ? (10 * (pageNum - 1)) : 0;
+                            let added = 0;
+                            let allEntries = profile.violations.reverse();
+                            (function addEntry() {
+                                let entry = allEntries[i];
+                                embed.addField(`${entry.action} on ${new Date(entry.date).toUTCString()}`, `Moderator: <@${entry.moderator}> \n${(entry.action.toLowerCase() === 'note') ? "Note:" : "Reason:"} ${entry.reason} ${(typeof entry.misc !== 'undefined') ? "\nOther Info: "+entry.misc : ""}`);
+
+                                added++;
+
+                                if(added >= 10 || i+1 >= profile.violations.length) {
+                                    m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg));
+                                } else {
+                                    i++;
+                                    addEntry();
+                                }
+                            })();
+                        }
+                    });
+                }
+            });
+        }
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'addrecord',
+    short_desc: "Add a note to a users violation history.",
+    long_desc: `Adds a custom note to a users violation history.`,
+    usage: "<discord user> <message>",
+    tags: ['NO_DM', 'MODERATOR_ONLY', 'MOD_CHANNEL_ONLY'],
+    fn: (m, args) => {
+        if(!args[0]) {
+            TOOLS.errorHandler({ err: `You must specify a Discord user.`, m: m });
+        } else
+        if(!args[1]) {
+            TOOLS.errorHandler({ err: `You must specify a message to add.`, m: m });
+        } else
+        if (m.content.substring(m.content.indexOf(args[1])).length > 750) {
+            TOOLS.errorHandler({ err: `Messages cannot exceed 750 characters in length.`, m: m });
+        } else {
+            TOOLS.getTargetUser(m, args[0], (userid, name) => {
+                if (!userid) {
+                    TOOLS.errorHandler({ err: "You must specify a valid user.", m:m });
+                } else 
+                if (userid === m.author.id || userid === bot.user.id ) { 
+                    TOOLS.errorHandler({ err: `Nice try.`, m:m });
+                } else {
+                    TOOLS.getProfile(m, userid, (profile) => {
+                        let embed = new discord.RichEmbed()
+                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
+                        .setColor(cfg.vs.embed.default)
+
+                        if(typeof profile.violations === 'undefined') {
+                            profile.violations = [];
+                        }
+
+                        profile.violations.push({
+                            date: new Date().getTime(),
+                            moderator: m.author.id,
+                            action: 'Note',
+                            reason: m.content.substring(m.content.indexOf(args[1]))
+                        });
+
+                        memory.db.profiles.update({member_id: profile.member_id}, profile, {}, (err) => {
+                            if(err) {
+                                TOOLS.errorHandler({ err: err, m:m });
+                            } else {
+                                let embed = new discord.RichEmbed()
+                                .setColor(cfg.vs.embed.okay)
+                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                                .setAuthor('Successfully added note.', 'attachment://icon.png')
+
+                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                            }
+                        })
+                    });
+                }
+            });
+        }
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'namemc',
+    short_desc: `Find the Discord username of a Minecraft player.`,
+    long_desc: `Attempts to find the Discord username of a specified Minecraft player. This is primarily designed to be used in conjunction with \`${cfg.basic.trigger}cv\`.`,
+    usage: `<minecraft username>`,
+    //tags: ['MODERATOR_ONLY', 'DM_OPTIONAL'],
+    fn: (m, args) => {
+        // massive work in progress
+        // todo
+        // massive work in progress
+        // todo
+        // massive work in progress
+        // todo
+        if(!args[0]) {
+            TOOLS.errorHandler({ err: `You must specify a Minecraft username.`, m: m });
+        } else
+        if (args[0].match(/\W+/) !== null) {
+            TOOLS.errorHandler({ err: 'Minecraft usernames can only contain upper/lowercase letters, numbers, and underscores (_)', m: m });
+        } else
+        if (args[0].length > 16) {
+            TOOLS.errorHandler({ err: 'Minecraft usernames cannot exceed 16 characters in length.', m: m });
+        } else {
+            request({ url: 'https://namemc.com/profile/' + args[0] }, (err, res, data) => {
+                if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
+                    TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the NameMC API'), m: m });
+                } else
+                if (res.statusCode === 204) {
+                    let embed = new discord.RichEmbed()
+                        .setColor(cfg.vs.embed.error)
+                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
+                        .setAuthor('That user does not exist.', 'attachment://thumbnail.png')
+                        .setFooter('Maybe check your spelling?');
+
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                } else {
+                    getOFcape(JSON.parse(data));
+                }
+            });
+        }
+    }
+}));
+
+CMD.register(new Command({
     trigger: 'warn',
     short_desc: 'Adds a warning to a user.',
-    long_desc: `Adds warnings to a user, which will be saved and remembered for about one week. This will automatically punish the user, depending on how many warnings they have already. First offenders will be given a simple verbal warning, and all others will be given a mute with increasing time limits.`,
-    usage: `<discord user>`,
+    long_desc: `Adds warnings to a user, which will be saved and remembered for about one week. Reasons can be appended after specifying the user.`,
+    usage: `<discord user> [reason]`,
     tags: ['MODERATOR_ONLY', 'NO_DM'],
     fn: (m, args) => {
         if (!args[0]) {
@@ -2962,92 +3360,50 @@ CMD.register(new Command({
                             TOOLS.errorHandler({ m: m, err: `That user is too powerful to be given a warning.` });
                         } else {
                             TOOLS.getProfile(m, userid, (profile) => {
-                                let first_offense = false;
-                                let mute_added = false;
                                 let now = new Date().getTime();
-                                let executor = m.author.username+'#'+m.author.discriminator;
-                                let mute_hours;
-                                
+                                let reason = (args[1]) ? m.content.substring(m.content.indexOf(args[1])) : "No reason provided.";
         
-                                if (typeof profile.warns === 'undefined') {
-                                    first_offense = true;
-                                    profile.warns = {
-                                        lifetime: 1,
-                                        current: []
-                                    };
-                                } else {
-                                    profile.warns.lifetime++;
-        
-                                    mute_hours = (5**profile.warns.current.length >= 168) ? 168 : 5**profile.warns.current.length; // starts at 1 hour. multiplies exponentially by 5 depending on the mute count. maxes out at 168 hours, or one week.
-        
-                                    if (typeof profile.mute === 'undefined') {
-                                        profile.mute = {
-                                            start: now,
-                                            end: now + (1000*60*60 * mute_hours), 
-                                            executor: m.author.id,
-                                            updater: ""
-                                        };
-        
-                                        mute_added = true;
-                                    }
+                                if (typeof profile.violations === 'undefined') {
+                                    profile.violations = [];
                                 }
+                                if (typeof profile.warnings === 'undefined') {
+                                    profile.warnings = [];
+                                }
+
+                                profile.violations.push({
+                                    date: now,
+                                    moderator: m.author.id,
+                                    action: 'Warning',
+                                    reason: reason
+                                });
         
-                                profile.warns.current.push({
+                                profile.warnings.push({
                                     expiration: now + (1000*60*60*24*7),
-                                    executor: m.author.id,
+                                    moderator: m.author.id
                                 });
         
                                 memory.db.profiles.update({ member_id: userid }, profile, {}, (err) => {
                                     if (err) {
                                         TOOLS.errorHandler({ m: m, err: err });
                                     } else {
-                                        if (first_offense) {
-                                            let embed = new discord.RichEmbed()
-                                            .setColor(cfg.vs.embed.default)
-                                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-                                            .setAuthor(`User Warnings`, 'attachment://icon.png')
-                                            .setDescription(`<@${userid}> has been warned. This is their first offense, so no punishment will be handed out.`);
-                
-                                            m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                        let num = `<@${userid}> now has **${profile.warnings.length}** warnings. You might consider muting them at this point.`;
+                                        if (profile.warnings.length === 1) {
+                                            num = `<@${userid}> has been given their **first** warning.`;
                                         } else
-                                        if (profile.mute && mute_added === false) {
-                                            let embed = new discord.RichEmbed()
-                                            .setColor(cfg.vs.embed.default)
-                                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-                                            .setAuthor(`User Warnings`, 'attachment://icon.png')
-                                            .setDescription(`<@${userid}> has been warned. They have ${profile.warns.current.length-1} other warning(s) on record. No punishment will be added, as they have already been muted.`);
-                
-                                            m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
-                                        } else {
-                                            bot.guilds.get(cfg.basic.of_server).fetchMember(userid).then(target => {
-                                                target.addRole(cfg.roles.muted, `User muted by ${executor} (via ${cfg.basic.trigger}warn)`).then(() => {
-                                                    log(`User ${name} was muted by ${executor} (via ${cfg.basic.trigger}warn)`, 'warn');
-        
-                                                    let remaining = profile.mute.end - now;
-                                                    let minutes = Math.round(remaining/1000/60)
-                                                    let hours = Math.round(remaining/(1000*60*60))
-                                                    let days = Math.round(remaining/(1000*60*60*24))
-                                                    let final;
-        
-                                                    if (minutes < 60) {
-                                                        final = `${minutes} minute(s)`;
-                                                    } else
-                                                    if (hours < 24) {
-                                                        final = `${hours} hour(s)`;
-                                                    } else {
-                                                        final = `${days} day(s)`;
-                                                    }
-                
-                                                    let embed = new discord.RichEmbed()
-                                                    .setColor(cfg.vs.embed.default)
-                                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-                                                    .setAuthor(`User Warnings`, 'attachment://icon.png')
-                                                    .setDescription(`<@${userid}> has been warned. They have ${profile.warns.current.length-1} other warning(s) on record. They have been muted for ${final}.`);
-                
-                                                    m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
-                                                }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                                            }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                                        if (profile.warnings.length === 2) {
+                                            num = `<@${userid}> has been given their **second** warning.`;
+                                        } else
+                                        if (profile.warnings.length === 3) {
+                                            num = `<@${userid}> has been given their **third** warning. You might consider muting them at this point.`;
                                         }
+
+                                        let embed = new discord.RichEmbed()
+                                        .setColor(cfg.vs.embed.default)
+                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+                                        .setAuthor(`User Warnings`, 'attachment://icon.png')
+                                        .setDescription(num);
+            
+                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                                     }
                                 });
                             });
@@ -4135,11 +4491,13 @@ CMD.register(new Command({
             // default help page
             let embed = new discord.RichEmbed()
                 .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-                .setAuthor('OptiBot Help', 'attachment://icon.png')
-                .setDescription("To get started with OptiBot, use either of the following commands:")
+                .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"), new discord.Attachment(memory.bot.avatar, "thumbnail.png")])
+                .setAuthor('Getting Started', 'attachment://icon.png')
+                .setDescription(`OptiBot is a Discord bot primarily designed for utility. Whether it's moderation tools, or something to help you make a resource pack, you can probably find it here. (see \`!about\` for more info about OptiBot itself)`)
+                .setThumbnail('attachment://thumbnail.png')
+                .addField('Commands List', `\`\`\`${cfg.basic.trigger}list\`\`\``)
                 .addField('Assistant Functions', `\`\`\`${cfg.basic.trigger}assist\`\`\``)
-                .addField('Commands List', `\`\`\`${cfg.basic.trigger}list\`\`\` \nIf you'd like to view detailed information about a specific command, use this: \`\`\`${cfg.basic.trigger}help [command]\`\`\``)
+                
 
             m.channel.send({ embed: embed }).then(msg => TOOLS.messageFinalize(m.author.id, msg));
         } else {
@@ -4156,6 +4514,9 @@ CMD.register(new Command({
                     let embed = new discord.RichEmbed()
                         .setColor(cfg.vs.embed.default)
                         .setDescription(md.long_desc+`\n\`\`\`${md.usage}\`\`\``)
+
+                    // todo: move most of this to class command constructor
+                    // this should be done since a lot of these same calculations are being made for !list
 
                     let role_restriction = `🔓 This command can be used by all members.`;
                     let usage = `<:okay:546570334233690132> This command can be used in any channel, including DMs (Direct Messages)`;
@@ -4272,7 +4633,7 @@ CMD.register(new Command({
                 .setColor(cfg.vs.embed.default)
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
                 .setAuthor(`OptiBot Commands List | Page ${pageNum}/${pageLimit}`, 'attachment://icon.png')
-                .setDescription(`${special_text} Icons represent the amount of restrictions on each command. Use \`${cfg.basic.trigger}help <command>\` for more information.`)
+                .setDescription(`${special_text} Hover over the tooltip icons \([\[\\❔\]](${m.url.replace(/\/\d+$/, '')} "No easter eggs here. Move along.")\) or use \`${cfg.basic.trigger}help <command>\` for detailed information.`)
                 .setFooter(`Viewing ${filtered.length} commands, out of ${list.length} total.`);
             
                 let i = (pageNum > 1) ? (10 * (pageNum - 1)) : 0;
@@ -4280,30 +4641,52 @@ CMD.register(new Command({
                 (function addList() {
     
                     let cmd = filtered[i].getMetadata();
-                    let dm_permissions = bot.guilds.get(cfg.basic.ob_server).emojis.get('546570334233690132');
+                    let hover_text = [];
+
+                    if(cmd.hover_desc) {
+                        hover_text.push(cmd.hover_desc);
+                    } else 
+                    if(cmd.long_desc.length > 325) {
+                        hover_text.push(`This description is too long to show here. Type "${cfg.basic.trigger}help ${cmd.trigger}" for full details.`);
+                    } else {
+                        hover_text.push(cmd.long_desc);
+                    }
+
+                    hover_text.push(`\nUsage: ${cmd.usage}`);
+
+                    if (cmd.tags['MDOERATOR_ONLY']) {
+                        hover_text.push('\n🔒 This command can *only* be used by Moderators & Administrators.');
+                    } else
+                    if (cmd.tags['DEVELOPER_ONLY']) {
+                        hover_text.push(`\n🔒 This command can *only* be used by OptiBot developers.`);
+                    } else {
+                        hover_text.push(`\n🔓 This command can be used by all members.`);
+                    }
 
                     if (cmd.tags['NO_DM']) {
                         if(cmd.tags['BOT_CHANNEL_ONLY']) {
-                            dm_permissions = bot.guilds.get(cfg.basic.ob_server).emojis.get('546570334120312834')
+                            hover_text.push(`❌ This command can *only* be used in the #optibot channel.`)
                         } else {
-                            dm_permissions = bot.guilds.get(cfg.basic.ob_server).emojis.get('546570334145609738')
+                            hover_text.push(`⚠ This command can be used in any channel, but *not* in DMs (Direct Messages)`)
                         }
                     } else
                     if (cmd.tags['DM_ONLY']) {
-                        dm_permissions = bot.guilds.get(cfg.basic.ob_server).emojis.get('546570334120312834')
+                        hover_text.push(`❌ This command can *only* be used in DMs (Direct Messages)`)
                     } else
                     if (cmd.tags['BOT_CHANNEL_ONLY']) {
-                        dm_permissions = bot.guilds.get(cfg.basic.ob_server).emojis.get('546570334145609738')
+                        hover_text.push(`⚠ This command can *only* be used in DMs (Direct Messages) or the #optibot channel.`)
                     } else
                     if (cmd.tags['MOD_CHANNEL_ONLY']) {
                         if(cmd.tags['NO_DM']) {
-                            dm_permissions = bot.guilds.get(cfg.basic.ob_server).emojis.get('546570334120312834')
+                            hover_text.push(`❌ This command can *only* be used in moderator-only channels.`)
                         } else {
-                            dm_permissions = bot.guilds.get(cfg.basic.ob_server).emojis.get('546570334120312834')
+                            hover_text.push(`❌ This command can *only* be used in DMs (Direct Messages) or any moderator-only channel.`)
                         }
+                    } else {
+                        hover_text.push(`☑ This command can be used in any channel, including DMs (Direct Messages)`)
                     }
     
-                    embed.addField(cfg.basic.trigger+cmd.trigger, `${dm_permissions} - ${cmd.short_desc}`);
+                    embed.addField(cfg.basic.trigger+cmd.trigger, `${cmd.short_desc} [\[\\❔\]](${m.url.replace(/\/\d+$/, '')} "${hover_text.join('\n')}")`);
                     added++;
                     
                     if (added >= 10 || i+1 >= filtered.length) {
@@ -4319,7 +4702,7 @@ CMD.register(new Command({
 
 CMD.register(new Command({
     trigger: 'json',
-    short_desc: 'JSON Validator',
+    short_desc: 'Simple JSON Validator.',
     long_desc: "Checks if a file is written with valid JSON syntax. Discord CDN links only.",
     usage: "<attachment|URL|^ shortcut>",
     tags: ['DM_OPTIONAL'],
@@ -4348,7 +4731,7 @@ CMD.register(new Command({
                     let parseurl = new URL(args[0]);
     
                     if (parseurl.hostname === 'cdn.discordapp.com') {
-                        finalValidate(parseurl)
+                        finalValidate(parseurl.toString())
                     } else {
                         TOOLS.errorHandler({ err: 'Links outside of cdn.discordapp.com are not allowed.', m: m });
                     }
@@ -4391,6 +4774,7 @@ CMD.register(new Command({
                                     .setColor(cfg.vs.embed.okay)
                                     .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "thumbnail.png"))
                                     .setAuthor('Valid JSON', 'attachment://thumbnail.png')
+                                    .setDescription(`Your file has valid JSON formatting. This does not necessarily mean your file will work for it's intended purpose, however. Be sure to check the documentation on whatever you're using this for.`)
     
                                 m.channel.send({ embed: embed }).then(msg => {
                                     TOOLS.messageFinalize(m.author.id, msg)
@@ -4399,17 +4783,33 @@ CMD.register(new Command({
                                 });
                             }
                             catch (err) {
-                                let embed = new discord.RichEmbed()
+                                let errMsg = err.toString().split(' ');
+                                let positionText = errMsg.indexOf('position');
+
+                                if(positionText === -1) {
+                                    TOOLS.errorHandler({ err: err, m: m });
+                                } else {
+                                    let position = parseInt(errMsg[positionText+1]);
+                                    let bodyCut = body.substring(0, position);
+                                    let lineSplits = bodyCut.split('\n');
+                                    log(position);
+                                    log(bodyCut);
+
+                                    let index_invalid = errMsg.indexOf('token')+1;
+                                    errMsg[index_invalid] = `"${errMsg[index_invalid]}"`;
+
+                                    let embed = new discord.RichEmbed()
                                     .setColor(cfg.vs.embed.error)
                                     .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
                                     .setAuthor('Invalid JSON', 'attachment://thumbnail.png')
-                                    .setDescription(`\`\`\`${err}\`\`\``);
+                                    .setDescription(`\`\`\`${errMsg.join(' ')} \n\nCalculated position: Ln ${lineSplits.length}, Col ${lineSplits[lineSplits.length-1].length+1}\`\`\` \nNote that this will only return the FIRST error the validator finds. You can use the following website to find all issues at once: https://jsonlint.com/`)
     
-                                m.channel.send({ embed: embed }).then(msg => {
-                                    TOOLS.messageFinalize(m.author.id, msg)
-                                }).catch(err => {
-                                    TOOLS.errorHandler({ err: err, m: m });
-                                });
+                                    m.channel.send({ embed: embed }).then(msg => {
+                                        TOOLS.messageFinalize(m.author.id, msg)
+                                    }).catch(err => {
+                                        TOOLS.errorHandler({ err: err, m: m });
+                                    });
+                                }
                             }
                         }
                     }
@@ -4455,7 +4855,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'dr',
     short_desc: 'Verifies your donator status.',
-    long_desc: "Verifies your donator status. If successful, this will grant you the Donator role, and reset your Donator token in the process. \n\nYou can find your donator token by logging in through the website. https://optifine.net/login. Look at the bottom of the page for a string of random characters. (see picture for example) \n**Remember that your \"Donation ID\" is NOT your token!**",
+    long_desc: `Verifies your donator status. If successful, this will grant you the Donator role, and reset your Donator token in the process. \n\nYou can find your donator token by logging in through the website. https://optifine.net/login. Look at the bottom of the page for a string of random characters. (see picture for example) \n**Remember that your "Donation ID" is NOT your token!**\n\nPlease note that this will NOT automatically verify you for the \`${cfg.basic.trigger}cape\` command. [See this FAQ entry for instructions on that.](https://discordapp.com/channels/423430686880301056/531622141393764352/622494425616089099)`,
     usage: "<donation e-mail> <token>",
     icon: `token.png`,
     tags: ['DM_ONLY', 'DELETE_ON_MISUSE'],
@@ -4553,8 +4953,8 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'mute',
     short_desc: "Mute a user.",
-    long_desc: "Enables text mute for the specified user. Time limit is optional, and will default to 1 hour if not specified. You can also specify the time measure in (m)inutes, (h)ours, and (d)ays. The absolute maximum time limit is 99 days. Additionally, you can adjust time limits for users by simply running this command again with the desired time.",
-    usage: "<discord user> [time limit] [time measurement?]",
+    long_desc: "Enables text mute for the specified user. Time limit is optional, and will default to 1 hour if not specified. You can also specify the time measure in (m)inutes, (h)ours, and (d)ays. The maximum time limit is 7 days, but can be set to infinity by using 0. Additionally, you can adjust time limits for users by simply running this command again with the desired time.",
+    usage: "<discord user> [time limit[time measurement?]] [reason]",
     tags: ['MODERATOR_ONLY', 'NO_DM'],
     fn: (m, args) => {
         if (!args[0]) {
@@ -4666,7 +5066,7 @@ CMD.register(new Command({
                                             if (dberr) TOOLS.errorHandler({ err: dberr, m: m });
                                             else {
                                                 if (dbdocs.length !== 0) {
-                                                    desc += '<:okay:546570334233690132> Cape owned by <@' + dbdocs[0].member_id + '>\n';
+                                                    desc += '<:okay:546570334233690132> Cape owned by <@' + dbdocs[0].member_id + '>\n\n';
                                                 }
                                                 if (fallback && (!args[1] || (args[1] && args[1].toLowerCase() !== 'full'))) {
                                                     desc += `This image could not be cropped because the cape texture has an unusual resolution.`;
@@ -4703,7 +5103,7 @@ CMD.register(new Command({
                             .setColor(cfg.vs.embed.error)
                             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
                             .setAuthor('You must specify a Minecraft username, @mention, or Discord user ID.', 'attachment://thumbnail.png')
-                            .setDescription(`If you're a donator and you're trying to view your own cape, you need to verify your cape first. [See this <#531622141393764352> entry](https://discordapp.com/channels/423430686880301056/531622141393764352/622494425616089099) for details.`);
+                            .setDescription(`If you're a donator and you're trying to view your own cape, enter your Minecraft username or [get your cape verified.](https://discordapp.com/channels/423430686880301056/531622141393764352/622494425616089099)`);
                             
 
                         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
@@ -4831,7 +5231,7 @@ CMD.register(new Command({
             .setColor(cfg.vs.embed.error)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_search_error.png'), "thumbnail.png"))
             .setAuthor('An Incredibly Convenient Search Tool', 'attachment://thumbnail.png')
-            .setDescription('[All your questions will be answered if you just click this link.](http://lmgtfy.com/?q='+encodeURIComponent('how to use discord bots')+')')
+            .setDescription('[All your questions will be answered if you just click this link.](http://lmgtfy.com/?q='+encodeURIComponent('how to use discord bots')+'&s=g)')
 
             m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
         } else {
@@ -4839,9 +5239,118 @@ CMD.register(new Command({
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_search.png'), "thumbnail.png"))
             .setAuthor('An Incredibly Convenient Search Tool', 'attachment://thumbnail.png')
-            .setDescription('[All your questions will be answered if you just click this link.](http://lmgtfy.com/?q='+encodeURIComponent(m.content.substr(8))+')')
+            .setDescription('[All your questions will be answered if you just click this link.](http://lmgtfy.com/?q='+encodeURIComponent(m.content.substr(8))+'&s=g)')
 
             m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        }
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'modmail',
+    short_desc: `Message moderators directly and privately.`,
+    long_desc: `Sends a message directly to a private channel for only moderators to read. Messages must have a minimum length of 32 characters, and a maximum length of 1024.`,
+    usage: `<message>`,
+    tags: ['DM_ONLY'],
+    fn: (m, args) => {
+        // could maybe delete messages when used in server chat, but also try sending the existing message to the users DM to avoid having to retype everything
+        let modmail = m.content.substring( (`${cfg.basic.trigger}modmail `).length );
+        if(!args[0]) {
+            TOOLS.errorHandler({err: "You must specify a message to send.", m:m});
+        } else
+        if(modmail.length < 32) {
+            TOOLS.errorHandler({err: "Messages must be at least 32 characters in length.", m:m});
+        } else
+        if(modmail.length > 1024) {
+            TOOLS.errorHandler({err: "Messages cannot exceed 1024 characters in length.", m:m});
+        } else {
+            TOOLS.getProfile(m, m.author.id, (profile) => {
+                if(!profile.modmail) {
+                    profile.modmail = true;
+
+                    let warning = new discord.RichEmbed()
+                    .setColor(cfg.vs.embed.default)
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+                    .setAuthor(`Important Notice`, 'attachment://icon.png')
+                    .setDescription(`**Please read this message to completion. This is your first time using this command, so you will only have to read this once.**`)
+                    .addField('What is this?', `This command allows you to send messages directly to server moderators in the privacy of your DMs. We've created this function to allow users to still be able to contact us, even when we have our DMs disabled or we're ignoring random friend requests.`)
+                    .addField(`How it works`, `Upon submitting your message, OptiBot will take your text and send it directly to a private channel where only us server moderators can view it. Here, we can see your message and your username, much like a regular DM. (Or more accurately, a group DM.) \n\nFrom here, one of the moderators will "take your case" and attempt to respond by sending you a DM or friend request.`)
+                    .addField('Misuse, Spam, and Abuse', `To be absolutely clear: __**This is not an invitation to freely message us about literally anything.**__ This command is designed for users to privately contact us for safety concerns, reports, and other genuinely important matters. Using this command to ask for technical support or purposefully send us spam and nonsense **will result in an immediate ban.**`)
+                    .setFooter(`With all that said and done, you will be able to send your message in about one minute.`);
+
+                    memory.db.profiles.update({member_id: profile.member_id}, profile, {}, (err) => {
+                        if(err) {
+                            TOOLS.errorHandler({err: err, m:m});
+                        } else {
+                            m.channel.send({embed: warning}).then(msg => {
+                                TOOLS.typerHandler(m.channel, false);
+                                bot.setTimeout(() => {
+                                    bot.setTimeout(() => {
+                                        confirmSend();
+                                    }, 1000);
+                                }, 59000);
+                            });
+                        }
+                    });
+                } else {
+                    confirmSend();
+                }
+            });
+
+            function confirmSend() {
+                let confirm = new discord.RichEmbed()
+                .setColor(cfg.vs.embed.default)
+                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+                .setAuthor(`Are you sure want to send this message?`, 'attachment://icon.png')
+                .setDescription(`This action cannot be undone. \n\nType \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`)
+                .addField('The following message will be sent:', modmail);
+
+                m.channel.send({embed: confirm}).then(msg => {
+                    TOOLS.typerHandler(m.channel, false);
+                    TOOLS.confirmationHandler(m, (result) => {
+                        if (result === 1) {
+                            let mm_message = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.default)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_mail.png'), "icon.png"))
+                            .setAuthor(`You've got mail!`, 'attachment://icon.png')
+                            .setDescription(`New message from ${m.author} (${m.author.username}#${m.author.discriminator})`)
+                            .setThumbnail(m.author.displayAvatarURL)
+                            .addField(`Message Contents`, modmail)
+                            .setFooter(`Author User ID: ${m.author.id}`)
+
+
+                            bot.guilds.get(cfg.basic.of_server).channels.get('467073441904984074').send({embed: mm_message}).then(() => {
+                                let embed = new discord.RichEmbed()
+                                .setColor(cfg.vs.embed.okay)
+                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                                .setAuthor(`Message sent.`, 'attachment://icon.png');
+                                
+                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                            }).catch((err) => {
+                                TOOLS.errorHandler({err: err, m:m});
+                            });
+                        } else
+                        if (result === 0) {
+                            let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.default)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                            .setAuthor(`Request cancelled.`, 'attachment://icon.png')
+                            .setDescription('Your message has not been sent.')
+
+                            m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                        } else
+                        if (result === 2) {
+                            let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.default)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                            .setAuthor(`Request timed out.`, 'attachment://icon.png')
+                            .setDescription('Your message has not been sent.')
+                            
+                            m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                        }
+                    });
+                });
+            }
         }
     }
 }));
@@ -5192,7 +5701,7 @@ CMD.register(new Command({
                             .setAuthor('Frequently Asked Questions', 'attachment://icon.png')
                             .setFooter(`${(highest.rating * 100).toFixed(1)}% match during search.`);
 
-                            let infotext = `Click [here](${highest.message.url}) to go to the original message link. Be sure to also check out the <#531622141393764352> channel for more questions and answers.`;
+                            let infotext = `[Click here to go to the original message link.](${highest.message.url}) Be sure to also check out the <#531622141393764352> channel for more questions and answers.`;
                             
                             if (highest.answer) {
                                 if (highest.answer.length < 512) {
@@ -5696,23 +6205,25 @@ TOOLS.randomizer = (val1, val2) => {
         // array []
         return val1[~~(Math.random() * val1.length)];
     } else
-        if (typeof val1 === 'object' && val1.constructor === Object) {
-            // object {}
-            let keys = Object.keys(val1);
-            if (keys.length > 0) return keys[~~(Math.random() * keys.length)];
-            else return null;
-        } else
-            if (!isNaN(val1) && !isNaN(val2)) {
-                // numbers
-                if (val1 >= 0) return ~~((Math.random() * val2) + val1);
-                else return ~~((Math.random() * (val2 - val1)) + val1);
-            } else {
-                return null;
-            }
+    if (typeof val1 === 'object' && val1.constructor === Object) {
+        // object {}
+        let keys = Object.keys(val1);
+        if (keys.length > 0) return keys[~~(Math.random() * keys.length)];
+        else return null;
+    } else
+    if (!isNaN(val1) && !isNaN(val2)) {
+        // numbers
+        if (val1 >= 0) return ~~((Math.random() * val2) + val1);
+        else return ~~((Math.random() * (val2 - val1)) + val1);
+    } else {
+        return null;
+    }
 }
 
 TOOLS.deleteMessageHandler = (data) => {
+    // todo: remove this function entirely in favor of 'raw' event
     if (data.stage === 1) {
+        // todo: merge this section of code with TOOLS.messageFinalize()
         if (data.m.channel.type === 'dm') return;
 
         data.m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('572025612605325322')).then(() => {
@@ -5845,6 +6356,7 @@ TOOLS.muteHandler = (m, args, action) => {
     if (m) {
         let now = new Date().getTime();
         let update = false;
+        let reason = (args[2]) ? m.content.substring(m.content.indexOf(args[2])) : 'No reason provided.';
         TOOLS.getTargetUser(m, args[0], (userid) => {
             if (userid) {
                 validateMute(userid);
@@ -5895,7 +6407,7 @@ TOOLS.muteHandler = (m, args, action) => {
                 finalMute(target, data);
             } else {
                 let number = parseInt(args[1]);
-                let measure = (args[2]) ? args[2].toLowerCase() : 'hours';
+                let measure = 'hours'
 
                 if (isNaN(args[1])) {
                     log('is not a number', 'trace');
@@ -5981,6 +6493,43 @@ TOOLS.muteHandler = (m, args, action) => {
                         data.start = profile.mute.start;
                         data.updater = data.executor;
                         data.executor = profile.mute.executor;
+                    }
+
+                    if(!profile.violations) {
+                        profile.violations = [];
+                    }
+
+                    let remaining = data.end - now;
+                    let minutes = Math.round(remaining/1000/60)
+                    let hours = Math.round(remaining/(1000*60*60))
+                    let days = Math.round(remaining/(1000*60*60*24))
+                    let final;
+
+                    if (minutes < 60) {
+                        final = `${minutes} minute(s)`;
+                    } else
+                    if (hours < 24) {
+                        final = `${hours} hour(s)`;
+                    } else {
+                        final = `${days} day(s)`;
+                    }
+
+                    if(update) {
+                        profile.violations.push({
+                            date: now,
+                            moderator: m.author.id,
+                            action: 'Mute Time Update',
+                            reason: reason,
+                            misc: `Mute updated to last for ${final}.`
+                        });
+                    } else {
+                        profile.violations.push({
+                            date: now,
+                            moderator: m.author.id,
+                            action: 'Mute',
+                            reason: reason,
+                            misc: `Mute initially set to last for ${final}.`
+                        });
                     }
     
                     profile.mute = data;

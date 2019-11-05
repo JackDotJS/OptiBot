@@ -398,7 +398,7 @@ memory.bot.warn_check = bot.setInterval(() => {
                                 });
                             })();
                         } else {
-                            log(`No user warnings have expired.`, 'info');
+                            log(`No user warnings have expired.`, 'debug');
                         }
                     } else
                     if (docs[i].warnings.length === 0) {

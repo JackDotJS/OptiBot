@@ -1,6 +1,7 @@
 {
     "basic": {
         "trigger": "!",
+        "trigger_alt": "?",
         "of_server": "423430686880301056",
         "ob_server": "517649143590813707"
     },

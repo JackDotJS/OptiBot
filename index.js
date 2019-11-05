@@ -42,77 +42,6 @@ const log = (message, level, linenum) => {
     });
 }
 
-class Command {
-    constructor(md) {
-        if (!md.trigger) {
-            throw new Error('Command trigger is required.');
-        } else
-        if (!md.fn) {
-            throw new Error('Command function is required.');
-        } else {
-            this.metadata = {
-                trigger: md.trigger,
-                short_desc: md.short_desc || 'This command has no set description.',
-                long_desc: md.long_desc || md.short_desc || 'This command has no set description.',
-                usage: (md.usage) ? cfg.basic.trigger + md.trigger + ' ' + md.usage : cfg.basic.trigger + md.trigger,
-                icon: md.icon || false,
-                tags: {
-                    MODERATOR_ONLY: false, // Only moderators and admins can use this command
-                    DEVELOPER_ONLY: false, // Only developers can use this command
-                    NO_DM: false, // Cannot be used in Direct Messages
-                    DM_OPTIONAL: false, // Can be used in server chat OR Direct Messages
-                    DM_ONLY: false, // Can ONLY be used in Direct Messages
-                    BOT_CHANNEL_ONLY: false, // If in server, can only be used in the designated bot channels. Mutually exclusive with DM_ONLY and NO_DM
-                    MOD_CHANNEL_ONLY: false, // Can only be used in moderator-only channels. 
-                    DELETE_ON_MISUSE: false, // Deletes the users message if any restriction results in the command not firing.
-                    STRICT: false, // TODO: Restrictions apply to all members, including moderators and developers.
-                    HIDDEN: false // TODO: Command is treated as non-existent to any user apart from developers.
-                }
-            }
-
-            if(Array.isArray(md.tags)) {
-                md.tags.forEach(t => {
-                    if(typeof this.metadata.tags[t] === 'boolean') {
-                        this.metadata.tags[t] = true;
-                    }
-                });
-
-                if((this.metadata.tags['NO_DM'] && this.metadata.tags['DM_OPTIONAL'])) {
-                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags NO_DM and DM_OPTIONAL are mutually exclusive.`);
-                }
-                if(this.metadata.tags['DM_OPTIONAL'] && this.metadata.tags['DM_ONLY']) {
-                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags DM_OPTIONAL and DM_ONLY are mutually exclusive.`);
-                }
-                if(this.metadata.tags['NO_DM'] && this.metadata.tags['DM_ONLY']) {
-                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags NO_DM and DM_ONLY are mutually exclusive.`);
-                }
-                if(this.metadata.tags['BOT_CHANNEL_ONLY'] && this.metadata.tags['DM_ONLY']) {
-                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags BOT_CHANNEL_ONLY and DM_ONLY are mutually exclusive.`);
-                }
-                if(this.metadata.tags['BOT_CHANNEL_ONLY'] && this.metadata.tags['NO_DM']) {
-                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags BOT_CHANNEL_ONLY and NO_DM are mutually exclusive.`);
-                }
-                if(this.metadata.tags['MODERATOR_ONLY'] && this.metadata.tags['DEVELOPER_ONLY']) {
-                    throw new Error(`${cfg.basic.trigger}${md.trigger}: Command tags MODERATOR_ONLY and DEVELOPER_ONLY are mutually exclusive.`);
-                }
-            } else {
-                this.metadata.tags['DEVELOPER_ONLY'] = true;
-                this.metadata.tags['DM_OPTIONAL'] = true;
-            }
-
-            this.fn = md.fn;
-        }
-    }
-
-    exec(...args) {
-        this.fn(...args);
-    }
-
-    getMetadata() {
-        return this.metadata;
-    }
-}
-
 class ImageIndex {
     constructor() {
         this.index = [];
@@ -142,10 +71,6 @@ class ImageIndex {
     }
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// Initialize
-////////////////////////////////////////////////////////////////////////////////
-
 const memory = {
     db: {
         msg: new database({ filename: './data/messages.db', autoload: true }),
@@ -159,6 +84,7 @@ const memory = {
         smr: new database({ filename: './data/smr.db', autoload: true })
     },
     bot: {
+        trigger: cfg.basic.trigger,
         debug: false,
         shutdown: false,
         booting: true,
@@ -208,7 +134,88 @@ const memory = {
         SLOT9: undefined
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Initialize
+////////////////////////////////////////////////////////////////////////////////
+
+if (process.argv[2] === 'true') {
+    log('OPTIBOT RUNNING IN DEBUG MODE', 'warn');
+    memory.bot.debug = true;
+    memory.bot.trigger = cfg.basic.trigger_alt;
+}
+
 const TOOLS = {}
+class Command {
+    constructor(md) {
+        if (!md.trigger) {
+            throw new Error('Command trigger is required.');
+        } else
+        if (!md.fn) {
+            throw new Error('Command function is required.');
+        } else {
+            this.metadata = {
+                trigger: md.trigger,
+                short_desc: md.short_desc || 'This command has no set description.',
+                long_desc: md.long_desc || md.short_desc || 'This command has no set description.',
+                usage: (md.usage) ? memory.bot.trigger + md.trigger + ' ' + md.usage : memory.bot.trigger + md.trigger,
+                icon: md.icon || false,
+                tags: {
+                    MODERATOR_ONLY: false, // Only moderators and admins can use this command
+                    DEVELOPER_ONLY: false, // Only developers can use this command
+                    NO_DM: false, // Cannot be used in Direct Messages
+                    DM_OPTIONAL: false, // Can be used in server chat OR Direct Messages
+                    DM_ONLY: false, // Can ONLY be used in Direct Messages
+                    BOT_CHANNEL_ONLY: false, // If in server, can only be used in the designated bot channels. Mutually exclusive with DM_ONLY and NO_DM
+                    MOD_CHANNEL_ONLY: false, // Can only be used in moderator-only channels. 
+                    DELETE_ON_MISUSE: false, // Deletes the users message if any restriction results in the command not firing.
+                    STRICT: false, // TODO: Restrictions apply to all members, including moderators and developers.
+                    HIDDEN: false // TODO: Command is treated as non-existent to any user apart from developers.
+                }
+            }
+
+            if(Array.isArray(md.tags)) {
+                md.tags.forEach(t => {
+                    if(typeof this.metadata.tags[t] === 'boolean') {
+                        this.metadata.tags[t] = true;
+                    }
+                });
+
+                if((this.metadata.tags['NO_DM'] && this.metadata.tags['DM_OPTIONAL'])) {
+                    throw new Error(`${memory.bot.trigger}${md.trigger}: Command tags NO_DM and DM_OPTIONAL are mutually exclusive.`);
+                }
+                if(this.metadata.tags['DM_OPTIONAL'] && this.metadata.tags['DM_ONLY']) {
+                    throw new Error(`${memory.bot.trigger}${md.trigger}: Command tags DM_OPTIONAL and DM_ONLY are mutually exclusive.`);
+                }
+                if(this.metadata.tags['NO_DM'] && this.metadata.tags['DM_ONLY']) {
+                    throw new Error(`${memory.bot.trigger}${md.trigger}: Command tags NO_DM and DM_ONLY are mutually exclusive.`);
+                }
+                if(this.metadata.tags['BOT_CHANNEL_ONLY'] && this.metadata.tags['DM_ONLY']) {
+                    throw new Error(`${memory.bot.trigger}${md.trigger}: Command tags BOT_CHANNEL_ONLY and DM_ONLY are mutually exclusive.`);
+                }
+                if(this.metadata.tags['BOT_CHANNEL_ONLY'] && this.metadata.tags['NO_DM']) {
+                    throw new Error(`${memory.bot.trigger}${md.trigger}: Command tags BOT_CHANNEL_ONLY and NO_DM are mutually exclusive.`);
+                }
+                if(this.metadata.tags['MODERATOR_ONLY'] && this.metadata.tags['DEVELOPER_ONLY']) {
+                    throw new Error(`${memory.bot.trigger}${md.trigger}: Command tags MODERATOR_ONLY and DEVELOPER_ONLY are mutually exclusive.`);
+                }
+            } else {
+                this.metadata.tags['DEVELOPER_ONLY'] = true;
+                this.metadata.tags['DM_OPTIONAL'] = true;
+            }
+
+            this.fn = md.fn;
+        }
+    }
+
+    exec(...args) {
+        this.fn(...args);
+    }
+
+    getMetadata() {
+        return this.metadata;
+    }
+}
 const CMD = {
     // Command Registry
     index: [],
@@ -237,11 +244,6 @@ const CMD = {
                 }
         }
     }
-}
-
-if (process.argv[2] === 'true') {
-    log('OPTIBOT RUNNING IN DEBUG MODE', 'warn');
-    memory.bot.debug = true;
 }
 
 log('Logging into Discord API...', 'warn');
@@ -634,9 +636,9 @@ bot.on('ready', () => {
                                                 i++
                                                 fetchNext();
                                             } else {
-                                                let getEmoji = m.reactions.find(rct => rct.emoji.id === '572025612605325322');
+                                                let getEmoji = m.reactions.find(rct => rct.emoji.id === '641319088697770001');
                                                 if (!getEmoji) {
-                                                    m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('572025612605325322')).catch(err => log('Failed to react to message: ' + err.stack, 'error'));
+                                                    m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('641319088697770001')).catch(err => log('Failed to react to message: ' + err.stack, 'error'));
                 
                                                     i++
                                                     fetchNext();
@@ -671,7 +673,7 @@ bot.on('ready', () => {
                                                                             rri++;
                                                                             reactRemove();
                                                                         } else {
-                                                                            m.reactions.get('click_to_delete:572025612605325322').remove(rUsers[rri]);
+                                                                            m.reactions.get('click_to_delete:641319088697770001').remove(rUsers[rri]);
                                                                             rri++;
                                                                             reactRemove();
                                                                         }
@@ -943,7 +945,7 @@ bot.on('ready', () => {
                             .setColor(cfg.vs.embed.default)
                             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_fine.png'), "icon.png"))
                             .setAuthor('Welcome to the official OptiFine Discord server!', 'attachment://icon.png')
-                            .setDescription(`Please be sure to read the <#479192475727167488> BEFORE posting, not to mention the <#531622141393764352>. If you're a donator, use the command \`${cfg.basic.trigger}help dr\` for instructions to get your donator role.`)
+                            .setDescription(`Please be sure to read the <#479192475727167488> BEFORE posting, not to mention the <#531622141393764352>. If you're a donator, use the command \`${memory.bot.trigger}help dr\` for instructions to get your donator role.`)
                             .setFooter('Thank you for reading!')
                         
                         if (docs[0] && docs[0].message.length > 0) {
@@ -1252,7 +1254,7 @@ bot.on('messageDelete', m => {
     if (m.author.system || m.author.bot) return;
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
-    if (m.content.toLowerCase().startsWith(`${cfg.basic.trigger}dr`)) return;
+    if (m.content.toLowerCase().startsWith(`${memory.bot.trigger}dr`)) return;
 
     log('messageDelete event', 'trace')
 
@@ -1416,7 +1418,7 @@ bot.on('messageUpdate', (m, mNew) => {
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
     if (m.content.trim().toLowerCase() == mNew.content.trim().toLowerCase()) return;
-    if (m.content.toLowerCase().startsWith(`${cfg.basic.trigger}dr`)) return;
+    if (m.content.toLowerCase().startsWith(`${memory.bot.trigger}dr`)) return;
 
     let msg1 = `Recorded message edit at ${new Date()}`;
     let msg2 = `\nPosted by ${m.author.username}#${m.author.discriminator} `;
@@ -1642,7 +1644,7 @@ bot.on('error', err => {
 bot.on('message', (m) => {
     if (m.author.bot || m.author.system) return; // message was posted by system or bot
 
-    if (m.channel.type !== 'dm' && m.content.toLowerCase().startsWith(`${cfg.basic.trigger}obs`) && m.member.permissions.has("KICK_MEMBERS", true)) {
+    if (m.channel.type !== 'dm' && m.content.toLowerCase().startsWith(`${memory.bot.trigger}obs`) && m.member.permissions.has("KICK_MEMBERS", true)) {
         log('Emergency shutdown initiated.', 'fatal');
         bot.destroy();
         setTimeout(() => {
@@ -1678,7 +1680,7 @@ bot.on('message', (m) => {
     let input = m.content.trim().split("\n", 1)[0];
     let cmd = input.toLowerCase().split(" ")[0].substr(1);
     let args = input.split(" ").slice(1).filter(function (e) { return e.length != 0 });
-    let cmdValidator = input.match(new RegExp("\\" + cfg.basic.trigger + "\\w"));
+    let cmdValidator = input.match(new RegExp("\\" + memory.bot.trigger + "\\w"));
 
     let isSuper = cfg.superusers.indexOf(m.author.id) > -1;
 
@@ -1737,7 +1739,7 @@ bot.on('message', (m) => {
 
                 log('isAdmin: '+isAdmin, 'trace');
                 log('isSuper: '+isSuper, 'trace');
-                log(`${(isAdmin) ? "[ADMIN] " : ""}${(isSuper) ? "[SUDO] " : ""}COMMAND ISSUED BY ${m.author.username}#${m.author.discriminator}: ${cfg.basic.trigger+cmd} ${(cmd === 'dr') ? args.join(' ').replace(/\S/gi, '*') : args.join(' ')}`);
+                log(`${(isAdmin) ? "[ADMIN] " : ""}${(isSuper) ? "[SUDO] " : ""}COMMAND ISSUED BY ${m.author.username}#${m.author.discriminator}: ${memory.bot.trigger+cmd} ${(cmd === 'dr') ? args.join(' ').replace(/\S/gi, '*') : args.join(' ')}`);
                 
     
                 TOOLS.confirmationFinder({ member_id: m.author.id, channel_id: m.channel.id }, (index) => {
@@ -1749,7 +1751,7 @@ bot.on('message', (m) => {
                                 let embed = new discord.RichEmbed()
                                     .setColor(cfg.vs.embed.default)
                                     .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-                                    .setAuthor('Unknown command. Type ' + cfg.basic.trigger + 'list for a list of commands.', 'attachment://icon.png');
+                                    .setAuthor('Unknown command. Type ' + memory.bot.trigger + 'list for a list of commands.', 'attachment://icon.png');
 
                                 CMD.getAll((list) => {
                                     let filtered = [];
@@ -1786,7 +1788,7 @@ bot.on('message', (m) => {
                                     log(ratings, 'trace');
 
                                     if (closest.distance > 0.2) {
-                                        embed.setDescription(`Perhaps you meant \`${cfg.basic.trigger}${closest.command}\`? (${(closest.distance * 100).toFixed(1)}% match)`)
+                                        embed.setDescription(`Perhaps you meant \`${memory.bot.trigger}${closest.command}\`? (${(closest.distance * 100).toFixed(1)}% match)`)
                                     }
 
                                     m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
@@ -1840,7 +1842,7 @@ bot.on('message', (m) => {
                     let embed = new discord.RichEmbed()
                     .setColor(cfg.vs.embed.default)
                     .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-                    .setAuthor(`Hi there! For a list of commands, type "${cfg.basic.trigger}list". If you've donated and you would like to receive your donator role, type "${cfg.basic.trigger}help dr" for detailed instructions.`, 'attachment://icon.png');
+                    .setAuthor(`Hi there! For a list of commands, type "${memory.bot.trigger}list". If you've donated and you would like to receive your donator role, type "${memory.bot.trigger}help dr" for detailed instructions.`, 'attachment://icon.png');
     
                     m.channel.send({ embed: embed });
                 } else
@@ -2018,7 +2020,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'obs',
     short_desc: 'Emergency Shutoff',
-    long_desc: `To be used in the event that OptiBot encounters a fatal error and does not shut down automatically. This should especially be used in the case of the bot spamming a text channel. \n\n**This is a last resort option, which could potentially corrupt data if used incorrectly. If at all possible, you should attempt to use the \`${cfg.basic.trigger}stop\` command first.**`,
+    long_desc: `To be used in the event that OptiBot encounters a fatal error and does not shut down automatically. This should especially be used in the case of the bot spamming a text channel. \n\n**This is a last resort option, which could potentially corrupt data if used incorrectly. If at all possible, you should attempt to use the \`${memory.bot.trigger}stop\` command first.**`,
     tags: ['MODERATOR_ONLY', 'NO_DM'],
     fn: (m) => {
         log('Emergency shutdown initiated.', 'fatal');
@@ -2889,7 +2891,7 @@ CMD.register(new Command({
         .setColor(cfg.vs.embed.default)
         .attachFile(new discord.Attachment(memory.bot.icons.get('opti_donate.png'), "thumbnail.png"))
         .setAuthor('OptiFine Donation Info', 'attachment://thumbnail.png')
-        .setDescription(`Support OptiFine's development with one-time donation of $10, and optionally receive an OptiFine cape in recognition of your awesomeness. This cape can have one of two types of designs: The standard "OF" cape with fully custom colors, or a full banner design. These designs can be updated and changed at any time. In addition, you may request the Donator role on this very Discord server. This grants instant access to the exclusive, donator-only text channel. (type \`${cfg.basic.trigger+"help dr"}\` in DMs or <#626843115650547743> for instructions) \n\nhttps://optifine.net/donate`)
+        .setDescription(`Support OptiFine's development with one-time donation of $10, and optionally receive an OptiFine cape in recognition of your awesomeness. This cape can have one of two types of designs: The standard "OF" cape with fully custom colors, or a full banner design. These designs can be updated and changed at any time. In addition, you may request the Donator role on this very Discord server. This grants instant access to the exclusive, donator-only text channel. (type \`${memory.bot.trigger+"help dr"}\` in DMs or <#626843115650547743> for instructions) \n\nhttps://optifine.net/donate`)
         .setFooter('Thank you for your consideration!')
 
         m.channel.send(embed).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
@@ -2951,7 +2953,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'clearmotd',
     short_desc: 'Clear custom MOTD message.',
-    long_desc: `Clears the custom MOTD message, which is set by using \`${cfg.basic.trigger}motd\`.`,
+    long_desc: `Clears the custom MOTD message, which is set by using \`${memory.bot.trigger}motd\`.`,
     tags: ['MODERATOR_ONLY', 'NO_DM'],
     fn: (m) => {
         if (!memory.bot.motd.fields[0]) {
@@ -2961,7 +2963,7 @@ CMD.register(new Command({
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
             .setAuthor(`Are you sure want to remove the MOTD message?`, 'attachment://icon.png')
-            .setDescription(`This will remove the current message set in the MOTD. \n\nType \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`)
+            .setDescription(`This will remove the current message set in the MOTD. \n\nType \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`)
 
             m.channel.send({embed:confirm}).then(msg => {
                 TOOLS.confirmationHandler(m, (result) => {
@@ -3201,7 +3203,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'namemc',
     short_desc: `Find the Discord username of a Minecraft player.`,
-    long_desc: `Attempts to find the Discord username of a specified Minecraft player. This is primarily designed to be used in conjunction with \`${cfg.basic.trigger}cv\`.`,
+    long_desc: `Attempts to find the Discord username of a specified Minecraft player. This is primarily designed to be used in conjunction with \`${memory.bot.trigger}cv\`.`,
     usage: `<minecraft username>`,
     //tags: ['MODERATOR_ONLY', 'DM_OPTIONAL'],
     fn: (m, args) => {
@@ -3331,7 +3333,7 @@ CMD.register(new Command({
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
             .setColor(cfg.vs.embed.error)
             .setAuthor("You must specify the file name of the OptiFine installer.", "attachment://icon.png")
-            .setDescription(`For detailed instructions, type \`${cfg.basic.trigger}help bat\``)
+            .setDescription(`For detailed instructions, type \`${memory.bot.trigger}help bat\``)
 
             m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
         } else {
@@ -3357,7 +3359,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'status',
     short_desc: 'Server statuses.',
-    long_desc: `Displays current server status of OptiFine. Alternatively, you can view the status of the Minecraft/Mojang services by typing \`${cfg.basic.trigger}status minecraft\` or \`${cfg.basic.trigger}status mojang\`.`,
+    long_desc: `Displays current server status of OptiFine. Alternatively, you can view the status of the Minecraft/Mojang services by typing \`${memory.bot.trigger}status minecraft\` or \`${memory.bot.trigger}status mojang\`.`,
     usage: '["minecraft"|"mojang"|"all"]',
     tags: ['DM_OPTIONAL'],
     fn: (m, args, not_used, misc) => {
@@ -3373,26 +3375,26 @@ CMD.register(new Command({
             mc_servers_text = '';
             function translator(target, index, cb1) {
                 if (target[index].status === 'gray') {
-                    cb1(`${bot.guilds.get(cfg.basic.ob_server).emojis.get('578346059965792258')} Pinging [${target[index].server}](https://${target[index].server}/ "Awaiting response... | ${target[index].desc}")...`);
+                    cb1(`${bot.guilds.get(cfg.basic.ob_server).emojis.get('641328341651030066')} Pinging [${target[index].server}](https://${target[index].server}/ "Awaiting response... | ${target[index].desc}")...`);
                 } else
                 if (target[index].status === 'green') {
-                    cb1(`<:okay:546570334233690132> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}") is online`);
+                    cb1(`<:okay:641371290225344533> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}") is online`);
                 } else {
                     footer = "Hover over the links for detailed information. | Maybe try again in 10 minutes?";
                     if (target[index].status === 'teal') {
-                        cb1(`<:warn:546570334145609738> Unknown response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
+                        cb1(`<:warn:641371290506100757> Unknown response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
                     } else
                     if (target[index].status === 'yellow') {
-                        cb1(`<:warn:546570334145609738> Partial outage at [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
+                        cb1(`<:warn:641371290506100757> Partial outage at [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
                     } else
                     if (target[index].status === 'orange') {
-                        cb1(`<:error:546570334120312834> An error occurred while pinging [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
+                        cb1(`<:error:641371290493517834> An error occurred while pinging [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
                     } else
                     if (target[index].status === 'red') {
-                        cb1(`<:error:546570334120312834> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}") is down`);
+                        cb1(`<:error:641371290493517834> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}") is down`);
                     } else
                     if (target[index].status === 'black') {
-                        cb1(`<:error:546570334120312834> Failed to get any response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
+                        cb1(`<:error:641371290493517834> Failed to get any response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
                     }
                 }
             }
@@ -3857,7 +3859,7 @@ CMD.register(new Command({
                                 .setColor(cfg.vs.embed.default)
                                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                                 .setAuthor(`Are you sure want to blacklist this URL?`, 'attachment://icon.png')
-                                .setDescription(`\`\`\`${hostname}\`\`\` \nType \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`);
+                                .setDescription(`\`\`\`${hostname}\`\`\` \nType \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`);
 
                             m.channel.send({embed: confirm}).then(msg => {
                                 TOOLS.typerHandler(m.channel, false);
@@ -3922,7 +3924,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'cv',
     short_desc: 'Verifies cape ownership.',
-    long_desc: `Adds a user to the list of "verified" cape owners. This adds a checkmark along with a user tag to the embeds used in the \`${cfg.basic.trigger}cape\` command (It doesn't ping anyone, don't worry. It just lets you to view someones profile/nickname.) Usernames are translated into Minecraft UUIDs by using the Mojang API, so it's not necessary to use this again when someone changes their username.`,
+    long_desc: `Adds a user to the list of "verified" cape owners. This adds a checkmark along with a user tag to the embeds used in the \`${memory.bot.trigger}cape\` command (It doesn't ping anyone, don't worry. It just lets you to view someones profile/nickname.) Usernames are translated into Minecraft UUIDs by using the Mojang API, so it's not necessary to use this again when someone changes their username.`,
     usage: '<discord user> <minecraft username>',
     tags: ['MODERATOR_ONLY', 'NO_DM'],
     fn: (m, args) => {
@@ -4031,7 +4033,7 @@ CMD.register(new Command({
                                 .setColor(cfg.vs.embed.default)
                                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                                 .setAuthor(`Are you sure want to remove ${name} from the verified cape owner list?`, 'attachment://icon.png')
-                                .setDescription(`Type \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`);
+                                .setDescription(`Type \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`);
 
                             m.channel.send({embed: confirm}).then(msg => {
                                 TOOLS.typerHandler(m.channel, false);
@@ -4081,7 +4083,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'assist',
     short_desc: `Details OptiBot's assistant functions.`,
-    long_desc: `Displays detailed information for OptiBot's "Assistant" functions. These are essentially commands that do not require OptiBot's command trigger (${cfg.basic.trigger}), and can be used anywhere at any time. (Except DMs)`,
+    long_desc: `Displays detailed information for OptiBot's "Assistant" functions. These are essentially commands that do not require OptiBot's command trigger (${memory.bot.trigger}), and can be used anywhere at any time. (Except DMs)`,
     usage: `[page #]`,
     tags: ['BOT_CHANNEL_ONLY', 'DM_OPTIONAL'],
     fn: (m, args) => {
@@ -4089,7 +4091,7 @@ CMD.register(new Command({
             new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-            .addField('What are these?', `Assistants are, essentially, functions that do not require OptiBot's command trigger (${cfg.basic.trigger}) to be used, and can be used anywhere in any message you send. (Apart from DMs.)`),
+            .addField('What are these?', `Assistants are, essentially, functions that do not require OptiBot's command trigger (${memory.bot.trigger}) to be used, and can be used anywhere in any message you send. (Apart from DMs.)`),
 
             new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
@@ -4138,7 +4140,7 @@ CMD.register(new Command({
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_discord.png'), "icon.png"))
             .setAuthor(`Related Discord Servers | Page ${pageNum}/${pageLimit}`, 'attachment://icon.png')
-            .setDescription(`You can get a quick link to any of these servers by using the \`${cfg.basic.trigger}server\` command. (See \`${cfg.basic.trigger}help server\` for details)`);
+            .setDescription(`You can get a quick link to any of these servers by using the \`${memory.bot.trigger}server\` command. (See \`${memory.bot.trigger}help server\` for details)`);
 
         let i = (pageNum > 1) ? (maxPageLength * (pageNum - 1)) : 0;
         let added = 0;
@@ -4160,14 +4162,14 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'server',
     short_desc: 'Link a specific Discord server.',
-    long_desc: `Searches for a Discord server with the given name, and then provides an invite link. \n\nNote that this only searches within a specially picked group of servers. (See \`${cfg.basic.trigger}serverlist\`) This command does **not** search through ALL servers across the entirety of Discord.`,
+    long_desc: `Searches for a Discord server with the given name, and then provides an invite link. \n\nNote that this only searches within a specially picked group of servers. (See \`${memory.bot.trigger}serverlist\`) This command does **not** search through ALL servers across the entirety of Discord.`,
     usage: '<server name?>',
     tags: ['DM_OPTIONAL'],
     fn: (m, args) => {
         if (!args[0]) {
             TOOLS.errorHandler({ err: "You must specify a server to find.", m:m });
         } else {
-            let query = m.content.substring((cfg.basic.trigger+'server ').length).toLowerCase();
+            let query = m.content.substring((memory.bot.trigger+'server ').length).toLowerCase();
             let match = cstr.findBestMatch(query, Object.keys(memory.bot.servers));
 
             if (match.bestMatch.rating < 0.1) {
@@ -4383,7 +4385,7 @@ CMD.register(new Command({
 
 CMD.register(new Command({
     trigger: 'help',
-    short_desc: `Getting started with OptiBot. (type \`${cfg.basic.trigger}help help\` to learn how to use command arguments)`,
+    short_desc: `Getting started with OptiBot. (type \`${memory.bot.trigger}help help\` to learn how to use command arguments)`,
     long_desc: `Some commands *may* require additional details to tell the bot exactly how you want a command to be carried out. These details are called "arguments". \n\n\`<required>\` - Arguments in angle brackets are REQUIRED. The command cannot be used without this additional information.\n\n\`[optional]\` - Arguments in square brackets are optional. They can be freely omitted.\n\n\`<"literal phrase">\` - Arguments with quotation marks are literal. To use these, you simply type the specified word within the quotation marks.\n\n\`[match?]\` - Arguments that end with a question mark use string similarity, which makes the bot try to match your typed phrase with a set of options. Think of it as using a search engine, like Google.\n\n\`<this|or that>\` - Arguments with a vertical bar mean you can specify either one thing or the other. The bar can be simply translated to "or".\n\n\`[optional <required>]\` - Occasionally, arguments can be combined. In this example, the first argument is optional. However, specifying that argument means you MUST specify the second argument.`,
     usage: "[command]",
     icon: 'args.png',
@@ -4397,8 +4399,8 @@ CMD.register(new Command({
                 .setAuthor('Getting Started', 'attachment://icon.png')
                 .setDescription(`OptiBot is a Discord bot primarily designed for utility. Whether it's moderation tools, or something to help you make a resource pack, you can probably find it here. (see \`!about\` for more info about OptiBot itself)`)
                 .setThumbnail('attachment://thumbnail.png')
-                .addField('Commands List', `\`\`\`${cfg.basic.trigger}list\`\`\``)
-                .addField('Assistant Functions', `\`\`\`${cfg.basic.trigger}assist\`\`\``)
+                .addField('Commands List', `\`\`\`${memory.bot.trigger}list\`\`\``)
+                .addField('Assistant Functions', `\`\`\`${memory.bot.trigger}assist\`\`\``)
                 
 
             m.channel.send({ embed: embed }).then(msg => TOOLS.messageFinalize(m.author.id, msg));
@@ -4420,36 +4422,36 @@ CMD.register(new Command({
                     // todo: move most of this to class command constructor
                     // this should be done since a lot of these same calculations are being made for !list
 
-                    let role_restriction = `🔓 This command can be used by all members.`;
-                    let usage = `<:okay:546570334233690132> This command can be used in any channel, including DMs (Direct Messages)`;
+                    let role_restriction = `<:unlocked:641371807798263848> This command can be used by all members.`;
+                    let usage = `<:okay:641371290225344533> This command can be used in any channel, including DMs (Direct Messages)`;
                         
 
                     if (md.tags['NO_DM']) {
                         if(md.tags['BOT_CHANNEL_ONLY']) {
-                            usage = `<:error:546570334120312834> This command can *only* be used in the <#626843115650547743> channel.`;
+                            usage = `<:error:641371290493517834> This command can *only* be used in the <#626843115650547743> channel.`;
                         } else {
-                            usage = `<:warn:546570334145609738> This command can be used in any channel, but *not* in DMs (Direct Messages)`;
+                            usage = `<:warn:641371290506100757> This command can be used in any channel, but *not* in DMs (Direct Messages)`;
                         }
                     } else
                     if (md.tags['DM_ONLY']) {
-                        usage = `<:error:546570334120312834> This command can *only* be used in DMs (Direct Messages)`;
+                        usage = `<:error:641371290493517834> This command can *only* be used in DMs (Direct Messages)`;
                     } else
                     if (md.tags['BOT_CHANNEL_ONLY']) {
-                        usage = `<:warn:546570334145609738> This command can *only* be used in DMs (Direct Messages) or the <#626843115650547743> channel.`;
+                        usage = `<:warn:641371290506100757> This command can *only* be used in DMs (Direct Messages) or the <#626843115650547743> channel.`;
                     } else
                     if (md.tags['MOD_CHANNEL_ONLY']) {
                         if(md.tags['NO_DM']) {
-                            usage = `<:error:546570334120312834> This command can *only* be used in moderator-only channels.`;
+                            usage = `<:error:641371290493517834> This command can *only* be used in moderator-only channels.`;
                         } else {
-                            usage = `<:error:546570334120312834> This command can *only* be used in DMs (Direct Messages) or any moderator-only channel.`;
+                            usage = `<:error:641371290493517834> This command can *only* be used in DMs (Direct Messages) or any moderator-only channel.`;
                         }
                     }
 
                     if (md.tags['MODERATOR_ONLY']) {
-                        role_restriction = '🔒 This command can *only* be used by Moderators & Administrators.';
+                        role_restriction = '<:locked:641371290489323572> This command can *only* be used by Moderators & Administrators.';
                     } else
                     if (md.tags['DEVELOPER_ONLY']) {
-                        role_restriction = `🔒 This command can *only* be used by OptiBot developers.`;
+                        role_restriction = `<:locked:641371290489323572> This command can *only* be used by OptiBot developers.`;
                     }
 
                     embed.addField('Usage Restrictions', role_restriction+'\n'+usage);
@@ -4457,11 +4459,11 @@ CMD.register(new Command({
                     if (md.icon) {
                         files.push(new discord.Attachment(memory.bot.images.get(md.icon), "thumbnail.png"));
                         embed.attachFiles(files)
-                            .setAuthor('OptiBot Command: ' + cfg.basic.trigger + md.trigger, 'attachment://icon.png')
+                            .setAuthor('OptiBot Command: ' + memory.bot.trigger + md.trigger, 'attachment://icon.png')
                             .setThumbnail('attachment://thumbnail.png');
                     } else {
                         embed.attachFiles(files)
-                            .setAuthor('OptiBot Command: ' + cfg.basic.trigger + md.trigger, 'attachment://icon.png');
+                            .setAuthor('OptiBot Command: ' + memory.bot.trigger + md.trigger, 'attachment://icon.png');
                     }
 
                     m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
@@ -4473,8 +4475,8 @@ CMD.register(new Command({
 
 CMD.register(new Command({
     trigger: 'list',
-    short_desc: 'Lists all OptiBot commands.',
-    long_desc: `Lists all OptiBot commands. This includes a short description, and an icon representing restrictions on that command: \n\n<:okay:546570334233690132> - This command has virtually no restrictions.\n<:warn:546570334145609738> - This command has *some* restrictions.\n<:error:546570334120312834> - This command has heavy restrictions.\n\n"Special" pages can be specified before or after the page number. It works either way. For example, if you're a moderator, you can list Moderator-only commands by typing "mod" or "admin".`,
+    short_desc: 'List all OptiBot commands.',
+    long_desc: `Lists all OptiBot commands, including a short description for each.\n\n"Special" pages can be specified before or after the page number. It works either way. For example, if you're a moderator, you can list Moderator-only commands by typing "mod" or "admin".`,
     usage: "[page # [special] | special [page #]]",
     tags: ['BOT_CHANNEL_ONLY', 'DM_OPTIONAL'],
     fn: (m, args, member, misc) => {
@@ -4535,7 +4537,7 @@ CMD.register(new Command({
                 .setColor(cfg.vs.embed.default)
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
                 .setAuthor(`OptiBot Commands List | Page ${pageNum}/${pageLimit}`, 'attachment://icon.png')
-                .setDescription(`${special_text} Hover over the tooltip icons \([\[\\❔\]](${m.url.replace(/\/\d+$/, '')} "No easter eggs here. Move along.")\) or use \`${cfg.basic.trigger}help <command>\` for detailed information.`)
+                .setDescription(`${special_text} Hover over the tooltip icons \([\[\\❔\]](${m.url.replace(/\/\d+$/, '')} "No easter eggs here.")\) or use \`${memory.bot.trigger}help <command>\` for detailed information.`)
                 .setFooter(`Viewing ${filtered.length} commands, out of ${list.length} total.`);
             
                 let i = (pageNum > 1) ? (10 * (pageNum - 1)) : 0;
@@ -4549,7 +4551,7 @@ CMD.register(new Command({
                         hover_text.push(cmd.hover_desc);
                     } else 
                     if(cmd.long_desc.length > 325) {
-                        hover_text.push(`This description is too long to show here. Type "${cfg.basic.trigger}help ${cmd.trigger}" for full details.`);
+                        hover_text.push(`This description is too long to show here. Type "${memory.bot.trigger}help ${cmd.trigger}" for full details.`);
                     } else {
                         hover_text.push(cmd.long_desc);
                     }
@@ -4588,7 +4590,7 @@ CMD.register(new Command({
                         hover_text.push(`☑ This command can be used in any channel, including DMs (Direct Messages)`)
                     }
     
-                    embed.addField(cfg.basic.trigger+cmd.trigger, `${cmd.short_desc} [\[\\❔\]](${m.url.replace(/\/\d+$/, '')} "${hover_text.join('\n')}")`);
+                    embed.addField(memory.bot.trigger+cmd.trigger, `${cmd.short_desc} [\[\\❔\]](${m.url.replace(/\/\d+$/, '')} "${hover_text.join('\n')}")`);
                     added++;
                     
                     if (added >= 10 || i+1 >= filtered.length) {
@@ -4729,7 +4731,7 @@ CMD.register(new Command({
     tags: ['MODERATOR_ONLY', 'DM_OPTIONAL'],
     fn: (m, args) => {
         if (args[0]) {
-            let org = m.content.substring( (cfg.basic.trigger + 'mock ').length );
+            let org = m.content.substring( (memory.bot.trigger + 'mock ').length );
             let newStr = '';
 
             for(let i = 0; i < org.length; i++) {
@@ -4757,7 +4759,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'dr',
     short_desc: 'Verifies your donator status.',
-    long_desc: `Verifies your donator status. If successful, this will grant you the Donator role, and reset your Donator token in the process. \n\nYou can find your donator token by logging in through the website. https://optifine.net/login. Look at the bottom of the page for a string of random characters. (see picture for example) \n**Remember that your "Donation ID" is NOT your token!**\n\nPlease note that this will NOT automatically verify you for the \`${cfg.basic.trigger}cape\` command. [See this FAQ entry for instructions on that.](https://discordapp.com/channels/423430686880301056/531622141393764352/622494425616089099)`,
+    long_desc: `Verifies your donator status. If successful, this will grant you the Donator role, and reset your Donator token in the process. \n\nYou can find your donator token by logging in through the website. https://optifine.net/login. Look at the bottom of the page for a string of random characters. (see picture for example) \n**Remember that your "Donation ID" is NOT your token!**\n\nPlease note that this will NOT automatically verify you for the \`${memory.bot.trigger}cape\` command. [See this FAQ entry for instructions on that.](https://discordapp.com/channels/423430686880301056/531622141393764352/622494425616089099)`,
     usage: "<donation e-mail> <token>",
     icon: `token.png`,
     tags: ['DM_ONLY', 'DELETE_ON_MISUSE'],
@@ -4968,7 +4970,7 @@ CMD.register(new Command({
                                             if (dberr) TOOLS.errorHandler({ err: dberr, m: m });
                                             else {
                                                 if (dbdocs.length !== 0) {
-                                                    desc += '<:okay:546570334233690132> Cape owned by <@' + dbdocs[0].member_id + '>\n\n';
+                                                    desc += '<:okay:641371290225344533> Cape owned by <@' + dbdocs[0].member_id + '>\n\n';
                                                 }
                                                 if (fallback && (!args[1] || (args[1] && args[1].toLowerCase() !== 'full'))) {
                                                     desc += `This image could not be cropped because the cape texture has an unusual resolution.`;
@@ -5078,7 +5080,7 @@ CMD.register(new Command({
                         'mod developer': cfg.roles.mod_dev
                     };
 
-                    let role_match = cstr.findBestMatch(m.content.substring(cfg.basic.trigger.length+5+args[0].length+1).toLowerCase(), Object.keys(role_types));
+                    let role_match = cstr.findBestMatch(m.content.substring(memory.bot.trigger.length+5+args[0].length+1).toLowerCase(), Object.keys(role_types));
                     let selected_role = role_types[role_match.bestMatch.target];
 
                     log(role_match.bestMatch.rating)
@@ -5156,7 +5158,7 @@ CMD.register(new Command({
     tags: ['DM_ONLY'],
     fn: (m, args) => {
         // could maybe delete messages when used in server chat, but also try sending the existing message to the users DM to avoid having to retype everything
-        let modmail = m.content.substring( (`${cfg.basic.trigger}modmail `).length );
+        let modmail = m.content.substring( (`${memory.bot.trigger}modmail `).length );
         if(!args[0]) {
             TOOLS.errorHandler({err: "You must specify a message to send.", m:m});
         } else
@@ -5204,7 +5206,7 @@ CMD.register(new Command({
                 .setColor(cfg.vs.embed.default)
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                 .setAuthor(`Are you sure want to send this message?`, 'attachment://icon.png')
-                .setDescription(`This action cannot be undone. \n\nType \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`)
+                .setDescription(`This action cannot be undone. \n\nType \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`)
                 .addField('The following message will be sent:', modmail);
 
                 m.channel.send({embed: confirm}).then(msg => {
@@ -5284,7 +5286,7 @@ CMD.register(new Command({
                 .setColor(cfg.vs.embed.default)
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                 .setAuthor(`Are you sure want to remove ${amount} messages?`, 'attachment://icon.png')
-                .setDescription(`This action cannot be undone. \n\nType \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`)
+                .setDescription(`This action cannot be undone. \n\nType \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`)
 
             m.channel.send({embed: confirm}).then(msg => {
                 TOOLS.typerHandler(m.channel, false);
@@ -5332,7 +5334,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'docs', 
     short_desc: 'Search OptiFine documentation.',
-    long_desc: `Search for various files in the current version of OptiFine documentation. If no search query is provided, OptiBot will just give you a link to the documentation on GitHub. \n\n**Note: This is the all new, somewhat experimental version of the \`${cfg.basic.trigger}docs\` command.** This version provides \"categories\" of documentation, which makes things easier to look for. However, due to the nature of this new system, some files may be missing, especially if they've only been recently added. For the legacy version of this command, use \`${cfg.basic.trigger}docfile\`. It will always be up-to-date, as it downloads directly from GitHub.`,
+    long_desc: `Search for various files in the current version of OptiFine documentation. If no search query is provided, OptiBot will just give you a link to the documentation on GitHub. \n\n**Note: This is the all new, somewhat experimental version of the \`${memory.bot.trigger}docs\` command.** This version provides \"categories\" of documentation, which makes things easier to look for. However, due to the nature of this new system, some files may be missing, especially if they've only been recently added. For the legacy version of this command, use \`${memory.bot.trigger}docfile\`. It will always be up-to-date, as it downloads directly from GitHub.`,
     usage: '[query?]',
     tags: ['DM_OPTIONAL'],
     fn: (m, args) => {
@@ -5345,7 +5347,7 @@ CMD.register(new Command({
 
             m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
         } else {
-            let query = m.content.substring((cfg.basic.trigger + 'docs ').length).toLowerCase();
+            let query = m.content.substring((memory.bot.trigger + 'docs ').length).toLowerCase();
             let match = cstr.findBestMatch(query, Object.keys(memory.bot.docs_cat));
 
             if (match.bestMatch.rating < 0.1) {
@@ -5357,7 +5359,7 @@ CMD.register(new Command({
                 .setColor(cfg.vs.embed.default)
                 .attachFile(new discord.Attachment(memory.bot.icons.get("opti_docs.png"), "icon.png"))
                 .setAuthor("Official OptiFine Documentation", 'attachment://icon.png')
-                .setDescription(`You can link to individual files by using the \`${cfg.basic.trigger}docfile\` command.`)
+                .setDescription(`You can link to individual files by using the \`${memory.bot.trigger}docfile\` command.`)
                 .addField(data.name, data.links.join('\n\n'))
                 .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
 
@@ -5426,7 +5428,7 @@ CMD.register(new Command({
         if (!args[1] && m.attachments.size === 0) {
             TOOLS.errorHandler({err: "You must specify something to say/send", m:m});
         } else {
-            let v_msg = (args[1]) ? m.content.substring((cfg.basic.trigger+'say '+args[0]+' ').length) : undefined
+            let v_msg = (args[1]) ? m.content.substring((memory.bot.trigger+'say '+args[0]+' ').length) : undefined
             let attachment = (m.attachments.size !== 0) ? {files:[m.attachments.first(1)[0].url]} : undefined
 
             log('[saying] '+v_msg+'\n[attachment] '+attachment, 'warn');
@@ -5571,7 +5573,7 @@ CMD.register(new Command({
                 rating: 0,
                 message: undefined
             };
-            let query = m.content.substring( (cfg.basic.trigger + 'faq ').length );
+            let query = m.content.substring( (memory.bot.trigger + 'faq ').length );
             let qrgx = new RegExp('(?<=Q: \\*\\*).+(?=\\*\\*)');
 
             bot.guilds.get(cfg.basic.of_server).channels.get('531622141393764352').fetchMessages({ limit: 100, after: '531629512559951872' }).then(entries => {
@@ -5610,7 +5612,7 @@ CMD.register(new Command({
                                     embed.setDescription('['+infotext)
                                     .addField(highest.question, highest.answer);
                                 } else {
-                                    embed.setDescription(`[**The answer to this question is too long to show in an embed.** ${infotext}`)
+                                    embed.setDescription(`[**The answer to this question is too long to show in an embed.**\n ${infotext}`)
                                     .addField(highest.question, highest.answer.substring(0, 512).trim()+'...');
                                 }
                             } else {
@@ -5657,7 +5659,7 @@ CMD.register(new Command({
 
             m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
         } else {
-            let query = m.content.split("\n", 1)[0].substring( (cfg.basic.trigger+'mcwiki ').length ).trim();
+            let query = m.content.split("\n", 1)[0].substring( (memory.bot.trigger+'mcwiki ').length ).trim();
             let url = "https://minecraft.gamepedia.com/api.php?action=query&format=json&generator=search&gsrsearch="+encodeURIComponent(query)+"&gsrlimit=1&prop=info&inprop=url";
             if (query.toLowerCase() === 'random') url = "https://minecraft.gamepedia.com/api.php?action=query&format=json&generator=random&prop=info&inprop=url";
 
@@ -5687,14 +5689,14 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'motd',
     short_desc: 'View the MOTD.',
-    long_desc: `View the MOTD, the message sent by OptiBot to every new user that joins the server. \n\nModerators can additionally include a message to be added, which can be reset again with \`${cfg.basic.trigger}clearmotd\` (These can NOT be done in DMs.)`,
+    long_desc: `View the MOTD, the message sent by OptiBot to every new user that joins the server. \n\nModerators can additionally include a message to be added, which can be reset again with \`${memory.bot.trigger}clearmotd\` (These can NOT be done in DMs.)`,
     usage: '[new message text]',
     tags: ['BOT_CHANNEL_ONLY', 'DM_OPTIONAL'],
     fn: (m, args, not_used, misc) => {
         if (!args[0] || !(misc.isAdmin || misc.isSuper) || m.channel.type === 'dm') {
             m.channel.send({ embed: memory.bot.motd }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
         } else {
-            let newMsg = m.content.substring( (cfg.basic.trigger + 'motd ').length );
+            let newMsg = m.content.substring( (memory.bot.trigger + 'motd ').length );
             let messageformatted = '> '+newMsg.replace('\n', '> \n').substring(0, 1024);
 
             if (memory.bot.motd.fields[0] && memory.bot.motd.fields[0].value.toLowerCase() === newMsg.trim().toLowerCase()) {
@@ -5706,7 +5708,7 @@ CMD.register(new Command({
                 .setColor(cfg.vs.embed.default)
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                 .setAuthor(`Are you sure want to change the MOTD message?`, 'attachment://icon.png')
-                .setDescription(`This message will be shown to ALL users who join the server. \n\nType \`${cfg.basic.trigger}confirm\` to continue.\nType \`${cfg.basic.trigger}cancel\` or simply ignore this message to cancel.`)
+                .setDescription(`This message will be shown to ALL users who join the server. \n\nType \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`)
 
             if (memory.bot.motd.fields[0]) {
                 confirm.addField('Current Message Preview', memory.bot.motd.fields[0].value);
@@ -5741,7 +5743,7 @@ CMD.register(new Command({
                                     .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
                                     .setColor(cfg.vs.embed.okay)
                                     .setAuthor("Message set.", "attachment://icon.png")
-                                    .setDescription(`Type \`${cfg.basic.trigger}motd\` to see how it looks.`)
+                                    .setDescription(`Type \`${memory.bot.trigger}motd\` to see how it looks.`)
         
                                 m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
                             }
@@ -6000,7 +6002,7 @@ TOOLS.statusHandler = (type) => {
         } else {
             ACT_status = 'online';
             ACT_type = 'WATCHING';
-            ACT_game = `${cfg.basic.trigger}help`;
+            ACT_game = `${memory.bot.trigger}help`;
         }
     } else
     if (type === 2) {
@@ -6128,7 +6130,7 @@ TOOLS.deleteMessageHandler = (data) => {
         // todo: merge this section of code with TOOLS.messageFinalize()
         if (data.m.channel.type === 'dm') return;
 
-        data.m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('572025612605325322')).then(() => {
+        data.m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('641319088697770001')).then(() => {
             let cacheData = {
                 time: new Date().getTime(),
                 guild: data.m.guild.id,
@@ -6167,7 +6169,7 @@ TOOLS.deleteMessageHandler = (data) => {
         }).catch(err => log('Failed to react to message: ' + err.stack, 'error'));
     } else
     if (data.stage === 2) {
-        let filter = (reaction) => reaction.emoji.id === '572025612605325322';
+        let filter = (reaction) => reaction.emoji.id === '641319088697770001';
         let collector = data.m.createReactionCollector(filter);
 
         const cb_collect = (r) => {
@@ -6197,7 +6199,7 @@ TOOLS.deleteMessageHandler = (data) => {
                             rri++;
                             reactRemove();
                         } else {
-                            data.m.reactions.get('click_to_delete:572025612605325322').remove(rUsers[rri]);
+                            data.m.reactions.get('click_to_delete:641319088697770001').remove(rUsers[rri]);
                             rri++;
                             reactRemove();
                         }
@@ -6223,8 +6225,8 @@ TOOLS.deleteMessageHandler = (data) => {
             }
 
             if (!data.m.deleted && !memory.bot.shutdown) {
-                if (data.m.reactions.get('click_to_delete:572025612605325322') && data.m.reactions.get('click_to_delete:572025612605325322').me) {
-                    data.m.reactions.get('click_to_delete:572025612605325322').remove().then(() => {
+                if (data.m.reactions.get('click_to_delete:641319088697770001') && data.m.reactions.get('click_to_delete:641319088697770001').me) {
+                    data.m.reactions.get('click_to_delete:641319088697770001').remove().then(() => {
                         if (r !== 'limit') {
                             memory.db.msg.remove(data.cacheData, (err) => {
                                 if (err) {
@@ -6444,8 +6446,8 @@ TOOLS.muteHandler = (m, args, action) => {
                         TOOLS.errorHandler({ m: m, err: err });
                     } else
                     if (action) {
-                        target.addRole(cfg.roles.muted, `User muted by ${executor} (via ${cfg.basic.trigger}mute)`).then(() => {
-                            log(`User ${muted_name} was muted by ${executor} (via ${cfg.basic.trigger}mute)`, 'warn');
+                        target.addRole(cfg.roles.muted, `User muted by ${executor} (via ${memory.bot.trigger}mute)`).then(() => {
+                            log(`User ${muted_name} was muted by ${executor} (via ${memory.bot.trigger}mute)`, 'warn');
                             resultMsg(target, data.end);
                         }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
                     } else {

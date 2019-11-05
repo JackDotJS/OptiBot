@@ -367,38 +367,12 @@ memory.bot.profile_check = bot.setInterval(() => {
 memory.bot.warn_check = bot.setInterval(() => {
     if (!memory.bot.shutdown && !memory.bot.booting) {
         log('begin warn_check', 'trace');
-        memory.db.profiles.find({ warns: { $exists: true } }, (err, docs) => {
-            if (err) {
-                TOOLS.errorHandler({ err: err });
-            } else 
-            if (!docs[0]) {
-                log('All "warn" properties already removed. (remove this check pls)', 'error');
-            } else {
-                let i = 0;
-                (function loopover() {
-                    delete docs[i].warns
-
-                    memory.db.profiles.update({member_id: docs[i].member_id}, docs[i], {}, (err) => {
-                        if (err) {
-                            TOOLS.errorHandler({ err: err });
-                        } else
-                        if (i+1 === docs.length) {
-                            log('All "warn" properties removed.', 'info');
-                        } else {
-                            i++
-                            loopover();
-                        }
-                    });
-                })();
-            }
-        });
-
         memory.db.profiles.find({ warnings: { $exists: true } }, (err, docs) => {
             if (err) {
                 TOOLS.errorHandler({ err: err });
             } else 
             if (!docs[0]) {
-                log('No users with warnings.', 'info');
+                log('No users with warnings.', 'debug');
             } else {
                 let i = 0;
                 let expired_indexes = [];
@@ -446,78 +420,6 @@ memory.bot.warn_check = bot.setInterval(() => {
                 })();
             }
         });
-
-        /*
-        memory.db.profiles.find({ warnings: { $exists: true } }, (err, docs) => {
-            if (err) {
-                TOOLS.errorHandler({ err: err });
-            } else 
-            if (!docs[0]) {
-                log('No users with warnings.', 'info');
-            } else {
-                let i = 0;
-                let warns_expired = 0;
-                let warn_expired_indexes = [];
-                (function loopover() {
-                    if (i === docs.length) {
-                        if (warns_expired > 0) {
-                            let i3 = 0;
-                            (function loopUpdate() {
-                                log(warn_expired_indexes, 'trace');
-                                log("expired:" + warns_expired, 'trace');
-                                log(`updating profile ${docs[warn_expired_indexes[i3]].member_id}`, 'trace');
-                                memory.db.profiles.update({member_id: docs[warn_expired_indexes[i3]].member_id}, docs[warn_expired_indexes[i3]], {}, (err) => {
-                                    if(err) {
-                                        TOOLS.errorHandler({ err: err });
-                                    } else {
-                                        if(i3+1 >= warn_expired_indexes.length) {
-                                            log(`${warns_expired} user warning(s) have expired.`);
-                                        } else {
-                                            i3++;
-                                            loopUpdate();
-                                        }
-                                    }
-                                });
-                            })();
-                        } else {
-                            log(`No user warnings have expired.`, 'debug');
-                        }
-                    } else
-                    if (docs[i].warns.current.length === 0) {
-                        i++;
-                        loopover();
-                    } else {
-                        for(let i2 in docs[i].warns.current) {
-                            if (new Date().getTime() > docs[i].warns.current[i2].expiration) {
-                                delete docs[i].warns.current[i2];
-                                warn_expired_indexes.push(i);
-                                warns_expired++;
-                            }
-
-                            if (parseInt(i2)+1 === docs[i].warns.current.length) {
-                                i++;
-                                loopover();
-                            }
-                        }
-                    }
-                })();
-
-                for(let i in docs) {
-                    if (Object.keys(docs[i]).length === 1 || (Object.keys(docs[i]).length === 2 && docs[i].warns && docs[i].warns.current.length === 0)) {
-                        remove_list.push(docs[i].member_id);
-                    }
-
-                    if (i+1 === docs.length) {
-                        if (remove_list.length === 0) {
-                            log(`All current users in database have some significant data.`, 'debug');
-                        } else {
-                            remove_loop();
-                        }
-                    }
-                }
-            }
-        });
-        */
     }
 }, 300000);
 
@@ -5701,18 +5603,18 @@ CMD.register(new Command({
                             .setAuthor('Frequently Asked Questions', 'attachment://icon.png')
                             .setFooter(`${(highest.rating * 100).toFixed(1)}% match during search.`);
 
-                            let infotext = `[Click here to go to the original message link.](${highest.message.url}) Be sure to also check out the <#531622141393764352> channel for more questions and answers.`;
+                            let infotext = `Click here to go to the original message link.](${highest.message.url})\n\n Be sure to also check out the <#531622141393764352> channel for more questions and answers.`;
                             
                             if (highest.answer) {
                                 if (highest.answer.length < 512) {
-                                    embed.setDescription(infotext)
+                                    embed.setDescription('['+infotext)
                                     .addField(highest.question, highest.answer);
                                 } else {
-                                    embed.setDescription(`**The answer to this question is too long to show in an embed.** \n${infotext}`)
+                                    embed.setDescription(`[**The answer to this question is too long to show in an embed.** ${infotext}`)
                                     .addField(highest.question, highest.answer.substring(0, 512).trim()+'...');
                                 }
                             } else {
-                                embed.setDescription(infotext)
+                                embed.setDescription('['+infotext)
                                 .addField(highest.question, "_ _");
                             }
 

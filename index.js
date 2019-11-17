@@ -722,44 +722,6 @@ bot.on('ready', () => {
     })
 
     stagesAsync.push({
-        name: "MOTD Generator",
-        fn: function(cb) {
-            try {
-                memory.db.motd.find({ motd: true }, (err, docs) => {
-                    try {
-                        if (err) {
-                            throw err
-                        } else {
-                            let embed = new discord.RichEmbed()
-                                .setColor(cfg.vs.embed.default)
-                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_fine.png'), "icon.png"))
-                                .setAuthor('Welcome to the official OptiFine Discord server!', 'attachment://icon.png')
-                                .setDescription(`Please be sure to read the <#479192475727167488> BEFORE posting, not to mention the <#531622141393764352>. If you're a donator, use the command \`${memory.bot.trigger}help dr\` for instructions to get your donator role.`)
-                                .setFooter('Thank you for reading!')
-                            
-                            if (docs[0] && docs[0].message.length > 0) {
-                                embed.addField(`A message from Moderators (Posted on ${docs[0].date.toUTCString()})`, docs[0].message);
-                            }
-            
-                            memory.bot.motd = embed;
-            
-                            cb();
-                        }
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                });
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-        }
-    });
-
-    stagesAsync.push({
         name: "Deletable Message Loader",
         fn: function(cb) {
             try {
@@ -1200,6 +1162,44 @@ bot.on('ready', () => {
                                 TOOLS.shutdownHandler(24);
                             }
                         });
+                    }
+                    catch (err) {
+                        log(err.stack, 'fatal')
+                        TOOLS.shutdownHandler(24);
+                    }
+                });
+            }
+            catch (err) {
+                log(err.stack, 'fatal')
+                TOOLS.shutdownHandler(24);
+            }
+        }
+    });
+
+    stages.push({
+        name: "MOTD Generator",
+        fn: function(cb) {
+            try {
+                memory.db.motd.find({ motd: true }, (err, docs) => {
+                    try {
+                        if (err) {
+                            throw err
+                        } else {
+                            let embed = new discord.RichEmbed()
+                                .setColor(cfg.vs.embed.default)
+                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_fine.png'), "icon.png"))
+                                .setAuthor('Welcome to the official OptiFine Discord server!', 'attachment://icon.png')
+                                .setDescription(`Please be sure to read the <#479192475727167488> BEFORE posting, not to mention the <#531622141393764352>. If you're a donator, use the command \`${memory.bot.trigger}help dr\` for instructions to get your donator role.`)
+                                .setFooter('Thank you for reading!')
+                            
+                            if (docs[0] && docs[0].message.length > 0) {
+                                embed.addField(`A message from Moderators (Posted on ${docs[0].date.toUTCString()})`, docs[0].message);
+                            }
+            
+                            memory.bot.motd = embed;
+            
+                            cb();
+                        }
                     }
                     catch (err) {
                         log(err.stack, 'fatal')
@@ -3571,7 +3571,7 @@ CMD.register(new Command({
                     TOOLS.errorHandler({ err: `Nice try.`, m:m });
                 } else {
                     bot.guilds.get(cfg.basic.of_server).fetchMember(userid).then(member => {
-                        if (member.permissions.has("KICK_MEMBERS", true)) {
+                        if (member.permissions.has("KICK_MEMBERS", true) || member.roles.has(cfg.roles.junior_mod) || member.user.bot) {
                             TOOLS.errorHandler({ m: m, err: `That user is too powerful to be given a warning.` });
                         } else {
                             TOOLS.getProfile(m, userid, (profile) => {
@@ -5152,7 +5152,7 @@ CMD.register(new Command({
 
                 if (Buffer.isBuffer(returnMsg)) {
                     TOOLS.typerHandler(m.channel, false);
-                    m.channel.send(undefined, new discord.Attachment(returnMsg, 'buffer.'+file_encoding));
+                    m.channel.send(undefined, new discord.Attachment(returnMsg, 'buffer.png'));
                 } else 
                 if (msg.length >= 2000) {
                     log(returnMsg, 'warn');
@@ -6634,7 +6634,7 @@ TOOLS.muteHandler = (m, args, action) => {
             TOOLS.errorHandler({ err: `Nice try.`, m:m });
         } else {
             bot.guilds.get(cfg.basic.of_server).fetchMember(target).then(member => {
-                if (member.permissions.has("KICK_MEMBERS", true)) {
+                if (member.permissions.has("KICK_MEMBERS", true) || member.roles.has(cfg.roles.junior_mod) || member.user.bot) {
                     TOOLS.errorHandler({ m: m, err: `That user is too powerful to be ${(action) ? "muted." : "muted in the first place."}` });
                 } else
                 if (action && member.roles.has(cfg.roles.muted)) {

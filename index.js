@@ -3363,17 +3363,31 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'loglvl',
     short_desc: "Change logging level.",
-    long_desc: `Changes console logging level. Must be a number 0-3.`,
+    long_desc: `Changes console logging level. Must be a number 0-5.`,
     usage: `<number>`,
-    tags: ['DM_OPTIONAL', 'DEVELOPER_ONLY'],
-    fn: (m) => {
-        //todo
-        let embed = new discord.RichEmbed()
-            .setColor(cfg.vs.embed.okay)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
-            .setImage('attachment://image.gif')
+    fn: (m, args) => {
+        if(!args[0]) {
+            TOOLS.errorHandler({ err: `You must specify the new log level.`, m:m });
+        } else
+        if(isNaN(parseInt(args[0]))) {
+            TOOLS.errorHandler({ err: `You must specify a valid number`, m:m });
+        } else 
+        if(parseInt(args[0]) > 5 || parseInt(args[0]) < 0) {
+            TOOLS.errorHandler({ err: `Number must be between 0 and 5.`, m:m });
+        } else {
+            // todo: add functionality to simply check current log level by providing no arguments
+            process.send({
+                type:'logLvl',
+                content: parseInt(args[0])
+            });
 
-        m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            let embed = new discord.RichEmbed()
+            .setColor(cfg.vs.embed.okay)
+            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+            .setAuthor(`Log level updated.`, 'attachment://icon.png')
+
+            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+        }
     }
 }));
 

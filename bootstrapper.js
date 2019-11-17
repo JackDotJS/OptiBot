@@ -23,7 +23,7 @@ const env = {
     debug: false,
     log: null,
     logName: null,
-    loglvl: 0,
+    loglvl: 2,
     init: new Date(),
     args: process.argv,
     rl: readline.createInterface({
@@ -44,7 +44,7 @@ const log = (m, lvl, data) => {
     let line = callerId.getData().lineNumber;
     let level = '[INFO]';
     let message = String(m);
-    let message_color = '\x1b[97m'
+    let message_color = '\x1b[97m';
     let level_color = '';
     let file_color = '\x1b[33m';
     let color_reset = '\x1b[0m';
@@ -56,13 +56,13 @@ const log = (m, lvl, data) => {
             message_color = '\x1b[91m';
         } else
         if(lvl.toLowerCase() === 'error') {
-            if(env.loglvl > 3) return;
+            if(env.loglvl > 4) return;
             level = '[ERROR]';
             level_color = '\x1b[91m';
             message_color = '\x1b[91m';
         } else
         if(lvl.toLowerCase() === 'warn') {
-            if(env.loglvl > 2) return;
+            if(env.loglvl > 3) return;
             level = '[WARN]';
             level_color = '\x1b[93m';
             message_color = '\x1b[93m';
@@ -79,6 +79,13 @@ const log = (m, lvl, data) => {
             level_color = '\x1b[35m';
             message_color = '\x1b[35m';
         }
+    }
+
+    if(!lvl || lvl.toLowerCase() === 'info') {
+        if(env.loglvl > 2) return;
+        level = '[INFO]';
+        level_color = '';
+        message_color = '\x1b[97m';
     }
 
     
@@ -322,6 +329,7 @@ function init_q2() {
     env.rl.question('Enable Development Flags? [Y/N]', (res) => {
         if(res.trim().toLowerCase() === 'y') {
             env.debug = true;
+            env.loglvl = 0;
             env.rl.close();
             init_final()
         } else
@@ -432,6 +440,10 @@ function init_final() {
                                     content: env.logName,
                                     id: data.id
                                 });
+                            } else
+                            if(data.type === 'logLvl') {
+                                env.loglvl = parseInt(data.content)
+                                log('Log level updated.', 'fatal');
                             } else
                             if(data.type === 'startup') {
                                 optibot.send({

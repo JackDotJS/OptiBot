@@ -1985,7 +1985,7 @@ bot.on('message', (m) => {
 
     let isSuper = cfg.superusers.indexOf(m.author.id) > -1;
 
-    if(memory.bot.newUsers.indexOf(m.author.id) > -1) {
+    if(memory.bot.newUsers.indexOf(m.author.id) > -1 && (m.channel.type === 'dm' || (cmdValidator && input.indexOf(cmdValidator[0]) === 0))) {
         let embed = new discord.RichEmbed()
         .setColor(cfg.vs.embed.error)
         .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))

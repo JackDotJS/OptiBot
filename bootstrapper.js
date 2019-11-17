@@ -21,6 +21,8 @@ const pkg = require('./package.json');
 
 const env = {
     debug: false,
+    log: null,
+    logName: null,
     loglvl: 0,
     init: new Date(),
     args: process.argv,
@@ -30,6 +32,7 @@ const env = {
     }),
     rph: 0, // resets per hour
     currentHour: 0,
+    crashData: null
 }
 
 const log = (m, lvl, data) => {
@@ -53,23 +56,25 @@ const log = (m, lvl, data) => {
             message_color = '\x1b[91m';
         } else
         if(lvl.toLowerCase() === 'error') {
+            if(env.loglvl > 3) return;
             level = '[ERROR]';
             level_color = '\x1b[91m';
             message_color = '\x1b[91m';
         } else
         if(lvl.toLowerCase() === 'warn') {
+            if(env.loglvl > 2) return;
             level = '[WARN]';
             level_color = '\x1b[93m';
             message_color = '\x1b[93m';
         } else
         if(lvl.toLowerCase() === 'debug') {
-            if(!env.debug) return;
+            if(env.loglvl > 1) return;
             level = '[DEBUG]';
             level_color = '\x1b[35m';
             message_color = '\x1b[35m';
         } else
         if(lvl.toLowerCase() === 'trace') {
-            if(!env.debug) return;
+            if(env.loglvl > 0) return;
             level = '[TRACE]';
             level_color = '\x1b[35m';
             message_color = '\x1b[35m';
@@ -335,7 +340,7 @@ function init_final() {
     env.log = fs.createWriteStream(`./logs/${env.logName}.log`);
 
     setTimeout(() => {
-        if(env.rph > 32 && !env.debug) {
+        if(env.rph > 8 && !env.debug) {
             log(`Reset limit exceeded.`, 'fatal');
             log(`OptiBot encountered too many fatal errors and is shutting down to prevent any further damage. This is likely a problem that the program cannot solve on it's own.`);
             end(code, true, 'FATAL');
@@ -377,9 +382,12 @@ function init_final() {
                     function startBot() {
                         process.stdout.write('\033c');
                         log('Initialization: Spawning child process (index.js)', 'debug');
-                        const optibot = spawn('node', ['index.js', env.debug, env.init.getTime(), env.logName], {
+                        const optibot = spawn('node', ['index.js', env.debug], {
                             stdio: ['pipe', 'pipe', 'pipe', 'ipc']
                         });
+
+                        let crashData_temp = null;
+                        
 
                         optibot.stdout.on('data', (data) => {
                             log(data, undefined, 'index.js:NULL');
@@ -390,8 +398,55 @@ function init_final() {
                         });
 
                         optibot.on('message', (data) => {
-                            if(typeof data.misc !== 'undefined') {
-                                log(data.message, data.level, data.misc);
+                            //log(data, 'trace');
+                            if(data.type === 'log') {
+                                if (typeof data.misc !== 'undefined') {
+                                    log(data.message, data.level, data.misc);
+                                }
+                            } else
+                            if(data.type === 'ready') {
+                                log('Bot ready', 'debug');
+                                log(env.crashData, 'debug');
+                                if(env.crashData) {
+                                    log('It seems OptiBot recovered from a crash.', 'warn')
+                                    optibot.send({
+                                        crash: env.crashData
+                                    });
+
+                                    env.crashData = null;
+                                }
+                            } else
+                            if(data.type === 'status') {
+                                log(`Status acknowledged`, 'debug');
+                                crashData_temp = {
+                                    guild: data.guild,
+                                    channel: data.channel,
+                                    message: data.message,
+                                    log: env.logName
+                                }
+                                log(crashData_temp, 'trace');
+                            } else
+                            if(data.type === 'logName') {
+                                optibot.send({
+                                    type: data.type,
+                                    content: env.logName,
+                                    id: data.id
+                                });
+                            } else
+                            if(data.type === 'startup') {
+                                optibot.send({
+                                    type: data.type,
+                                    content: env.init.getTime(),
+                                    id: data.id
+                                });
+                            } else
+                            if(data.type && data.id) {
+                                log(`Unknown data request: ${data.type}`, 'warn');
+                                optibot.send({
+                                    type: 'null',
+                                    content: 'null',
+                                    id: data.id
+                                })
                             }
                         });
 
@@ -405,7 +460,19 @@ function init_final() {
                                 } else
                                 if(code === 1) {
                                     log('OptiBot seems to have crashed. Restarting...');
-                                    end(code, false, 'CRASH');
+                                    let logSuffix = 'CRASH';
+
+                                    if(crashData_temp) {
+                                        log('before', 'trace')
+                                        log(env.crashData, 'trace')
+
+                                        crashData_temp.log = `${env.logName}_${logSuffix}.log`;
+
+                                        env.crashData = JSON.parse(JSON.stringify(crashData_temp));
+                                        log('after', 'trace')
+                                        log(env.crashData, 'trace')
+                                    }
+                                    end(code, false, logSuffix);
                                 } else
                                 if(code === 2) {
                                     log('OptiBot is now restarting at user request...');

@@ -2376,7 +2376,7 @@ CMD.register(new Command({
     trigger: 'obs',
     short_desc: 'Emergency Shutoff',
     long_desc: `To be used in the event that OptiBot encounters a fatal error and does not shut down automatically. This should especially be used in the case of the bot spamming a text channel. \n\n**This is a last resort option, which could potentially corrupt data if used incorrectly. If at all possible, you should attempt to use the \`${memory.bot.trigger}stop\` command first.**`,
-    tags: ['MODERATOR_ONLY', 'NO_JR_MOD', 'NO_DM'],
+    tags: ['MODERATOR_ONLY', 'NO_DM'],
     fn: (m) => {
         log('Emergency shutdown initiated.', 'fatal');
         bot.destroy();
@@ -4796,8 +4796,8 @@ CMD.register(new Command({
 
 CMD.register(new Command({
     trigger: 'list',
-    short_desc: 'List all OptiBot commands.',
-    long_desc: `Lists all OptiBot commands, including a short description for each.\n\n"Special" pages can be specified before or after the page number. It works either way. For example, if you're a moderator, you can list Moderator-only commands by typing "mod" or "admin".`,
+    short_desc: 'List OptiBot commands.',
+    long_desc: `Lists OptiBot commands, including a short description for each.\n\n"Special" pages can be specified before or after the page number. It works either way. For example, if you're a moderator, you can list Moderator-only commands by typing "mod" or "admin".`,
     usage: "[page # [special] | special [page #]]",
     tags: ['BOT_CHANNEL_ONLY', 'DM_OPTIONAL'],
     fn: (m, args, member, misc) => {
@@ -4812,6 +4812,9 @@ CMD.register(new Command({
                 } else
                 if (args[0].toLowerCase() === 'sudo' && misc.isSuper) {
                     menu = 'sudo'
+                } else
+                if (args[0].toLowerCase() === 'all' && misc.isSuper) {
+                    menu = 'all'
                 }
             } else 
             if (args[1] && isNaN(args[1])) {
@@ -4820,6 +4823,9 @@ CMD.register(new Command({
                 } else
                 if (args[1].toLowerCase() === 'sudo' && misc.isSuper) {
                     menu = 'sudo'
+                } else
+                if (args[1].toLowerCase() === 'all' && misc.isSuper) {
+                    menu = 'all'
                 }
             }
 
@@ -4835,6 +4841,9 @@ CMD.register(new Command({
             } else
             if (menu === 'admin') {
                 filtered = list.filter((cmd) => (cmd.getMetadata().tags['MODERATOR_ONLY'] === true && cmd.getMetadata().tags['DEVELOPER_ONLY'] === false));
+            } else 
+            if (menu === 'all') {
+                filtered = list
             } else {
                 filtered = list.filter((cmd) => (cmd.getMetadata().tags['MODERATOR_ONLY'] === false && cmd.getMetadata().tags['DEVELOPER_ONLY'] === false));
             }
@@ -4852,6 +4861,9 @@ CMD.register(new Command({
             } else 
             if (menu === 'admin') {
                 special_text = 'Special menu: Administration/Moderation\n\n';
+            } else
+            if (menu === 'all') {
+                special_text = 'Special menu: **Literally Everything**\n\n';
             }
 
             let embed = new discord.RichEmbed()
@@ -4859,7 +4871,7 @@ CMD.register(new Command({
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
                 .setAuthor(`OptiBot Commands List | Page ${pageNum}/${pageLimit}`, 'attachment://icon.png')
                 .setDescription(`${special_text} Hover over the tooltip icons \([\[\\❔\]](${m.url.replace(/\/\d+$/, '')} "No easter eggs here... 👀")\) or use \`${memory.bot.trigger}help <command>\` for detailed information.`)
-                .setFooter(`Viewing ${filtered.length} commands, out of ${list.length} total.`);
+                .setFooter(`Viewing ${filtered.length} commands, out of ${list.length} total. Many commands may be hidden based on your permissions.`);
             
                 let i = (pageNum > 1) ? (10 * (pageNum - 1)) : 0;
                 let added = 0;
@@ -4879,7 +4891,7 @@ CMD.register(new Command({
 
                     hover_text.push(`\nUsage: ${cmd.usage}`);
 
-                    if (cmd.tags['MDOERATOR_ONLY']) {
+                    if (cmd.tags['MODERATOR_ONLY']) {
                         if(cmd.tags['NO_JR_MOD']) {
                             hover_text.push('\n🔒 This command can *only* be used by Senior Moderators & Administrators.');
                         } else {
@@ -5052,28 +5064,54 @@ CMD.register(new Command({
     trigger: 'mock',
     short_desc: 'MoCkInG tOnE translator',
     long_desc: 'Rewrites a given message with a mOcKiNg tOnE. In other words, it makes every first character lowercase and every second character uppercase.',
-    usage: "<text>",
-    tags: ['MODERATOR_ONLY', 'DM_OPTIONAL'],
+    usage: "<text|^ shortcut>",
+    tags: ['DM_OPTIONAL'],
     fn: (m, args) => {
         if (args[0]) {
-            let org = m.content.substring( (memory.bot.trigger + 'mock ').length );
-            let newStr = '';
+            let translate = function(message) {
+                let newStr = '';
 
-            for(let i = 0; i < org.length; i++) {
-                let thisChar = org.charAt(i);
+                for(let i = 0; i < message.length; i++) {
+                    let thisChar = message.charAt(i);
 
-                if (i % 2 === 1) {
-                    thisChar = thisChar.toUpperCase();
-                } else {
-                    thisChar = thisChar.toLowerCase();
+                    if (i % 2 === 1) {
+                        thisChar = thisChar.toUpperCase();
+                    } else {
+                        thisChar = thisChar.toLowerCase();
+                    }
+
+                    newStr += thisChar;
+
+                    if (i+1 === message.length) {
+                        TOOLS.typerHandler(m.channel, false);
+                        m.channel.send(newStr);
+                    }
                 }
+            }
 
-                newStr += thisChar;
+            if(args[0] === '^') {
+                m.channel.fetchMessages({ limit: 25 }).then(msgs => {
+                    let itr = msgs.values();
+        
+                    (function search() {
+                        let thisID = itr.next();
 
-                if (i+1 === org.length) {
-                    TOOLS.typerHandler(m.channel, false);
-                    m.channel.send(`\`\`\`${newStr}\`\`\``);
-                }
+                        if (thisID.done) {
+                            let embed = new discord.RichEmbed()
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
+                            .setColor(cfg.vs.embed.error)
+                            .setAuthor(`Could not find a user.`, "attachment://icon.png")
+                            .setFooter('Note that this shortcut will skip yourself, and all bots. This includes OptiBot, obviously.');
+        
+                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        } else
+                        if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1 && !thisID.value.author.bot) {
+                            translate(thisID.value.content);
+                        } else search();
+                    })();
+                }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+            } else {
+                translate(m.content.substring( (memory.bot.trigger + 'mock ').length ) );
             }
         } else {
             TOOLS.errorHandler({ err: "You must specify a message to translate.", m: m });

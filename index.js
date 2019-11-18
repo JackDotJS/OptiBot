@@ -657,285 +657,171 @@ process.on('message', (m) => {
 ////////////////////////////////////////
 
 bot.on('ready', () => {
-    let status_check = () => {
-        if(bot.status !== memory.bot.botStatus) {
-            let translate = function (num) {
-                if(num === null) {
-                    return 'BOOT';
-                } else
-                if(num === 0) {
-                    return 'READY';
-                } else
-                if(num === 1) {
-                    return 'CONNECTING';
-                } else
-                if(num === 2) {
-                    return 'RECONNECTING';
-                } else
-                if(num === 3) {
-                    return 'IDLE';
-                } else
-                if(num === 4) {
-                    return 'NEARLY';
-                } else
-                if(num === 5) {
-                    return 'DISCONNECTED';
-                } else {
-                    return 'UNKNOWN'
+    if(memory.bot.booting) {
+        let status_check = () => {
+            if(bot.status !== memory.bot.botStatus) {
+                let translate = function (num) {
+                    if(num === null) {
+                        return 'BOOT';
+                    } else
+                    if(num === 0) {
+                        return 'READY';
+                    } else
+                    if(num === 1) {
+                        return 'CONNECTING';
+                    } else
+                    if(num === 2) {
+                        return 'RECONNECTING';
+                    } else
+                    if(num === 3) {
+                        return 'IDLE';
+                    } else
+                    if(num === 4) {
+                        return 'NEARLY';
+                    } else
+                    if(num === 5) {
+                        return 'DISCONNECTED';
+                    } else {
+                        return 'UNKNOWN'
+                    }
+                }
+        
+                log(`Client state changed: ${translate(memory.bot.botStatus)} => ${translate(bot.status)}`, 'warn')
+                memory.bot.botStatus = bot.status;
+            }
+        }
+        memory.bot.status_check = bot.setInterval(status_check, 100);
+        status_check();
+    
+        let bootTimeStart = new Date();
+        let stages = []
+        let stagesAsync = [];
+    
+        // ASYNC STAGES
+    
+        stagesAsync.push({
+            name: "Audit Log Initial Cache",
+            fn: function(cb) {
+                try {
+                    bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
+                        try {
+                            memory.bot.log = [...audit.entries.values()];
+            
+                            cb();
+                        }
+                        catch (err) {
+                            log(err.stack, 'fatal')
+                            TOOLS.shutdownHandler(24);
+                        }
+                    });
+                }
+                catch (err) {
+                    log(err.stack, 'fatal')
+                    TOOLS.shutdownHandler(24);
                 }
             }
+        })
     
-            log(`Client state changed: ${translate(memory.bot.botStatus)} => ${translate(bot.status)}`, 'warn')
-            memory.bot.botStatus = bot.status;
-        }
-    }
-    memory.bot.status_check = bot.setInterval(status_check, 100);
-    status_check();
-
-    let bootTimeStart = new Date();
-    let stages = []
-    let stagesAsync = [];
-
-    // ASYNC STAGES
-
-    stagesAsync.push({
-        name: "Audit Log Initial Cache",
-        fn: function(cb) {
-            try {
-                bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
-                    try {
-                        memory.bot.log = [...audit.entries.values()];
-        
-                        cb();
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                });
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-        }
-    })
-
-    stagesAsync.push({
-        name: "Deletable Message Loader",
-        fn: function(cb) {
-            try {
-                memory.db.msg.find({}, (err, docs) => {
-                    try {
-                        if (err) {
-                            throw err
-                        } else {
-                            let i = 0;
-                            let needsRemoval = [];
-            
-                            (function fetchNext() {
-                                try {
-                                    log('fetchNext '+i, 'trace');
-                                    if (i === docs.length) {
-                                        cb();
-
-                                        if(needsRemoval.length > 0) {
-                                            let ir = 0;
-                                            let failed = 0;
-                                            (function removeNext() {
-                                                memory.db.msg.remove({message: needsRemoval[ir]}, {}, (err) => {
-                                                    if(err) {
-                                                        TOOLS.errorHandler({ err: err });
-                                                        failed++;
-                                                    }
-
-                                                    if(ir+1 >= needsRemoval.length) {
-                                                        log(`Successfully removed ${needsRemoval.length-failed}/${needsRemoval.length} messages from cache.`);
-                                                    } else {
-                                                        ir++
-                                                        removeNext();
-                                                    }
-                                                });
-                                            })();
-                                        }
-                                    } else {
-                                        bot.guilds.get(docs[i].guild).channels.get(docs[i].channel).fetchMessage(docs[i].message).then(m => {
-                                            try {
-                                                log('got msg', 'trace');
-                                                if (m.deleted) {
-                                                    needsRemoval.push(docs[i].message);
-                                                    i++
-                                                    fetchNext();
-                                                } else {
-                                                    log('not deleted', 'trace');
-                                                    let reaction = m.reactions.get('click_to_delete:642085525460877334');
-                                                    if (!reaction) {
-                                                        log('reaction not added fsr', 'trace');
-                                                        m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('642085525460877334')).catch(err => {
-                                                            TOOLS.errorHandler({ err: err });
-                                                        });
-                    
-                                                        i++
-                                                        fetchNext();
-                                                    } else {
-                                                        log('get users', 'trace');
-                                                        reaction.fetchUsers().then(u => {
-                                                            try {
-                                                                if (u.has(docs[i].user)) {
-                                                                    m.delete().then(() => {
-                                                                        needsRemoval.push(docs[i].message);
-                                                                        i++
-                                                                        fetchNext();
-                                                                    }).catch(err => {
-                                                                        TOOLS.errorHandler({ err: err });
-                                                                        i++
-                                                                        fetchNext();
-                                                                    });
-                                                                } else {
-                                                                    i++
-                                                                    fetchNext();
-                                                                }
-                                                            }
-                                                            catch (err) {
-                                                                log(err.stack, 'fatal')
-                                                                TOOLS.shutdownHandler(24);
-                                                            }
-                                                        }).catch(err => {
-                                                            TOOLS.errorHandler({ err: err });
-                                                            i++
-                                                            fetchNext();
-                                                        });
-                                                    }
-                                                }
-                                            }
-                                            catch (err) {
-                                                log(err.stack, 'fatal')
-                                                TOOLS.shutdownHandler(24);
-                                            }
-                                        }).catch(err => {
-                                            if(err.stack.toLowerCase().indexOf('unknown message') > -1) {
-                                                needsRemoval.push(docs[i].message);
-                                                i++
-                                                fetchNext();
-                                            } else {
-                                                log('Failed to load cached message: ' + err.stack, 'error');
-                                                i++
-                                                fetchNext();
-                                            }
-                                        });
-                                    }
-                                }
-                                catch (err) {
-                                    log(err.stack, 'fatal')
-                                    TOOLS.shutdownHandler(24);
-                                }
-                            })();
-                        }
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                });
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-        }
-    });
-
-    stagesAsync.push({
-        name: "Command Sorter",
-        fn: function(cb) {
-            try {
-                CMD.sort();
-                cb();
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-        }
-    });
-
-    // SYNC STAGES
-
-    stages.push({
-        name: "Icon/Image Loader",
-        fn: function(cb) {
-            try {
-                fs.readdir('./icons', (err, files) => {
-                    try {
-                        if (err) {
-                            throw err
-                        } else {
-                            let i = 0;
-                            (function loadNext() {
-                                if (i === files.length) {
-                                    s2();
-                                } else {
-                                    fs.readFile('./icons/' + files[i], (err, data) => {
-                                        if (err) {
-                                            if (err.code !== 'EISDIR') {
-                                                TOOLS.errorHandler({ err: 'Failed to load icon file: ' + err.stack });
-                                            };
-    
-                                            i++;
-                                            loadNext();
-                                        } else {
-                                            if (!files[i].startsWith('.')) {
-                                                memory.bot.icons.add(data, files[i]);
-                                            }
-    
-                                            i++;
-                                            loadNext();
-                                        }
-                                    });
-                                }
-                            })();
-                        }
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                });
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-    
-            function s2() {
+        stagesAsync.push({
+            name: "Deletable Message Loader",
+            fn: function(cb) {
                 try {
-                    fs.readdir('./images', (err, files) => {
+                    memory.db.msg.find({}, (err, docs) => {
                         try {
                             if (err) {
                                 throw err
                             } else {
                                 let i = 0;
-                                (function loadNext() {
+                                let needsRemoval = [];
+                
+                                (function fetchNext() {
                                     try {
-                                        if (i === files.length) {
-                                            // STAGE 1 FINISHED
+                                        log('fetchNext '+i, 'trace');
+                                        if (i === docs.length) {
                                             cb();
+    
+                                            if(needsRemoval.length > 0) {
+                                                let ir = 0;
+                                                let failed = 0;
+                                                (function removeNext() {
+                                                    memory.db.msg.remove({message: needsRemoval[ir]}, {}, (err) => {
+                                                        if(err) {
+                                                            TOOLS.errorHandler({ err: err });
+                                                            failed++;
+                                                        }
+    
+                                                        if(ir+1 >= needsRemoval.length) {
+                                                            log(`Successfully removed ${needsRemoval.length-failed}/${needsRemoval.length} messages from cache.`);
+                                                        } else {
+                                                            ir++
+                                                            removeNext();
+                                                        }
+                                                    });
+                                                })();
+                                            }
                                         } else {
-                                            fs.readFile('./images/' + files[i], (err, data) => {
-                                                if (err) {
-                                                    if (err.code !== 'EISDIR') {
-                                                        TOOLS.errorHandler({ err: 'Failed to load image file: ' + err.stack });
-                                                    };
-        
-                                                    i++;
-                                                    loadNext();
-                                                } else {
-                                                    if (!files[i].startsWith('.')) {
-                                                        memory.bot.images.add(data, files[i]);
+                                            bot.guilds.get(docs[i].guild).channels.get(docs[i].channel).fetchMessage(docs[i].message).then(m => {
+                                                try {
+                                                    log('got msg', 'trace');
+                                                    if (m.deleted) {
+                                                        needsRemoval.push(docs[i].message);
+                                                        i++
+                                                        fetchNext();
+                                                    } else {
+                                                        log('not deleted', 'trace');
+                                                        let reaction = m.reactions.get('click_to_delete:642085525460877334');
+                                                        if (!reaction) {
+                                                            log('reaction not added fsr', 'trace');
+                                                            m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('642085525460877334')).catch(err => {
+                                                                TOOLS.errorHandler({ err: err });
+                                                            });
+                        
+                                                            i++
+                                                            fetchNext();
+                                                        } else {
+                                                            log('get users', 'trace');
+                                                            reaction.fetchUsers().then(u => {
+                                                                try {
+                                                                    if (u.has(docs[i].user)) {
+                                                                        m.delete().then(() => {
+                                                                            needsRemoval.push(docs[i].message);
+                                                                            i++
+                                                                            fetchNext();
+                                                                        }).catch(err => {
+                                                                            TOOLS.errorHandler({ err: err });
+                                                                            i++
+                                                                            fetchNext();
+                                                                        });
+                                                                    } else {
+                                                                        i++
+                                                                        fetchNext();
+                                                                    }
+                                                                }
+                                                                catch (err) {
+                                                                    log(err.stack, 'fatal')
+                                                                    TOOLS.shutdownHandler(24);
+                                                                }
+                                                            }).catch(err => {
+                                                                TOOLS.errorHandler({ err: err });
+                                                                i++
+                                                                fetchNext();
+                                                            });
+                                                        }
                                                     }
-        
-                                                    i++;
-                                                    loadNext();
+                                                }
+                                                catch (err) {
+                                                    log(err.stack, 'fatal')
+                                                    TOOLS.shutdownHandler(24);
+                                                }
+                                            }).catch(err => {
+                                                if(err.stack.toLowerCase().indexOf('unknown message') > -1) {
+                                                    needsRemoval.push(docs[i].message);
+                                                    i++
+                                                    fetchNext();
+                                                } else {
+                                                    log('Failed to load cached message: ' + err.stack, 'error');
+                                                    i++
+                                                    fetchNext();
                                                 }
                                             });
                                         }
@@ -958,61 +844,249 @@ bot.on('ready', () => {
                     TOOLS.shutdownHandler(24);
                 }
             }
-        }
-    });
-
-    stages.push({
-        name: "GitHub Documentation Loader",
-        fn: function(cb) {
-            try {
-                request({ url: 'https://api.github.com/repos/sp614x/optifine/contents/OptiFineDoc/doc?ref=master&access_token=' + keys.github, headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                    try {
-                        if (err || !res || !body) {
-                            throw (err || new Error('Failed to get a response from the GitHub API. (boot stage 2, subop 1)'))
-                        } else {
-                            let result = JSON.parse(body);
+        });
+    
+        stagesAsync.push({
+            name: "Command Sorter",
+            fn: function(cb) {
+                try {
+                    CMD.sort();
+                    cb();
+                }
+                catch (err) {
+                    log(err.stack, 'fatal')
+                    TOOLS.shutdownHandler(24);
+                }
+            }
+        });
+    
+        // SYNC STAGES
+    
+        stages.push({
+            name: "Icon/Image Loader",
+            fn: function(cb) {
+                try {
+                    fs.readdir('./icons', (err, files) => {
+                        try {
+                            if (err) {
+                                throw err
+                            } else {
+                                let i = 0;
+                                (function loadNext() {
+                                    if (i === files.length) {
+                                        s2();
+                                    } else {
+                                        fs.readFile('./icons/' + files[i], (err, data) => {
+                                            if (err) {
+                                                if (err.code !== 'EISDIR') {
+                                                    TOOLS.errorHandler({ err: 'Failed to load icon file: ' + err.stack });
+                                                };
         
-                            if (result.message) {
-                                TOOLS.errorHandler({ err: new Error('GitHub API rate limit exceeded: ' + result.message) });
-                                return;
+                                                i++;
+                                                loadNext();
+                                            } else {
+                                                if (!files[i].startsWith('.')) {
+                                                    memory.bot.icons.add(data, files[i]);
+                                                }
+        
+                                                i++;
+                                                loadNext();
+                                            }
+                                        });
+                                    }
+                                })();
                             }
-        
-                            memory.bot.docs = result.filter(e => { if (e.type !== 'dir') return true });;
-        
-                            s2();
                         }
+                        catch (err) {
+                            log(err.stack, 'fatal')
+                            TOOLS.shutdownHandler(24);
+                        }
+                    });
+                }
+                catch (err) {
+                    log(err.stack, 'fatal')
+                    TOOLS.shutdownHandler(24);
+                }
+        
+                function s2() {
+                    try {
+                        fs.readdir('./images', (err, files) => {
+                            try {
+                                if (err) {
+                                    throw err
+                                } else {
+                                    let i = 0;
+                                    (function loadNext() {
+                                        try {
+                                            if (i === files.length) {
+                                                // STAGE 1 FINISHED
+                                                cb();
+                                            } else {
+                                                fs.readFile('./images/' + files[i], (err, data) => {
+                                                    if (err) {
+                                                        if (err.code !== 'EISDIR') {
+                                                            TOOLS.errorHandler({ err: 'Failed to load image file: ' + err.stack });
+                                                        };
+            
+                                                        i++;
+                                                        loadNext();
+                                                    } else {
+                                                        if (!files[i].startsWith('.')) {
+                                                            memory.bot.images.add(data, files[i]);
+                                                        }
+            
+                                                        i++;
+                                                        loadNext();
+                                                    }
+                                                });
+                                            }
+                                        }
+                                        catch (err) {
+                                            log(err.stack, 'fatal')
+                                            TOOLS.shutdownHandler(24);
+                                        }
+                                    })();
+                                }
+                            }
+                            catch (err) {
+                                log(err.stack, 'fatal')
+                                TOOLS.shutdownHandler(24);
+                            }
+                        });
                     }
                     catch (err) {
                         log(err.stack, 'fatal')
                         TOOLS.shutdownHandler(24);
                     }
-                });
+                }
             }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
+        });
     
-            function s2() {
+        stages.push({
+            name: "GitHub Documentation Loader",
+            fn: function(cb) {
                 try {
-                    request({ url: 'https://api.github.com/repos/sp614x/optifine/contents/OptiFineDoc/doc/images?ref=master&access_token=' + keys.github, headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
+                    request({ url: 'https://api.github.com/repos/sp614x/optifine/contents/OptiFineDoc/doc?ref=master&access_token=' + keys.github, headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
                         try {
                             if (err || !res || !body) {
-                                throw (err || new Error('Failed to get a response from the GitHub API. (boot stage 2, subop 2)'))
+                                throw (err || new Error('Failed to get a response from the GitHub API. (boot stage 2, subop 1)'))
                             } else {
                                 let result = JSON.parse(body);
-    
+            
                                 if (result.message) {
                                     TOOLS.errorHandler({ err: new Error('GitHub API rate limit exceeded: ' + result.message) });
                                     return;
                                 }
+            
+                                memory.bot.docs = result.filter(e => { if (e.type !== 'dir') return true });;
+            
+                                s2();
+                            }
+                        }
+                        catch (err) {
+                            log(err.stack, 'fatal')
+                            TOOLS.shutdownHandler(24);
+                        }
+                    });
+                }
+                catch (err) {
+                    log(err.stack, 'fatal')
+                    TOOLS.shutdownHandler(24);
+                }
+        
+                function s2() {
+                    try {
+                        request({ url: 'https://api.github.com/repos/sp614x/optifine/contents/OptiFineDoc/doc/images?ref=master&access_token=' + keys.github, headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
+                            try {
+                                if (err || !res || !body) {
+                                    throw (err || new Error('Failed to get a response from the GitHub API. (boot stage 2, subop 2)'))
+                                } else {
+                                    let result = JSON.parse(body);
+        
+                                    if (result.message) {
+                                        TOOLS.errorHandler({ err: new Error('GitHub API rate limit exceeded: ' + result.message) });
+                                        return;
+                                    }
+        
+                                    for (let i = 0; i < result.length; i++) {
+                                        memory.bot.docs.push(result[i]);
+        
+                                        if (i + 1 === result.length) {
+                                            // STAGE 2 FINISHED
+                                            cb();
+                                        }
+                                    }
+                                }
+                            }
+                            catch (err) {
+                                log(err.stack, 'fatal')
+                                TOOLS.shutdownHandler(24);
+                            }
+                        });
+                    }
+                    catch (err) {
+                        log(err.stack, 'fatal')
+                        TOOLS.shutdownHandler(24);
+                    }
+                }
+            }
+        });
     
-                                for (let i = 0; i < result.length; i++) {
-                                    memory.bot.docs.push(result[i]);
-    
-                                    if (i + 1 === result.length) {
-                                        // STAGE 2 FINISHED
-                                        cb();
+        stages.push({
+            name: "StopModReposts Database Loader",
+            fn: function(cb) {
+                try {
+                    request({ url: "https://api.varden.info/smr/sitelist.php?format=json", headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
+                        try {
+                            if (err || !res || !body) {
+                                throw (err || new Error('Failed to get a response from the StopModReposts API.'))
+                            } else {
+                                let sitelist = JSON.parse(body);
+                                let smr_data = [];
+        
+                                memory.db.smr.find({}, (err, docs) => {
+                                    try {
+                                        if (err) {
+                                            throw err
+                                        } else
+                                        if (!docs[0]) {
+                                            getSMRSites();
+                                        } else {
+                                            for(let i2 in docs) {
+                                                smr_data.push(docs[i2].url);
+            
+                                                if (parseInt(i2)+1 === docs.length) {
+                                                    getSMRSites();
+                                                }
+                                            }
+                                        }
+                                    }
+                                    catch (err) {
+                                        log(err.stack, 'fatal')
+                                        TOOLS.shutdownHandler(24);
+                                    }
+                                });
+        
+                                function getSMRSites() {
+                                    log('getSMRSite()', 'trace');
+                                    try {
+                                        for(let i=0; i<sitelist.length; i++) {
+                                            if(sitelist[i].path !== "\/") {
+                                                smr_data.push(sitelist[i].domain + (JSON.parse(`["${sitelist[i].path}"]`)[0]));
+                                            } else {
+                                                smr_data.push(sitelist[i].domain);
+                                            }
+                
+                                            if(i+1 >= sitelist.length) {
+                                                memory.bot.smr = smr_data;
+                    
+                                                cb();
+                                            }
+                                        }
+                                    }
+                                    catch (err) {
+                                        log(err.stack, 'fatal')
+                                        TOOLS.shutdownHandler(24);
                                     }
                                 }
                             }
@@ -1028,36 +1102,60 @@ bot.on('ready', () => {
                     TOOLS.shutdownHandler(24);
                 }
             }
-        }
-    });
-
-    stages.push({
-        name: "StopModReposts Database Loader",
-        fn: function(cb) {
-            try {
-                request({ url: "https://api.varden.info/smr/sitelist.php?format=json", headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                    try {
-                        if (err || !res || !body) {
-                            throw (err || new Error('Failed to get a response from the StopModReposts API.'))
-                        } else {
-                            let sitelist = JSON.parse(body);
-                            let smr_data = [];
+        });
     
-                            memory.db.smr.find({}, (err, docs) => {
-                                try {
-                                    if (err) {
-                                        throw err
-                                    } else
-                                    if (!docs[0]) {
-                                        getSMRSites();
-                                    } else {
-                                        for(let i2 in docs) {
-                                            smr_data.push(docs[i2].url);
+        stages.push({
+            name: "Server List Parser",
+            fn: function(cb) {
+                try {
+                    let i = 0;
+                    (function parseItemLoop() {
+                        try {
+                            let item = serverlist[i];
         
-                                            if (parseInt(i2)+1 === docs.length) {
-                                                getSMRSites();
-                                            }
-                                        }
+                            memory.bot.servers[[item.name.toLowerCase()]] = item.link;
+                            item.aliases.forEach(e => {
+                                memory.bot.servers[[e.toLowerCase()]] = item.link;
+                            });
+        
+                            if (i+1 === serverlist.length) {
+                                cb();
+                            } else {
+                                i++;
+                                parseItemLoop();
+                            }
+                        }
+                        catch (err) {
+                            log(err.stack, 'fatal')
+                            TOOLS.shutdownHandler(24);
+                        }
+                    })();
+                }
+                catch (err) {
+                    log(err.stack, 'fatal')
+                    TOOLS.shutdownHandler(24);
+                }
+            }
+        });
+    
+        stages.push({
+            name: "Bot Avatar Composite",
+            fn: function(cb) {
+                try {
+                    let p0 = jimp.read(bot.user.avatarURL);
+                    let p1 = jimp.read(memory.bot.icons.get('optifine_thumbnail_mask.png'));
+        
+                    Promise.all([p0, p1]).then((imgs) => {
+                        try {
+                            imgs[0].resize(512, 512, jimp.RESIZE_BILINEAR)
+                            .mask(imgs[1], 0, 0)
+                            .getBuffer(jimp.AUTO, (err, buffer) => {
+                                try {
+                                    if (err) throw err
+                                    else {
+                                        memory.bot.avatar = buffer;
+        
+                                        cb();
                                     }
                                 }
                                 catch (err) {
@@ -1065,354 +1163,258 @@ bot.on('ready', () => {
                                     TOOLS.shutdownHandler(24);
                                 }
                             });
-    
-                            function getSMRSites() {
-                                log('getSMRSite()', 'trace');
-                                try {
-                                    for(let i=0; i<sitelist.length; i++) {
-                                        if(sitelist[i].path !== "\/") {
-                                            smr_data.push(sitelist[i].domain + (JSON.parse(`["${sitelist[i].path}"]`)[0]));
-                                        } else {
-                                            smr_data.push(sitelist[i].domain);
-                                        }
-            
-                                        if(i+1 >= sitelist.length) {
-                                            memory.bot.smr = smr_data;
-                
-                                            cb();
-                                        }
-                                    }
-                                }
-                                catch (err) {
-                                    log(err.stack, 'fatal')
-                                    TOOLS.shutdownHandler(24);
-                                }
-                            }
                         }
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                });
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-        }
-    });
-
-    stages.push({
-        name: "Server List Parser",
-        fn: function(cb) {
-            try {
-                let i = 0;
-                (function parseItemLoop() {
-                    try {
-                        let item = serverlist[i];
-    
-                        memory.bot.servers[[item.name.toLowerCase()]] = item.link;
-                        item.aliases.forEach(e => {
-                            memory.bot.servers[[e.toLowerCase()]] = item.link;
-                        });
-    
-                        if (i+1 === serverlist.length) {
-                            cb();
-                        } else {
-                            i++;
-                            parseItemLoop();
+                        catch (err) {
+                            log(err.stack, 'fatal')
+                            TOOLS.shutdownHandler(24);
                         }
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                })();
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-        }
-    });
-
-    stages.push({
-        name: "Bot Avatar Composite",
-        fn: function(cb) {
-            try {
-                let p0 = jimp.read(bot.user.avatarURL);
-                let p1 = jimp.read(memory.bot.icons.get('optifine_thumbnail_mask.png'));
-    
-                Promise.all([p0, p1]).then((imgs) => {
-                    try {
-                        imgs[0].resize(512, 512, jimp.RESIZE_BILINEAR)
-                        .mask(imgs[1], 0, 0)
-                        .getBuffer(jimp.AUTO, (err, buffer) => {
-                            try {
-                                if (err) throw err
-                                else {
-                                    memory.bot.avatar = buffer;
-    
-                                    cb();
-                                }
-                            }
-                            catch (err) {
-                                log(err.stack, 'fatal')
-                                TOOLS.shutdownHandler(24);
-                            }
-                        });
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                });
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-        }
-    });
-
-    stages.push({
-        name: "MOTD Generator",
-        fn: function(cb) {
-            try {
-                memory.db.motd.find({ motd: true }, (err, docs) => {
-                    try {
-                        if (err) {
-                            throw err
-                        } else {
-                            let embed = new discord.RichEmbed()
-                                .setColor(cfg.vs.embed.default)
-                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_fine.png'), "icon.png"))
-                                .setAuthor('Welcome to the official OptiFine Discord server!', 'attachment://icon.png')
-                                .setDescription(`Please be sure to read the <#479192475727167488> BEFORE posting, not to mention the <#531622141393764352>. If you're a donator, use the command \`${memory.bot.trigger}help dr\` for instructions to get your donator role.`)
-                                .setFooter('Thank you for reading!')
-                            
-                            if (docs[0] && docs[0].message.length > 0) {
-                                embed.addField(`A message from Moderators (Posted on ${docs[0].date.toUTCString()})`, docs[0].message);
-                            }
-            
-                            memory.bot.motd = embed;
-            
-                            cb();
-                        }
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                });
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-        }
-    });
-
-    stages.push({
-        name: "Categorized Documentation Loader",
-        fn: function(cb) {
-            try {
-                let i = 0;
-                (function parseItemLoop() {
-                    try {
-                        let item = docs_list[i];
-    
-                        let data = {
-                            name: item.name,
-                            links: item.links
-                        }
-    
-                        memory.bot.docs_cat[[item.name.toLowerCase()]] = data;
-                        item.aliases.forEach(e => {
-                            memory.bot.docs_cat[[e.toLowerCase()]] = data;
-                        });
-    
-                        if (i+1 === docs_list.length) {
-                            cb();
-                        } else {
-                            i++;
-                            parseItemLoop();
-                        }
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                })();
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-        }
-    });
-
-    stages.push({
-        name: "Statistics Data Bootstrapper",
-        fn: function(cb) {
-            try {
-                // need to reset this at the beginning of every month
-                // also need to archive results of the entire month BEFORE resetting.
-    
-                let data = {
-                    day: new Date().getDate(),
-                    users: {
-                        join: 0,
-                        leave: 0,
-                        bans: 0,
-                        kicks: 0,
-                        mutes: 0,
-                        unique: 0
-                    },
-                    messages: 0,
-                    dms: 0,
-                    commands: 0
-                }
-    
-                memory.db.stats.find({ day: data.day }, (err, docs) => {
-                    try {
-                        if (err) throw err
-                        else if (docs.length === 0) {
-                            memory.db.stats.insert(data, (err) => {
-                                if (err) throw err
-                                else finishStage()
-                            })
-                        } else {
-                            finishStage();
-                        }
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                });
-    
-                function finishStage() {
-                    try {
-                        cb();
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                }
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-        }
-    });
-
-    stages.push({
-        name: "Moderator Presence Loader",
-        fn: function(cb) {
-            try {
-                bot.guilds.get(cfg.basic.of_server).roles.get(cfg.roles.moderator).members.tap(mod => {
-                    if(mod.id !== '202558206495555585') {
-                        memory.bot.actMods.push({
-                            id: mod.id,
-                            status: mod.presence.status,
-                            last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
-                        });
-                    }
-                });
-
-                bot.guilds.get(cfg.basic.of_server).roles.get(cfg.roles.junior_mod).members.tap(mod => {
-                    memory.bot.actMods.push({
-                        id: mod.id,
-                        status: mod.presence.status,
-                        last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
                     });
-                });
-    
-                cb();
-            }
-            catch (err) {
-                log(err.stack, 'fatal')
-                TOOLS.shutdownHandler(24);
-            }
-        }
-    });
-
-    stagesAsync.forEach((stage, index) => {
-        log(`Initialization: ASYNC Boot Stage ${index+1}/${stagesAsync.length}`);
-        let timeStart = new Date();
-        stage.fn(() => {
-            let timeEnd = new Date();
-            let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
-            log(`Executed ASYNC module "${stage.name}" in ${timeTaken} second(s).`);
-        });
-    });
-
-    let si = 0;
-    (function bootProgress() {
-        log(`Initialization: Boot Stage ${si+1}/${stages.length}`);
-        let timeStart = new Date();
-        stages[si].fn(() => {
-            let timeEnd = new Date();
-            let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
-            log(`Executed module "${stages[si].name}" in ${timeTaken} second(s).`);
-
-            if(si+1 === stages.length) {
-                log('All stages passed successfully.')
-                finalReady();
-            } else {
-                si++
-                bootProgress();
-            }
-        });
-    })();
-
-    function finalReady() {
-        try {
-            if (memory.bot.debug) memory.bot.locked = true;
-            memory.bot.booting = false;
-            TOOLS.statusHandler(1);
-            let width = 64; //inner width of box
-            let bootTimeEnd = new Date();
-            let bootTimeTaken = (bootTimeEnd.getTime() - bootTimeStart.getTime()) / 1000;
-
-            function centerText(text, totalWidth) {
-                try {
-                    let leftMargin = Math.floor((totalWidth - (text.length)) / 2);
-                    let rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
-
-                    return '│' + (' '.repeat(leftMargin)) + text + (' '.repeat(rightMargin)) + '│';
                 }
                 catch (err) {
                     log(err.stack, 'fatal')
                     TOOLS.shutdownHandler(24);
                 }
             }
-
-            log(`╭${'─'.repeat(width)}╮`); 
-            log(centerText(`  `, width));
-            log(centerText(`OptiBot ${pkg.version} (Build ${build.num})`, width));
-            log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2019`, width));
-            log(centerText(`Successfully booted in ${bootTimeTaken} seconds.`, width));
-            log(centerText(`  `, width));
-            log(centerText(TOOLS.randomizer(cfg.splash), width));
-            log(centerText(`  `, width));
-            log(`╰${'─'.repeat(width)}╯`);
-
-            process.title = `OptiBot ${pkg.version} (Build ${build.num}) - ${Math.round(bot.ping)}ms Response Time`;
-
-            memory.bot.title_check = bot.setInterval(() => {
-                if (!memory.bot.shutdown) process.title = `OptiBot ${pkg.version} (Build ${build.num}) - ${Math.round(bot.ping)}ms Response Time`;
-            }, 1000);
-
-            process.send({type: 'ready'});
-        }
-        catch (err) {
-            log(err.stack, 'fatal')
-            TOOLS.shutdownHandler(24);
+        });
+    
+        stages.push({
+            name: "MOTD Generator",
+            fn: function(cb) {
+                try {
+                    memory.db.motd.find({ motd: true }, (err, docs) => {
+                        try {
+                            if (err) {
+                                throw err
+                            } else {
+                                let embed = new discord.RichEmbed()
+                                    .setColor(cfg.vs.embed.default)
+                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_fine.png'), "icon.png"))
+                                    .setAuthor('Welcome to the official OptiFine Discord server!', 'attachment://icon.png')
+                                    .setDescription(`Please be sure to read the <#479192475727167488> BEFORE posting, not to mention the <#531622141393764352>. If you're a donator, use the command \`${memory.bot.trigger}help dr\` for instructions to get your donator role.`)
+                                    .setFooter('Thank you for reading!')
+                                
+                                if (docs[0] && docs[0].message.length > 0) {
+                                    embed.addField(`A message from Moderators (Posted on ${docs[0].date.toUTCString()})`, docs[0].message);
+                                }
+                
+                                memory.bot.motd = embed;
+                
+                                cb();
+                            }
+                        }
+                        catch (err) {
+                            log(err.stack, 'fatal')
+                            TOOLS.shutdownHandler(24);
+                        }
+                    });
+                }
+                catch (err) {
+                    log(err.stack, 'fatal')
+                    TOOLS.shutdownHandler(24);
+                }
+            }
+        });
+    
+        stages.push({
+            name: "Categorized Documentation Loader",
+            fn: function(cb) {
+                try {
+                    let i = 0;
+                    (function parseItemLoop() {
+                        try {
+                            let item = docs_list[i];
+        
+                            let data = {
+                                name: item.name,
+                                links: item.links
+                            }
+        
+                            memory.bot.docs_cat[[item.name.toLowerCase()]] = data;
+                            item.aliases.forEach(e => {
+                                memory.bot.docs_cat[[e.toLowerCase()]] = data;
+                            });
+        
+                            if (i+1 === docs_list.length) {
+                                cb();
+                            } else {
+                                i++;
+                                parseItemLoop();
+                            }
+                        }
+                        catch (err) {
+                            log(err.stack, 'fatal')
+                            TOOLS.shutdownHandler(24);
+                        }
+                    })();
+                }
+                catch (err) {
+                    log(err.stack, 'fatal')
+                    TOOLS.shutdownHandler(24);
+                }
+            }
+        });
+    
+        stages.push({
+            name: "Statistics Data Bootstrapper",
+            fn: function(cb) {
+                try {
+                    // need to reset this at the beginning of every month
+                    // also need to archive results of the entire month BEFORE resetting.
+        
+                    let data = {
+                        day: new Date().getDate(),
+                        users: {
+                            join: 0,
+                            leave: 0,
+                            bans: 0,
+                            kicks: 0,
+                            mutes: 0,
+                            unique: 0
+                        },
+                        messages: 0,
+                        dms: 0,
+                        commands: 0
+                    }
+        
+                    memory.db.stats.find({ day: data.day }, (err, docs) => {
+                        try {
+                            if (err) throw err
+                            else if (docs.length === 0) {
+                                memory.db.stats.insert(data, (err) => {
+                                    if (err) throw err
+                                    else finishStage()
+                                })
+                            } else {
+                                finishStage();
+                            }
+                        }
+                        catch (err) {
+                            log(err.stack, 'fatal')
+                            TOOLS.shutdownHandler(24);
+                        }
+                    });
+        
+                    function finishStage() {
+                        try {
+                            cb();
+                        }
+                        catch (err) {
+                            log(err.stack, 'fatal')
+                            TOOLS.shutdownHandler(24);
+                        }
+                    }
+                }
+                catch (err) {
+                    log(err.stack, 'fatal')
+                    TOOLS.shutdownHandler(24);
+                }
+            }
+        });
+    
+        stages.push({
+            name: "Moderator Presence Loader",
+            fn: function(cb) {
+                try {
+                    bot.guilds.get(cfg.basic.of_server).roles.get(cfg.roles.moderator).members.tap(mod => {
+                        if(mod.id !== '202558206495555585') {
+                            memory.bot.actMods.push({
+                                id: mod.id,
+                                status: mod.presence.status,
+                                last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
+                            });
+                        }
+                    });
+    
+                    bot.guilds.get(cfg.basic.of_server).roles.get(cfg.roles.junior_mod).members.tap(mod => {
+                        memory.bot.actMods.push({
+                            id: mod.id,
+                            status: mod.presence.status,
+                            last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
+                        });
+                    });
+        
+                    cb();
+                }
+                catch (err) {
+                    log(err.stack, 'fatal')
+                    TOOLS.shutdownHandler(24);
+                }
+            }
+        });
+    
+        stagesAsync.forEach((stage, index) => {
+            log(`Initialization: ASYNC Boot Stage ${index+1}/${stagesAsync.length}`);
+            let timeStart = new Date();
+            stage.fn(() => {
+                let timeEnd = new Date();
+                let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
+                log(`Executed ASYNC module "${stage.name}" in ${timeTaken} second(s).`);
+            });
+        });
+    
+        let si = 0;
+        (function bootProgress() {
+            log(`Initialization: Boot Stage ${si+1}/${stages.length}`);
+            let timeStart = new Date();
+            stages[si].fn(() => {
+                let timeEnd = new Date();
+                let timeTaken = (timeEnd.getTime() - timeStart.getTime()) / 1000;
+                log(`Executed module "${stages[si].name}" in ${timeTaken} second(s).`);
+    
+                if(si+1 === stages.length) {
+                    log('All stages passed successfully.')
+                    finalReady();
+                } else {
+                    si++
+                    bootProgress();
+                }
+            });
+        })();
+    
+        function finalReady() {
+            try {
+                if (memory.bot.debug) memory.bot.locked = true;
+                memory.bot.booting = false;
+                TOOLS.statusHandler(1);
+                let width = 64; //inner width of box
+                let bootTimeEnd = new Date();
+                let bootTimeTaken = (bootTimeEnd.getTime() - bootTimeStart.getTime()) / 1000;
+    
+                function centerText(text, totalWidth) {
+                    try {
+                        let leftMargin = Math.floor((totalWidth - (text.length)) / 2);
+                        let rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
+    
+                        return '│' + (' '.repeat(leftMargin)) + text + (' '.repeat(rightMargin)) + '│';
+                    }
+                    catch (err) {
+                        log(err.stack, 'fatal')
+                        TOOLS.shutdownHandler(24);
+                    }
+                }
+    
+                log(`╭${'─'.repeat(width)}╮`); 
+                log(centerText(`  `, width));
+                log(centerText(`OptiBot ${pkg.version} (Build ${build.num})`, width));
+                log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2019`, width));
+                log(centerText(`Successfully booted in ${bootTimeTaken} seconds.`, width));
+                log(centerText(`  `, width));
+                log(centerText(TOOLS.randomizer(cfg.splash), width));
+                log(centerText(`  `, width));
+                log(`╰${'─'.repeat(width)}╯`);
+    
+                process.title = `OptiBot ${pkg.version} (Build ${build.num}) - ${Math.round(bot.ping)}ms Response Time`;
+    
+                memory.bot.title_check = bot.setInterval(() => {
+                    if (!memory.bot.shutdown) process.title = `OptiBot ${pkg.version} (Build ${build.num}) - ${Math.round(bot.ping)}ms Response Time`;
+                }, 1000);
+    
+                process.send({type: 'ready'});
+            }
+            catch (err) {
+                log(err.stack, 'fatal')
+                TOOLS.shutdownHandler(24);
+            }
         }
     }
 });

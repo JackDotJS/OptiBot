@@ -111,7 +111,8 @@ const memory = {
         actMods: [],
         newUsers: [],
         dataPickup: {},
-        botStatus: null
+        botStatus: null,
+        botStatusTime: new Date().getTime()
     },
     stats: {
         unique: []
@@ -612,6 +613,15 @@ memory.bot.warn_check = bot.setInterval(() => {
     }
 }, 300000);
 
+memory.bot.status_check = setInterval(() => {
+    if(memory.bot.botStatus !== 0) {
+        if(memory.bot.botStatusTime+(1000*60*5) < new Date().getTime()) {
+            log(`OptiBot has maintained status ${memory.bot.botStatus} for too long. Attempting restart for good measure.`, 'warn');
+            TOOLS.shutdownHandler(10);
+        }
+    }
+}, 1000);
+
 ////////////////////////////////////////////////////////////////////////////////
 // Event Handlers
 ////////////////////////////////////////////////////////////////////////////////
@@ -682,7 +692,7 @@ bot.on('ready', () => {
                     if(num === 5) {
                         return 'DISCONNECTED';
                     } else {
-                        return 'UNKNOWN'
+                        return 'UNKNOWN';
                     }
                 }
         
@@ -1403,10 +1413,38 @@ bot.on('ready', () => {
                 log(centerText(`  `, width));
                 log(`╰${'─'.repeat(width)}╯`);
     
-                process.title = `OptiBot ${pkg.version} (Build ${build.num}) - ${Math.round(bot.ping)}ms Response Time`;
+                process.title = `OptiBot ${pkg.version}-${build.num}`;
     
                 memory.bot.title_check = bot.setInterval(() => {
-                    if (!memory.bot.shutdown) process.title = `OptiBot ${pkg.version} (Build ${build.num}) - ${Math.round(bot.ping)}ms Response Time`;
+                    if (!memory.bot.shutdown) {
+                        let translate = function (num) {
+                            if(num === null) {
+                                return 'BOOT';
+                            } else
+                            if(num === 0) {
+                                return 'READY';
+                            } else
+                            if(num === 1) {
+                                return 'CONNECTING';
+                            } else
+                            if(num === 2) {
+                                return 'RECONNECTING';
+                            } else
+                            if(num === 3) {
+                                return 'IDLE';
+                            } else
+                            if(num === 4) {
+                                return 'NEARLY';
+                            } else
+                            if(num === 5) {
+                                return 'DISCONNECTED';
+                            } else {
+                                return 'UNKNOWN'
+                            }
+                        }
+
+                        process.title = `OptiBot ${pkg.version}-${build.num} | ${translate(bot.status)} (${Math.round(bot.ping)}ms)`;
+                    }
                 }, 1000);
     
                 process.send({type: 'ready'});
@@ -1949,6 +1987,7 @@ bot.on('message', (m) => {
 
     if (m.channel.type !== 'dm' && m.content.toLowerCase().startsWith(`${memory.bot.trigger}obs`) && m.member.permissions.has("KICK_MEMBERS", true)) {
         log('Emergency shutdown initiated.', 'fatal');
+        clearInterval(memory.bot.status_check);
         bot.destroy();
         setTimeout(() => {
             process.exit(1000);
@@ -2381,6 +2420,7 @@ CMD.register(new Command({
     tags: ['MODERATOR_ONLY', 'NO_DM'],
     fn: (m) => {
         log('Emergency shutdown initiated.', 'fatal');
+        clearInterval(memory.bot.status_check);
         bot.destroy();
         setTimeout(() => {
             process.exit(1000);
@@ -6492,6 +6532,8 @@ TOOLS.typerHandler = (channel, state) => {
  */
 TOOLS.shutdownHandler = (code) => {
     TOOLS.statusHandler(-1);
+
+    clearInterval(memory.bot.status_check);
 
     bot.setTimeout(() => {
         bot.destroy();

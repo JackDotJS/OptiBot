@@ -499,6 +499,7 @@ function init_final() {
                                 } else
                                 if(code === 4) {
                                     log('OptiBot is being updated...');
+                                    //unused
                                     update();
                                 } else
                                 if(code === 10) {

@@ -2611,11 +2611,12 @@ CMD.register(new Command({
             .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"), new discord.Attachment(memory.bot.avatar, "thumbnail.png")])
             .setAuthor('About', 'attachment://icon.png')
             .setThumbnail('attachment://thumbnail.png')
-            .setDescription(`The official OptiFine Discord server bot. Developed independently by <@181214529340833792> out of love for a great community.\n\nSpecial thanks to these awesome people for various contributions to OptiBot's development: ${cntbrs.join(', ')} `)
-            .addField('OptiBot', `Version ${pkg.version}\n(Build ${build.num})`, true)
-            .addField('Uptime', `Session: ${uptime(process.uptime() * 1000)}`, true)
-            .addField(`Support OptiBot's Development`, `OptiBot is developed entirely on my free time. Admittedly, I don't expect much (if anything) in return. I just like coding from time to time. However, if you'd still like to help somehow, you can [buy me a coffee! ☕](http://ko-fi.com/jackasterisk)`)
-            .addField('Donators', dntrs.join(', '))
+            .setDescription(`The official OptiFine Discord server bot. \n\n`)
+            .addField('Version', `${pkg.version} (Build ${build.num})`, true)
+            .addField('Session Uptime', `${uptime(process.uptime() * 1000)}`, true)
+            .addField(`Contributors`, `${cntbrs.join(', ')}`)
+            .addField(`\u200B`, `OptiBot is developed almost entirely by myself (<:jack:646322505107243018> <@181214529340833792>) out of love for a great community, all on my free time. Admittedly, I don't expect much (if anything) in return. I just like coding from time to time. However, if you'd still like to support this project, you can [buy me a coffee! ☕](http://ko-fi.com/jackasterisk "☕")`)
+            .addField(`Supporters`, dntrs.join(', '))
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
     }

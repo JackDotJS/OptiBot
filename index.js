@@ -2340,7 +2340,7 @@ bot.on('message', (m) => {
                         }
                     }
                 } else
-                if (m.content.toLowerCase().trim() === '+band') {
+                if (m.content.toLowerCase().trim() === '+band' && isAdmin) {
                     m.channel.fetchMessages({ limit: 5, before:m.id }).then(msgs => {
                         m.delete().catch(err => {
                             TOOLS.errorHandler({ err: err });

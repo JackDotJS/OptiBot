@@ -115,6 +115,13 @@ const memory = {
         botStatusTime: new Date().getTime()
     },
     stats: {
+        // todo: update these values in real time, save every 5-10 minutes *and* before shutting down.
+        // stats data should be saved in terms of months rather than individual days.
+
+        // also todo: save this note on the github post (#5)
+        messages: 0,
+        dms: 0,
+        commands: 0,
         unique: []
     },
     cd: {
@@ -304,12 +311,11 @@ process.title = 'Logging in...';
 
 memory.db.msg.persistence.setAutocompactionInterval(300000);
 memory.db.profiles.persistence.setAutocompactionInterval(100000);
-memory.db.stats.persistence.setAutocompactionInterval(10000);
+memory.db.stats.persistence.setAutocompactionInterval(600000);
 
 const bot = new discord.Client();
 bot.login(keys.discord).then(() => {
     process.title = 'Loading required assets...';
-    log('Successfully logged in using token: ' + keys.discord, 'debug');
     TOOLS.statusHandler(0);
 }).catch(err => {
     log(err.stack, 'fatal');
@@ -615,7 +621,7 @@ memory.bot.warn_check = bot.setInterval(() => {
 
 memory.bot.status_check = setInterval(() => {
     if(memory.bot.botStatus !== 0) {
-        if(memory.bot.botStatusTime+(1000*60*5) < new Date().getTime()) {
+        if(memory.bot.botStatusTime+(1000*60*2) < new Date().getTime()) {
             log(`OptiBot has maintained status ${memory.bot.botStatus} for too long. Attempting restart for good measure.`, 'warn');
             TOOLS.shutdownHandler(10);
         }
@@ -2266,6 +2272,45 @@ bot.on('message', (m) => {
                         TOOLS.errorHandler({ err: err });
                     });
                 } else
+                if (m.content.toLowerCase().trim() === 'ok') {
+                    if (Math.random() > 0.5) {
+                        m.react('🆗').catch((err) => {
+                            TOOLS.errorHandler({ err: err });
+                        });
+                    } else {
+                        m.react('🇧').then(()=>{
+                            m.react('🇴').then(()=>{
+                                m.react('🅾️').then(()=>{
+                                    m.react('🇲').then(()=>{
+                                        m.react('🇪').then(()=>{
+                                            m.react('🇷').catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                                    }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                                }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                            }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                    }
+                } else
+                if (m.content.trim() === '^') {
+                    m.channel.fetchMessages({ limit: 5, before:m.id }).then(msgs => {
+                        
+
+                        let emoji = TOOLS.randomizer(['☝️', '👆']);
+                        let lastMsg = msgs.values().next().value;
+
+                        if(!lastMsg.reactions.has('☝️') && !lastMsg.reactions.has('👆')) {
+                            m.delete().catch(err => {
+                                TOOLS.errorHandler({ err: err });
+                            });
+
+                            lastMsg.react(emoji).catch((err) => {
+                                TOOLS.errorHandler({ err: err });
+                            });
+                        } else {
+                            log('emoji already added', 'debug');
+                        }
+                    }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                } else
                 if (m.content.indexOf('#') > -1) {
                     log('possible GHREF match', 'trace');
                     //remove everything in quotes, single-line codeblocks, multi-line codeblocks, and strikethroughs.
@@ -2351,10 +2396,10 @@ bot.on('message', (m) => {
                         lastMsg.react('🎺').then(()=>{
                             lastMsg.react('🎸').then(()=>{
                                 lastMsg.react('🥁').then(()=>{
-                                    lastMsg.react('🎤');
-                                });
-                            });
-                        });
+                                    lastMsg.react('🎤').catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                                }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                            }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
                     }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
                 } else
     
@@ -2375,17 +2420,17 @@ bot.on('message', (m) => {
                 }
     
                 if (m.isMentioned(bot.user)) {
-                    m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('588182322944278528'));
+                    m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('648594344676425731'));
                 }
     
                 if (m.content.toLowerCase() === 'band' && isAdmin) {
                     m.react('🎺').then(()=>{
                         m.react('🎸').then(()=>{
                             m.react('🥁').then(()=>{
-                                m.react('🎤');
-                            });
-                        });
-                    });
+                                m.react('🎤').catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                            }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
+                    }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
                 }
             }
         }).catch(err => {
@@ -2696,65 +2741,6 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'unlock',
-    short_desc: "Disables usage restriction.",
-    long_desc: "Disables usage restriction, AKA Mods-Only mode.",
-    tags: ['MODERATOR_ONLY', 'NO_DM'],
-    fn: (m) => {
-        if (memory.bot.debug) {
-            memory.bot.locked = false;
-            TOOLS.statusHandler(1);
-            m.channel.send("CodeMode restriction disabled.").then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-        } else 
-        if (!memory.bot.locked) {
-            TOOLS.errorHandler({ err: "Mod Mode is already disabled.", m: m });
-        } else {
-            let embed = new discord.RichEmbed()
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-            .setColor(cfg.vs.embed.okay)
-            .setAuthor("Mod-only Mode disabled.", "attachment://icon.png");
-
-            memory.bot.locked = false;
-            TOOLS.statusHandler(1);
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'lock',
-    short_desc: "Enable usage restriction.",
-    long_desc: `Enables usage restriction for the target. Valid targets include channels, and OptiBot itself. (bot's user ID or @mention) \n\nIf no target is specified, this will default to the context. If used in a text channel, this will lock the channel to moderators only. If used in OptiBot's DMs, this will set the bot to Mod-Only mode.`,
-    usage: '[target]',
-    tags: ['MODERATOR_ONLY', 'DM_OPTIONAL'],
-    fn: (m, args) => {
-        if(args[0]) {
-
-        }
-
-        function sdfsfd() {
-            if (memory.bot.debug) {
-                memory.bot.locked = true;
-                TOOLS.statusHandler(1);
-                m.channel.send("CodeMode restriction enabled.").then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-            } else
-            if (memory.bot.locked) {
-                TOOLS.errorHandler({ err: "Mod Mode is already enabled.", m: m });
-            } else {
-                let embed = new discord.RichEmbed()
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                .setColor(cfg.vs.embed.okay)
-                .setAuthor("Mod-only Mode enabled.", "attachment://icon.png");
-    
-                memory.bot.locked = true;
-                TOOLS.statusHandler(1);
-                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-            }
-        }
-    }
-}));
-
-CMD.register(new Command({
     trigger: 'perms',
     short_desc: "Lists OptiBot's permissions.",
     long_desc: "Lists all Discord permissions, and whether they are enabled for OptiBot.",
@@ -2995,104 +2981,6 @@ CMD.register(new Command({
                     TOOLS.typerHandler(m.channel, false);
                 })
             });
-        });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'open',
-    short_desc: "Open text channel.",
-    long_desc: "Opens the active text channel, if already closed.",
-    tags: ['NO_DM', 'NO_JR_MOD', 'MODERATOR_ONLY'],
-    admin_only: true,
-    hidden: false,
-    dm: 0,
-    fn: (m) => {
-        m.guild.fetchMember(bot.user.id).then(bot_member => {
-            let everyone = m.channel.permissionOverwrites.get(m.guild.id);
-            if (m.channel.memberPermissions(bot_member).serialize().MANAGE_ROLES_OR_PERMISSIONS === false) {
-                TOOLS.errorHandler({ err: "OptiBot does not have permission to modify this channel.", m:m });
-            } else 
-            if (everyone && new discord.Permissions(everyone.allow).serialize().SEND_MESSAGES === true) {
-                TOOLS.errorHandler({ err: "Channel is already open.", m:m });
-            } else {
-                {
-                    let permissions = {
-                        SEND_MESSAGES: null
-                    }
-            
-                    m.channel.overwritePermissions(m.guild.id, permissions, `Channel opened by ${m.author.username}#${m.author.discriminator}.`).then(() => {
-                        if (m.channel.memberPermissions(bot_member).serialize().SEND_MESSAGES === false) {
-                            m.channel.overwritePermissions(bot_member, { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
-                                // cfg.roles.moderator
-                                m.channel.overwritePermissions('518607343357788191', { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
-                                    success();
-                                });
-                            });
-                        } else {
-                            success();
-                        }
-                    });
-                }
-
-                function success() {
-                    let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.okay)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                    .setAuthor(`Channel successfully opened.`, 'attachment://icon.png')
-
-                    m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); });
-                }
-            }
-        });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'close',
-    short_desc: "Close text channel.",
-    long_desc: "Closes the active text channel, preventing users from sending messages. Only works if the channel is already open, obviously.",
-    tags: ['NO_DM', 'NO_JR_MOD', 'MODERATOR_ONLY'],
-    admin_only: true,
-    hidden: false,
-    dm: 0,
-    fn: (m) => {
-        m.guild.fetchMember(bot.user.id).then(bot_member => {
-            let everyone = m.channel.permissionOverwrites.get(m.guild.id);
-            if (m.channel.memberPermissions(bot_member).serialize().MANAGE_ROLES_OR_PERMISSIONS === false) {
-                TOOLS.errorHandler({ err: "OptiBot does not have permission to modify this channel.", m:m });
-            } else 
-            if (everyone && new discord.Permissions(everyone.deny).serialize().SEND_MESSAGES === true) {
-                TOOLS.errorHandler({ err: "Channel is already closed.", m:m });
-            } else {
-                {
-                    let permissions = {
-                        SEND_MESSAGES: false
-                    }
-            
-                    m.channel.overwritePermissions(m.guild.id, permissions, `Channel closed by ${m.author.username}#${m.author.discriminator}.`).then(() => {
-                        if (m.channel.memberPermissions(bot_member).serialize().SEND_MESSAGES === false) {
-                            m.channel.overwritePermissions(bot_member, { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
-
-                                m.channel.overwritePermissions('518607343357788191', { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
-                                    success();
-                                });
-                            });
-                        } else {
-                            success();
-                        }
-                    });
-                }
-
-                function success() {
-                    let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.okay)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                    .setAuthor(`Channel successfully closed.`, 'attachment://icon.png')
-
-                    m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); });
-                }
-            }
         });
     }
 }));
@@ -3404,6 +3292,193 @@ CMD.register(new Command({
 // commands with arguments
 
 CMD.register(new Command({
+    trigger: 'unlock',
+    short_desc: "Disables usage restrictions.",
+    long_desc: `Disables usage restriction for the target. Valid targets include channels, and OptiBot itself. (bot's user ID or @mention) \n\nIf no target is specified, this will default to the context. If used in a text channel, this will unlock the channel, removing any moderator-only restrictions. If used in OptiBot's DMs, this will disable Mod-Only mode.`,
+    usage: '[target]',
+    tags: ['MODERATOR_ONLY', 'DM_OPTIONAL'],
+    fn: (m, args) => {
+        if(args[0]) {
+            let channel = args[0].match(/(?<=^<#)\d+(?=>$)/);
+            if(channel !== null) {
+                channelUnlock(m.guild.channels.get(channel[0]))
+            } else
+            if(args[0].match(new RegExp(`(?<=^<@)!?${bot.user.id}(?=>$)`)) !== null || args[0] === bot.user.id) {
+                botUnlock();
+            }
+        } else
+        if(m.channel.type === 'dm') {
+            botUnlock();
+        } else {
+            channelUnlock(m.channel);
+        }
+
+        function botUnlock() {
+            if(!memory.bot.locked) {
+                if(memory.bot.debug) {
+                    TOOLS.errorHandler({ err: "Code Mode restriction already disabled.", m: m });
+                } else {
+                    TOOLS.errorHandler({ err: "Mod-only Mode is already disabled.", m: m });
+                }
+            } else
+            if (memory.bot.debug) {
+                memory.bot.locked = false;
+                TOOLS.statusHandler(1);
+                m.channel.send("CodeMode restriction disabled.").then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            } else {
+                let embed = new discord.RichEmbed()
+                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                .setColor(cfg.vs.embed.okay)
+                .setAuthor("Mod-only Mode disabled.", "attachment://icon.png");
+    
+                memory.bot.locked = false;
+                TOOLS.statusHandler(1);
+                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            }
+        }
+
+        function channelUnlock(channel) {
+            if(m.channel.type === 'dm') {
+                TOOLS.errorHandler({ err: "You cannot unlock channels from DMs.", m: m });
+            } else 
+            if(m.guild.id !== cfg.basic.of_server) {
+                TOOLS.errorHandler({ err: "You cannot unlock channels outside of the OptiFine server.", m: m });
+            } else {
+                m.guild.fetchMember(bot.user.id).then(bot_member => {
+                    let everyone = channel.permissionOverwrites.get(m.guild.id);
+                    if (channel.memberPermissions(bot_member).serialize().MANAGE_ROLES_OR_PERMISSIONS === false) {
+                        TOOLS.errorHandler({ err: "OptiBot does not have permission to modify this channel.", m:m });
+                    } else 
+                    if (everyone && new discord.Permissions(everyone.allow).serialize().SEND_MESSAGES === true) {
+                        TOOLS.errorHandler({ err: "Channel is already unlocked.", m:m });
+                    } else {
+                        {
+                            let permissions = {
+                                SEND_MESSAGES: null
+                            }
+                    
+                            channel.overwritePermissions(m.guild.id, permissions, `Channel unlocked by ${m.author.username}#${m.author.discriminator}.`).then(() => {
+                                if (channel.memberPermissions(bot_member).serialize().SEND_MESSAGES === false) {
+                                    channel.overwritePermissions(bot_member, { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
+                                        channel.overwritePermissions(cfg.roles.moderator, { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
+                                            success();
+                                        });
+                                    });
+                                } else {
+                                    success();
+                                }
+                            });
+                        }
+        
+                        function success() {
+                            let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.okay)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                            .setAuthor(`Channel successfully unlocked.`, 'attachment://icon.png')
+        
+                            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                        }
+                    }
+                });
+            }
+        }
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'lock',
+    short_desc: "Enable usage restrictions.",
+    long_desc: `Enables usage restriction for the target. Valid targets include channels, and OptiBot itself. (bot's user ID or @mention) \n\nIf no target is specified, this will default to the context. If used in a text channel, this will lock the channel to moderators only. If used in OptiBot's DMs, this will set the bot to Mod-Only mode.`,
+    usage: '[target]',
+    tags: ['MODERATOR_ONLY', 'DM_OPTIONAL'],
+    fn: (m, args) => {
+        if(args[0]) {
+            let channel = args[0].match(/(?<=^<#)\d+(?=>$)/);
+            if(channel !== null) {
+                channelLock(m.guild.channels.get(channel[0]))
+            } else
+            if(args[0].match(new RegExp(`(?<=^<@)!?${bot.user.id}(?=>$)`)) !== null || args[0] === bot.user.id) {
+                botLock();
+            }
+        } else
+        if(m.channel.type === 'dm') {
+            botLock();
+        } else {
+            channelLock(m.channel);
+        }
+
+        function botLock() {
+            if(memory.bot.locked) {
+                if(memory.bot.debug) {
+                    TOOLS.errorHandler({ err: "Code Mode restriction already enabled.", m: m });
+                } else {
+                    TOOLS.errorHandler({ err: "Mod-only Mode is already enabled.", m: m });
+                }
+            } else
+            if (memory.bot.debug) {
+                memory.bot.locked = true;
+                TOOLS.statusHandler(1);
+                m.channel.send("Code Mode restriction enabled.").then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            } else {
+                let embed = new discord.RichEmbed()
+                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                .setColor(cfg.vs.embed.okay)
+                .setAuthor("Mod-only Mode enabled.", "attachment://icon.png");
+    
+                memory.bot.locked = true;
+                TOOLS.statusHandler(1);
+                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            }
+        }
+
+        function channelLock(channel) {
+            if(m.channel.type === 'dm') {
+                TOOLS.errorHandler({ err: "You cannot lock channels from DMs.", m: m });
+            } else 
+            if(m.guild.id !== cfg.basic.of_server) {
+                TOOLS.errorHandler({ err: "You cannot lock channels outside of the OptiFine server.", m: m });
+            } else {
+                m.guild.fetchMember(bot.user.id).then(bot_member => {
+                    let everyone = channel.permissionOverwrites.get(m.guild.id);
+                    if (channel.memberPermissions(bot_member).serialize().MANAGE_ROLES_OR_PERMISSIONS === false) {
+                        TOOLS.errorHandler({ err: `OptiBot does not have permission to modify ${(m.channel.id === channel.id) ? "this" : "that"} channel.`, m:m });
+                    } else 
+                    if (everyone && new discord.Permissions(everyone.deny).serialize().SEND_MESSAGES) {
+                        TOOLS.errorHandler({ err: "Channel is already locked.", m:m });
+                    } else {
+                        let permissions = {
+                            SEND_MESSAGES: false
+                        }
+                
+                        channel.overwritePermissions(m.guild.id, permissions, `Channel locked by ${m.author.username}#${m.author.discriminator}.`).then(() => {
+                            if (channel.memberPermissions(bot_member).serialize().SEND_MESSAGES === false) {
+                                channel.overwritePermissions(bot_member, { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
+        
+                                    channel.overwritePermissions(cfg.roles.moderator, { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
+                                        success();
+                                    });
+                                });
+                            } else {
+                                success();
+                            }
+                        });
+        
+                        function success() {
+                            let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.okay)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                            .setAuthor(`Channel successfully locked.`, 'attachment://icon.png')
+        
+                            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                        }
+                    }
+                });
+            }
+        }
+    }
+}));
+
+CMD.register(new Command({
     trigger: 'loglvl',
     short_desc: "Change logging level.",
     long_desc: `Changes console logging level. Must be a number 0-5.`,
@@ -3584,7 +3659,7 @@ CMD.register(new Command({
                     let embed = new discord.RichEmbed()
                         .setColor(cfg.vs.embed.error)
                         .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
-                        .setAuthor('That user does not exist.', 'attachment://thumbnail.png')
+                        .setAuthor('That player does not exist.', 'attachment://thumbnail.png')
                         .setFooter('Maybe check your spelling?');
 
                     m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
@@ -5453,7 +5528,7 @@ CMD.register(new Command({
                         let embed = new discord.RichEmbed()
                             .setColor(cfg.vs.embed.error)
                             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
-                            .setAuthor('That user does not exist.', 'attachment://thumbnail.png')
+                            .setAuthor('That player does not exist.', 'attachment://thumbnail.png')
                             .setFooter('Maybe check your spelling?');
 
                         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
@@ -6478,8 +6553,6 @@ TOOLS.statusHandler = (type) => {
             }
         } else {
             ACT_status = 'online';
-            ACT_type = 'WATCHING';
-            ACT_game = `${memory.bot.trigger}help`;
         }
     } else
     if (type === 2) {
@@ -6532,7 +6605,9 @@ TOOLS.typerHandler = (channel, state) => {
  * 24 = Fatal error occurred, shutdown.
  */
 TOOLS.shutdownHandler = (code) => {
-    TOOLS.statusHandler(-1);
+    if(bot.status === 0) {
+        TOOLS.statusHandler(-1);
+    }
 
     clearInterval(memory.bot.status_check);
 

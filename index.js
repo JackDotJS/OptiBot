@@ -3448,7 +3448,7 @@ CMD.register(new Command({
                 if (!userid) {
                     TOOLS.errorHandler({ err: "You must specify a valid user.", m:m });
                 } else 
-                if (userid === m.author.id || userid === bot.user.id ) { 
+                if (userid === bot.user.id) { 
                     TOOLS.errorHandler({ err: `Nice try.`, m:m });
                 } else {
                     TOOLS.getProfile(m, userid, (profile) => {

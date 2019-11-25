@@ -6629,54 +6629,56 @@ TOOLS.shutdownHandler = (code) => {
 TOOLS.messageFinalize = (author, m) => {
     TOOLS.typerHandler(m.channel, false);
 
-    log('message sent, adding to cache', 'debug');
-    m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('642085525460877334')).then(() => {
-        let cacheData = {
-            time: new Date().getTime(),
-            guild: m.guild.id,
-            channel: m.channel.id,
-            message: m.id,
-            user: author
-        }
-
-        memory.db.msg.insert(cacheData, (err) => {
-            if (err) {
-                TOOLS.errorHandler({ err: err });
-            } else {
-                log('successfully added message to cache', 'debug');
-                log('checking cache limit', 'debug');
-                memory.db.msg.find({}).sort({ time: 1 }).exec((err, docs) => {
-                    if (err) {
-                        TOOLS.errorHandler({ err: err });
-                    } else
-                    if (docs.length > cfg.db.size) {
-                        log('reached cache limit, removing first element from cache.', 'debug');
-                        memory.db.msg.remove(docs[0], {}, (err) => {
-                            if (err) {
-                                TOOLS.errorHandler({ err: err });
-                            } else {
-                                bot.guilds.get(docs[0].guild).channels.get(docs[0].channel).fetchMessage(docs[0].message).then((msg) => {
-                                    let reaction = msg.reactions.get('click_to_delete:642085525460877334');
-
-                                    if(reaction && reaction.me) {
-                                        reaction.remove().then(() => {
-                                            log('Time expired for message deletion.', 'trace');
-                                        }).catch(err => {
-                                            TOOLS.errorHandler({ err: err });
-                                        })
-                                    }
-                                }).catch(err => {
-                                    TOOLS.errorHandler({ err: err });
-                                });
-                            }
-                        });
-                    }
-                });
+    if(m.channel.type !== 'dm') {
+        log('message sent, adding to cache', 'debug');
+        m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('642085525460877334')).then(() => {
+            let cacheData = {
+                time: new Date().getTime(),
+                guild: m.guild.id,
+                channel: m.channel.id,
+                message: m.id,
+                user: author
             }
-        })
-    }).catch(err => {
-        TOOLS.errorHandler({ err: err });
-    });
+
+            memory.db.msg.insert(cacheData, (err) => {
+                if (err) {
+                    TOOLS.errorHandler({ err: err });
+                } else {
+                    log('successfully added message to cache', 'debug');
+                    log('checking cache limit', 'debug');
+                    memory.db.msg.find({}).sort({ time: 1 }).exec((err, docs) => {
+                        if (err) {
+                            TOOLS.errorHandler({ err: err });
+                        } else
+                        if (docs.length > cfg.db.size) {
+                            log('reached cache limit, removing first element from cache.', 'debug');
+                            memory.db.msg.remove(docs[0], {}, (err) => {
+                                if (err) {
+                                    TOOLS.errorHandler({ err: err });
+                                } else {
+                                    bot.guilds.get(docs[0].guild).channels.get(docs[0].channel).fetchMessage(docs[0].message).then((msg) => {
+                                        let reaction = msg.reactions.get('click_to_delete:642085525460877334');
+
+                                        if(reaction && reaction.me) {
+                                            reaction.remove().then(() => {
+                                                log('Time expired for message deletion.', 'trace');
+                                            }).catch(err => {
+                                                TOOLS.errorHandler({ err: err });
+                                            })
+                                        }
+                                    }).catch(err => {
+                                        TOOLS.errorHandler({ err: err });
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            })
+        }).catch(err => {
+            TOOLS.errorHandler({ err: err });
+        });
+    }
 }
 
 /**

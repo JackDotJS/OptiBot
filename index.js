@@ -114,16 +114,7 @@ const memory = {
         botStatus: null,
         botStatusTime: new Date().getTime()
     },
-    stats: {
-        // todo: update these values in real time, save every 5-10 minutes *and* before shutting down.
-        // stats data should be saved in terms of months rather than individual days.
-
-        // also todo: save this note on the github post (#5)
-        messages: 0,
-        dms: 0,
-        commands: 0,
-        unique: []
-    },
+    stats: null,
     cd: {
         active: false,
         mult: 1,
@@ -191,7 +182,7 @@ class Command {
                     MOD_CHANNEL_ONLY: false, // Can only be used in moderator-only channels. 
                     DELETE_ON_MISUSE: false, // Deletes the users message if any restriction results in the command not firing.
                     STRICT: false, // TODO: Restrictions apply to all members, including moderators and developers.
-                    HIDDEN: false // TODO: Command is treated as non-existent to any user apart from developers.
+                    HIDDEN: false // Command is treated as non-existent to any user apart from developers.
                 }
             }
 
@@ -311,7 +302,6 @@ process.title = 'Logging in...';
 
 memory.db.msg.persistence.setAutocompactionInterval(300000);
 memory.db.profiles.persistence.setAutocompactionInterval(100000);
-memory.db.stats.persistence.setAutocompactionInterval(600000);
 
 const bot = new discord.Client();
 bot.login(keys.discord).then(() => {
@@ -628,6 +618,18 @@ memory.bot.status_check = setInterval(() => {
     }
 }, 1000);
 
+if(cfg.statistics.enabled) {
+    memory.bot.statistics_check = bot.setInterval(() => {
+        if (!memory.bot.shutdown && !memory.bot.booting) {
+            TOOLS.packStats().then(() => {
+                log(`Statistics successfully repacked.`, 'debug');
+            }).catch(err => {
+                TOOLS.errorHandler({err: err});
+            });
+        }
+    }, 300000);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Event Handlers
 ////////////////////////////////////////////////////////////////////////////////
@@ -722,18 +724,17 @@ bot.on('ready', () => {
                     bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
                         try {
                             memory.bot.log = [...audit.entries.values()];
-            
                             cb();
                         }
                         catch (err) {
-                            log(err.stack, 'fatal')
-                            TOOLS.shutdownHandler(24);
+                            log(err.stack, 'error')
+                            cb();
                         }
                     });
                 }
                 catch (err) {
-                    log(err.stack, 'fatal')
-                    TOOLS.shutdownHandler(24);
+                    log(err.stack, 'error')
+                    cb();
                 }
             }
         })
@@ -814,8 +815,8 @@ bot.on('ready', () => {
                                                                     }
                                                                 }
                                                                 catch (err) {
-                                                                    log(err.stack, 'fatal')
-                                                                    TOOLS.shutdownHandler(24);
+                                                                    log(err.stack, 'error')
+                                                                    cb();
                                                                 }
                                                             }).catch(err => {
                                                                 TOOLS.errorHandler({ err: err });
@@ -826,8 +827,8 @@ bot.on('ready', () => {
                                                     }
                                                 }
                                                 catch (err) {
-                                                    log(err.stack, 'fatal')
-                                                    TOOLS.shutdownHandler(24);
+                                                    log(err.stack, 'error')
+                                                    cb();
                                                 }
                                             }).catch(err => {
                                                 if(err.stack.toLowerCase().indexOf('unknown message') > -1) {
@@ -843,21 +844,21 @@ bot.on('ready', () => {
                                         }
                                     }
                                     catch (err) {
-                                        log(err.stack, 'fatal')
-                                        TOOLS.shutdownHandler(24);
+                                        log(err.stack, 'error')
+                                        cb();
                                     }
                                 })();
                             }
                         }
                         catch (err) {
-                            log(err.stack, 'fatal')
-                            TOOLS.shutdownHandler(24);
+                            log(err.stack, 'error')
+                            cb();
                         }
                     });
                 }
                 catch (err) {
-                    log(err.stack, 'fatal')
-                    TOOLS.shutdownHandler(24);
+                    log(err.stack, 'error')
+                    cb();
                 }
             }
         });
@@ -870,8 +871,81 @@ bot.on('ready', () => {
                     cb();
                 }
                 catch (err) {
-                    log(err.stack, 'fatal')
-                    TOOLS.shutdownHandler(24);
+                    log(err.stack, 'error')
+                    cb();
+                }
+            }
+        });
+
+        stagesAsync.push({
+            name: "StopModReposts Database Loader",
+            fn: function(cb) {
+                try {
+                    request({ url: "https://api.varden.info/smr/sitelist.php?format=json", headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
+                        try {
+                            if (err || !res || !body || res.statusCode !== 200) {
+                                throw (err || new Error('Failed to get a response from the StopModReposts API.'))
+                            } else {
+                                log(body, 'trace');
+                                let sitelist = JSON.parse(body);
+                                let smr_data = [];
+        
+                                memory.db.smr.find({}, (err, docs) => {
+                                    try {
+                                        if (err) {
+                                            throw err
+                                        } else
+                                        if (!docs[0]) {
+                                            getSMRSites();
+                                        } else {
+                                            for(let i2 in docs) {
+                                                smr_data.push(docs[i2].url);
+            
+                                                if (parseInt(i2)+1 === docs.length) {
+                                                    getSMRSites();
+                                                }
+                                            }
+                                        }
+                                    }
+                                    catch (err) {
+                                        log(err.stack, 'error')
+                                        cb();
+                                    }
+                                });
+        
+                                function getSMRSites() {
+                                    log('getSMRSite()', 'trace');
+                                    try {
+                                        for(let i=0; i<sitelist.length; i++) {
+                                            if(sitelist[i].path !== "\/") {
+                                                smr_data.push(sitelist[i].domain + (JSON.parse(`["${sitelist[i].path}"]`)[0]));
+                                            } else {
+                                                smr_data.push(sitelist[i].domain);
+                                            }
+                
+                                            if(i+1 >= sitelist.length) {
+                                                memory.bot.smr = smr_data;
+                    
+                                                cb();
+                                            }
+                                        }
+                                    }
+                                    catch (err) {
+                                        log(err.stack, 'error')
+                                        cb();
+                                    }
+                                }
+                            }
+                        }
+                        catch (err) {
+                            log(err.stack, 'error')
+                            cb();
+                        }
+                    });
+                }
+                catch (err) {
+                    log(err.stack, 'error')
+                    cb();
                 }
             }
         });
@@ -1049,78 +1123,6 @@ bot.on('ready', () => {
         });
     
         stages.push({
-            name: "StopModReposts Database Loader",
-            fn: function(cb) {
-                try {
-                    request({ url: "https://api.varden.info/smr/sitelist.php?format=json", headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                        try {
-                            if (err || !res || !body) {
-                                throw (err || new Error('Failed to get a response from the StopModReposts API.'))
-                            } else {
-                                let sitelist = JSON.parse(body);
-                                let smr_data = [];
-        
-                                memory.db.smr.find({}, (err, docs) => {
-                                    try {
-                                        if (err) {
-                                            throw err
-                                        } else
-                                        if (!docs[0]) {
-                                            getSMRSites();
-                                        } else {
-                                            for(let i2 in docs) {
-                                                smr_data.push(docs[i2].url);
-            
-                                                if (parseInt(i2)+1 === docs.length) {
-                                                    getSMRSites();
-                                                }
-                                            }
-                                        }
-                                    }
-                                    catch (err) {
-                                        log(err.stack, 'fatal')
-                                        TOOLS.shutdownHandler(24);
-                                    }
-                                });
-        
-                                function getSMRSites() {
-                                    log('getSMRSite()', 'trace');
-                                    try {
-                                        for(let i=0; i<sitelist.length; i++) {
-                                            if(sitelist[i].path !== "\/") {
-                                                smr_data.push(sitelist[i].domain + (JSON.parse(`["${sitelist[i].path}"]`)[0]));
-                                            } else {
-                                                smr_data.push(sitelist[i].domain);
-                                            }
-                
-                                            if(i+1 >= sitelist.length) {
-                                                memory.bot.smr = smr_data;
-                    
-                                                cb();
-                                            }
-                                        }
-                                    }
-                                    catch (err) {
-                                        log(err.stack, 'fatal')
-                                        TOOLS.shutdownHandler(24);
-                                    }
-                                }
-                            }
-                        }
-                        catch (err) {
-                            log(err.stack, 'fatal')
-                            TOOLS.shutdownHandler(24);
-                        }
-                    });
-                }
-                catch (err) {
-                    log(err.stack, 'fatal')
-                    TOOLS.shutdownHandler(24);
-                }
-            }
-        });
-    
-        stages.push({
             name: "Server List Parser",
             fn: function(cb) {
                 try {
@@ -1269,63 +1271,88 @@ bot.on('ready', () => {
                 }
             }
         });
-    
-        stages.push({
-            name: "Statistics Data Bootstrapper",
-            fn: function(cb) {
-                try {
-                    // need to reset this at the beginning of every month
-                    // also need to archive results of the entire month BEFORE resetting.
-        
-                    let data = {
-                        day: new Date().getDate(),
-                        users: {
-                            join: 0,
-                            leave: 0,
-                            bans: 0,
-                            kicks: 0,
-                            mutes: 0,
-                            unique: 0
-                        },
-                        messages: 0,
-                        dms: 0,
-                        commands: 0
-                    }
-        
-                    memory.db.stats.find({ day: data.day }, (err, docs) => {
-                        try {
-                            if (err) throw err
-                            else if (docs.length === 0) {
-                                memory.db.stats.insert(data, (err) => {
-                                    if (err) throw err
-                                    else finishStage()
-                                })
-                            } else {
-                                finishStage();
+
+        if(cfg.statistics.enabled) {
+            stages.push({
+                name: "Statistics Data Bootstrapper",
+                fn: function(cb) {
+                    try {
+                        let data = JSON.parse(JSON.stringify(cfg.statistics.template));
+                        data.month = new Date().getUTCMonth();
+
+                        memory.stats = JSON.parse(JSON.stringify(cfg.statistics.template));
+
+                        memory.stats.old = JSON.parse(JSON.stringify(cfg.statistics.template));
+            
+                        memory.db.stats.find({ month: data.month }, (err, docs) => {
+                            try {
+                                if (err) throw err
+                                else if (docs.length === 0) {
+                                    memory.db.stats.insert(data, (err) => {
+                                        if (err) throw err
+                                        else finishStage()
+                                    });
+                                } else
+                                if(docs[0].active) {
+                                    memory.stats.old = docs[0];
+                                    finishStage();
+                                } else {
+                                    memory.db.stats.find({ active: true }, (err, docs_a) => {
+                                        try {
+                                            if (err) throw err
+                                            else if (docs_a[0].month > data.month) {
+                                                // this should fire if new years has come
+                                                memory.db.stats.find({}, (err, docs_e) => {
+                                                    // todo: add up everything for the yearly result
+                                                    // maybe archive and allow !stats command to view any year/month?
+                                                    memory.db.stats.remove({}, {multi:true}, (err) => {
+                                                        try {
+                                                            if (err) throw err
+                                                            else {
+                                                                memory.db.stats.insert(data, (err) => {
+                                                                    if (err) throw err
+                                                                    else finishStage()
+                                                                });
+                                                            }
+                                                        }
+                                                        catch (err) {
+                                                            log(err.stack, 'fatal')
+                                                            TOOLS.shutdownHandler(24);
+                                                        }
+                                                    });
+                                                });
+                                            }
+                                        }
+                                        catch (err) {
+                                            log(err.stack, 'fatal')
+                                            TOOLS.shutdownHandler(24);
+                                        }
+                                    });
+                                }
+                            }
+                            catch (err) {
+                                log(err.stack, 'fatal')
+                                TOOLS.shutdownHandler(24);
+                            }
+                        });
+            
+                        function finishStage() {
+                            try {
+                                cb();
+                            }
+                            catch (err) {
+                                log(err.stack, 'fatal')
+                                TOOLS.shutdownHandler(24);
                             }
                         }
-                        catch (err) {
-                            log(err.stack, 'fatal')
-                            TOOLS.shutdownHandler(24);
-                        }
-                    });
-        
-                    function finishStage() {
-                        try {
-                            cb();
-                        }
-                        catch (err) {
-                            log(err.stack, 'fatal')
-                            TOOLS.shutdownHandler(24);
-                        }
+                    }
+                    catch (err) {
+                        log(err.stack, 'fatal')
+                        TOOLS.shutdownHandler(24);
                     }
                 }
-                catch (err) {
-                    log(err.stack, 'fatal')
-                    TOOLS.shutdownHandler(24);
-                }
-            }
-        });
+            });
+        }
     
         stages.push({
             name: "Moderator Presence Loader",
@@ -1791,9 +1818,7 @@ bot.on('guildMemberAdd', member => {
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
 
-    memory.db.stats.update({day: new Date().getDate()}, { $inc: { "users.join": 1 } }, (err) => {
-        if (err) TOOLS.errorHandler({err:err});
-    });
+    if (cfg.statistics.enabled) memory.stats.users.join++;
 
     let user = member.user.username + '#' + member.user.discriminator;
 
@@ -1854,9 +1879,8 @@ bot.on('guildBanAdd', (guild, member) => {
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
 
-    memory.db.stats.update({day: new Date().getDate()}, { $inc: { "users.bans": 1 } }, (err) => {
-        if (err) TOOLS.errorHandler({err:err});
-    });
+
+    if (cfg.statistics.enabled) memory.stats.users.bans++
 
     bot.setTimeout(() => {
         bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 1 }).then((audit) => {
@@ -1891,21 +1915,17 @@ bot.on('guildMemberRemove', member => {
 
                 if (ad.reason) msg += '\nReason: ' + ad.reason;
 
-                memory.db.stats.update({day: new Date().getDate()}, { $inc: { "users.kicks": 1 } }, (err) => {
-                    if (err) TOOLS.errorHandler({err:err});
-                });
+                if (cfg.statistics.enabled) memory.stats.users.kicks++
 
                 log(msg, 'warn');
             } else
-                if (ad.action === 'MEMBER_BAN_ADD' && ad.target.id === member.user.id && ad.createdTimestamp + 3000 > new Date().getTime()) {
-                    return;
-                } else {
-                    memory.db.stats.update({day: new Date().getDate()}, { $inc: { "users.leave": 1 } }, (err) => {
-                        if (err) TOOLS.errorHandler({err:err});
-                    });
+            if (ad.action === 'MEMBER_BAN_ADD' && ad.target.id === member.user.id && ad.createdTimestamp + 3000 > new Date().getTime()) {
+                return;
+            } else {
+                if (cfg.statistics.enabled) memory.stats.users.leave++
 
-                    log('User has left the server: ' + member.user.username + '#' + member.user.discriminator + ' (' + member.user.id + ')', 'warn');
-                }
+                log('User has left the server: ' + member.user.username + '#' + member.user.discriminator + ' (' + member.user.id + ')', 'warn');
+            }
         }).catch(err => log(err.stack, 'error'));
     }, 500);
 });
@@ -2005,22 +2025,10 @@ bot.on('message', (m) => {
     if (memory.bot.shutdown) return; // bot is shutting down or going under a scheduled restart
     if (cfg.channels.blacklist.indexOf(m.channel.id) > -1) return; // channel is on blacklist
 
-    memory.db.stats.update({day: new Date().getDate()}, { $inc: { messages: 1 } }, (err) => {
-        if (err) TOOLS.errorHandler({err:err});
-    });
-
-    if (memory.stats.unique.indexOf(m.author.id) === -1) {
-        memory.stats.unique.push(m.author.id);
-
-        memory.db.stats.update({day: new Date().getDate()}, { $set: { "users.unique": memory.stats.unique.length } }, (err) => {
-            if (err) TOOLS.errorHandler({err:err});
-        });
-    }
-
-    if (m.channel.type === 'dm') {
-        memory.db.stats.update({day: new Date().getDate()}, { $inc: { dms: 1 } }, (err) => {
-            if (err) TOOLS.errorHandler({err:err});
-        });
+    if (cfg.statistics.enabled) {
+        memory.stats.messages++;
+        if (m.channel.type === 'dm') memory.stats.dms++;
+        if (memory.stats.users.unique.indexOf(m.author.id) === -1) memory.stats.users.unique.push(m.author.id);
     }
 
     if (memory.cd.active) return;
@@ -2059,13 +2067,7 @@ bot.on('message', (m) => {
         return;
     }
 
-    if (cmdValidator && input.indexOf(cmdValidator[0]) === 0) {
-        memory.db.stats.update({day: new Date().getDate()}, { $inc: { commands: 1 } }, (err) => {
-            if (err) TOOLS.errorHandler({err:err});
-        });
-
-        TOOLS.typerHandler(m.channel, true);
-    }
+    if (cmdValidator && input.indexOf(cmdValidator[0]) === 0) TOOLS.typerHandler(m.channel, true);
 
     bot.setTimeout(() => {
         bot.guilds.get(cfg.basic.of_server).fetchMember(m.author.id).then(member => {
@@ -2191,12 +2193,12 @@ bot.on('message', (m) => {
                                 log('unknown cmd', 'trace');
                                 unknown();
                             } else
-                            if (res.getMetadata().tags['DEVELOPER_ONLY'] && !isSuper) {
+                            if (res.getMetadata().tags['HIDDEN'] && !isSuper) {
                                 log('User attempted to use hidden command.', 'warn');
                                 log(JSON.stringify(res.getMetadata()));
                                 unknown();
                             } else
-                            if ( (res.getMetadata().tags['MODERATOR_ONLY'] && !isAdmin) || (res.getMetadata().tags['NO_JR_MOD'] && member.roles.has(cfg.roles.junior_mod)) ) {
+                            if ( (res.getMetadata().tags['MODERATOR_ONLY'] && !isAdmin) || (res.getMetadata().tags['NO_JR_MOD'] && member.roles.has(cfg.roles.junior_mod)) || (res.getMetadata().tags['DEVELOPER_ONLY'] && !isSuper) ) {
                                 checkMisuse('You do not have permission to use this command.')
                             } else
                             if (res.getMetadata().tags['NO_DM'] && m.channel.type === 'dm' && !isSuper) {
@@ -2212,13 +2214,23 @@ bot.on('message', (m) => {
                                 checkMisuse('This command can only be used in moderator-only channels.')
                             } else {
                                 res.exec(m, args, member, { isAdmin: isAdmin, isSuper: isSuper });
+
+                                if(cfg.statistics.enabled && !res.getMetadata().tags['HIDDEN']) {
+                                    memory.stats.commands.total++;
+
+                                    if (memory.stats.commands.list[cmd]) {
+                                        memory.stats.commands.list[cmd]++;
+                                    } else {
+                                        memory.stats.commands.list[cmd] = 1;
+                                    }
+                                }
                             }
                         });
                     }
                 });
             } else {
                 ////////////////////////////////////////////////////////////////
-                // ASSISTANTS
+                // TIDBITS & OTHER THINGS
                 ////////////////////////////////////////////////////////////////
     
                 if (m.channel.type === 'dm') {
@@ -2876,42 +2888,138 @@ CMD.register(new Command({
     }
 }));
 
-CMD.register(new Command({
-    trigger: 'stats',
-    short_desc: "General OptiBot/Server statistics.",
-    fn: (m) => {
-        memory.db.stats.find({ day: new Date().getDate() }, (err, docs) => {
-            if (err) {
-                TOOLS.errorHandler({ err: err, m:m });
-            } else {
-                log(docs[0], 'debug');
+if(cfg.statistics.enabled) {
+    CMD.register(new Command({
+        trigger: 'stats',
+        short_desc: "General OptiBot/Server statistics.",
+        tags: ['BOT_CHANNEL_ONLY','DM_OPTIONAL'],
+        fn: (m) => {
+            TOOLS.packStats().then(stats => {
+                log(stats, 'debug');
+                let month = 'January';
+
+                if(stats.month === 1) {
+                    month = 'February'
+                } else
+                if(stats.month === 2) {
+                    month = 'March'
+                } else
+                if(stats.month === 3) {
+                    month = 'April'
+                } else
+                if(stats.month === 4) {
+                    month = 'May'
+                } else
+                if(stats.month === 5) {
+                    month = 'June'
+                } else
+                if(stats.month === 6) {
+                    month = 'July'
+                } else
+                if(stats.month === 7) {
+                    month = 'August'
+                } else
+                if(stats.month === 8) {
+                    month = 'September'
+                } else
+                if(stats.month === 9) {
+                    month = 'October'
+                } else
+                if(stats.month === 10) {
+                    month = 'November'
+                } else
+                if(stats.month === 11) {
+                    month = 'December'
+                }
+
+                // for the sake of readability (and some flexibility) i made these into arrays instead of plain strings.
+                // full disclosure: this probably isn't good practice
+                let messages_f = [
+                    `Overall Messages Seen: ${stats.messages} (${memory.stats.messages} today)`,
+                    `Direct Messages: ${stats.dms} (${memory.stats.dms} today)`,
+                    `OptiBot Commands: ${stats.commands.total} (${memory.stats.commands.total} today)`,
+                    ``,
+                    `Approximately ${((stats.dms / stats.messages) * 100).toFixed(3)}% of all messages are via DM.`,
+                    `Approximately ${((stats.commands.total / stats.messages) * 100).toFixed(3)}% of all messages are OptiBot commands.`
+                ];
+
+                let users_f = [
+                    `Users Joined: ${stats.users.join}`,
+                    `Users Left: ${stats.users.leave}`,
+                    ``,
+                    `A total of ${stats.users.unique.length} unique users were active this month. (${memory.stats.users.unique.length} today)`
+                ];
+
+                if (stats.users.join === stats.users.leave) {
+                    users_f.push('There seems to be no change in the amount of users in the server.');
+                } else
+                if (stats.users.join > stats.users.leave) {
+                    users_f.push('There is currently a **net gain** in the amount of users in the server.');
+                } else {
+                    users_f.push('There is currently a **net loss** in the amount of users in the server.');
+                }
+
+                let mod_f = [
+                    `Users Banned: ${stats.users.bans}`,
+                    `Users Kicked: ${stats.users.kicks}`,
+                    `Users Muted: ${stats.users.mutes}`,
+                    `Users Warned: ${stats.users.warns}`
+                ]
+
+                let cmd_f_final;
+
+                if(stats.commands.total === 0) {
+                    cmd_f_final = 'Not enough data.'
+                } else {
+                    let cmd_f = [];
+                    let cmd_data = [];
+
+                    // uughghghghfugnjkfb this feels so fucking disgusting and idk how else to do this;;;;
+
+                    Object.keys(stats.commands.list).forEach((cmd) => {
+                        cmd_data.push({
+                            cmd: cmd,
+                            weight: ((stats.commands.list[cmd] / stats.commands.total) * 100).toFixed(2)
+                        });
+                    });
+
+                    log(cmd_data, 'debug');
+
+                    let sorted = cmd_data.sort((a, b) => {
+                        if((b.weight - a.weight)) {
+                            return b.weight - a.weight;
+                        } else {
+                            return a.cmd.localeCompare(b.cmd);
+                        }
+                    });
+
+                    log(sorted, 'debug');
+
+                    sorted.forEach((cmd) => {
+                        cmd_f.push(`${memory.bot.trigger}${cmd.cmd} - ${cmd.weight}%`);
+                    });
+
+                    cmd_f_final = cmd_f.join('\n');
+                }
+
                 let embed = new discord.RichEmbed()
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_stats.png'), "icon.png"))
                 .setColor(cfg.vs.embed.default)
-                .setAuthor('OptiStats', 'attachment://icon.png')
-                .setDescription('General OptiBot/Server statistics. Not all data may be 100% accurate, this is all just for fun.')
-                .addField('Messages', `Total Messages Received: ${docs[0].messages} \nDirect Messages: ${docs[0].dms} \nCommands: ${docs[0].commands} \n\nApproximately ${((docs[0].dms / docs[0].messages) * 100).toFixed(3)}% of all messages received are via DM. \nApproximately ${((docs[0].commands / docs[0].messages) * 100).toFixed(3)}% of all messages received are OptiBot instructions.`)
-
-                let usermsg = `Users Joined: ${docs[0].users.join} \nUsers Left: ${docs[0].users.leave} \n\nA total of ${docs[0].users.unique} unique users were active today.`;
-                
-
-                if (docs[0].users.join === docs[0].users.leave) {
-                    usermsg += '\nThere seems to be no change in the amount of users in the server.';
-                } else
-                if (docs[0].users.join > docs[0].users.leave) {
-                    usermsg += '\nThere is currently a **net gain** in the amount of users in the server.';
-                } else {
-                    usermsg += 'There is currently a **net loss** in the amount of users in the server.';
-                }
-
-                embed.addField('Users', usermsg)
-                .addField('Moderation', `Users Banned: ${docs[0].users.bans} \nUsers Kicked: ${docs[0].users.kicks} \nUsers Muted: ${docs[0].users.mutes}`)
+                .setAuthor(`OptiStats | ${month}, ${new Date().getUTCFullYear()}`, 'attachment://icon.png')
+                .setDescription(`Note that this data is actively being recorded. These probably aren't the final results.`)
+                .addField('Messages', messages_f.join('\n'))
+                .addField('Users', users_f.join('\n'))
+                .addField('Moderation', mod_f.join('\n'))
+                .addField('Command Usage', cmd_f_final)
+                .setFooter(`Take this with a grain of salt; none of this data may be 100% accurate. This is all just for fun, after all.`);
 
                 m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-            }
-        });
-    }
-}));
+            }).catch(err => {
+                TOOLS.errorHandler({err: err});
+            });
+        }
+    }));
+}
 
 CMD.register(new Command({
     trigger: 'rulestest',
@@ -3735,6 +3843,8 @@ CMD.register(new Command({
                                         .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                                         .setAuthor(`User Warnings`, 'attachment://icon.png')
                                         .setDescription(num);
+
+                                        if(cfg.statistics.enabled) memory.stats.users.warns++;
             
                                         m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                                     }
@@ -4516,23 +4626,17 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'assist',
-    short_desc: `Details OptiBot's assistant functions.`,
-    long_desc: `Displays detailed information for OptiBot's "Assistant" functions. These are essentially commands that do not require OptiBot's command trigger (${memory.bot.trigger}), and can be used anywhere at any time. (Except DMs)`,
+    trigger: 'tidbits',
+    short_desc: `Details OptiBot's miscellaneous functions.`,
     usage: `[page #]`,
     tags: ['BOT_CHANNEL_ONLY', 'DM_OPTIONAL'],
     fn: (m, args) => {
         let pages = [
             new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-            .addField('What are these?', `Assistants are, essentially, functions that do not require OptiBot's command trigger (${memory.bot.trigger}) to be used, and can be used anywhere in any message you send. (Apart from DMs.)`),
-
-            new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
             .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"), new discord.Attachment(memory.bot.images.get('red_x.png'), "thumbnail.png")])
             .setThumbnail('attachment://thumbnail.png')
-            .addField('Deleting Bot Messages', `On Discord, you're allowed to delete any message you post at any time for any reason. No problem. On the other hand, you cannot delete other people's messages (unless you're a moderator, obviously). This goes for bot messages as well. \n\n*Until now!* \n\nFor your convenience, OptiBot will automatically and immediately add an emoji reaction to itself after almost every message it posts. This emoji appears as a red cross, and it's aptly named \`:click_to_delete:\`. By clicking on this reaction, the bot will promptly delete the message in question. This only works for yourself, as the person the bot was responding to. If anyone else tries to delete the message, it will simply be ignored.\n\nIt should be noted that OptiBot will only track up to ${cfg.db.size} messages at any given time. Once the message is old enough and has gone beyond this limit, it will be removed from OptiBot's memory. At this point, it can no longer be removed by anyone other than a Moderator or Admin.`),
+            .addField('Deleting Bot Messages', `On Discord, you're allowed to delete any message you post at any time for any reason. No problem. On the other hand, you cannot delete other people's messages (unless you're a moderator, obviously). This goes for bot messages as well. \n\n*Until now!* \n\nFor your convenience, OptiBot will automatically and immediately add an emoji reaction to itself after almost every message it posts. This emoji appears as a red cross, and is aptly named \`:click_to_delete:\`. By clicking on this reaction, the bot will promptly delete the message in question. This only works for yourself, as the person the bot was responding to. If anyone else tries to delete the message, it will simply be ignored.\n\nIt should be noted that OptiBot will only track up to ${cfg.db.size} messages at any given time. Once the message is old enough and has gone beyond this limit, it will be removed from OptiBot's memory. At this point, it can no longer be removed by anyone other than a Moderator or Admin.`),
 
             new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
@@ -4542,7 +4646,7 @@ CMD.register(new Command({
             new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-            .addField('StopModReposts Detector', `OptiBot will automatically flag any message that contains a link to an illegal Minecraft mod website. The list of bad sites is automatically downloaded and read from [StopModReposts' GitHub repository.](https://github.com/StopModReposts/Illegal-Mod-Sites) This helps to prevent the spread of malware, viruses, and other malicious things that are lurking in these fake websites. Avoid them as much as possible!\n\nUnlike any other message posted by OptiBot, you are NOT allowed to delete these. This is to stop anyone with any possible malicious intent. \n\nRead more about the StopModReposts campaign here: https://stopmodreposts.org/`)
+            .addField('StopModReposts Detector', `OptiBot will automatically flag any message that contains a link to an illegal Minecraft mod website. The list of bad sites is automatically downloaded and read from https://stopmodreposts.org/sites.html. This helps to prevent the spread of malware, viruses, and other malicious things that are lurking in these fake websites. Avoid them as much as possible!\n\nUnlike any other message posted by OptiBot, you are NOT allowed to delete these. This is to stop anyone with any possible malicious intent. \n\nRead more about the StopModReposts campaign here: https://stopmodreposts.org/`)
         ];
 
         let pageNum = 1;
@@ -4551,7 +4655,7 @@ CMD.register(new Command({
             pageNum = parseInt(args[0]);
         }
 
-        pages[pageNum-1].setAuthor(`OptiBot Assistants | Page ${pageNum}/${pageLimit}`, 'attachment://icon.png')
+        pages[pageNum-1].setAuthor(`OptiBot Tidbits | Page ${pageNum}/${pageLimit}`, 'attachment://icon.png')
 
         m.channel.send({ embed: pages[pageNum-1] }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
     }
@@ -4835,7 +4939,7 @@ CMD.register(new Command({
                 .setDescription(`OptiBot is a Discord bot primarily designed for utility. Whether it's moderation tools, or something to help you make a resource pack, you can probably find it here. (see \`!about\` for more info about OptiBot itself)`)
                 .setThumbnail('attachment://thumbnail.png')
                 .addField('Commands List', `\`\`\`${memory.bot.trigger}list\`\`\``)
-                .addField('Assistant Functions', `\`\`\`${memory.bot.trigger}assist\`\`\``)
+                .addField('Tidbits & Other Features', `\`\`\`${memory.bot.trigger}tidbits\`\`\``)
                 
 
             m.channel.send({ embed: embed }).then(msg => TOOLS.messageFinalize(m.author.id, msg));
@@ -4891,6 +4995,10 @@ CMD.register(new Command({
                     } else
                     if (md.tags['DEVELOPER_ONLY']) {
                         role_restriction = `<:locked:642112455333511178> This command can *only* be used by OptiBot developers.`;
+
+                        if(md.tags['HIDDEN']) {
+                            embed.setFooter(`This is a hidden command. OptiBot will act as if this command does not exist to any user who does not have permission.`)
+                        }
                     }
 
                     embed.addField('Usage Restrictions', role_restriction+'\n'+usage);
@@ -5283,6 +5391,7 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'exec',
     usage: "<js>",
+    tags: ['DM_OPTIONAL', 'HIDDEN'],
     fn: (m, args, member) => {
         // args and member arent used in this by default, but given this commands purpose, it just makes sense to have them available anyway.
         try {
@@ -6611,13 +6720,22 @@ TOOLS.shutdownHandler = (code) => {
 
     clearInterval(memory.bot.status_check);
 
-    bot.setTimeout(() => {
-        bot.destroy();
-        process.title = 'OptiBot ' + pkg.version;
-        setTimeout(() => {
-            process.exit(code);
-        }, 500);
-    }, 250);
+    TOOLS.packStats().then(() => {
+        final();
+    }).catch(err => {
+        TOOLS.errorHandler({err: err});
+        final();
+    });
+
+    function final() {
+        bot.setTimeout(() => {
+            bot.destroy();
+            process.title = 'OptiBot ' + pkg.version;
+            setTimeout(() => {
+                process.exit(code);
+            }, 500);
+        }, 250);
+    }
 }
 
 /**
@@ -7009,6 +7127,8 @@ TOOLS.muteHandler = (m, args, action) => {
                     embed.setAuthor(`Updated. ${muted_name} will now be muted for ${final}.`, 'attachment://icon.png');   
                 }
             } else {
+                if(cfg.statistics.enabled) memory.stats.users.mutes++;
+
                 if (time === null) {
                     embed.setAuthor(`Muted ${muted_name} until hell freezes over.`, 'attachment://icon.png');
                 } else {
@@ -7249,4 +7369,65 @@ TOOLS.pickupData = (type, cb) => {
             bot.clearInterval(check);
         }
     }, 1000);
+}
+
+if(cfg.statistics.enabled) {
+    TOOLS.packStats = () => {
+        return new Promise((resolve, reject) => {
+            log(memory.stats, 'debug');
+            let newStats = JSON.parse(JSON.stringify(cfg.statistics.template));
+    
+            newStats.month = new Date().getUTCMonth();
+    
+            log('trace', 'trace');
+        
+            newStats.users.join = memory.stats.old.users.join + memory.stats.users.join;
+            newStats.users.leave = memory.stats.old.users.leave + memory.stats.users.leave;
+            newStats.users.bans = memory.stats.old.users.bans + memory.stats.users.bans;
+            newStats.users.kicks = memory.stats.old.users.kicks + memory.stats.users.kicks;
+            newStats.users.mutes = memory.stats.old.users.mutes + memory.stats.users.mutes;
+        
+            newStats.users.unique = [...new Set(memory.stats.old.users.unique.concat(memory.stats.users.unique))];
+        
+            newStats.messages = memory.stats.old.messages + memory.stats.messages;
+            newStats.dms = memory.stats.old.dms + memory.stats.dms;
+            newStats.commands.total = memory.stats.old.commands.total + memory.stats.commands.total;
+    
+            log('trace', 'trace');
+    
+            if(newStats.commands.total > 0) {
+                let allCMDs = Object.keys(memory.stats.old.commands.list).concat(Object.keys(memory.stats.commands.list));
+    
+                log(allCMDs, 'trace');
+            
+                allCMDs.forEach((key, i, arr) => {
+                    let endValue = 0;
+    
+                    log('packStat loop'+i);
+            
+                    if(memory.stats.old.commands.list[key]) endValue += memory.stats.old.commands.list[key];
+                    if(memory.stats.commands.list[key]) endValue += memory.stats.commands.list[key];
+            
+                    newStats.commands.list[key] = endValue;
+            
+                    if(i+1 >= arr.length) {
+                        finish()
+                    }
+                });
+            } else {
+                finish()
+            }
+    
+            function finish() {
+                memory.db.stats.update({ month: newStats.month }, newStats, (err) => {
+                    if(err) {
+                        reject(err);
+                    } else {
+                        log(newStats, 'debug');
+                        resolve(newStats);
+                    }
+                });
+            }
+        });
+    }
 }

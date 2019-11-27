@@ -351,7 +351,7 @@ function init_final() {
         if(env.rph > 8 && !env.debug) {
             log(`Reset limit exceeded.`, 'fatal');
             log(`OptiBot encountered too many fatal errors and is shutting down to prevent any further damage. This is likely a problem that the program cannot solve on it's own.`);
-            end(code, true, 'OVERFLOW');
+            end(1000, true, 'OVERFLOW');
         } else {
             log('Initialization: Copying profiles for safety', 'debug');
             fs.copyFile(`./data/profiles.db`, `./archive/data/profiles_before_${env.logName}.db`, (err) => {

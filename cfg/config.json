@@ -15,6 +15,28 @@
         "countdown_interval": 2,
         "show_countdown": true
     },
+    "statistics": {
+        "enabled": true,
+        "template": {
+            "month": null,
+            "active": true,
+            "users": {
+                "join": 0,
+                "leave": 0,
+                "bans": 0,
+                "kicks": 0,
+                "mutes": 0,
+                "warns": 0,
+                "unique": []
+            },
+            "messages": 0,
+            "dms": 0,
+            "commands": {
+                "total": 0,
+                "list": {}
+            }
+        }
+    },
     "db": {
         "size": 64
     },

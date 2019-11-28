@@ -610,8 +610,13 @@ memory.bot.warn_check = bot.setInterval(() => {
 }, 300000);
 
 memory.bot.status_check = setInterval(() => {
-    if(memory.bot.botStatus !== 0) {
-        if(memory.bot.botStatusTime+(1000*60*2) < new Date().getTime()) {
+    if(memory.bot.botStatusTime+(1000*60*2.5) < new Date().getTime()) {
+        if(memory.bot.botStatus === 0) {
+            if(memory.bot.booting) {
+                log(`OptiBot has maintained status ${memory.bot.botStatus} for too long. Attempting restart for good measure.`, 'warn');
+                TOOLS.shutdownHandler(10);
+            }
+        } else {
             log(`OptiBot has maintained status ${memory.bot.botStatus} for too long. Attempting restart for good measure.`, 'warn');
             TOOLS.shutdownHandler(10);
         }
@@ -730,6 +735,9 @@ bot.on('ready', () => {
                             log(err.stack, 'error')
                             cb();
                         }
+                    }).catch(err => {
+                        log(err.stack, 'error')
+                        cb();
                     });
                 }
                 catch (err) {
@@ -1186,6 +1194,9 @@ bot.on('ready', () => {
                             log(err.stack, 'fatal')
                             TOOLS.shutdownHandler(24);
                         }
+                    }).catch(err => {
+                        log(err.stack, 'fatal')
+                        TOOLS.shutdownHandler(24);
                     });
                 }
                 catch (err) {
@@ -1536,6 +1547,8 @@ bot.on('raw', packet => {
 
             log('old emoji detected', 'trace');
             bot.emit('messageReactionAdd', reaction, bot.users.get(packet.d.user_id));
+        }).catch(err => {
+            TOOLS.errorHandler({err:err});
         });
     }
 });
@@ -1586,6 +1599,8 @@ bot.on('messageReactionAdd', (mr, user) => {
                     });
                 });
             }
+        }).catch(err => {
+            TOOLS.errorHandler({err:err});
         });
     } else 
     if (mr.emoji.id === '642085525460877334') {
@@ -1742,7 +1757,9 @@ bot.on('messageDelete', m => {
                 let timeTaken = (calcEnd.getTime() - now.getTime()) / 1000;
                 log(`Successfully determined executor in ${timeTaken} seconds.`, 'debug');
             }
-        }).catch(err => log(err.stack, 'error'));
+        }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }, 1000);
 });
 
@@ -2383,6 +2400,8 @@ bot.on('message', (m) => {
                                         
                                                 m.channel.send({ embed: embed }).then(msg => { 
                                                     TOOLS.messageFinalize(m.author.id, msg);
+                                                }).catch(err => {
+                                                    TOOLS.errorHandler({err:err});
                                                 });
                                             }
                                         } else {
@@ -2500,7 +2519,7 @@ CMD.register(new Command({
         m.channel.send({ embed: embed }).then(msg => {
             TOOLS.shutdownHandler(2);
         }).catch(err => {
-            TOOLS.errorHandler({ err: err, m: m });
+            TOOLS.errorHandler({ err: err });
             TOOLS.shutdownHandler(2);
         });
     }
@@ -2520,7 +2539,7 @@ CMD.register(new Command({
             m.channel.send({ embed: embed }).then(msg => {
                 TOOLS.shutdownHandler(3);
             }).catch(err => {
-                TOOLS.errorHandler({ err: err, m: m });
+                TOOLS.errorHandler({ err: err });
                 TOOLS.shutdownHandler(3);
             });
         } else {
@@ -2544,7 +2563,7 @@ CMD.register(new Command({
         m.channel.send({ embed: embed }).then(msg => {
             TOOLS.shutdownHandler(0);
         }).catch(err => {
-            TOOLS.errorHandler({ err: err, m: m });
+            TOOLS.errorHandler({ err: err });
             TOOLS.shutdownHandler(0);
         });
     }
@@ -2614,7 +2633,9 @@ CMD.register(new Command({
                         "user_profile_count": (err) ? `[error]` : docs.length,
                     }
 
-                    m.channel.send(`\`\`\`json\n${JSON.stringify(data, null, 4)}\`\`\``).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send(`\`\`\`json\n${JSON.stringify(data, null, 4)}\`\`\``).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 });
             });
         });
@@ -2633,7 +2654,9 @@ CMD.register(new Command({
             .setDescription('[https://adoptopenjdk.net/releases](https://adoptopenjdk.net/releases.html)')
             .setFooter("Remember to download the JRE installer!");
 
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -2675,7 +2698,9 @@ CMD.register(new Command({
             .addField(`\u200B`, `OptiBot is developed almost entirely by myself (<:jack:646322505107243018> <@181214529340833792>) out of love for a great community, all on my free time. Admittedly, I don't expect much (if anything) in return. I just like coding from time to time. However, if you'd still like to support this project, you can [buy me a coffee! ☕](http://ko-fi.com/jackasterisk "☕")`)
             .addField(`Supporters`, dntrs.join(', '))
 
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -2702,9 +2727,13 @@ CMD.register(new Command({
                             .setDescription(`You're in ${m.channel}!`)
                             .setImage('attachment://image.png');
 
-                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     }
                 });
+            }).catch(err => {
+                TOOLS.errorHandler({err:err, m:m});
             });
         } else {
             let embed = new discord.RichEmbed()
@@ -2713,9 +2742,10 @@ CMD.register(new Command({
                 .setDescription('<#426005631997181963>')
                 .setImage('attachment://image.png');
 
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         }
-
     }
 }));
 
@@ -2738,7 +2768,9 @@ CMD.register(new Command({
                 .setDescription(TOOLS.randomizer(msg))
                 .setImage('attachment://image.png');
 
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         } else {
             let embed = new discord.RichEmbed()
                 .setColor(cfg.vs.embed.default)
@@ -2746,7 +2778,9 @@ CMD.register(new Command({
                 .setDescription('<#584850909725458503>')
                 .setImage('attachment://image.png');
 
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         }
 
     }
@@ -2780,6 +2814,8 @@ CMD.register(new Command({
                 .addField('Enabled', perms_enabled)
                 .addField('Disabled', perms_disabled)
             m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        }).catch(err => {
+            TOOLS.errorHandler({err:err, m:m});
         });
     }
 }));
@@ -2802,7 +2838,9 @@ CMD.register(new Command({
             .setAuthor(`Minecraft 1.7.10 is ${years} years, ${months} ${(months === 1) ? "month" : "months"}, and ${days} ${(days === 1) ? "day" : "days"} old today.`, 'attachment://icon.png', 'http://www.howoldisminecraft1710.today/')
             .setFooter("Please stop playing on horribly outdated versions of the game.");
 
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -2817,7 +2855,9 @@ CMD.register(new Command({
             .setAuthor(`Don't ask to ask, just ask.`, 'attachment://icon.png')
             .setDescription('https://sol.gfxile.net/dontask.html');
 
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -2832,7 +2872,9 @@ CMD.register(new Command({
             .setAuthor('OptiFine Issue Tracker', 'attachment://icon.png')
             .setDescription('https://github.com/sp614x/optifine/issues');
 
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -2847,7 +2889,9 @@ CMD.register(new Command({
             .setAuthor('Minecraft: Java Edition Bug Tracker', 'attachment://icon.png')
             .setDescription('https://bugs.mojang.com/projects/MC/summary');
 
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -2865,7 +2909,9 @@ CMD.register(new Command({
             .addField('Alternate/Backup', 'https://optifined.net/downloads')
             .addField('Older Versions (b1.4 - 1.9)', '[OptiFine History at minecraftforum.net](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/1286605-b1-4-1-9-optifine-history)')
 
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -2884,7 +2930,9 @@ CMD.register(new Command({
             .setThumbnail('attachment://thumbnail.png')
             .setDescription('[https://optifine.net/shaderpacks](https://optifine.net/shaderPacks) \n\nYou can find this same link in-game, next to the "Shaders Folder" button.')
 
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -3013,7 +3061,9 @@ if(cfg.statistics.enabled) {
                 .addField('Command Usage', cmd_f_final)
                 .setFooter(`Take this with a grain of salt; none of this data may be 100% accurate. This is all just for fun, after all.`);
 
-                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                    TOOLS.errorHandler({err:err});
+                });
             }).catch(err => {
                 TOOLS.errorHandler({err: err});
             });
@@ -3087,8 +3137,14 @@ CMD.register(new Command({
             m.channel.send({embed: content_embed}).then(() => {
                 m.channel.send({embed: guidelines_embed}).then(() => {
                     TOOLS.typerHandler(m.channel, false);
-                })
+                }).catch(err => {
+                    TOOLS.errorHandler({err:err});
+                });
+            }).catch(err => {
+                TOOLS.errorHandler({err:err});
             });
+        }).catch(err => {
+            TOOLS.errorHandler({err:err});
         });
     }
 }));
@@ -3103,7 +3159,9 @@ CMD.register(new Command({
             .attachFile(new discord.Attachment(memory.bot.images.get('goodboy.gif'), "image.gif"))
             .setImage('attachment://image.gif')
 
-        m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -3140,7 +3198,9 @@ CMD.register(new Command({
             .setDescription('The Thanos Method is a debugging technique used to find mods that are incompatible with OptiFine.')
             .addField('How does it work?', `It's simple. Split your mods into 2 groups, not including OptiFine. Remove one group, and test in-game. Keep the group that has the problem, and repeat until only 1-2 mods are remaining. Now go report the incompatibility on GitHub!`)
 
-        m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -3156,7 +3216,9 @@ CMD.register(new Command({
             .setAuthor('Jarfix', 'attachment://icon.png')
             .setDescription('https://johann.loefflmann.net/en/software/jarfix/index.html');
 
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -3178,7 +3240,9 @@ CMD.register(new Command({
                 embed.addField(`Rule #${e.split(') ')[0]}`, e.substring(e.indexOf(')')+1));
             });
 
-            m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         }).catch(err => {
             TOOLS.errorHandler({ err: err, m:m });
         });
@@ -3198,7 +3262,9 @@ CMD.register(new Command({
         .setDescription(`Support OptiFine's development with one-time donation of $10, and optionally receive an OptiFine cape in recognition of your awesomeness. This cape can have one of two types of designs: The standard "OF" cape with fully custom colors, or a full banner design. These designs can be updated and changed at any time. In addition, you may request the Donator role on this very Discord server. This grants instant access to the exclusive, donator-only text channel. (type \`${memory.bot.trigger+"help dr"}\` in DMs or <#626843115650547743> for instructions) \n\nhttps://optifine.net/donate`)
         .setFooter('Thank you for your consideration!')
 
-        m.channel.send(embed).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send(embed).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -3217,6 +3283,8 @@ CMD.register(new Command({
                     m.channel.send('Timed out.');
                 }
             });
+        }).catch(err => {
+            TOOLS.errorHandler({err:err});
         });
     }
 }));
@@ -3306,6 +3374,8 @@ CMD.register(new Command({
                         m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                     }
                 });
+            }).catch(err => {
+                TOOLS.errorHandler({err:err});
             });
         }
     }
@@ -3326,7 +3396,9 @@ CMD.register(new Command({
                 fs.readFile(`./logs/${logFile}.log`, (err, data) => {
                     if (err) TOOLS.errorHandler({err:err, m:m});
                     else {
-                        m.channel.send(new discord.Attachment(data, `${logFile}.log`)).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        m.channel.send(new discord.Attachment(data, `${logFile}.log`)).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     }
                 });
             }
@@ -3354,22 +3426,31 @@ CMD.register(new Command({
             if(i+1 === memory.bot.actMods.length) {
                 if(pings_msg.length === 0) {
                     if(pings_status.length === 0) {
-                        m.channel.send(`Sorry, it seems like no moderators are active right now. \nIf this is a genuine emergency, please ping the moderator role and we will try to get on as soon as possible.`).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                        m.channel.send(`Sorry, it seems like no moderators are active right now. \nIf this is a genuine emergency, please ping the moderator role and we will try to get on as soon as possible.`).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     } else
                     if(pings_status.length === 1) {
-                        m.channel.send(`${m.author}, moderator ${pings_status[0]} should be with you soon!`).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                        m.channel.send(`${m.author}, moderator ${pings_status[0]} should be with you soon!`).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     } else {
-                        m.channel.send(`${m.author}, one of the following moderators should be with you soon! \n\n${pings_status.join(', ')}`).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                        m.channel.send(`${m.author}, one of the following moderators should be with you soon! \n\n${pings_status.join(', ')}`).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     }
                 } else 
                 if(pings_msg.length === 1) {
-                    m.channel.send(`${m.author}, moderator ${pings_msg[0]} should be with you soon!`).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                    m.channel.send(`${m.author}, moderator ${pings_msg[0]} should be with you soon!`).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 } else {
-                    m.channel.send(`${m.author}, one of the following moderators should be with you soon! \n\n${pings_msg.join(', ')}`).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                    m.channel.send(`${m.author}, one of the following moderators should be with you soon! \n\n${pings_msg.join(', ')}`).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 }
             }
         }
-        //m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
     }
 }));
 
@@ -3379,7 +3460,9 @@ CMD.register(new Command({
     long_desc: `Displays the MOTD, the message sent by OptiBot to every new user that joins the server.`,
     tags: ['BOT_CHANNEL_ONLY', 'DM_OPTIONAL'],
     fn: (m) => {
-        m.channel.send({ embed: memory.bot.motd }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: memory.bot.motd }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -3432,7 +3515,9 @@ CMD.register(new Command({
             if (memory.bot.debug) {
                 memory.bot.locked = false;
                 TOOLS.statusHandler(1);
-                m.channel.send("CodeMode restriction disabled.").then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                m.channel.send("CodeMode restriction disabled.").then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                    TOOLS.errorHandler({err:err});
+                });
             } else {
                 let embed = new discord.RichEmbed()
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
@@ -3441,7 +3526,9 @@ CMD.register(new Command({
     
                 memory.bot.locked = false;
                 TOOLS.statusHandler(1);
-                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                    TOOLS.errorHandler({err:err});
+                });
             }
         }
 
@@ -3470,11 +3557,17 @@ CMD.register(new Command({
                                     channel.overwritePermissions(bot_member, { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
                                         channel.overwritePermissions(cfg.roles.moderator, { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
                                             success();
+                                        }).catch(err => {
+                                            TOOLS.errorHandler({err:err, m:m});
                                         });
+                                    }).catch(err => {
+                                        TOOLS.errorHandler({err:err, m:m});
                                     });
                                 } else {
                                     success();
                                 }
+                            }).catch(err => {
+                                TOOLS.errorHandler({err:err, m:m});
                             });
                         }
         
@@ -3484,9 +3577,13 @@ CMD.register(new Command({
                             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
                             .setAuthor(`Channel successfully unlocked.`, 'attachment://icon.png')
         
-                            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
+                                TOOLS.errorHandler({err:err});
+                            });
                         }
                     }
+                }).catch(err => {
+                    TOOLS.errorHandler({err:err, m:m});
                 });
             }
         }
@@ -3526,7 +3623,9 @@ CMD.register(new Command({
             if (memory.bot.debug) {
                 memory.bot.locked = true;
                 TOOLS.statusHandler(1);
-                m.channel.send("Code Mode restriction enabled.").then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                m.channel.send("Code Mode restriction enabled.").then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                    TOOLS.errorHandler({err:err});
+                });
             } else {
                 let embed = new discord.RichEmbed()
                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
@@ -3535,7 +3634,9 @@ CMD.register(new Command({
     
                 memory.bot.locked = true;
                 TOOLS.statusHandler(1);
-                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                    TOOLS.errorHandler({err:err});
+                });
             }
         }
 
@@ -3564,11 +3665,17 @@ CMD.register(new Command({
         
                                     channel.overwritePermissions(cfg.roles.moderator, { SEND_MESSAGES: true }, `Allowing OptiBot and Moderators to bypass.`).then(() => {
                                         success();
+                                    }).catch(err => {
+                                        TOOLS.errorHandler({err:err, m:m});
                                     });
+                                }).catch(err => {
+                                    TOOLS.errorHandler({err:err, m:m});
                                 });
                             } else {
                                 success();
                             }
+                        }).catch(err => {
+                            TOOLS.errorHandler({err:err, m:m});
                         });
         
                         function success() {
@@ -3577,9 +3684,13 @@ CMD.register(new Command({
                             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
                             .setAuthor(`Channel successfully locked.`, 'attachment://icon.png')
         
-                            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+                            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
+                                TOOLS.errorHandler({err:err});
+                            });
                         }
                     }
+                }).catch(err => {
+                    TOOLS.errorHandler({err:err, m:m});
                 });
             }
         }
@@ -3612,7 +3723,9 @@ CMD.register(new Command({
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
             .setAuthor(`Log level updated.`, 'attachment://icon.png')
 
-            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); });
+            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         }
     }
 }));
@@ -3644,7 +3757,9 @@ CMD.register(new Command({
                             embed.setAuthor("User Records", "attachment://icon.png")
                             .setDescription(`<@${userid}> has no violations on record.`)
 
-                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                                TOOLS.errorHandler({err:err});
+                            });
                         } else {
                             let pageNum = 1
                             let pageLimit = Math.ceil(profile.violations.length / 10);
@@ -3665,7 +3780,9 @@ CMD.register(new Command({
                                 added++;
 
                                 if(added >= 10 || i+1 >= profile.violations.length) {
-                                    m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg));
+                                    m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg)).catch(err => {
+                                        TOOLS.errorHandler({err:err});
+                                    });
                                 } else {
                                     i++;
                                     addEntry();
@@ -3727,7 +3844,9 @@ CMD.register(new Command({
                                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
                                 .setAuthor('Successfully added note.', 'attachment://icon.png')
 
-                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                    TOOLS.errorHandler({err:err});
+                                });
                             }
                         })
                     });
@@ -3770,7 +3889,9 @@ CMD.register(new Command({
                         .setAuthor('That player does not exist.', 'attachment://thumbnail.png')
                         .setFooter('Maybe check your spelling?');
 
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 } else {
                     getOFcape(JSON.parse(data));
                 }
@@ -3846,7 +3967,9 @@ CMD.register(new Command({
 
                                         if(cfg.statistics.enabled) memory.stats.users.warns++;
             
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                            TOOLS.errorHandler({err:err});
+                                        });
                                     }
                                 });
                             });
@@ -3874,7 +3997,9 @@ CMD.register(new Command({
             .setAuthor("You must specify the file name of the OptiFine installer.", "attachment://icon.png")
             .setDescription(`For detailed instructions, type \`${memory.bot.trigger}help bat\``)
 
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         } else {
             let filename = args[0];
             if (!(args[0].toLowerCase().endsWith('.jar'))) {
@@ -3890,7 +4015,9 @@ CMD.register(new Command({
             .setDescription('Download and place this file in the same folder as the OptiFine installer, then run the .bat file.')
             .addField('What does this do?', `This [Windows Batch file](https://simple.wikipedia.org/wiki/Batch_file) will attempt to run the OptiFine installer, while recording the debug information the installer generates. This information is saved to a new text file in the same folder simply called \`output.txt\`.`)
 
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         }
     }
 }));
@@ -4020,7 +4147,9 @@ CMD.register(new Command({
                         embed.addField('Mojang Services', mc_servers_text)
                     }
         
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 });
         } else {
             /* 
@@ -4361,6 +4490,8 @@ CMD.register(new Command({
                     if (!responses.optifine && !responses.mojang && !responses.mojang_web) {
                         throw new Error('No servers to check.');
                     }
+                }).catch(err => {
+                    TOOLS.errorHandler({err:err});
                 });
             });
         }
@@ -4427,7 +4558,9 @@ CMD.register(new Command({
                                                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
                                                 .setAuthor('Successfully added URL to blacklist.', 'attachment://icon.png')
 
-                                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                                    TOOLS.errorHandler({err:err});
+                                                });
                                             }
                                         });
                                     } else
@@ -4438,7 +4571,9 @@ CMD.register(new Command({
                                         .setAuthor(`Request cancelled.`, 'attachment://icon.png')
                                         .setDescription('URL has not been blacklisted.')
 
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                            TOOLS.errorHandler({err:err});
+                                        });
                                     } else
                                     if (result === -1) {
                                         let embed = new discord.RichEmbed()
@@ -4447,9 +4582,13 @@ CMD.register(new Command({
                                         .setAuthor(`Request timed out.`, 'attachment://icon.png')
                                         .setDescription('URL has not been blacklisted.')
                                         
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                            TOOLS.errorHandler({err:err});
+                                        });
                                     }
                                 });
+                            }).catch(err => {
+                                TOOLS.errorHandler({err:err});
                             });
                         }
                     });
@@ -4518,6 +4657,8 @@ CMD.register(new Command({
                                                 if (docs.length > 0) {
                                                     bot.guilds.get(cfg.basic.of_server).fetchMember(docs[0].member_id).then(member => {
                                                         TOOLS.errorHandler({ err: `That username has already been claimed by ${member.user.username}#${member.user.discriminator}`, m:m });
+                                                    }).catch(err => {
+                                                        TOOLS.errorHandler({err:err});
                                                     });
                                                 } else {
                                                     let updated = (profile.cape && profile.cape.uuid.length > 0);
@@ -4539,7 +4680,9 @@ CMD.register(new Command({
                                                                 embed.setAuthor(`Added ${name} to verified cape owner list, with the username of "${js.name}"`, 'attachment://icon.png')
                                                             }
                         
-                                                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                                                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                                                                TOOLS.errorHandler({err:err});
+                                                            });
                                                         }
                                                     });
                                                 }
@@ -4593,7 +4736,9 @@ CMD.register(new Command({
                                                 TOOLS.errorHandler({err:err, m:m});
                                             } else {
                                                 embed.setAuthor(`Removed ${name} from the verified cape owner list.`, 'attachment://icon.png');
-                                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                                    TOOLS.errorHandler({err:err});
+                                                });
                                             }
                                         });
                                     } else
@@ -4604,7 +4749,9 @@ CMD.register(new Command({
                                         .setAuthor(`Request cancelled.`, 'attachment://icon.png')
                                         .setDescription('User has not been removed from verified cape owner list.')
 
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                            TOOLS.errorHandler({err:err});
+                                        });
                                     } else
                                     if (result === -1) {
                                         let embed = new discord.RichEmbed()
@@ -4613,9 +4760,13 @@ CMD.register(new Command({
                                         .setAuthor(`Request timed out.`, 'attachment://icon.png')
                                         .setDescription('User has not been removed from verified cape owner list.')
                                         
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                            TOOLS.errorHandler({err:err});
+                                        });
                                     }
                                 });
+                            }).catch(err => {
+                                TOOLS.errorHandler({err:err});
                             });
                         }
                     });
@@ -4657,7 +4808,9 @@ CMD.register(new Command({
 
         pages[pageNum-1].setAuthor(`OptiBot Tidbits | Page ${pageNum}/${pageLimit}`, 'attachment://icon.png')
 
-        m.channel.send({ embed: pages[pageNum-1] }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: pages[pageNum-1] }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }));
 
@@ -4689,7 +4842,9 @@ CMD.register(new Command({
             
             if (added >= maxPageLength || i+1 >= serverlist.length) {
                 embed.setFooter(`Showing ${added}/${serverlist.length} servers`)
-                m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg));
+                m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg)).catch(err => {
+                    TOOLS.errorHandler({err:err});
+                });
             } else {
                 i++;
                 addList();
@@ -4748,7 +4903,9 @@ CMD.register(new Command({
                     .setThumbnail(`https://cdn.discordapp.com/icons/${invite.guild.id}/${invite.guild.icon}.${filetype}`)
                     .setDescription(`${invite.url}\n\n${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`);
 
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 }).catch(err => {
                     TOOLS.errorHandler({ err: err, m:m });
                 })
@@ -4791,10 +4948,14 @@ CMD.register(new Command({
 
                 if (profile.medals) {
                     embed.setAuthor(`${(name) ? name+' has' : 'You have' } earned ${profile.medals.count} medal(s).`, 'attachment://icon.png')
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 } else {
                     embed.setAuthor(`${(name) ? name+' has' : 'You have' } not earned any medals.`, 'attachment://icon.png')
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 }
             });
         }
@@ -4830,7 +4991,9 @@ CMD.register(new Command({
                         .setAuthor("Rule #"+parseInt(args[0]), 'attachment://icon.png')
                         .setDescription(rules[parseInt(args[0])]);
 
-                        m.channel.send({embed:embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                        m.channel.send({embed:embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                 } else {
                     let joke;
                     if (parseInt(args[0]) < 0) {
@@ -4942,7 +5105,9 @@ CMD.register(new Command({
                 .addField('Tidbits & Other Features', `\`\`\`${memory.bot.trigger}tidbits\`\`\``)
                 
 
-            m.channel.send({ embed: embed }).then(msg => TOOLS.messageFinalize(m.author.id, msg));
+            m.channel.send({ embed: embed }).then(msg => TOOLS.messageFinalize(m.author.id, msg)).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         } else {
             // looking for info on command
             CMD.get(args[0], (cmd) => {
@@ -5013,7 +5178,9 @@ CMD.register(new Command({
                             .setAuthor('OptiBot Command: ' + memory.bot.trigger + md.trigger, 'attachment://icon.png');
                     }
 
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 }
             });
         }
@@ -5157,7 +5324,9 @@ CMD.register(new Command({
                     added++;
                     
                     if (added >= 10 || i+1 >= filtered.length) {
-                        m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg));
+                        m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg)).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     } else {
                         i++;
                         addList();
@@ -5246,7 +5415,7 @@ CMD.register(new Command({
                                 m.channel.send({ embed: embed }).then(msg => {
                                     TOOLS.messageFinalize(m.author.id, msg)
                                 }).catch(err => {
-                                    TOOLS.errorHandler({ err: err, m: m });
+                                    TOOLS.errorHandler({ err: err });
                                 });
                             }
                             catch (err) {
@@ -5274,7 +5443,7 @@ CMD.register(new Command({
                                     m.channel.send({ embed: embed }).then(msg => {
                                         TOOLS.messageFinalize(m.author.id, msg)
                                     }).catch(err => {
-                                        TOOLS.errorHandler({ err: err, m: m });
+                                        TOOLS.errorHandler({ err: err });
                                     });
                                 }
                             }
@@ -5329,7 +5498,9 @@ CMD.register(new Command({
                             .setAuthor(`Could not find a user.`, "attachment://icon.png")
                             .setFooter('Note that this shortcut will skip yourself, and all bots. This includes OptiBot, obviously.');
         
-                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                                TOOLS.errorHandler({err:err});
+                            });
                         } else
                         if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1 && !thisID.value.author.bot) {
                             translate(thisID.value.content);
@@ -5576,7 +5747,9 @@ CMD.register(new Command({
                                                     embed.setDescription(desc);
                                                 }
 
-                                                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                                                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                                                    TOOLS.errorHandler({err:err});
+                                                });
                                             }
                                         });
                                     }
@@ -5600,7 +5773,9 @@ CMD.register(new Command({
                             .setDescription(`If you're a donator and you're trying to view your own cape, enter your Minecraft username or [get your cape verified.](https://discordapp.com/channels/423430686880301056/531622141393764352/622494425616089099)`);
                             
 
-                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                         } else {
                             TOOLS.errorHandler({ err: `${name} does not have a verified donator cape.`, m: m });
                         }
@@ -5640,7 +5815,9 @@ CMD.register(new Command({
                             .setAuthor('That player does not exist.', 'attachment://thumbnail.png')
                             .setFooter('Maybe check your spelling?');
 
-                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     } else {
                         getOFcape(JSON.parse(data));
                     }
@@ -5695,6 +5872,8 @@ CMD.register(new Command({
                                     .setAuthor(`Successfully granted role "${role_match.bestMatch.target}" to ${member.user.username}#${member.user.discriminator}`, 'attachment://icon.png')
 
                                     m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                                }).catch(err => {
+                                    TOOLS.errorHandler({err:err, m:m});
                                 });
                             } else {
                                 member.removeRole(selected_role, `Role removed by ${m.author.username}#${m.author.discriminator}`).then(() => {
@@ -5704,6 +5883,8 @@ CMD.register(new Command({
                                     .setAuthor(`Successfully removed role "${role_match.bestMatch.target}" from ${member.user.username}#${member.user.discriminator}`, 'attachment://icon.png')
 
                                     m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                                }).catch(err => {
+                                    TOOLS.errorHandler({err:err, m:m});
                                 });
                             }
                         }
@@ -5727,7 +5908,9 @@ CMD.register(new Command({
             .setAuthor('An Incredibly Convenient Search Tool', 'attachment://thumbnail.png')
             .setDescription('[All your questions will be answered if you just click this link.](http://lmgtfy.com/?q='+encodeURIComponent('how to use discord bots')+'&s=g)')
 
-            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         } else {
             var embed = new discord.RichEmbed()
             .setColor(cfg.vs.embed.default)
@@ -5735,7 +5918,9 @@ CMD.register(new Command({
             .setAuthor('An Incredibly Convenient Search Tool', 'attachment://thumbnail.png')
             .setDescription('[All your questions will be answered if you just click this link.](http://lmgtfy.com/?q='+encodeURIComponent(m.content.substr(8))+'&s=g)')
 
-            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         }
     }
 }));
@@ -5809,7 +5994,9 @@ CMD.register(new Command({
                                         .setAuthor(`Request cancelled.`, 'attachment://icon.png')
                                         .setDescription(`Your message has not been sent. You must confirm that you've read and understood the terms.`)
             
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                            TOOLS.errorHandler({err:err});
+                                        });
                                     } else
                                     if (result === -1) {
                                         let embed = new discord.RichEmbed()
@@ -5818,9 +6005,13 @@ CMD.register(new Command({
                                         .setAuthor(`Request timed out.`, 'attachment://icon.png')
                                         .setDescription(`Your message has not been sent. You must confirm that you've read and understood the terms.`)
                                         
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                            TOOLS.errorHandler({err:err});
+                                        });
                                     }
                                 });
+                            }).catch(err => {
+                                TOOLS.errorHandler({err:err});
                             });
                         }
                     });
@@ -5881,6 +6072,8 @@ CMD.register(new Command({
                             m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
                         }
                     });
+                }).catch(err => {
+                    TOOLS.errorHandler({err:err});
                 });
             }
         }
@@ -5927,7 +6120,9 @@ CMD.register(new Command({
                                 .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
                                 .setAuthor(`Successfully deleted ${amount} messages.`, 'attachment://icon.png');
                                 
-                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                    TOOLS.errorHandler({err:err});
+                                });
                             }).catch(err => {
                                 TOOLS.errorHandler({err: err, m:m});    
                             });
@@ -5942,7 +6137,9 @@ CMD.register(new Command({
                         .setAuthor(`Request cancelled.`, 'attachment://icon.png')
                         .setDescription('No messages have been deleted.')
 
-                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     } else
                     if (result === -1) {
                         let embed = new discord.RichEmbed()
@@ -5951,9 +6148,13 @@ CMD.register(new Command({
                         .setAuthor(`Request timed out.`, 'attachment://icon.png')
                         .setDescription('No messages have been deleted.')
                         
-                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     }
                 });
+            }).catch(err => {
+                TOOLS.errorHandler({err:err});
             });
         }
     }
@@ -5973,7 +6174,9 @@ CMD.register(new Command({
             .setAuthor("Official OptiFine Documentation", 'attachment://icon.png')
             .addField("Main Directory", "https://github.com/sp614x/optifine/tree/master/OptiFineDoc/doc");
 
-            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         } else {
             let query = m.content.substring((memory.bot.trigger + 'docs ').length).toLowerCase();
             let match = cstr.findBestMatch(query, Object.keys(memory.bot.docs_cat));
@@ -5991,7 +6194,9 @@ CMD.register(new Command({
                 .addField(data.name, data.links.join('\n\n'))
                 .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
 
-                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                    TOOLS.errorHandler({err:err});
+                });
             }
         }
     }
@@ -6037,7 +6242,9 @@ CMD.register(new Command({
                         embed.addField(title, url)
                         embed.setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
     
-                        m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     }
                 }
             }
@@ -6068,7 +6275,9 @@ CMD.register(new Command({
                     .setAuthor('Message sent.', 'attachment://thumbnail.png')
 
                 m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-            })
+            }).catch(err => {
+                TOOLS.errorHandler({err:err, m:m});
+            });
         }
     }
 }));
@@ -6096,7 +6305,9 @@ CMD.register(new Command({
                         .setColor(cfg.vs.embed.error)
                         .setImage('attachment://image.png');
 
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 } else {
                     TOOLS.getProfile(m, userid, (profile) => {
                         if (!profile.medals) {
@@ -6121,6 +6332,8 @@ CMD.register(new Command({
 
                                 m.channel.send({ embed: embed }).then(msg => {
                                     TOOLS.messageFinalize(m.author.id, msg);
+                                }).catch(err => {
+                                    TOOLS.errorHandler({err:err});
                                 });
                             }
                         });
@@ -6159,7 +6372,9 @@ CMD.register(new Command({
                     .setAuthor(`${name} is not muted.`, "attachment://icon.png")
                     .setDescription('If this information is false, contact <@181214529340833792> immediately.');
 
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 } else
                 if (typeof profile.mute.end === 'number') {
                     let embed = new discord.RichEmbed()
@@ -6170,7 +6385,9 @@ CMD.register(new Command({
                     .addField('Mute start date', `User was muted by <@${profile.mute.executor}> on ${new Date(profile.mute.start).toUTCString()}.`)
                     .addField('Mute end date', `User will be unmuted on ${new Date(profile.mute.end).toUTCString()}. ${(profile.mute.updater.length > 0) ? `This time limit was last updated by <@${profile.mute.updater}>` : ""} \n\n**This is an approximation.** Due to the nature of OptiBot's mute system, it may take up to 5 minutes for a user to be unmuted automatically. If it's been more than 5 minutes, or any of this information is otherwise false, please contact <@181214529340833792> immediately.`)
 
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 } else {
                     let embed = new discord.RichEmbed()
                     .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
@@ -6180,7 +6397,9 @@ CMD.register(new Command({
                     .addField('Mute start date', `User was muted by <@${profile.mute.executor}> on ${new Date(profile.mute.start).toUTCString()}.`)
                     .addField('Mute end date', `This user will never be unmuted. ${(profile.mute.updater.length > 0) ? `This was last updated by <@${profile.mute.updater}>` : ""} \n\nIf any of this information is false, please contact <@181214529340833792> immediately.`)
 
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 }
             });
         }
@@ -6256,7 +6475,9 @@ CMD.register(new Command({
                                 }
                             }
 
-                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                                TOOLS.errorHandler({err:err});
+                            });
                         }
                     } else {
                         i++
@@ -6285,7 +6506,9 @@ CMD.register(new Command({
             embed.setDescription('https://minecraft.gamepedia.com/Minecraft_wiki')
             .setFooter('To link a specific article, please specify a search query.')
 
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                TOOLS.errorHandler({err:err});
+            });
         } else {
             let query = m.content.split("\n", 1)[0].substring( (memory.bot.trigger+'mcwiki ').length ).trim();
             let url = "https://minecraft.gamepedia.com/api.php?action=query&format=json&generator=search&gsrsearch="+encodeURIComponent(query)+"&gsrlimit=1&prop=info&inprop=url";
@@ -6301,12 +6524,16 @@ CMD.register(new Command({
                         embed.setDescription('https://minecraft.gamepedia.com/Minecraft_wiki')
                         .setFooter('Could not find a page matching that query.')
 
-                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     } else {
                         let resultID = Object.keys(result.query.pages)[0];
                         embed.addField(result.query.pages[resultID].title, result.query.pages[resultID].fullurl);
 
-                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     }
                 }
             });
@@ -6373,7 +6600,9 @@ CMD.register(new Command({
                                     .setAuthor("Message set.", "attachment://icon.png")
                                     .setDescription(`Type \`${memory.bot.trigger}motd\` to see how it looks.`)
         
-                                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                                    TOOLS.errorHandler({err:err});
+                                });
                             }
                         });
                     } else
@@ -6384,7 +6613,9 @@ CMD.register(new Command({
                         .setAuthor(`Request cancelled.`, 'attachment://icon.png')
                         .setDescription('MOTD message has not been changed.')
 
-                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     } else
                     if (result === -1) {
                         let embed = new discord.RichEmbed()
@@ -6393,9 +6624,13 @@ CMD.register(new Command({
                         .setAuthor(`Request timed out.`, 'attachment://icon.png')
                         .setDescription('MOTD message has not been changed.')
                         
-                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     }
                 });
+            }).catch(err => {
+                TOOLS.errorHandler({err:err});
             });
         }
     }
@@ -6466,7 +6701,9 @@ CMD.register(new Command({
                                         .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"), new discord.Attachment(zip.toBuffer(), "output.zip")])
                                         .setAuthor(`Successfully generated ${filenum} images in ${(new Date().getTime() - timeStart) / 1000} seconds.`, 'attachment://icon.png')
 
-                                        m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg));
+                                        m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg)).catch(err => {
+                                            TOOLS.errorHandler({err:err});
+                                        });
                                     } else {
                                         column = 0;
                                         row++;
@@ -6720,12 +6957,16 @@ TOOLS.shutdownHandler = (code) => {
 
     clearInterval(memory.bot.status_check);
 
-    TOOLS.packStats().then(() => {
+    if(memory.stats && memory.stats.old) {
+        TOOLS.packStats().then(() => {
+            final();
+        }).catch(err => {
+            TOOLS.errorHandler({err: err});
+            final();
+        });
+    } else {
         final();
-    }).catch(err => {
-        TOOLS.errorHandler({err: err});
-        final();
-    });
+    }
 
     function final() {
         bot.setTimeout(() => {
@@ -6848,9 +7089,13 @@ TOOLS.errorHandler = (data) => {
                             msg.delete();
                         }
                     }, 10000);
+                }).catch(err => {
+                    TOOLS.errorHandler({err:err});
                 });
             } else {
-                data.m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(data.m.author.id, msg) });
+                data.m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(data.m.author.id, msg) }).catch(err => {
+                    TOOLS.errorHandler({err:err});
+                });
             }
         }
     }
@@ -7139,7 +7384,9 @@ TOOLS.muteHandler = (m, args, action) => {
             embed.setAuthor(`Unmuted ${muted_name}.`, 'attachment://icon.png');
         }
 
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
     }
 }
 
@@ -7237,7 +7484,9 @@ TOOLS.getTargetUser = (m, target, cb) => {
                     .setAuthor(`Could not find a user.`, "attachment://icon.png")
                     .setFooter('Note that this shortcut will skip yourself, and all bots. This includes OptiBot, obviously.');
 
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
+                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                        TOOLS.errorHandler({err:err});
+                    });
                 } else
                     if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1 && !thisID.value.author.bot) {
                         cb(thisID.value.author.id, `${thisID.value.author.username}#${thisID.value.author.discriminator}`);
@@ -7325,6 +7574,8 @@ TOOLS.cooldownHandler = (m, isAdmin) => {
                             }
                         }
                 }, 1000);
+            }).catch(err => {
+                TOOLS.errorHandler({err:err});
             });
         }, 300);
     } else {
@@ -7403,7 +7654,7 @@ if(cfg.statistics.enabled) {
                 allCMDs.forEach((key, i, arr) => {
                     let endValue = 0;
     
-                    log('packStat loop'+i);
+                    log('packStat loop'+i, 'debug');
             
                     if(memory.stats.old.commands.list[key]) endValue += memory.stats.old.commands.list[key];
                     if(memory.stats.commands.list[key]) endValue += memory.stats.commands.list[key];

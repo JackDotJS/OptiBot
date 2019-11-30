@@ -15,6 +15,7 @@ const wink = require('jaro-winkler');
 const database = require('nedb');
 const callerId = require('caller-id');
 const archive = require('adm-zip');
+const cheerio = require('cheerio');
 
 const fs = require('fs');
 const util = require('util');
@@ -1550,6 +1551,15 @@ bot.on('raw', packet => {
         }).catch(err => {
             TOOLS.errorHandler({err:err});
         });
+    } else
+    if(packet.t === 'MESSAGE_DELETE') {
+        // this packet does not contain the actual message data, unfortunately.
+
+        // as of writing, this only contains the message ID, the channel ID, and the guild ID.
+
+        // i was planning on using this to extend the message deletion event to be able to log old deleted messages, but this doesn't even contain the contents so it's a little bit useless now.
+
+        // I might still use this anyway, sometime in the future.
     }
 });
 
@@ -2301,7 +2311,7 @@ bot.on('message', (m) => {
                         TOOLS.errorHandler({ err: err });
                     });
                 } else
-                if (m.content.toLowerCase().trim() === 'ok') {
+                if (m.content.toLowerCase().trim() === 'ok' && isAdmin) {
                     if (Math.random() > 0.5) {
                         m.react('🆗').catch((err) => {
                             TOOLS.errorHandler({ err: err });
@@ -2322,8 +2332,6 @@ bot.on('message', (m) => {
                 } else
                 if (m.content.trim() === '^') {
                     m.channel.fetchMessages({ limit: 5, before:m.id }).then(msgs => {
-                        
-
                         let emoji = TOOLS.randomizer(['☝️', '👆']);
                         let lastMsg = msgs.values().next().value;
 
@@ -2526,6 +2534,58 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
+    trigger: 'update',
+    short_desc: 'Force an OptiBot update.',
+    long_desc: `Forces the bot to update to the latest version from GitHub.`,
+    fn: (m) => {
+        let confirm = new discord.RichEmbed()
+        .setColor(cfg.vs.embed.default)
+        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
+        .setAuthor(`Are you sure want to force update OptiBot?`, 'attachment://icon.png')
+        .setTitle(`WARNING: This will overwrite all existing files with ones from the GitHub repository!`)
+        .setDescription(`Type \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`)
+
+        TOOLS.typerHandler(m.channel, false);
+        m.channel.send({embed:confirm}).then(() => {
+            TOOLS.confirmationHandler(m, (result) => {
+                if (result === 1) {
+                    let embed = new discord.RichEmbed()
+                    .setColor(cfg.vs.embed.default)
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_exit.png'), "icon.png"))
+                    .setAuthor('Updating...', 'attachment://icon.png');
+
+                    TOOLS.typerHandler(m.channel, false);
+                    m.channel.send({ embed: embed }).then(() => {
+                        TOOLS.shutdownHandler(4);
+                    }).catch(err => {
+                        TOOLS.errorHandler({ err: err });
+                        TOOLS.shutdownHandler(4);
+                    });
+                } else
+                if (result === 0) {
+                    let embed = new discord.RichEmbed()
+                    .setColor(cfg.vs.embed.default)
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                    .setAuthor(`Request cancelled.`, 'attachment://icon.png')
+
+                    m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                } else
+                if (result === -1) {
+                    let embed = new discord.RichEmbed()
+                    .setColor(cfg.vs.embed.default)
+                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
+                    .setAuthor(`Request timed out.`, 'attachment://icon.png')
+                    
+                    m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
+                }
+            });
+        }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
+    }
+}));
+
+CMD.register(new Command({
     trigger: 'reset',
     short_desc: 'Makes the bot restart. (full reset)',
     fn: (m) => {
@@ -2651,8 +2711,7 @@ CMD.register(new Command({
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_jdk.png'), "icon.png"))
             .setAuthor('AdoptOpenJDK', 'attachment://icon.png')
-            .setDescription('[https://adoptopenjdk.net/releases](https://adoptopenjdk.net/releases.html)')
-            .setFooter("Remember to download the JRE installer!");
+            .setTitle('https://adoptopenjdk.net/')
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
             TOOLS.errorHandler({err:err});
@@ -2691,12 +2750,12 @@ CMD.register(new Command({
             .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"), new discord.Attachment(memory.bot.avatar, "thumbnail.png")])
             .setAuthor('About', 'attachment://icon.png')
             .setThumbnail('attachment://thumbnail.png')
-            .setDescription(`The official OptiFine Discord server bot. \n\n`)
+            .setTitle(`The official OptiFine Discord server bot. \n\n`)
+            .setDescription(`Developed and maintained by <@181214529340833792> and <@251778569397600256> out of love for a great community. \n\nYou can help support us on Ko-fi! ☕ \nhttps://ko-fi.com/jackasterisk \nhttps://ko-fi.com/zenithknight`)
             .addField('Version', `${pkg.version} (Build ${build.num})`, true)
             .addField('Session Uptime', `${uptime(process.uptime() * 1000)}`, true)
-            .addField(`Contributors`, `${cntbrs.join(', ')}`)
-            .addField(`\u200B`, `OptiBot is developed almost entirely by myself (<:jack:646322505107243018> <@181214529340833792>) out of love for a great community, all on my free time. Admittedly, I don't expect much (if anything) in return. I just like coding from time to time. However, if you'd still like to support this project, you can [buy me a coffee! ☕](http://ko-fi.com/jackasterisk "☕")`)
-            .addField(`Supporters`, dntrs.join(', '))
+            .addField(`Contributors`, `${cntbrs.join(' ')}`)
+            .addField(`Ko-fi Supporters`, dntrs.join(' '))
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
             TOOLS.errorHandler({err:err});
@@ -2853,7 +2912,7 @@ CMD.register(new Command({
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
             .setAuthor(`Don't ask to ask, just ask.`, 'attachment://icon.png')
-            .setDescription('https://sol.gfxile.net/dontask.html');
+            .setTitle('https://sol.gfxile.net/dontask.html');
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
             TOOLS.errorHandler({err:err});
@@ -2870,7 +2929,7 @@ CMD.register(new Command({
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_gh.png'), "icon.png"))
             .setColor(cfg.vs.embed.default)
             .setAuthor('OptiFine Issue Tracker', 'attachment://icon.png')
-            .setDescription('https://github.com/sp614x/optifine/issues');
+            .setTitle('https://github.com/sp614x/optifine/issues');
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
             TOOLS.errorHandler({err:err});
@@ -2887,7 +2946,7 @@ CMD.register(new Command({
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_jira.png'), "icon.png"))
             .setColor(cfg.vs.embed.default)
             .setAuthor('Minecraft: Java Edition Bug Tracker', 'attachment://icon.png')
-            .setDescription('https://bugs.mojang.com/projects/MC/summary');
+            .setTitle('https://bugs.mojang.com/projects/MC/summary');
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
             TOOLS.errorHandler({err:err});
@@ -2904,7 +2963,7 @@ CMD.register(new Command({
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_fine.png'), "thumbnail.png"))
             .setAuthor('Download OptiFine', 'attachment://thumbnail.png')
-            .setDescription(`This embed includes ALL official download links for every version of OptiFine. Other websites may claim to be official. **Do not trust them.**`)
+            .setDescription(`This embed includes ALL official download links for every version of OptiFine. **You should not trust any other website that claims to be official.**`)
             .addField('Main Website', 'https://optifine.net/downloads')
             .addField('Alternate/Backup', 'https://optifined.net/downloads')
             .addField('Older Versions (b1.4 - 1.9)', '[OptiFine History at minecraftforum.net](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/1286605-b1-4-1-9-optifine-history)')
@@ -2928,7 +2987,8 @@ CMD.register(new Command({
             ])
             .setAuthor('Offical Shader Pack List', 'attachment://icon.png')
             .setThumbnail('attachment://thumbnail.png')
-            .setDescription('[https://optifine.net/shaderpacks](https://optifine.net/shaderPacks) \n\nYou can find this same link in-game, next to the "Shaders Folder" button.')
+            .setTitle(`https://optifine.net/shaderPacks`)
+            .setDescription('You can find this same link in-game, next to the "Shaders Folder" button.')
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
             TOOLS.errorHandler({err:err});
@@ -3214,7 +3274,7 @@ CMD.register(new Command({
             .setColor(cfg.vs.embed.default)
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_jarfix.png'), "icon.png"))
             .setAuthor('Jarfix', 'attachment://icon.png')
-            .setDescription('https://johann.loefflmann.net/en/software/jarfix/index.html');
+            .setTitle('https://johann.loefflmann.net/en/software/jarfix/index.html');
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
             TOOLS.errorHandler({err:err});
@@ -3339,10 +3399,6 @@ CMD.register(new Command({
 
             m.channel.send({embed:confirm}).then(msg => {
                 TOOLS.confirmationHandler(m, (result) => {
-                    let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.okay)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-
                     if (result === 1) {
                         memory.db.motd.update({motd: true}, {motd:true, message:'', date: new Date()}, { upsert: true }, (err) => {
                             if (err) {
@@ -3350,7 +3406,11 @@ CMD.register(new Command({
                             } else {
                                 memory.bot.motd.fields = [];
 
-                                embed.setAuthor(`Successfully removed message.`, 'attachment://icon.png');
+                                let embed = new discord.RichEmbed()
+                                .setColor(cfg.vs.embed.okay)
+                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
+                                .setAuthor(`Successfully removed message.`, 'attachment://icon.png');
+
                                 m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });     
                             }
                         });
@@ -3462,6 +3522,58 @@ CMD.register(new Command({
     fn: (m) => {
         m.channel.send({ embed: memory.bot.motd }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
             TOOLS.errorHandler({err:err});
+        });
+    }
+}));
+
+CMD.register(new Command({
+    trigger: 'faqtest',
+    fn: (m) => {
+        bot.guilds.get(cfg.basic.ob_server).channels.get('650087270312968238').fetchMessages({ limit: 100 }).then((oldmsg) => {
+            bot.guilds.get(cfg.basic.ob_server).channels.get('650087270312968238').bulkDelete(oldmsg).then(() => {
+                bot.guilds.get(cfg.basic.of_server).channels.get('531622141393764352').fetchMessages({ limit: 100, after: '531629512559951872' }).then(entries => {
+                    let messages = [...entries.values()].reverse();
+                    let i = 0;
+                    let qrgx = new RegExp('(?<=Q: \\*\\*).+(?=\\*\\*)');
+                    (function search() {
+                        log('search loop'+i, 'trace');
+                        let question = messages[i].content.match(qrgx);
+                        let answer = messages[i].content.split('\n').slice(1).join('\n').replace(/A:/i, "").replace(/_\s+_\s*$/, "").trim();
+        
+                        if (question !== null) {
+                            let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.default)
+                            .setTitle(question)
+                            .setDescription(answer)
+                            .setFooter(`Answer provided by ${messages[i].author.username}#${messages[i].author.discriminator}`, messages[i].author.displayAvatarURL)
+        
+                            bot.guilds.get(cfg.basic.ob_server).channels.get('650087270312968238').send({embed: embed}).then(() => {
+                                if (i+1 === 5) {
+                                    m.channel.send('done').then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                                        TOOLS.errorHandler({err:err});
+                                    });
+                                } else {
+                                    i++
+                                    search();
+                                }
+                            }).catch(err => {
+                                TOOLS.errorHandler({ err: err });
+                                i++
+                                search();
+                            });
+                        } else {
+                            i++
+                            search();
+                        }
+                    })();
+                }).catch(err => {
+                    TOOLS.errorHandler({ err: err, m:m });
+                });
+            }).catch(err => {
+                TOOLS.errorHandler({ err: err, m:m });
+            });
+        }).catch(err => {
+            TOOLS.errorHandler({ err: err, m:m });
         });
     }
 }));
@@ -3859,16 +3971,10 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'namemc',
     short_desc: `Find the Discord username of a Minecraft player.`,
-    long_desc: `Attempts to find the Discord username of a specified Minecraft player. This is primarily designed to be used in conjunction with \`${memory.bot.trigger}cv\`.`,
+    long_desc: `Attempts to find the Discord username of a specified Minecraft player, via namemc.com. This is mostly meant to be used in conjunction with \`${memory.bot.trigger}cv\`.`,
     usage: `<minecraft username>`,
-    //tags: ['MODERATOR_ONLY', 'DM_OPTIONAL'],
+    tags: ['MODERATOR_ONLY', 'DM_OPTIONAL'],
     fn: (m, args) => {
-        // massive work in progress
-        // todo
-        // massive work in progress
-        // todo
-        // massive work in progress
-        // todo
         if(!args[0]) {
             TOOLS.errorHandler({ err: `You must specify a Minecraft username.`, m: m });
         } else
@@ -3878,22 +3984,41 @@ CMD.register(new Command({
         if (args[0].length > 16) {
             TOOLS.errorHandler({ err: 'Minecraft usernames cannot exceed 16 characters in length.', m: m });
         } else {
-            request({ url: 'https://namemc.com/profile/' + args[0] }, (err, res, data) => {
-                if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-                    TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the NameMC API'), m: m });
-                } else
+            request({url: 'https://api.mojang.com/users/profiles/minecraft/'+encodeURIComponent(args[0]), encoding: null}, (err, res, data) => {
+                if (err || !res || !data) {
+                    TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the Mojang API'), m: m });
+                } else 
                 if (res.statusCode === 204) {
-                    let embed = new discord.RichEmbed()
-                        .setColor(cfg.vs.embed.error)
-                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
-                        .setAuthor('That player does not exist.', 'attachment://thumbnail.png')
-                        .setFooter('Maybe check your spelling?');
-
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                        TOOLS.errorHandler({err:err});
-                    });
+                    TOOLS.errorHandler({ err: 'Invalid Minecraft username.', m: m });
+                } else
+                if (res.statusCode !== 200) {
+                    TOOLS.errorHandler({ err: new Error('Unexpected response code from Mojang API: '+res.statusCode), m: m });
                 } else {
-                    getOFcape(JSON.parse(data));
+                    let js = JSON.parse(data);
+
+                    request({ url: 'https://namemc.com/profile/' + encodeURIComponent(js.name), headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36' }  }, (err, res, data) => {
+                        if (err || !res || !data || res.statusCode !== 200) {
+                            TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the NameMC API'), m: m });
+                        } else {
+                            log(data, 'debug');
+                            let username = cheerio.load(data)('a[title=Discord]').attr('data-content');
+
+                            let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.default)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
+                            .setDescription('https://namemc.com/profile/' + encodeURIComponent(js.name))
+
+                            if(username) {
+                                embed.setAuthor(username, 'attachment://icon.png')
+                            } else {
+                                embed.setAuthor(`No Discord username found.`, 'attachment://icon.png')
+                            }
+
+                            m.channel.send({embed:embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
+                                TOOLS.errorHandler({err:err});
+                            });
+                        }
+                    });
                 }
             });
         }
@@ -5458,18 +5583,29 @@ CMD.register(new Command({
 CMD.register(new Command({
     trigger: 'mock',
     short_desc: 'MoCkInG tOnE translator',
-    long_desc: 'Rewrites a given message with a mOcKiNg tOnE. In other words, it makes every first character lowercase and every second character uppercase.',
+    long_desc: 'Rewrites a message with a mOcKiNg tOnE. In other words, this will pseudo-randomize the capitalization of each letter in the given text.',
     usage: "<text|^ shortcut>",
     tags: ['DM_OPTIONAL'],
     fn: (m, args) => {
-        if (args[0]) {
+        if (!args[0]) {
+            TOOLS.errorHandler({ err: "You must specify a message to translate.", m: m });
+        } else {
             let translate = function(message) {
                 let newStr = '';
 
                 for(let i = 0; i < message.length; i++) {
                     let thisChar = message.charAt(i);
 
-                    if (i % 2 === 1) {
+                    let fss = i;
+
+                    fss ^= fss >>> 16;
+                    fss ^= fss >>> 8;
+                    fss ^= fss >>> 4;
+                    fss ^= fss >>> 2;
+                    fss ^= fss >>> 1;
+                    fss = fss & 1;
+
+                    if (fss) {
                         thisChar = thisChar.toUpperCase();
                     } else {
                         thisChar = thisChar.toLowerCase();
@@ -5479,12 +5615,16 @@ CMD.register(new Command({
 
                     if (i+1 === message.length) {
                         TOOLS.typerHandler(m.channel, false);
-                        m.channel.send(newStr);
+                        m.channel.send(newStr).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
+                            TOOLS.errorHandler({err:err});
+                        });
                     }
                 }
             }
 
-            if(args[0] === '^') {
+            if(args[0] !== '^') {
+                translate(m.content.substring( (memory.bot.trigger + 'mock ').length ) );
+            } else {
                 m.channel.fetchMessages({ limit: 25 }).then(msgs => {
                     let itr = msgs.values();
         
@@ -5507,11 +5647,7 @@ CMD.register(new Command({
                         } else search();
                     })();
                 }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-            } else {
-                translate(m.content.substring( (memory.bot.trigger + 'mock ').length ) );
             }
-        } else {
-            TOOLS.errorHandler({ err: "You must specify a message to translate.", m: m });
         }
     }
 }));
@@ -6432,7 +6568,11 @@ CMD.register(new Command({
                     let answer = messages[i].content.split('\n').slice(1).join('\n').replace(/A:/i, "").replace(/_\s+_\s*$/, "").trim();
 
                     if (question !== null) {
+                        // dice's coefficient
                         let match = cstr.compareTwoStrings(query.toLowerCase(), question[0].toLowerCase());
+
+                        // jaro-winkler
+                        //let match = wink(query.toLowerCase(), question[0].toLowerCase());
 
                         if (match > highest.rating) {
                             highest.rating = match;

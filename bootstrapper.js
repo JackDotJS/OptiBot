@@ -586,6 +586,7 @@ function init_final() {
         setTimeout(() => {
             child.execSync('git fetch --all');
             child.execSync('git reset --hard master');
+            child.execSync('npm install');
 
             setTimeout(() => {
                 env.log.end();

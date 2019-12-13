@@ -1,21 +1,15 @@
-// Written by Kyle Edwards <wingedasterisk@gmail.com>, November 2019
-// 6,000+ lines of complete and utter shit coming right up.
-// ========================================================================
-// Child Node: Main Program
+// Written by Kyle Edwards <wingedasterisk@gmail.com>, December 2019
+// They put the god damn Muppets on the Game Awards show
 
 ////////////////////////////////////////////////////////////////////////////////
 // Dependencies & Configuration files
 ////////////////////////////////////////////////////////////////////////////////
 
 const discord = require('discord.js');
-const request = require('request');
-const jimp = require('jimp');
 const cstr = require('string-similarity');
 const wink = require('jaro-winkler');
 const database = require('nedb');
 const callerId = require('caller-id');
-const archive = require('adm-zip');
-const cheerio = require('cheerio');
 
 const fs = require('fs');
 const util = require('util');
@@ -25,8 +19,6 @@ const cfg = require('./cfg/config.json');
 const keys = require('./cfg/keys.json');
 const pkg = require('./package.json');
 const build = require('./data/build.json');
-const serverlist = require('./cfg/servers.json');
-const docs_list = require('./cfg/docs.json');
 
 ////////////////////////////////////////////////////////////////////////////////
 // Pre-initialize
@@ -84,11 +76,7 @@ class ImageIndex {
 
 const memory = {
     db: {
-        msg: new database({ filename: './data/messages.db', autoload: true }),
-        motd: new database({ filename: './data/motd.db', autoload: true }),
-        profiles: new database({ filename: './data/profiles.db', autoload: true }),
-        stats: new database({ filename: './data/statistics.db', autoload: true }),
-        smr: new database({ filename: './data/smr.db', autoload: true })
+        profiles: new database({ filename: './data/profiles.db', autoload: true })
     },
     bot: {
         trigger: cfg.basic.trigger,
@@ -99,28 +87,11 @@ const memory = {
         lastInt: 0,
         icons: new ImageIndex(),
         images: new ImageIndex(),
-        smr: [],
-        docs: [],
-        docs_cat: {},
         cdb: [],
-        alog: 0,
         log: [],
-        servers: {},
-        avatar: {},
-        status: {},
-        motd: {},
-        actMods: [],
-        newUsers: [],
         dataPickup: {},
         botStatus: null,
         botStatusTime: new Date().getTime()
-    },
-    stats: null,
-    cd: {
-        active: false,
-        mult: 1,
-        timer: false,
-        threshold: 0
     },
     activity: {
         status: 'online',
@@ -301,7 +272,6 @@ if (process.argv[2] === 'true') {
 log('Logging into Discord API...', 'warn');
 process.title = 'Logging in...';
 
-memory.db.msg.persistence.setAutocompactionInterval(300000);
 memory.db.profiles.persistence.setAutocompactionInterval(100000);
 
 const bot = new discord.Client();
@@ -312,20 +282,6 @@ bot.login(keys.discord).then(() => {
     log(err.stack, 'fatal');
     TOOLS.shutdownHandler(24);
 });
-
-memory.bot.activity_check = bot.setInterval(() => {
-    if (!memory.bot.shutdown && !memory.bot.booting) {
-        log('begin activity_check', 'trace');
-        process.send({
-            type: 'status',
-            guild: null,
-            channel: null,
-            message: false,
-        });
-        bot.user.setStatus(memory.activity.status);
-        bot.user.setActivity(memory.activity.game, { url: memory.activity.url, type: memory.activity.type });
-    }
-}, 900000);
 
 memory.bot.mute_check = bot.setInterval(() => {
     if (!memory.bot.shutdown && !memory.bot.booting) {
@@ -624,18 +580,6 @@ memory.bot.status_check = setInterval(() => {
     }
 }, 1000);
 
-if(cfg.statistics.enabled) {
-    memory.bot.statistics_check = bot.setInterval(() => {
-        if (!memory.bot.shutdown && !memory.bot.booting) {
-            TOOLS.packStats().then(() => {
-                log(`Statistics successfully repacked.`, 'debug');
-            }).catch(err => {
-                TOOLS.errorHandler({err: err});
-            });
-        }
-    }, 300000);
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // Event Handlers
 ////////////////////////////////////////////////////////////////////////////////
@@ -653,26 +597,6 @@ process.on('message', (m) => {
                 delete memory.bot.dataPickup[m.id]
             }
         }, 60000);
-    } else
-    if(m.crash) {
-        log('got crash data', 'trace');
-        if(m.crash.message) {
-            let embed = new discord.RichEmbed()
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
-            .setColor(cfg.vs.embed.error)
-            .setAuthor('Something went REALLY wrong while doing that. Oops.', 'attachment://icon.png')
-            .setDescription('It seems that OptiBot has recovered from a crash. If this continues, please contact <@181214529340833792>.')
-
-            bot.guilds.get(m.crash.guild).channels.get(m.crash.channel).send({embed:embed}).then(() => {
-                bot.guilds.get(m.crash.guild).fetchMember('181214529340833792').then(jack => {
-                    jack.send(`**=== OptiBot Crash Recovery Report ===** \n\`\`\`${JSON.stringify(m.crash, null, 4)}\`\`\``, new discord.Attachment(`./logs/${m.crash.log}`));
-                }).catch(err => {
-                    TOOLS.errorHandler({ err: err });
-                });
-            }).catch(err => {
-                TOOLS.errorHandler({ err: err });
-            })
-        }
     }
 });
 
@@ -714,7 +638,7 @@ bot.on('ready', () => {
                 memory.bot.botStatus = bot.status;
             }
         }
-        memory.bot.status_check = bot.setInterval(status_check, 100);
+        memory.bot.status_check = bot.setInterval(status_check, 1000);
         status_check();
     
         let bootTimeStart = new Date();
@@ -722,155 +646,6 @@ bot.on('ready', () => {
         let stagesAsync = [];
     
         // ASYNC STAGES
-    
-        stagesAsync.push({
-            name: "Audit Log Initial Cache",
-            fn: function(cb) {
-                try {
-                    bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
-                        try {
-                            memory.bot.log = [...audit.entries.values()];
-                            cb();
-                        }
-                        catch (err) {
-                            log(err.stack, 'error')
-                            cb();
-                        }
-                    }).catch(err => {
-                        log(err.stack, 'error')
-                        cb();
-                    });
-                }
-                catch (err) {
-                    log(err.stack, 'error')
-                    cb();
-                }
-            }
-        })
-    
-        stagesAsync.push({
-            name: "Deletable Message Loader",
-            fn: function(cb) {
-                try {
-                    memory.db.msg.find({}, (err, docs) => {
-                        try {
-                            if (err) {
-                                throw err
-                            } else {
-                                let i = 0;
-                                let needsRemoval = [];
-                
-                                (function fetchNext() {
-                                    try {
-                                        log('fetchNext '+i, 'trace');
-                                        if (i === docs.length) {
-                                            cb();
-    
-                                            if(needsRemoval.length > 0) {
-                                                let ir = 0;
-                                                let failed = 0;
-                                                (function removeNext() {
-                                                    memory.db.msg.remove({message: needsRemoval[ir]}, {}, (err) => {
-                                                        if(err) {
-                                                            TOOLS.errorHandler({ err: err });
-                                                            failed++;
-                                                        }
-    
-                                                        if(ir+1 >= needsRemoval.length) {
-                                                            log(`Successfully removed ${needsRemoval.length-failed}/${needsRemoval.length} messages from cache.`);
-                                                        } else {
-                                                            ir++
-                                                            removeNext();
-                                                        }
-                                                    });
-                                                })();
-                                            }
-                                        } else {
-                                            bot.guilds.get(docs[i].guild).channels.get(docs[i].channel).fetchMessage(docs[i].message).then(m => {
-                                                try {
-                                                    log('got msg', 'trace');
-                                                    if (m.deleted) {
-                                                        needsRemoval.push(docs[i].message);
-                                                        i++
-                                                        fetchNext();
-                                                    } else {
-                                                        log('not deleted', 'trace');
-                                                        let reaction = m.reactions.get('click_to_delete:642085525460877334');
-                                                        if (!reaction) {
-                                                            log('reaction not added fsr', 'trace');
-                                                            m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('642085525460877334')).catch(err => {
-                                                                TOOLS.errorHandler({ err: err });
-                                                            });
-                        
-                                                            i++
-                                                            fetchNext();
-                                                        } else {
-                                                            log('get users', 'trace');
-                                                            reaction.fetchUsers().then(u => {
-                                                                try {
-                                                                    if (u.has(docs[i].user)) {
-                                                                        m.delete().then(() => {
-                                                                            needsRemoval.push(docs[i].message);
-                                                                            i++
-                                                                            fetchNext();
-                                                                        }).catch(err => {
-                                                                            TOOLS.errorHandler({ err: err });
-                                                                            i++
-                                                                            fetchNext();
-                                                                        });
-                                                                    } else {
-                                                                        i++
-                                                                        fetchNext();
-                                                                    }
-                                                                }
-                                                                catch (err) {
-                                                                    log(err.stack, 'error')
-                                                                    cb();
-                                                                }
-                                                            }).catch(err => {
-                                                                TOOLS.errorHandler({ err: err });
-                                                                i++
-                                                                fetchNext();
-                                                            });
-                                                        }
-                                                    }
-                                                }
-                                                catch (err) {
-                                                    log(err.stack, 'error')
-                                                    cb();
-                                                }
-                                            }).catch(err => {
-                                                if(err.stack.toLowerCase().indexOf('unknown message') > -1) {
-                                                    needsRemoval.push(docs[i].message);
-                                                    i++
-                                                    fetchNext();
-                                                } else {
-                                                    log('Failed to load cached message: ' + err.stack, 'error');
-                                                    i++
-                                                    fetchNext();
-                                                }
-                                            });
-                                        }
-                                    }
-                                    catch (err) {
-                                        log(err.stack, 'error')
-                                        cb();
-                                    }
-                                })();
-                            }
-                        }
-                        catch (err) {
-                            log(err.stack, 'error')
-                            cb();
-                        }
-                    });
-                }
-                catch (err) {
-                    log(err.stack, 'error')
-                    cb();
-                }
-            }
-        });
     
         stagesAsync.push({
             name: "Command Sorter",
@@ -885,82 +660,9 @@ bot.on('ready', () => {
                 }
             }
         });
-
-        stagesAsync.push({
-            name: "StopModReposts Database Loader",
-            fn: function(cb) {
-                try {
-                    request({ url: "https://api.varden.info/smr/sitelist.php?format=json", headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                        try {
-                            if (err || !res || !body || res.statusCode !== 200) {
-                                throw (err || new Error('Failed to get a response from the StopModReposts API.'))
-                            } else {
-                                log(body, 'trace');
-                                let sitelist = JSON.parse(body);
-                                let smr_data = [];
-        
-                                memory.db.smr.find({}, (err, docs) => {
-                                    try {
-                                        if (err) {
-                                            throw err
-                                        } else
-                                        if (!docs[0]) {
-                                            getSMRSites();
-                                        } else {
-                                            for(let i2 in docs) {
-                                                smr_data.push(docs[i2].url);
-            
-                                                if (parseInt(i2)+1 === docs.length) {
-                                                    getSMRSites();
-                                                }
-                                            }
-                                        }
-                                    }
-                                    catch (err) {
-                                        log(err.stack, 'error')
-                                        cb();
-                                    }
-                                });
-        
-                                function getSMRSites() {
-                                    log('getSMRSite()', 'trace');
-                                    try {
-                                        for(let i=0; i<sitelist.length; i++) {
-                                            if(sitelist[i].path !== "\/") {
-                                                smr_data.push(sitelist[i].domain + (JSON.parse(`["${sitelist[i].path}"]`)[0]));
-                                            } else {
-                                                smr_data.push(sitelist[i].domain);
-                                            }
-                
-                                            if(i+1 >= sitelist.length) {
-                                                memory.bot.smr = smr_data;
-                    
-                                                cb();
-                                            }
-                                        }
-                                    }
-                                    catch (err) {
-                                        log(err.stack, 'error')
-                                        cb();
-                                    }
-                                }
-                            }
-                        }
-                        catch (err) {
-                            log(err.stack, 'error')
-                            cb();
-                        }
-                    });
-                }
-                catch (err) {
-                    log(err.stack, 'error')
-                    cb();
-                }
-            }
-        });
     
         // SYNC STAGES
-    
+
         stages.push({
             name: "Icon/Image Loader",
             fn: function(cb) {
@@ -1060,339 +762,28 @@ bot.on('ready', () => {
                 }
             }
         });
-    
+
         stages.push({
-            name: "GitHub Documentation Loader",
+            name: "Audit Log Initial Cache",
             fn: function(cb) {
                 try {
-                    request({ url: 'https://api.github.com/repos/sp614x/optifine/contents/OptiFineDoc/doc?ref=master&access_token=' + keys.github, headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
+                    bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
                         try {
-                            if (err || !res || !body) {
-                                throw (err || new Error('Failed to get a response from the GitHub API. (boot stage 2, subop 1)'))
-                            } else {
-                                let result = JSON.parse(body);
-            
-                                if (result.message) {
-                                    TOOLS.errorHandler({ err: new Error('GitHub API rate limit exceeded: ' + result.message) });
-                                    return;
-                                }
-            
-                                memory.bot.docs = result.filter(e => { if (e.type !== 'dir') return true });;
-            
-                                s2();
-                            }
+                            memory.bot.log = [...audit.entries.values()];
+                            cb();
                         }
                         catch (err) {
-                            log(err.stack, 'fatal')
-                            TOOLS.shutdownHandler(24);
-                        }
-                    });
-                }
-                catch (err) {
-                    log(err.stack, 'fatal')
-                    TOOLS.shutdownHandler(24);
-                }
-        
-                function s2() {
-                    try {
-                        request({ url: 'https://api.github.com/repos/sp614x/optifine/contents/OptiFineDoc/doc/images?ref=master&access_token=' + keys.github, headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                            try {
-                                if (err || !res || !body) {
-                                    throw (err || new Error('Failed to get a response from the GitHub API. (boot stage 2, subop 2)'))
-                                } else {
-                                    let result = JSON.parse(body);
-        
-                                    if (result.message) {
-                                        TOOLS.errorHandler({ err: new Error('GitHub API rate limit exceeded: ' + result.message) });
-                                        return;
-                                    }
-        
-                                    for (let i = 0; i < result.length; i++) {
-                                        memory.bot.docs.push(result[i]);
-        
-                                        if (i + 1 === result.length) {
-                                            // STAGE 2 FINISHED
-                                            cb();
-                                        }
-                                    }
-                                }
-                            }
-                            catch (err) {
-                                log(err.stack, 'fatal')
-                                TOOLS.shutdownHandler(24);
-                            }
-                        });
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                }
-            }
-        });
-    
-        stages.push({
-            name: "Server List Parser",
-            fn: function(cb) {
-                try {
-                    let i = 0;
-                    (function parseItemLoop() {
-                        try {
-                            let item = serverlist[i];
-        
-                            memory.bot.servers[[item.name.toLowerCase()]] = item.link;
-                            item.aliases.forEach(e => {
-                                memory.bot.servers[[e.toLowerCase()]] = item.link;
-                            });
-        
-                            if (i+1 === serverlist.length) {
-                                cb();
-                            } else {
-                                i++;
-                                parseItemLoop();
-                            }
-                        }
-                        catch (err) {
-                            log(err.stack, 'fatal')
-                            TOOLS.shutdownHandler(24);
-                        }
-                    })();
-                }
-                catch (err) {
-                    log(err.stack, 'fatal')
-                    TOOLS.shutdownHandler(24);
-                }
-            }
-        });
-    
-        stages.push({
-            name: "Bot Avatar Composite",
-            fn: function(cb) {
-                try {
-                    let p0 = jimp.read(bot.user.avatarURL);
-                    let p1 = jimp.read(memory.bot.icons.get('optifine_thumbnail_mask.png'));
-        
-                    Promise.all([p0, p1]).then((imgs) => {
-                        try {
-                            imgs[0].resize(512, 512, jimp.RESIZE_BILINEAR)
-                            .mask(imgs[1], 0, 0)
-                            .getBuffer(jimp.AUTO, (err, buffer) => {
-                                try {
-                                    if (err) throw err
-                                    else {
-                                        memory.bot.avatar = buffer;
-        
-                                        cb();
-                                    }
-                                }
-                                catch (err) {
-                                    log(err.stack, 'fatal')
-                                    TOOLS.shutdownHandler(24);
-                                }
-                            });
-                        }
-                        catch (err) {
-                            log(err.stack, 'fatal')
-                            TOOLS.shutdownHandler(24);
+                            log(err.stack, 'error')
+                            cb();
                         }
                     }).catch(err => {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
+                        log(err.stack, 'error')
+                        cb();
                     });
                 }
                 catch (err) {
-                    log(err.stack, 'fatal')
-                    TOOLS.shutdownHandler(24);
-                }
-            }
-        });
-    
-        stages.push({
-            name: "MOTD Generator",
-            fn: function(cb) {
-                try {
-                    memory.db.motd.find({ motd: true }, (err, docs) => {
-                        try {
-                            if (err) {
-                                throw err
-                            } else {
-                                let embed = new discord.RichEmbed()
-                                    .setColor(cfg.vs.embed.default)
-                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_fine.png'), "icon.png"))
-                                    .setAuthor('Welcome to the official OptiFine Discord server!', 'attachment://icon.png')
-                                    .setDescription(`Please be sure to read the <#479192475727167488> BEFORE posting, not to mention the <#531622141393764352>. If you're a donator, use the command \`${memory.bot.trigger}help dr\` for instructions to get your donator role.`)
-                                    .setFooter('Thank you for reading!')
-                                
-                                if (docs[0] && docs[0].message.length > 0) {
-                                    embed.addField(`A message from Moderators (Posted on ${docs[0].date.toUTCString()})`, docs[0].message);
-                                }
-                
-                                memory.bot.motd = embed;
-                
-                                cb();
-                            }
-                        }
-                        catch (err) {
-                            log(err.stack, 'fatal')
-                            TOOLS.shutdownHandler(24);
-                        }
-                    });
-                }
-                catch (err) {
-                    log(err.stack, 'fatal')
-                    TOOLS.shutdownHandler(24);
-                }
-            }
-        });
-    
-        stages.push({
-            name: "Categorized Documentation Loader",
-            fn: function(cb) {
-                try {
-                    let i = 0;
-                    (function parseItemLoop() {
-                        try {
-                            let item = docs_list[i];
-        
-                            let data = {
-                                name: item.name,
-                                links: item.links
-                            }
-        
-                            memory.bot.docs_cat[[item.name.toLowerCase()]] = data;
-                            item.aliases.forEach(e => {
-                                memory.bot.docs_cat[[e.toLowerCase()]] = data;
-                            });
-        
-                            if (i+1 === docs_list.length) {
-                                cb();
-                            } else {
-                                i++;
-                                parseItemLoop();
-                            }
-                        }
-                        catch (err) {
-                            log(err.stack, 'fatal')
-                            TOOLS.shutdownHandler(24);
-                        }
-                    })();
-                }
-                catch (err) {
-                    log(err.stack, 'fatal')
-                    TOOLS.shutdownHandler(24);
-                }
-            }
-        });
-
-        if(cfg.statistics.enabled) {
-            stages.push({
-                name: "Statistics Data Bootstrapper",
-                fn: function(cb) {
-                    try {
-                        let data = JSON.parse(JSON.stringify(cfg.statistics.template));
-                        data.month = new Date().getUTCMonth();
-
-                        memory.stats = JSON.parse(JSON.stringify(cfg.statistics.template));
-
-                        memory.stats.old = JSON.parse(JSON.stringify(cfg.statistics.template));
-            
-                        memory.db.stats.find({ month: data.month }, (err, docs) => {
-                            try {
-                                if (err) throw err
-                                else if (docs.length === 0) {
-                                    memory.db.stats.insert(data, (err) => {
-                                        if (err) throw err
-                                        else finishStage()
-                                    });
-                                } else
-                                if(docs[0].active) {
-                                    memory.stats.old = docs[0];
-                                    finishStage();
-                                } else {
-                                    memory.db.stats.find({ active: true }, (err, docs_a) => {
-                                        try {
-                                            if (err) throw err
-                                            else if (docs_a[0].month > data.month) {
-                                                // this should fire if new years has come
-                                                memory.db.stats.find({}, (err, docs_e) => {
-                                                    // todo: add up everything for the yearly result
-                                                    // maybe archive and allow !stats command to view any year/month?
-                                                    memory.db.stats.remove({}, {multi:true}, (err) => {
-                                                        try {
-                                                            if (err) throw err
-                                                            else {
-                                                                memory.db.stats.insert(data, (err) => {
-                                                                    if (err) throw err
-                                                                    else finishStage()
-                                                                });
-                                                            }
-                                                        }
-                                                        catch (err) {
-                                                            log(err.stack, 'fatal')
-                                                            TOOLS.shutdownHandler(24);
-                                                        }
-                                                    });
-                                                });
-                                            }
-                                        }
-                                        catch (err) {
-                                            log(err.stack, 'fatal')
-                                            TOOLS.shutdownHandler(24);
-                                        }
-                                    });
-                                }
-                            }
-                            catch (err) {
-                                log(err.stack, 'fatal')
-                                TOOLS.shutdownHandler(24);
-                            }
-                        });
-            
-                        function finishStage() {
-                            try {
-                                cb();
-                            }
-                            catch (err) {
-                                log(err.stack, 'fatal')
-                                TOOLS.shutdownHandler(24);
-                            }
-                        }
-                    }
-                    catch (err) {
-                        log(err.stack, 'fatal')
-                        TOOLS.shutdownHandler(24);
-                    }
-                }
-            });
-        }
-    
-        stages.push({
-            name: "Moderator Presence Loader",
-            fn: function(cb) {
-                try {
-                    bot.guilds.get(cfg.basic.of_server).roles.get(cfg.roles.moderator).members.tap(mod => {
-                        if(mod.id !== '202558206495555585') {
-                            memory.bot.actMods.push({
-                                id: mod.id,
-                                status: mod.presence.status,
-                                last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
-                            });
-                        }
-                    });
-    
-                    bot.guilds.get(cfg.basic.of_server).roles.get(cfg.roles.junior_mod).members.tap(mod => {
-                        memory.bot.actMods.push({
-                            id: mod.id,
-                            status: mod.presence.status,
-                            last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
-                        });
-                    });
-        
+                    log(err.stack, 'error')
                     cb();
-                }
-                catch (err) {
-                    log(err.stack, 'fatal')
-                    TOOLS.shutdownHandler(24);
                 }
             }
         });
@@ -1450,11 +841,9 @@ bot.on('ready', () => {
     
                 log(`╭${'─'.repeat(width)}╮`); 
                 log(centerText(`  `, width));
-                log(centerText(`OptiBot ${pkg.version} (Build ${build.num})`, width));
+                log(centerText(`OptiBot Lite ${pkg.version} (Build ${build.num})`, width));
                 log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2019`, width));
                 log(centerText(`Successfully booted in ${bootTimeTaken} seconds.`, width));
-                log(centerText(`  `, width));
-                log(centerText(TOOLS.randomizer(cfg.splash), width));
                 log(centerText(`  `, width));
                 log(`╰${'─'.repeat(width)}╯`);
     
@@ -1499,141 +888,6 @@ bot.on('ready', () => {
                 TOOLS.shutdownHandler(24);
             }
         }
-    }
-});
-
-////////////////////////////////////////
-// Guild Presence Update
-////////////////////////////////////////
-
-bot.on('presenceUpdate', (oldMem, newMem) => {
-    if (oldMem.guild.id !== cfg.basic.of_server) return;
-    if (oldMem.id === bot.user.id) return;
-
-    memory.bot.actMods.forEach((mod, i) => {
-        if(mod.id === oldMem.id) {
-            log('moderator updated', 'trace');
-            log('OLD', 'trace')
-            log(mod, 'trace')
-
-            let newData = {
-                id: mod.id,
-                status: newMem.presence.status,
-                last_message: (newMem.lastMessage) ? newMem.lastMessage.createdTimestamp : mod.last_message
-            }
-
-            log('NEW', 'trace')
-            log(newData, 'trace')
-
-            memory.bot.actMods[i] = newData;
-        }
-    });
-});
-
-////////////////////////////////////////
-// Raw Packet Data
-////////////////////////////////////////
-
-bot.on('raw', packet => {
-    if(packet.t === 'MESSAGE_REACTION_ADD') {
-        let channel = bot.channels.get(packet.d.channel_id);
-        if (channel.messages.has(packet.d.message_id)) return;
-        channel.fetchMessage(packet.d.message_id).then(m => {
-            let emoji = packet.d.emoji.id ? `${packet.d.emoji.name}:${packet.d.emoji.id}` : packet.d.emoji.name;
-            let reaction = m.reactions.get(emoji);
-
-            if (reaction) {
-                reaction.users.set(packet.d.user_id, bot.users.get(packet.d.user_id));
-            }
-
-            log('old emoji detected', 'trace');
-            bot.emit('messageReactionAdd', reaction, bot.users.get(packet.d.user_id));
-        }).catch(err => {
-            TOOLS.errorHandler({err:err});
-        });
-    } else
-    if(packet.t === 'MESSAGE_DELETE') {
-        // this packet does not contain the actual message data, unfortunately.
-
-        // as of writing, this only contains the message ID, the channel ID, and the guild ID.
-
-        // i was planning on using this to extend the message deletion event to be able to log old deleted messages, but this doesn't even contain the contents so it's a little bit useless now.
-
-        // I might still use this anyway, sometime in the future.
-    }
-});
-
-////////////////////////////////////////
-// Message Reaction Add
-////////////////////////////////////////
-
-bot.on('messageReactionAdd', (mr, user) => {
-    if (mr.message.channel.type === 'dm') return;
-    if (user.id === bot.user.id) return;
-
-    if (mr.emoji.name === '🏅') {
-        if (mr.message.guild.id !== cfg.basic.of_server) return;
-        if (mr.message.author.id === bot.user.id) return;
-        bot.guilds.get(cfg.basic.of_server).fetchMember(user.id).then((member) => {
-            if (!member.permissions.has("KICK_MEMBERS", true)) {
-                log('emoji detected', 'trace');
-    
-                TOOLS.getProfile(mr.message, mr.message.author.id, (profile) => {
-                    if (profile.medals) {
-                        profile.medals.count++;
-                        profile.medals.msgs.push(mr.message.id);
-                    } else {
-                        profile.medals = {
-                            count: 1,
-                            msgs: [
-                                mr.message.id
-                            ]
-                        }
-                    }
-    
-                    memory.db.profiles.update({member_id: mr.message.author.id}, profile, (err) => {
-                        if (err) TOOLS.errorHandler({ err: err, m: mr.message });
-                        else {
-                            log(`${mr.message.author.username}#${mr.message.author.discriminator} was awarded a medal by ${user.username}#${user.discriminator}`);
-    
-                            let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.default)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
-                            .setAuthor('Medal awarded', 'attachment://icon.png')
-                            .setDescription(`${mr.message.author} was awarded a medal by ${user}!`);
-    
-                            mr.message.channel.send({ embed: embed }).then(msg => {
-                                TOOLS.messageFinalize(user.id, msg);
-                            });
-                        }
-                    });
-                });
-            }
-        }).catch(err => {
-            TOOLS.errorHandler({err:err});
-        });
-    } else 
-    if (mr.emoji.id === '642085525460877334') {
-        memory.db.msg.find({message: mr.message.id}, (err, docs) => {
-            if(err) {
-                TOOLS.errorHandler({ err: err });
-            } else
-            if(docs.length > 0) {
-                if(docs[0].user === user.id) {
-                    mr.message.delete().then(() => {
-                        memory.db.msg.remove(docs[0], {}, (err) => {
-                            if (err) {
-                                TOOLS.errorHandler({ err: err });
-                            } else {
-                                log('Bot message deleted at user request.');
-                            }
-                        });
-                    }).catch(err => {
-                        TOOLS.errorHandler({ err: err });
-                    });
-                }
-            }
-        });
     }
 });
 
@@ -1845,33 +1099,17 @@ bot.on('guildMemberAdd', member => {
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
 
-    if (cfg.statistics.enabled) memory.stats.users.join++;
-
     let user = member.user.username + '#' + member.user.discriminator;
 
     log('User has joined the server: ' + user + ' (' + member.user.id + ')');
 
-    memory.bot.newUsers.push(member.user.id);
     bot.setTimeout(function () {
-        let index = memory.bot.newUsers.indexOf(member.user.id);
-        log(memory.bot.newUsers);
-        log('looking for: '+index)
-        if (index > -1) memory.bot.newUsers.splice(index, 1);
-
         if (!member.deleted && member.roles.size === 0) {
             log('10 Minute wait has expired for new user ' + user + ' (' + member.user.id + ')');
         }
     }, 600000);
 
     if (memory.bot.debug && cfg.superusers.indexOf(member.user.id) === -1) return;
-
-    member.send({ embed: memory.bot.motd }).catch((err) => {
-        if (err.code === 50007) {
-            log('Could not send MOTD to new member ' + user + ' (User has server DMs disabled)', 'warn');
-        } else {
-            log('Could not send MOTD to new member ' + user + ': ' + err.stack, 'error');
-        }
-    });
 
     if (memory.bot.debug) return;
 
@@ -1906,9 +1144,6 @@ bot.on('guildBanAdd', (guild, member) => {
     if (memory.bot.shutdown) return;
     if (memory.bot.booting) return;
 
-
-    if (cfg.statistics.enabled) memory.stats.users.bans++
-
     bot.setTimeout(() => {
         bot.guilds.get(cfg.basic.of_server).fetchAuditLogs({ limit: 1 }).then((audit) => {
             let ad = audit.entries.first();
@@ -1942,15 +1177,11 @@ bot.on('guildMemberRemove', member => {
 
                 if (ad.reason) msg += '\nReason: ' + ad.reason;
 
-                if (cfg.statistics.enabled) memory.stats.users.kicks++
-
                 log(msg, 'warn');
             } else
             if (ad.action === 'MEMBER_BAN_ADD' && ad.target.id === member.user.id && ad.createdTimestamp + 3000 > new Date().getTime()) {
                 return;
             } else {
-                if (cfg.statistics.enabled) memory.stats.users.leave++
-
                 log('User has left the server: ' + member.user.username + '#' + member.user.discriminator + ' (' + member.user.id + ')', 'warn');
             }
         }).catch(err => log(err.stack, 'error'));
@@ -2036,9 +1267,10 @@ bot.on('error', err => {
 ////////////////////////////////////////
 
 bot.on('message', (m) => {
-    if (m.author.bot || m.author.system) return; // message was posted by system or bot
+    if (m.author.bot || m.author.system) return;
+    if(m.channel.type === 'dm') return;
 
-    if (m.channel.type !== 'dm' && m.content.toLowerCase().startsWith(`${memory.bot.trigger}obs`) && m.member.permissions.has("KICK_MEMBERS", true)) {
+    if (m.content.toLowerCase().startsWith(`${memory.bot.trigger}obs`) && m.member.permissions.has("KICK_MEMBERS", true)) {
         log('Emergency shutdown initiated.', 'fatal');
         clearInterval(memory.bot.status_check);
         bot.destroy();
@@ -2048,17 +1280,9 @@ bot.on('message', (m) => {
         return;
     }
 
-    if (memory.bot.booting) return; // bot is still loading required assets
-    if (memory.bot.shutdown) return; // bot is shutting down or going under a scheduled restart
-    if (cfg.channels.blacklist.indexOf(m.channel.id) > -1) return; // channel is on blacklist
-
-    if (cfg.statistics.enabled) {
-        memory.stats.messages++;
-        if (m.channel.type === 'dm') memory.stats.dms++;
-        if (memory.stats.users.unique.indexOf(m.author.id) === -1) memory.stats.users.unique.push(m.author.id);
-    }
-
-    if (memory.cd.active) return;
+    if (memory.bot.booting) return;
+    if (memory.bot.shutdown) return;
+    if (cfg.channels.blacklist.indexOf(m.channel.id) > -1) return;
 
     let input = m.content.trim().split("\n", 1)[0];
     let cmd = input.toLowerCase().split(" ")[0].substr(1);
@@ -2066,436 +1290,135 @@ bot.on('message', (m) => {
     let cmdValidator = input.match(new RegExp("\\" + memory.bot.trigger + "\\w"));
 
     let isSuper = cfg.superusers.indexOf(m.author.id) > -1;
+    let isAdmin = m.member.permissions.has("KICK_MEMBERS", true) || m.member.roles.has(cfg.roles.junior_mod);
 
-    if(memory.bot.newUsers.indexOf(m.author.id) > -1 && (m.channel.type === 'dm' || (cmdValidator && input.indexOf(cmdValidator[0]) === 0))) {
-        let embed = new discord.RichEmbed()
-        .setColor(cfg.vs.embed.error)
-        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
-        .setAuthor(`Sorry, you must wait 10 minutes from the moment you join the server to use OptiBot.`, 'attachment://icon.png')
-        .setDescription(`Please take this time to read the <#479192475727167488> and <#531622141393764352>.`);
+    memory.bot.lastInt = new Date().getTime();
 
-        m.channel.send({ embed: embed });
-        return;
-    }
+    ////////////////////////////////////////////////////////////////
+    // COMMANDS
+    ////////////////////////////////////////////////////////////////
 
-    if (memory.bot.debug && !isSuper && memory.bot.locked) {
-        // bot is in debug mode and restricted to superuser access only.
-        if (m.channel.type === 'dm') {
-            TOOLS.errorHandler({ err: 'OptiBot is currently undergoing maintenance. Please try again later!', m: m });
+    if (cmdValidator && input.indexOf(cmdValidator[0]) === 0) {
+
+        log('isAdmin: '+isAdmin, 'trace');
+        log('isSuper: '+isSuper, 'trace');
+
+        let l_tag = '';
+
+        if(isSuper) {
+            l_tag = '[DEV]';
         } else
-        if (cmdValidator && input.indexOf(cmdValidator[0]) === 0) {
-            TOOLS.errorHandler({ err: 'OptiBot is currently undergoing maintenance. Please try again later!', m: m, temp:true });
+        if(m.member.permissions.has("ADMINISTRATOR", true)) {
+            l_tag = '[ADMIN]';
+        } else
+        if(m.member.roles.has(cfg.roles.moderator)) {
+            l_tag = '[MOD]';
+        } else
+        if(m.member.roles.has(cfg.roles.junior_mod)) {
+            l_tag = '[JRMOD]';
         }
-        return;
-    }
+        
 
-    if (!bot.guilds.get(cfg.basic.of_server).available) {
-        TOOLS.errorHandler({ err: 'OptiBot is unable to access the OptiFine server. Please try again later!', m: m });
-        return;
-    }
+        log(`${(l_tag.length > 0) ? l_tag+' ' : ''}COMMAND ISSUED BY ${m.author.username}#${m.author.discriminator}: ${memory.bot.trigger+cmd} ${(cmd === 'dr') ? args.join(' ').replace(/\S/gi, '*') : args.join(' ')}`);
+        
 
-    if (cmdValidator && input.indexOf(cmdValidator[0]) === 0) TOOLS.typerHandler(m.channel, true);
+        TOOLS.confirmationFinder({ member_id: m.author.id, channel_id: m.channel.id }, (index) => {
+            if (index > -1 && cmd !== 'confirm' && cmd !== 'cancel') {
+                TOOLS.errorHandler({ err: 'You cannot use other commands until you confirm, cancel, or ignore your previous request for ~5 minutes.', m: m });
+            } else {
+                CMD.get(cmd, (res) => {
+                    function unknown() {
+                        let embed = new discord.RichEmbed()
+                            .setColor(cfg.vs.embed.default)
+                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
+                            .setAuthor('Unknown command. Type ' + memory.bot.trigger + 'list for a list of commands.', 'attachment://icon.png');
 
-    bot.setTimeout(() => {
-        bot.guilds.get(cfg.basic.of_server).fetchMember(m.author.id).then(member => {
-            let isAdmin = member.permissions.has("KICK_MEMBERS", true) || member.roles.has(cfg.roles.junior_mod);
-    
-            if (memory.cd.active && !isAdmin && !isSuper) return; // bot is in cooldown mode and the user does not have mod/superuser permissions
-    
-            if (memory.bot.locked && !isAdmin && !isSuper) return; // bot is in mods-only mode and the user is not a mod/superuser.
-    
-            memory.bot.lastInt = new Date().getTime();
-
-            if(m.channel.type !== 'dm' && m.guild.id === cfg.basic.of_server) {
-                memory.bot.actMods.forEach((mod, i) => {
-                    if(mod.id === m.author.id) {
-                        memory.bot.actMods[i] = {
-                            id: mod.id,
-                            status: m.author.presence.status,
-                            last_message: m.createdTimestamp
-                        };
-                    }
-                });
-            }
-    
-            if (cmdValidator && input.indexOf(cmdValidator[0]) === 0) {
-                ////////////////////////////////////////////////////////////////
-                // COMMANDS
-                ////////////////////////////////////////////////////////////////
-
-                TOOLS.cooldownHandler(m, (isAdmin || isSuper));
-
-                process.send({
-                    type: 'status',
-                    guild: (m.channel.type === 'dm') ? null : m.guild.id,
-                    channel: (m.channel.type === 'dm') ? m.author.id : m.channel.id,
-                    message: true
-                });
-
-                log('isAdmin: '+isAdmin, 'trace');
-                log('isSuper: '+isSuper, 'trace');
-
-                let l_tag = '';
-
-                if(isSuper) {
-                    l_tag = '[DEV]';
-                } else
-                if(member.permissions.has("ADMINISTRATOR", true)) {
-                    l_tag = '[ADMIN]';
-                } else
-                if(member.roles.has(cfg.roles.moderator)) {
-                    l_tag = '[MOD]';
-                } else
-                if(member.roles.has(cfg.roles.junior_mod)) {
-                    l_tag = '[JRMOD]';
-                }
-                
-
-                log(`${(l_tag.length > 0) ? l_tag+' ' : ''}COMMAND ISSUED BY ${m.author.username}#${m.author.discriminator}: ${memory.bot.trigger+cmd} ${(cmd === 'dr') ? args.join(' ').replace(/\S/gi, '*') : args.join(' ')}`);
-                
-    
-                TOOLS.confirmationFinder({ member_id: m.author.id, channel_id: m.channel.id }, (index) => {
-                    if (index > -1 && cmd !== 'confirm' && cmd !== 'cancel') {
-                        TOOLS.errorHandler({ err: 'You cannot use other commands until you confirm, cancel, or ignore your previous request for ~5 minutes.', m: m });
-                    } else {
-                        CMD.get(cmd, (res) => {
-                            function unknown() {
-                                let embed = new discord.RichEmbed()
-                                    .setColor(cfg.vs.embed.default)
-                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-                                    .setAuthor('Unknown command. Type ' + memory.bot.trigger + 'list for a list of commands.', 'attachment://icon.png');
-
-                                CMD.getAll((list) => {
-                                    let filtered = [];
-                                    let ratings = [];
-                                    if (isSuper && m.channel.type === 'dm') {
-                                        filtered = list
-                                    } else
-                                    if (isAdmin) {
-                                        filtered = list.filter((cmd2) => (cmd2.getMetadata().tags['DEVELOPER_ONLY'] === false));
-                                    } else {
-                                        filtered = list.filter((cmd2) => (cmd2.getMetadata().tags['MODERATOR_ONLY'] === false && cmd2.getMetadata().tags['DEVELOPER_ONLY'] === false));
-                                    }
-
-                                    filtered.forEach((cmd3) => {
-                                        ratings.push({
-                                            command: cmd3.getMetadata().trigger,
-                                            distance: wink(cmd, cmd3.getMetadata().trigger)
-                                        })
-                                    });
-
-                                    ratings.sort((a, b) => {
-                                        if (a.distance < b.distance) {
-                                            return 1;
-                                        } else 
-                                        if (a.distance > b.distance) {
-                                            return -1;
-                                        } else {
-                                            return 0;
-                                        }
-                                    });
-
-                                    let closest = ratings[0];
-
-                                    log(ratings, 'trace');
-
-                                    if (closest.distance > 0.2) {
-                                        embed.setDescription(`Perhaps you meant \`${memory.bot.trigger}${closest.command}\`? (${(closest.distance * 100).toFixed(1)}% match)`)
-                                    }
-
-                                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                                });
-                            }
-
-                            function checkMisuse(errMsg) {
-                                if(res.getMetadata().tags['DELETE_ON_MISUSE']) {
-                                    m.delete();
-                                    TOOLS.errorHandler({ err: errMsg, m:m, temp: true });
-                                } else {
-                                    TOOLS.errorHandler({ err: errMsg, m:m });
-                                }
-                            }
-
-                            if (!res) {
-                                log('unknown cmd', 'trace');
-                                unknown();
+                        CMD.getAll((list) => {
+                            let filtered = [];
+                            let ratings = [];
+                            if (isSuper && m.channel.type === 'dm') {
+                                filtered = list
                             } else
-                            if (res.getMetadata().tags['HIDDEN'] && !isSuper) {
-                                log('User attempted to use hidden command.', 'warn');
-                                log(JSON.stringify(res.getMetadata()));
-                                unknown();
-                            } else
-                            if ( (res.getMetadata().tags['MODERATOR_ONLY'] && !isAdmin) || (res.getMetadata().tags['NO_JR_MOD'] && member.roles.has(cfg.roles.junior_mod)) || (res.getMetadata().tags['DEVELOPER_ONLY'] && !isSuper) ) {
-                                checkMisuse('You do not have permission to use this command.')
-                            } else
-                            if (res.getMetadata().tags['NO_DM'] && m.channel.type === 'dm' && !isSuper) {
-                                checkMisuse('This command can only be used in server chat.')
-                            } else
-                            if (res.getMetadata().tags['DM_ONLY'] && m.channel.type !== 'dm' && (!isAdmin || !isSuper)) {
-                                checkMisuse('This command can only be used in DMs.')
-                            } else 
-                            if (res.getMetadata().tags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (cfg.channels.mod.indexOf(m.channel.id) === -1 && cfg.channels.bot.indexOf(m.channel.id) === -1) && (!isAdmin || !isSuper)) {
-                                checkMisuse('This command can only be used in DMs OR the #optibot channel.')
-                            } else 
-                            if (res.getMetadata().tags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && cfg.channels.mod.indexOf(m.channel.id) === -1 && !isSuper) {
-                                checkMisuse('This command can only be used in moderator-only channels.')
+                            if (isAdmin) {
+                                filtered = list.filter((cmd2) => (cmd2.getMetadata().tags['DEVELOPER_ONLY'] === false));
                             } else {
-                                res.exec(m, args, member, { isAdmin: isAdmin, isSuper: isSuper });
-
-                                if(cfg.statistics.enabled && !res.getMetadata().tags['HIDDEN']) {
-                                    memory.stats.commands.total++;
-
-                                    if (memory.stats.commands.list[cmd]) {
-                                        memory.stats.commands.list[cmd]++;
-                                    } else {
-                                        memory.stats.commands.list[cmd] = 1;
-                                    }
-                                }
+                                filtered = list.filter((cmd2) => (cmd2.getMetadata().tags['MODERATOR_ONLY'] === false && cmd2.getMetadata().tags['DEVELOPER_ONLY'] === false));
                             }
+
+                            filtered.forEach((cmd3) => {
+                                ratings.push({
+                                    command: cmd3.getMetadata().trigger,
+                                    distance: wink(cmd, cmd3.getMetadata().trigger)
+                                })
+                            });
+
+                            ratings.sort((a, b) => {
+                                if (a.distance < b.distance) {
+                                    return 1;
+                                } else 
+                                if (a.distance > b.distance) {
+                                    return -1;
+                                } else {
+                                    return 0;
+                                }
+                            });
+
+                            let closest = ratings[0];
+
+                            log(ratings, 'trace');
+
+                            if (closest.distance > 0.2) {
+                                embed.setDescription(`Perhaps you meant \`${memory.bot.trigger}${closest.command}\`? (${(closest.distance * 100).toFixed(1)}% match)`)
+                            }
+
+                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
                         });
+                    }
+
+                    function checkMisuse(errMsg) {
+                        if(res.getMetadata().tags['DELETE_ON_MISUSE']) {
+                            m.delete();
+                            TOOLS.errorHandler({ err: errMsg, m:m, temp: true });
+                        } else {
+                            TOOLS.errorHandler({ err: errMsg, m:m });
+                        }
+                    }
+
+                    if (!res) {
+                        log('unknown cmd', 'trace');
+                        unknown();
+                    } else
+                    if (res.getMetadata().tags['HIDDEN'] && !isSuper) {
+                        log('User attempted to use hidden command.', 'warn');
+                        log(JSON.stringify(res.getMetadata()));
+                        unknown();
+                    } else
+                    if ( (res.getMetadata().tags['MODERATOR_ONLY'] && !isAdmin) || (res.getMetadata().tags['NO_JR_MOD'] && m.member.roles.has(cfg.roles.junior_mod)) || (res.getMetadata().tags['DEVELOPER_ONLY'] && !isSuper) ) {
+                        checkMisuse('You do not have permission to use this command.')
+                    } else
+                    if (res.getMetadata().tags['NO_DM'] && m.channel.type === 'dm' && !isSuper) {
+                        checkMisuse('This command can only be used in server chat.')
+                    } else
+                    if (res.getMetadata().tags['DM_ONLY'] && m.channel.type !== 'dm' && (!isAdmin || !isSuper)) {
+                        checkMisuse('This command can only be used in DMs.')
+                    } else 
+                    if (res.getMetadata().tags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (cfg.channels.mod.indexOf(m.channel.id) === -1 && cfg.channels.bot.indexOf(m.channel.id) === -1) && (!isAdmin || !isSuper)) {
+                        checkMisuse('This command can only be used in DMs OR the #optibot channel.')
+                    } else 
+                    if (res.getMetadata().tags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && cfg.channels.mod.indexOf(m.channel.id) === -1 && !isSuper) {
+                        checkMisuse('This command can only be used in moderator-only channels.')
+                    } else {
+                        res.exec(m, args, m.member, { isAdmin: isAdmin, isSuper: isSuper });
                     }
                 });
-            } else {
-                ////////////////////////////////////////////////////////////////
-                // TIDBITS & OTHER THINGS
-                ////////////////////////////////////////////////////////////////
-    
-                if (m.channel.type === 'dm') {
-                    let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.default)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-                    .setAuthor(`Hi there! For a list of commands, type "${memory.bot.trigger}list". If you've donated and you would like to receive your donator role, type "${memory.bot.trigger}help dr" for detailed instructions.`, 'attachment://icon.png');
-    
-                    m.channel.send({ embed: embed });
-                } else
-                // 
-                if (memory.bot.smr.some(badlink => m.content.includes(badlink))) {
-                    TOOLS.typerHandler(m.channel, true);
-                    let foundLinks = [];
-                    for (let i = 0; i < memory.bot.smr.length; i++) {
-                        if (m.content.indexOf(memory.bot.smr[i]) > -1) {
-                            foundLinks.push(memory.bot.smr[i]);
-                        }
-    
-                        if (i+1 === memory.bot.smr.length) {
-                            let embed = new discord.RichEmbed()
-                                .setColor(cfg.vs.embed.default)
-                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-                                .setAuthor('Warning', 'attachment://icon.png')
-                                .setDescription(`A link to a blacklisted website was detected in [this](${m.url}) message. Remember to avoid suspicious links, and proceed with caution. \nhttps://stopmodreposts.org/`)
-                                .addField("Detected URL(s)", "```" + foundLinks.join(', ') + "```")
-    
-                            TOOLS.typerHandler(m.channel, false);
-                            m.channel.send({ embed: embed });
-                        }
-                    }
-                } else
-                if (m.content.trim() === '<#426005631997181963>') {
-                    TOOLS.typerHandler(m.channel, true);
-                    CMD.get('offtopic', (cmd) => {
-                        if (cmd) {
-                            cmd.exec(m);
-                        }
-                    });
-                } else
-                if (m.content.trim() === '<#584850909725458503>') {
-                    TOOLS.typerHandler(m.channel, true);
-                    CMD.get('memes', (cmd) => {
-                        if (cmd) {
-                            cmd.exec(m);
-                        }
-                    });
-                } else
-                if (m.content.toLowerCase().trim() === 'f') {
-                    m.react('🇫').catch((err) => {
-                        TOOLS.errorHandler({ err: err });
-                    });
-                } else
-                if (m.content.toLowerCase().trim() === 'ok' && isAdmin) {
-                    if (Math.random() > 0.5) {
-                        m.react('🆗').catch((err) => {
-                            TOOLS.errorHandler({ err: err });
-                        });
-                    } else {
-                        m.react('🇧').then(()=>{
-                            m.react('🇴').then(()=>{
-                                m.react('🅾️').then(()=>{
-                                    m.react('🇲').then(()=>{
-                                        m.react('🇪').then(()=>{
-                                            m.react('🇷').catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                                    }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                                }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                            }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                    }
-                } else
-                if (m.content.trim() === '^') {
-                    m.channel.fetchMessages({ limit: 5, before:m.id }).then(msgs => {
-                        let emoji = TOOLS.randomizer(['☝️', '👆']);
-                        let lastMsg = msgs.values().next().value;
-
-                        if(!lastMsg.reactions.has('☝️') && !lastMsg.reactions.has('👆')) {
-                            m.delete().catch(err => {
-                                TOOLS.errorHandler({ err: err });
-                            });
-
-                            lastMsg.react(emoji).catch((err) => {
-                                TOOLS.errorHandler({ err: err });
-                            });
-                        } else {
-                            log('emoji already added', 'debug');
-                        }
-                    }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                } else
-                if (m.content.indexOf('#') > -1) {
-                    log('possible GHREF match', 'trace');
-                    //remove everything in quotes, single-line codeblocks, multi-line codeblocks, and strikethroughs.
-                    let filtered = m.content.replace(/"[^"]+"|`{3}[^```]+`{3}|~{2}[^~~]+~{2}|`{1}[^`]+`{1}|<[^<>]+>/gi, "");
-    
-                    // get issues from filtered message using regex, remove duplicates by using a set, and finally convert back to an array.
-                    // ignores issues prefixed with a backwards slash (\) or just any word character
-                    let issues = [...new Set(filtered.match(/(?<![a-z]#|\\#)(?<=#)(\d+)\b/gi))];
-    
-                    if (issues !== null) {
-                        //ignore first 10 issues, and numbers that are larger than 4 characters in length.
-                        if (issues.filter(e => (e.length < 5) && (parseInt(e) > 100)).length > 0) {
-                            TOOLS.typerHandler(m.channel, true);
-                            log('found GHREF match', 'trace');
-                            let issueLinks = [];
-                            let limit = (isAdmin) ? 8 : 4;
-                            let limited = false;
-                            let requestLimit = 12;
-                            let i = 0;
-    
-                            (function searchGH() {
-                                log('looking for #' + issues[i], 'debug');
-    
-                                request('https://github.com/sp614x/optifine/issues/' + issues[i] + '.json', (err, res, data) => {
-                                    log('response', 'trace');
-                                    if (err || !res || !data) {
-                                        TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the GitHub API'), m:m });
-                                    } else
-                                    if (res.statusCode === 403) {
-                                        TOOLS.errorHandler({ err: new Error('403 Forbidden (OptiBot may be ratelimited)'), m:m });
-                                    } else {
-                                        let title = JSON.parse(data).title;
-                                        if (title) {
-                                            issueLinks.push(`[**#${issues[i]}** - ${title}](https://github.com/sp614x/optifine/issues/${issues[i]})`);
-                                        }
-    
-                                        if (issueLinks.length === limit && issueLinks[i+1] !== undefined) {
-                                            limited = true;
-                                        }
-    
-                                        if (limited || i+1 === requestLimit || i+1 === issues.length) {
-                                            if (issueLinks.length === 0) {
-                                                TOOLS.errorHandler({ err: 'Could not find any issues on GitHub.', m:m, temp:true });
-                                            } else {
-                                                log('finalizing GH refs', 'trace');
-                                                let embed = new discord.RichEmbed()
-                                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_gh.png'), "gh.png"))
-                                                    .setColor(cfg.vs.embed.default)
-                                                    .setAuthor('OptiFine Issue Tracker', 'attachment://gh.png')
-                                                    .setDescription(`In response to [this](${m.url}) message...\n\n${issueLinks.join('\n\n')}`)
-                                        
-                                                if (limited) {
-                                                    embed.setFooter('Other issues were omitted to prevent spam.');
-                                                } else
-                                                if (i+1 === requestLimit) {
-                                                    embed.setFooter('Other issues were omitted to prevent ratelimiting.');
-                                                }
-                                        
-                                                m.channel.send({ embed: embed }).then(msg => { 
-                                                    TOOLS.messageFinalize(m.author.id, msg);
-                                                }).catch(err => {
-                                                    TOOLS.errorHandler({err:err});
-                                                });
-                                            }
-                                        } else {
-                                            bot.setTimeout(() => {
-                                                i++;
-                                                searchGH();
-                                            }, 500);
-                                        }
-                                    }
-                                });
-                            })();
-                        }
-                    }
-                } else
-                if (m.content.toLowerCase().trim() === '+band' && isAdmin) {
-                    m.channel.fetchMessages({ limit: 5, before:m.id }).then(msgs => {
-                        m.delete().catch(err => {
-                            TOOLS.errorHandler({ err: err });
-                        });
-
-                        let lastMsg = msgs.values().next().value;
-
-                        lastMsg.react('🎺').then(()=>{
-                            lastMsg.react('🎸').then(()=>{
-                                lastMsg.react('🥁').then(()=>{
-                                    lastMsg.react('🎤').catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                                }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                            }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                    }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                } else
-    
-                // the remaining items here will run all at once, regardless if any of the above match.
-    
-                if (m.content.toLowerCase().indexOf('discord.gg') > -1 || m.content.toLowerCase().indexOf('discordapp.com/invite') > -1) {
-                    log('possible invite link match', 'trace')
-                    
-                    let invites = m.content.match(/(?<=discord\.gg\/)\b\w+(?!\/)|(?<=discordapp\.com\/invite\/)\b\w+(?!\/)/gi);
-    
-                    if (invites !== null) {
-                        invites.forEach((inviteCode) => {
-                            bot.fetchInvite(inviteCode).then((invite) => {
-                                log(`Invite link detected: ${invite.url} (${invite.guild.name}) \nPosted by ${m.author.username}#${m.author.discriminator}`)
-                            }).catch(err => TOOLS.errorHandler({err:err}) )
-                        })
-                    }
-                }
-    
-                if (m.isMentioned(bot.user)) {
-                    m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('648594344676425731'));
-                }
-    
-                if (m.content.toLowerCase() === 'band' && isAdmin) {
-                    m.react('🎺').then(()=>{
-                        m.react('🎸').then(()=>{
-                            m.react('🥁').then(()=>{
-                                m.react('🎤').catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                            }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                        }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                    }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-                }
-            }
-        }).catch(err => {
-            if (err.code === 10007) {
-                TOOLS.errorHandler({ err: 'Sorry, you must be a member of the OptiFine Discord server to use this bot.', m: m });
-            } else {
-                throw (err);
             }
         });
-    }, 400);
+    }
 });
 
 ////////////////////////////////////////////////////////////////////////////////
 // Command Handlers
 ////////////////////////////////////////////////////////////////////////////////
-
-CMD.register(new Command({
-    trigger: 'crash',
-    short_desc: "Throws an error that won't be catched.",
-    long_desc: "It crashes the bot. Literally. There's no fanfare at all, just a single line of code here using the `throw` statement.",
-    fn: (m) => {
-        setTimeout(() => {
-            throw new Error('User-initiated error.');
-        }, 10)
-    }
-}));
 
 CMD.register(new Command({
     trigger: 'obs',
@@ -2523,88 +1446,12 @@ CMD.register(new Command({
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_exit.png'), "icon.png"))
             .setAuthor('Restarting...', 'attachment://icon.png');
 
-        TOOLS.typerHandler(m.channel, false);
         m.channel.send({ embed: embed }).then(msg => {
             TOOLS.shutdownHandler(2);
         }).catch(err => {
             TOOLS.errorHandler({ err: err });
             TOOLS.shutdownHandler(2);
         });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'update',
-    short_desc: 'Force an OptiBot update.',
-    long_desc: `Forces the bot to update to the latest version from GitHub.`,
-    fn: (m) => {
-        let confirm = new discord.RichEmbed()
-        .setColor(cfg.vs.embed.default)
-        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-        .setAuthor(`Are you sure want to force update OptiBot?`, 'attachment://icon.png')
-        .setTitle(`WARNING: This will overwrite all existing files with ones from the GitHub repository!`)
-        .setDescription(`Type \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`)
-
-        TOOLS.typerHandler(m.channel, false);
-        m.channel.send({embed:confirm}).then(() => {
-            TOOLS.confirmationHandler(m, (result) => {
-                if (result === 1) {
-                    let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.default)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_exit.png'), "icon.png"))
-                    .setAuthor('Updating...', 'attachment://icon.png');
-
-                    TOOLS.typerHandler(m.channel, false);
-                    m.channel.send({ embed: embed }).then(() => {
-                        TOOLS.shutdownHandler(4);
-                    }).catch(err => {
-                        TOOLS.errorHandler({ err: err });
-                        TOOLS.shutdownHandler(4);
-                    });
-                } else
-                if (result === 0) {
-                    let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.default)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                    .setAuthor(`Request cancelled.`, 'attachment://icon.png')
-
-                    m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
-                } else
-                if (result === -1) {
-                    let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.default)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                    .setAuthor(`Request timed out.`, 'attachment://icon.png')
-                    
-                    m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
-                }
-            });
-        }).catch(err => {
-            TOOLS.errorHandler({err:err});
-        });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'reset',
-    short_desc: 'Makes the bot restart. (full reset)',
-    fn: (m) => {
-        if (memory.bot.debug) {
-            let embed = new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_exit.png'), "icon.png"))
-            .setAuthor('Resetting...', 'attachment://icon.png');
-
-            TOOLS.typerHandler(m.channel, false);
-            m.channel.send({ embed: embed }).then(msg => {
-                TOOLS.shutdownHandler(3);
-            }).catch(err => {
-                TOOLS.errorHandler({ err: err });
-                TOOLS.shutdownHandler(3);
-            });
-        } else {
-            TOOLS.errorHandler({err: `Cannot reset outside of debug mode.`, m:m});
-        }
     }
 }));
 
@@ -2619,7 +1466,6 @@ CMD.register(new Command({
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_exit.png'), "icon.png"))
             .setAuthor('Shutting down...', 'attachment://icon.png');
 
-        TOOLS.typerHandler(m.channel, false);
         m.channel.send({ embed: embed }).then(msg => {
             TOOLS.shutdownHandler(0);
         }).catch(err => {
@@ -2689,7 +1535,6 @@ CMD.register(new Command({
                         "registered_commands:": commands.length,
                         "icons": memory.bot.icons.index.length,
                         "images": memory.bot.images.index.length,
-                        "blacklisted_websites": memory.bot.smr.length,
                         "user_profile_count": (err) ? `[error]` : docs.length,
                     }
 
@@ -2712,190 +1557,6 @@ CMD.register(new Command({
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_jdk.png'), "icon.png"))
             .setAuthor('AdoptOpenJDK', 'attachment://icon.png')
             .setTitle('https://adoptopenjdk.net/')
-
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-            TOOLS.errorHandler({err:err});
-        });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'about',
-    short_desc: 'About OptiBot',
-    long_desc: 'Displays basic information about OptiBot.',
-    tags: ['DM_OPTIONAL'],
-    fn: (m) => {
-        function uptime(ut) {
-            let seconds = (ut / 1000).toFixed(1);
-            let minutes = (ut / (1000 * 60)).toFixed(1);
-            let hours = (ut / (1000 * 60 * 60)).toFixed(1);
-            let days = (ut / (1000 * 60 * 60 * 24)).toFixed(1);
-
-            if (seconds < 60) {
-                return seconds + " Seconds";
-            } else if (minutes < 60) {
-                return minutes + " Minutes";
-            } else if (hours < 24) {
-                return hours + " Hours";
-            } else {
-                return days + " Days"
-            }
-        }
-
-        let cntbrs = require('./cfg/contributors.json');
-        let dntrs = require('./cfg/donators.json');
-
-        let embed = new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"), new discord.Attachment(memory.bot.avatar, "thumbnail.png")])
-            .setAuthor('About', 'attachment://icon.png')
-            .setThumbnail('attachment://thumbnail.png')
-            .setTitle(`The official OptiFine Discord server bot. \n\n`)
-            .setDescription(`Developed and maintained by <@181214529340833792> and <@251778569397600256> out of love for a great community. \n\nYou can help support us on Ko-fi! ☕ \nhttps://ko-fi.com/jackasterisk \nhttps://ko-fi.com/zenithknight`)
-            .addField('Version', `${pkg.version} (Build ${build.num})`, true)
-            .addField('Session Uptime', `${uptime(process.uptime() * 1000)}`, true)
-            .addField(`Contributors`, `${cntbrs.join(' ')}`)
-            .addField(`Ko-fi Supporters`, dntrs.join(' '))
-
-        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-            TOOLS.errorHandler({err:err});
-        });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'offtopic',
-    short_desc: "Go directly to <#426005631997181963>.",
-    long_desc: "Go directly to <#426005631997181963>. Do not pass go, do not collect $200.",
-    tags: ['DM_OPTIONAL'],
-    fn: (m) => {
-        if (m.channel.name.match(/(off)(|.)(topic)/) !== null) {
-            let p0 = jimp.read(m.author.displayAvatarURL);
-            let p1 = jimp.read(memory.bot.images.get('in_offtopic_bg.png'));
-            let p2 = jimp.read(memory.bot.images.get('in_offtopic_fg.png'));
-            let p3 = jimp.read(memory.bot.icons.get('optifine_thumbnail_mask.png'));
-
-            Promise.all([p0, p1, p2, p3]).then((imgs) => {
-                let pfp = imgs[0].rotate(-45, false).resize(64, 64, jimp.RESIZE_BEZIER).mask(imgs[3].resize(64, 64, jimp.RESIZE_BEZIER), 0, 0);
-                imgs[1].composite(pfp, 40, 23).composite(imgs[2], 0, 0).getBuffer(jimp.AUTO, (err_b, imgFinal) => {
-                    if (err_b) TOOLS.errorHandler({ m: m, err: err_b });
-                    else {
-                        let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.error)
-                            .attachFile(new discord.Attachment(imgFinal, "image.png"))
-                            .setDescription(`You're in ${m.channel}!`)
-                            .setImage('attachment://image.png');
-
-                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                    }
-                });
-            }).catch(err => {
-                TOOLS.errorHandler({err:err, m:m});
-            });
-        } else {
-            let embed = new discord.RichEmbed()
-                .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.images.get('offtopic.png'), "image.png"))
-                .setDescription('<#426005631997181963>')
-                .setImage('attachment://image.png');
-
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'memes',
-    short_desc: "Go directly to <#584850909725458503>.",
-    long_desc: "Go directly to <#584850909725458503>. Do not pass go, do not collect $200.",
-    tags: ['DM_OPTIONAL'],
-    fn: (m) => {
-        if (m.channel.name.indexOf("meme") > -1) {
-            let msg = [
-                "🙈 what if we kissed 😳 in the optifine discord 😳😳",
-                "🅱ruh moment",
-                "😂😂😂😂😂😂😂😂 WHO DID THIS 😂😂😂😂😂😂😂😂😂"
-            ];
-
-            let embed = new discord.RichEmbed()
-                .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.images.get('supermemes_nuked.png'), "image.png"))
-                .setDescription(TOOLS.randomizer(msg))
-                .setImage('attachment://image.png');
-
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        } else {
-            let embed = new discord.RichEmbed()
-                .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.images.get('memes.png'), "image.png"))
-                .setDescription('<#584850909725458503>')
-                .setImage('attachment://image.png');
-
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        }
-
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'perms',
-    short_desc: "Lists OptiBot's permissions.",
-    long_desc: "Lists all Discord permissions, and whether they are enabled for OptiBot.",
-    fn: (m) => {
-        bot.guilds.get(cfg.basic.of_server).fetchMember(bot.user.id).then((member) => {
-            let perms_all = member.permissions.serialize();
-            let perms_enabled = '';
-            let perms_disabled = '';
-            log(perms_all, 'debug');
-
-            let perms_names = Object.keys(perms_all);
-            perms_names.forEach((flag) => {
-                if (perms_all[flag]) {
-                    perms_enabled += flag+'\n';
-                } else {
-                    perms_disabled += flag+'\n';
-                }
-            });
-
-            let embed = new discord.RichEmbed()
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
-                .setColor(cfg.vs.embed.default)
-                .setAuthor("Permissions List", "attachment://icon.png")
-                .setDescription('https://discordapp.com/developers/docs/topics/permissions')
-                .addField('Enabled', perms_enabled)
-                .addField('Disabled', perms_disabled)
-            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-        }).catch(err => {
-            TOOLS.errorHandler({err:err, m:m});
-        });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: '1710',
-    short_desc: "How old is Minecraft 1.7.10?",
-    tags: ['DM_OPTIONAL'],
-    fn: (m) => {
-        let _1710 = new Date('June 26, 2014 12:00:00').getTime();
-        let age = new Date(new Date().getTime() - _1710);
-
-        let years = age.getUTCFullYear() - 1970;
-        let months = age.getUTCMonth();
-        let days = age.getUTCDate();
-
-        let embed = new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_timer.png'), "icon.png"))
-            .setAuthor(`Minecraft 1.7.10 is ${years} years, ${months} ${(months === 1) ? "month" : "months"}, and ${days} ${(days === 1) ? "day" : "days"} old today.`, 'attachment://icon.png', 'http://www.howoldisminecraft1710.today/')
-            .setFooter("Please stop playing on horribly outdated versions of the game.");
 
         m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
             TOOLS.errorHandler({err:err});
@@ -2996,219 +1657,6 @@ CMD.register(new Command({
     }
 }));
 
-if(cfg.statistics.enabled) {
-    CMD.register(new Command({
-        trigger: 'stats',
-        short_desc: "General OptiBot/Server statistics.",
-        tags: ['BOT_CHANNEL_ONLY','DM_OPTIONAL'],
-        fn: (m) => {
-            TOOLS.packStats().then(stats => {
-                log(stats, 'debug');
-                let month = 'January';
-
-                if(stats.month === 1) {
-                    month = 'February'
-                } else
-                if(stats.month === 2) {
-                    month = 'March'
-                } else
-                if(stats.month === 3) {
-                    month = 'April'
-                } else
-                if(stats.month === 4) {
-                    month = 'May'
-                } else
-                if(stats.month === 5) {
-                    month = 'June'
-                } else
-                if(stats.month === 6) {
-                    month = 'July'
-                } else
-                if(stats.month === 7) {
-                    month = 'August'
-                } else
-                if(stats.month === 8) {
-                    month = 'September'
-                } else
-                if(stats.month === 9) {
-                    month = 'October'
-                } else
-                if(stats.month === 10) {
-                    month = 'November'
-                } else
-                if(stats.month === 11) {
-                    month = 'December'
-                }
-
-                // for the sake of readability (and some flexibility) i made these into arrays instead of plain strings.
-                // full disclosure: this probably isn't good practice
-                let messages_f = [
-                    `Overall Messages Seen: ${stats.messages} (${memory.stats.messages} today)`,
-                    `Direct Messages: ${stats.dms} (${memory.stats.dms} today)`,
-                    `OptiBot Commands: ${stats.commands.total} (${memory.stats.commands.total} today)`,
-                    ``,
-                    `Approximately ${((stats.dms / stats.messages) * 100).toFixed(3)}% of all messages are via DM.`,
-                    `Approximately ${((stats.commands.total / stats.messages) * 100).toFixed(3)}% of all messages are OptiBot commands.`
-                ];
-
-                let users_f = [
-                    `Users Joined: ${stats.users.join}`,
-                    `Users Left: ${stats.users.leave}`,
-                    ``,
-                    `A total of ${stats.users.unique.length} unique users were active this month. (${memory.stats.users.unique.length} today)`
-                ];
-
-                if (stats.users.join === stats.users.leave) {
-                    users_f.push('There seems to be no change in the amount of users in the server.');
-                } else
-                if (stats.users.join > stats.users.leave) {
-                    users_f.push('There is currently a **net gain** in the amount of users in the server.');
-                } else {
-                    users_f.push('There is currently a **net loss** in the amount of users in the server.');
-                }
-
-                let mod_f = [
-                    `Users Banned: ${stats.users.bans}`,
-                    `Users Kicked: ${stats.users.kicks}`,
-                    `Users Muted: ${stats.users.mutes}`,
-                    `Users Warned: ${stats.users.warns}`
-                ]
-
-                let cmd_f_final;
-
-                if(stats.commands.total === 0) {
-                    cmd_f_final = 'Not enough data.'
-                } else {
-                    let cmd_f = [];
-                    let cmd_data = [];
-
-                    // uughghghghfugnjkfb this feels so fucking disgusting and idk how else to do this;;;;
-
-                    Object.keys(stats.commands.list).forEach((cmd) => {
-                        cmd_data.push({
-                            cmd: cmd,
-                            weight: ((stats.commands.list[cmd] / stats.commands.total) * 100).toFixed(2)
-                        });
-                    });
-
-                    log(cmd_data, 'debug');
-
-                    let sorted = cmd_data.sort((a, b) => {
-                        if((b.weight - a.weight)) {
-                            return b.weight - a.weight;
-                        } else {
-                            return a.cmd.localeCompare(b.cmd);
-                        }
-                    });
-
-                    log(sorted, 'debug');
-
-                    sorted.forEach((cmd) => {
-                        cmd_f.push(`${memory.bot.trigger}${cmd.cmd} - ${cmd.weight}%`);
-                    });
-
-                    cmd_f_final = cmd_f.join('\n');
-                }
-
-                let embed = new discord.RichEmbed()
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_stats.png'), "icon.png"))
-                .setColor(cfg.vs.embed.default)
-                .setAuthor(`OptiStats | ${month}, ${new Date().getUTCFullYear()}`, 'attachment://icon.png')
-                .setDescription(`Note that this data is actively being recorded. These probably aren't the final results.`)
-                .addField('Messages', messages_f.join('\n'))
-                .addField('Users', users_f.join('\n'))
-                .addField('Moderation', mod_f.join('\n'))
-                .addField('Command Usage', cmd_f_final)
-                .setFooter(`Take this with a grain of salt; none of this data may be 100% accurate. This is all just for fun, after all.`);
-
-                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                    TOOLS.errorHandler({err:err});
-                });
-            }).catch(err => {
-                TOOLS.errorHandler({err: err});
-            });
-        }
-    }));
-}
-
-CMD.register(new Command({
-    trigger: 'rulestest',
-    short_desc: 'WARNING: This command is a bit spammy (3 large embed messages in a row)',
-    fn: (m) => {
-        let s = (`_ _  `);
-
-        // very wip in progress
-
-        let rules = [
-            `No spamming.`,
-            `No advertising.`
-            `[No prohibited content.]()`
-            `Keep discussions friendly, respectful, and above all, civil.`,
-            `Keep topics to their respective channels at all times.`,
-            `Follow Discord's Community Guidelines (https://discordapp.com/guidelines) **and** Terms of Service. (https://discordapp.com/terms)`,
-            `Do not ping or DM moderators for trivial issues.`,
-            `Do not beg for free capes.`
-        ];
-
-        for(let i in rules) {
-            rules[i] = `${parseInt(i)+1}) ${rules[i]}`;
-        }
-
-        let rules_embed = new discord.RichEmbed()
-        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
-        .setColor(cfg.vs.embed.default)
-        .setAuthor("Rules", 'attachment://icon.png')
-        .setDescription(s+rules.join(`\n${s}`));
-
-
-
-        let content = [
-            `Advertisements. (unless granted permission by a moderator)`,
-            `Offensive content. (bigotry, nazism, etc.)`,
-            `Pornographic, questionable, and other NSFW content.`,
-            `Disturbing, NSFL content.`,
-            `Politics and religion.`,
-            `Piracy.`,
-            `Flashing animated pictures.`
-        ];
-        let content_embed = new discord.RichEmbed()
-        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
-        .setColor(cfg.vs.embed.error)
-        .setAuthor("You are NOT allowed to post, upload, or discuss any of the following", 'attachment://icon.png')
-        .setDescription(`${s}• `+content.join(`\n${s}• `));
-
-
-
-        let guidelines = [
-            `Use common sense. Please. It's not difficult, I promise.`,
-            `**PLEASE** at least try reading the #faq, channel descriptions, pinned messages, #announcements, and recent chat history **BEFORE** blindly posting a question.`,
-            `This is an English-speaking server. If you cannot fluently write in English, please try using a translator.`,
-            `If you see something, say something. We encourage you to ping @moderator if you notice someone breaking the rules.`,
-            `If you'd like to invite a friend to this server, we encourage you to use this permanent invite link: \`\`\`fix\nhttps://discord.gg/3mMpcwW\`\`\` `
-        ]
-
-        let guidelines_embed = new discord.RichEmbed()
-        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-        .setColor(cfg.vs.embed.okay)
-        .setAuthor("Guidelines & Other Things", 'attachment://icon.png')
-        .setDescription(`${s}• `+guidelines.join(`\n${s}• `));
-
-        m.channel.send({embed: rules_embed}).then(() => {
-            m.channel.send({embed: content_embed}).then(() => {
-                m.channel.send({embed: guidelines_embed}).then(() => {
-                    TOOLS.typerHandler(m.channel, false);
-                }).catch(err => {
-                    TOOLS.errorHandler({err:err});
-                });
-            }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        }).catch(err => {
-            TOOLS.errorHandler({err:err});
-        });
-    }
-}));
-
 CMD.register(new Command({
     trigger: 'goodboy',
     short_desc: "Good boy!",
@@ -3283,33 +1731,6 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'rules',
-    short_desc: 'Display all server rules',
-    tags: ['DM_OPTIONAL'],
-    fn: (m) => {
-        bot.guilds.get(cfg.basic.of_server).channels.get('479192475727167488').fetchMessage('621909657858080779').then((msg) => {
-            let rules = msg.content.match(/\d\).+$/gmi);
-
-            let embed = new discord.RichEmbed()
-                .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
-                .setAuthor("OptiFine Discord Server Rules", 'attachment://icon.png')
-                .setDescription(`To continue participating in this server, we ask that you abide by these rules **at all times.** Additionally, while it's not *strictly* required, we ask that you try to follow the guidelines. These are also listed in the <#479192475727167488> channel.`);
-
-            rules.forEach(e => {
-                embed.addField(`Rule #${e.split(') ')[0]}`, e.substring(e.indexOf(')')+1));
-            });
-
-            m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        }).catch(err => {
-            TOOLS.errorHandler({ err: err, m:m });
-        });
-    }
-}));
-
-CMD.register(new Command({
     trigger: 'donate',
     short_desc: 'Donation information.',
     long_desc: "Provides detailed information about OptiFine donations.",
@@ -3323,27 +1744,6 @@ CMD.register(new Command({
         .setFooter('Thank you for your consideration!')
 
         m.channel.send(embed).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-            TOOLS.errorHandler({err:err});
-        });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'ctest',
-    fn: (m, args) => {
-        m.channel.send('Are you sure you want to test this feature?').then(msg => {
-            TOOLS.confirmationHandler(m, (result) => {
-                if (result === 1) {
-                    m.channel.send('Yay!');
-                } else
-                if (result === 0) {
-                    m.channel.send('Aw.');
-                } else
-                if (result === -1) {
-                    m.channel.send('Timed out.');
-                }
-            });
-        }).catch(err => {
             TOOLS.errorHandler({err:err});
         });
     }
@@ -3383,65 +1783,6 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'clearmotd',
-    short_desc: 'Clear custom MOTD message.',
-    long_desc: `Clears the custom MOTD message, which is set by using \`${memory.bot.trigger}motd\`.`,
-    tags: ['MODERATOR_ONLY', 'NO_JR_MOD', 'NO_DM'],
-    fn: (m) => {
-        if (!memory.bot.motd.fields[0]) {
-            TOOLS.errorHandler({ err:'There is no message currently set.', m:m });
-        } else {
-            let confirm = new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-            .setAuthor(`Are you sure want to remove the MOTD message?`, 'attachment://icon.png')
-            .setDescription(`This will remove the current message set in the MOTD. \n\nType \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`)
-
-            m.channel.send({embed:confirm}).then(msg => {
-                TOOLS.confirmationHandler(m, (result) => {
-                    if (result === 1) {
-                        memory.db.motd.update({motd: true}, {motd:true, message:'', date: new Date()}, { upsert: true }, (err) => {
-                            if (err) {
-                                TOOLS.errorHandler({ err:err, m:m });
-                            } else {
-                                memory.bot.motd.fields = [];
-
-                                let embed = new discord.RichEmbed()
-                                .setColor(cfg.vs.embed.okay)
-                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                                .setAuthor(`Successfully removed message.`, 'attachment://icon.png');
-
-                                m.channel.send({embed:embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });     
-                            }
-                        });
-                    } else
-                    if (result === 0) {
-                        let embed = new discord.RichEmbed()
-                        .setColor(cfg.vs.embed.default)
-                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                        .setAuthor(`Request cancelled.`, 'attachment://icon.png')
-                        .setDescription('MOTD message has not been removed.')
-
-                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
-                    } else
-                    if (result === -1) {
-                        let embed = new discord.RichEmbed()
-                        .setColor(cfg.vs.embed.default)
-                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                        .setAuthor(`Request timed out.`, 'attachment://icon.png')
-                        .setDescription('MOTD message has not been removed.')
-                        
-                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
-                    }
-                });
-            }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
     trigger: 'log',
     short_desc: `Retrieves OptiBot's current running log file.`,
     tags: ['MODERATOR_ONLY', 'DM_OPTIONAL', 'MOD_CHANNEL_ONLY'],
@@ -3462,118 +1803,6 @@ CMD.register(new Command({
                     }
                 });
             }
-        });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'modping',
-    short_desc: 'Ping all "active" moderators.',
-    long_desc: `Pings all "active" moderators. As an alternative to pinging the @moderator role, this command only pings those who are online, or those who have sent a message in server chat in the past 10 minutes. This should generally be used for all non-emergencies.`,
-    tags: ['NO_DM'],
-    fn: (m) => {
-        let pings_msg = [];
-        let pings_status = [];
-        for(let i = 0; i < memory.bot.actMods.length; i++) {
-            let mod = memory.bot.actMods[i];
-            if(mod.status === 'online') {
-                pings_status.push(`<@${mod.id}>`);
-            }
-            if((mod.last_message + 600000) > new Date().getTime()) {
-                pings_msg.push(`<@${mod.id}>`);
-            }
-
-            if(i+1 === memory.bot.actMods.length) {
-                if(pings_msg.length === 0) {
-                    if(pings_status.length === 0) {
-                        m.channel.send(`Sorry, it seems like no moderators are active right now. \nIf this is a genuine emergency, please ping the moderator role and we will try to get on as soon as possible.`).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                    } else
-                    if(pings_status.length === 1) {
-                        m.channel.send(`${m.author}, moderator ${pings_status[0]} should be with you soon!`).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                    } else {
-                        m.channel.send(`${m.author}, one of the following moderators should be with you soon! \n\n${pings_status.join(', ')}`).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                    }
-                } else 
-                if(pings_msg.length === 1) {
-                    m.channel.send(`${m.author}, moderator ${pings_msg[0]} should be with you soon!`).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
-                        TOOLS.errorHandler({err:err});
-                    });
-                } else {
-                    m.channel.send(`${m.author}, one of the following moderators should be with you soon! \n\n${pings_msg.join(', ')}`).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
-                        TOOLS.errorHandler({err:err});
-                    });
-                }
-            }
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'motd',
-    short_desc: 'View the MOTD.',
-    long_desc: `Displays the MOTD, the message sent by OptiBot to every new user that joins the server.`,
-    tags: ['BOT_CHANNEL_ONLY', 'DM_OPTIONAL'],
-    fn: (m) => {
-        m.channel.send({ embed: memory.bot.motd }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-            TOOLS.errorHandler({err:err});
-        });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'faqtest',
-    fn: (m) => {
-        bot.guilds.get(cfg.basic.ob_server).channels.get('650087270312968238').fetchMessages({ limit: 100 }).then((oldmsg) => {
-            bot.guilds.get(cfg.basic.ob_server).channels.get('650087270312968238').bulkDelete(oldmsg).then(() => {
-                bot.guilds.get(cfg.basic.of_server).channels.get('531622141393764352').fetchMessages({ limit: 100, after: '531629512559951872' }).then(entries => {
-                    let messages = [...entries.values()].reverse();
-                    let i = 0;
-                    let qrgx = new RegExp('(?<=Q: \\*\\*).+(?=\\*\\*)');
-                    (function search() {
-                        log('search loop'+i, 'trace');
-                        let question = messages[i].content.match(qrgx);
-                        let answer = messages[i].content.split('\n').slice(1).join('\n').replace(/A:/i, "").replace(/_\s+_\s*$/, "").trim();
-        
-                        if (question !== null) {
-                            let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.default)
-                            .setTitle(question)
-                            .setDescription(answer)
-                            .setFooter(`Answer provided by ${messages[i].author.username}#${messages[i].author.discriminator}`, messages[i].author.displayAvatarURL)
-        
-                            bot.guilds.get(cfg.basic.ob_server).channels.get('650087270312968238').send({embed: embed}).then(() => {
-                                if (i+1 === 5) {
-                                    m.channel.send('done').then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                                        TOOLS.errorHandler({err:err});
-                                    });
-                                } else {
-                                    i++
-                                    search();
-                                }
-                            }).catch(err => {
-                                TOOLS.errorHandler({ err: err });
-                                i++
-                                search();
-                            });
-                        } else {
-                            i++
-                            search();
-                        }
-                    })();
-                }).catch(err => {
-                    TOOLS.errorHandler({ err: err, m:m });
-                });
-            }).catch(err => {
-                TOOLS.errorHandler({ err: err, m:m });
-            });
-        }).catch(err => {
-            TOOLS.errorHandler({ err: err, m:m });
         });
     }
 }));
@@ -3689,7 +1918,7 @@ CMD.register(new Command({
                             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
                             .setAuthor(`Channel successfully unlocked.`, 'attachment://icon.png')
         
-                            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
+                            m.channel.send({embed: embed}).catch(err => {
                                 TOOLS.errorHandler({err:err});
                             });
                         }
@@ -3796,7 +2025,7 @@ CMD.register(new Command({
                             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
                             .setAuthor(`Channel successfully locked.`, 'attachment://icon.png')
         
-                            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
+                            m.channel.send({embed: embed}).catch(err => {
                                 TOOLS.errorHandler({err:err});
                             });
                         }
@@ -3835,7 +2064,7 @@ CMD.register(new Command({
             .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
             .setAuthor(`Log level updated.`, 'attachment://icon.png')
 
-            m.channel.send({embed: embed}).then(msg => { TOOLS.typerHandler(msg.channel, false); }).catch(err => {
+            m.channel.send({embed: embed}).catch(err => {
                 TOOLS.errorHandler({err:err});
             });
         }
@@ -3969,63 +2198,6 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'namemc',
-    short_desc: `Find the Discord username of a Minecraft player.`,
-    long_desc: `Attempts to find the Discord username of a specified Minecraft player, via namemc.com. This is mostly meant to be used in conjunction with \`${memory.bot.trigger}cv\`.`,
-    usage: `<minecraft username>`,
-    tags: ['MODERATOR_ONLY', 'DM_OPTIONAL'],
-    fn: (m, args) => {
-        if(!args[0]) {
-            TOOLS.errorHandler({ err: `You must specify a Minecraft username.`, m: m });
-        } else
-        if (args[0].match(/\W+/) !== null) {
-            TOOLS.errorHandler({ err: 'Minecraft usernames can only contain upper/lowercase letters, numbers, and underscores (_)', m: m });
-        } else
-        if (args[0].length > 16) {
-            TOOLS.errorHandler({ err: 'Minecraft usernames cannot exceed 16 characters in length.', m: m });
-        } else {
-            request({url: 'https://api.mojang.com/users/profiles/minecraft/'+encodeURIComponent(args[0]), encoding: null}, (err, res, data) => {
-                if (err || !res || !data) {
-                    TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the Mojang API'), m: m });
-                } else 
-                if (res.statusCode === 204) {
-                    TOOLS.errorHandler({ err: 'Invalid Minecraft username.', m: m });
-                } else
-                if (res.statusCode !== 200) {
-                    TOOLS.errorHandler({ err: new Error('Unexpected response code from Mojang API: '+res.statusCode), m: m });
-                } else {
-                    let js = JSON.parse(data);
-
-                    request({ url: 'https://namemc.com/profile/' + encodeURIComponent(js.name), headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.108 Safari/537.36' }  }, (err, res, data) => {
-                        if (err || !res || !data || res.statusCode !== 200) {
-                            TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the NameMC API'), m: m });
-                        } else {
-                            log(data, 'debug');
-                            let username = cheerio.load(data)('a[title=Discord]').attr('data-content');
-
-                            let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.default)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
-                            .setDescription('https://namemc.com/profile/' + encodeURIComponent(js.name))
-
-                            if(username) {
-                                embed.setAuthor(username, 'attachment://icon.png')
-                            } else {
-                                embed.setAuthor(`No Discord username found.`, 'attachment://icon.png')
-                            }
-
-                            m.channel.send({embed:embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                                TOOLS.errorHandler({err:err});
-                            });
-                        }
-                    });
-                }
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
     trigger: 'warn',
     short_desc: 'Adds a warning to a user.',
     long_desc: `Adds warnings to a user, which will be saved and remembered for about one week. Reasons can be appended after specifying the user.`,
@@ -4089,8 +2261,6 @@ CMD.register(new Command({
                                         .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
                                         .setAuthor(`User Warnings`, 'attachment://icon.png')
                                         .setDescription(num);
-
-                                        if(cfg.statistics.enabled) memory.stats.users.warns++;
             
                                         m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
                                             TOOLS.errorHandler({err:err});
@@ -4109,1108 +2279,6 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'bat',
-    short_desc: "Generates a .bat file for debugging purposes.",
-    long_desc: `Generates a .bat file to help find issues with the OptiFine installer. This only works on Windows. \n\n**Make sure the capitalization matches the filename exactly!** To simplify things, you can select the OptiFine installer in File Explorer, right-click and rename (F2), select all text (CTRL+A), and then copy (CTRL+C).`,
-    usage: "<filename>",
-    tags: ['DM_OPTIONAL'],
-    fn: (m, args) => {
-        if (!args[0] || args[0].toLowerCase().indexOf('optifine') === -1 || args[0].toLowerCase().indexOf('_mod') > -1) {
-            let embed = new discord.RichEmbed()
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "icon.png"))
-            .setColor(cfg.vs.embed.error)
-            .setAuthor("You must specify the file name of the OptiFine installer.", "attachment://icon.png")
-            .setDescription(`For detailed instructions, type \`${memory.bot.trigger}help bat\``)
-
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        } else {
-            let filename = args[0];
-            if (!(args[0].toLowerCase().endsWith('.jar'))) {
-                filename += '.jar';
-            }
-
-            let bat_content = `@echo off\ncall java -jar ${filename} >> output.txt\npause`;
-
-            let embed = new discord.RichEmbed()
-            .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"), new discord.Attachment(Buffer.from(bat_content), "debug.bat")])
-            .setColor(cfg.vs.embed.default)
-            .setAuthor("OptiFine Installation Debugger", "attachment://icon.png")
-            .setDescription('Download and place this file in the same folder as the OptiFine installer, then run the .bat file.')
-            .addField('What does this do?', `This [Windows Batch file](https://simple.wikipedia.org/wiki/Batch_file) will attempt to run the OptiFine installer, while recording the debug information the installer generates. This information is saved to a new text file in the same folder simply called \`output.txt\`.`)
-
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'status',
-    short_desc: 'Server statuses.',
-    long_desc: `Displays current server status of OptiFine. Alternatively, you can view the status of the Minecraft/Mojang services by typing \`${memory.bot.trigger}status minecraft\` or \`${memory.bot.trigger}status mojang\`.`,
-    usage: '["minecraft"|"mojang"|"all"]',
-    tags: ['DM_OPTIONAL'],
-    fn: (m, args, not_used, misc) => {
-        let of_servers_text = '';
-        let mc_websites_text = '';
-        let mc_servers_text = '';
-        let footer = "Hover over the links for detailed information. | If you're having issues, check your internet connection.";
-
-        function translate(data, cb) {
-            log('translate()', 'trace');
-            of_servers_text = '';
-            mc_websites_text = '';
-            mc_servers_text = '';
-            function translator(target, index, cb1) {
-                if (target[index].status === 'gray') {
-                    cb1(`<a:pinging:642112838722256925> Pinging [${target[index].server}](https://${target[index].server}/ "Awaiting response... | ${target[index].desc}")...`);
-                } else
-                if (target[index].status === 'green') {
-                    cb1(`<:okay:642112445997121536> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}") is online`);
-                } else {
-                    footer = "Hover over the links for detailed information. | Maybe try again in 10 minutes?";
-                    if (target[index].status === 'teal') {
-                        cb1(`<:warn:642112437218443297> Unknown response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
-                    } else
-                    if (target[index].status === 'yellow') {
-                        cb1(`<:warn:642112437218443297> Partial outage at [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
-                    } else
-                    if (target[index].status === 'orange') {
-                        cb1(`<:error:642112426162126873> An error occurred while pinging [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
-                    } else
-                    if (target[index].status === 'red') {
-                        cb1(`<:error:642112426162126873> [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}") is down`);
-                    } else
-                    if (target[index].status === 'black') {
-                        cb1(`<:error:642112426162126873> Failed to get any response from [${target[index].server}](https://${target[index].server}/ "Code ${target[index].code} | ${target[index].desc}")`);
-                    }
-                }
-            }
-
-            let mc_i1 = 0;
-            let mc_i2 = 0;
-            let mc_i3 = 0;
-
-            (function loop_of() {
-                if (data.optifine) {
-                    log('optifine loop' + mc_i1, 'trace');
-                    translator(data.optifine, mc_i1, (result) => {
-                        of_servers_text += result + '\n';
-
-                        if (parseInt(mc_i1) + 1 === data.optifine.length) {
-                            loop_mc1();
-                        } else {
-                            mc_i1++
-                            loop_of();
-                        }
-                    });
-                } else {
-                    loop_mc1();
-                }
-            })();
-
-            function loop_mc1() {
-                if (data.mojang_web) {
-                    log('mojangweb loop' + mc_i2, 'trace');
-                    translator(data.mojang_web, mc_i2, (result) => {
-                        mc_websites_text += result + '\n';
-
-                        if (parseInt(mc_i2) + 1 === data.mojang_web.length) {
-                            loop_mc2();
-                        } else {
-                            mc_i2++
-                            loop_mc1();
-                        }
-                    });
-                } else {
-                    loop_mc2();
-                }
-            }
-
-            function loop_mc2() {
-                if (data.mojang) {
-                    log('mojang loop' + mc_i3, 'trace');
-                    translator(data.mojang, mc_i3, (result) => {
-                        mc_servers_text += result + '\n';
-
-                        if (parseInt(mc_i3) + 1 === data.mojang.length) {
-                            if (cb) cb(of_servers_text, mc_websites_text, mc_servers_text);
-                        } else {
-                            mc_i3++
-                            loop_mc2();
-                        }
-                    });
-                } else
-                if (cb) cb(of_servers_text, mc_websites_text, mc_servers_text);
-            }
-        }
-
-        if (Object.keys(memory.bot.status).length !== 0 && !misc.isAdmin && !misc.isSuper) {
-            let agems = new Date().getTime() - memory.bot.status.timestamp;
-            let age = (agems/(1000*60)).toFixed(1);
-
-            let embed = new discord.RichEmbed()
-                .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_connect.png'), "icon.png"))
-                .setAuthor('Server Status', 'attachment://icon.png')
-                .setDescription(`You are viewing a snapshot taken ${age} minute(s) ago. This is to help avoid ratelimiting. You can check the current status in a few minutes.`)
-                .setFooter(footer);
-
-                translate(memory.bot.status, () => {
-                    if (memory.bot.status.optifine) {
-                        embed.addField('OptiFine Servers', of_servers_text)
-                    }
-        
-                    if (memory.bot.status.mojang_web) {
-                        embed.addField('Mojang Websites', mc_websites_text)
-                    }
-        
-                    if (memory.bot.status.mojang) {
-                        embed.addField('Mojang Services', mc_servers_text)
-                    }
-        
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                        TOOLS.errorHandler({err:err});
-                    });
-                });
-        } else {
-            /* 
-            gray = pinging
-            green = online
-            yellow = partial outage
-            red = service unavailable
-            teal = unknown response
-            orange = error occurred during request
-            black = failed response
-            */
-
-            let responses = {
-                optifine: [
-                    { server: "optifine.net", status: "gray", code: '...', desc: "Main OptiFine Web Server." },
-                    { server: "s.optifine.net", status: "gray", code: '...', desc: "OptiFine Capes Service" },
-                    { server: "optifined.net", status: "gray", code: '...', desc: "Secondary OptiFine Web Server." }
-                ],
-                mojang_web: [
-                    { server: "minecraft.net", status: "gray", code: '...', desc: "Minecraft Main Website" },
-                    { server: "account.mojang.com", status: "gray", code: '...', desc: "Mojang Accounts Website" },
-                    { server: "mojang.com", status: "gray", code: '...', desc: "Mojang Main Website" }
-                ],
-                mojang: [
-                    { server: "session.minecraft.net", status: "gray", code: '...', desc: "Minecraft Multiplayer Session Service" },
-                    { server: "authserver.mojang.com", status: "gray", code: '...', desc: "Mojang Authentication Service" },
-                    { server: "sessionserver.mojang.com", status: "gray", code: '...', desc: "Mojang Session Server" },
-                    { server: "api.mojang.com", status: "gray", code: '...', desc: "Mojang Public API" },
-                    { server: "textures.minecraft.net", status: "gray", code: '...', desc: "Minecraft Textures Service (aka Player Skins Service)" }
-                ]
-            };
-
-            if (args[0]) {
-                if (args[0].toLowerCase() === 'mojang' || args[0].toLowerCase() === 'minecraft' || args[0].toLowerCase() === 'mc') {
-                    delete responses.optifine;
-                } else
-                if (args[0].toLowerCase() !== 'all') {
-                    delete responses.mojang_web;
-                    delete responses.mojang;
-                }
-            } else {
-                delete responses.mojang_web;
-                delete responses.mojang;
-            }
-
-            log(responses, 'debug');
-
-            translate(responses, () => {
-                log('length1: ' + of_servers_text.length, 'trace');
-                log('length2: ' + mc_servers_text.length, 'trace');
-
-                let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.default)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_connect.png'), "icon.png"))
-                    .setAuthor('Server Status', 'attachment://icon.png')
-                    .setFooter(footer);
-
-                    if (responses.optifine) {
-                        embed.addField('OptiFine Servers', of_servers_text)
-                    }
-
-                    if (responses.mojang_web) {
-                        embed.addField('Mojang Websites', mc_websites_text)
-                    }
-
-                    if (responses.mojang) {
-                        embed.addField('Mojang Services', mc_servers_text)
-                    }
-
-                m.channel.send("_ _", { embed: embed }).then(msg => {
-                    TOOLS.messageFinalize(m.author.id, msg);
-
-                    let s1 = false;
-                    let s2 = false;
-                    let s3 = false;
-                    let s4 = false;
-
-                    let current_of = JSON.parse(JSON.stringify(of_servers_text));
-                    let current_mw = JSON.parse(JSON.stringify(mc_websites_text));
-                    let current_mc = JSON.parse(JSON.stringify(mc_servers_text));
-
-                    if (!responses.optifine) {
-                        s1 = true;
-                        s2 = true;
-                        s3 = true;
-                    }
-                    if (!responses.mojang || !responses.mojang_web) {
-                        s4 = true;
-                    }
-
-                    let thisLoop = 0;
-
-                    let updateLoop = bot.setInterval(() => {
-                        process.send({
-                            type: 'status',
-                            guild: (m.channel.type === 'dm') ? null : m.guild.id,
-                            channel: (m.channel.type === 'dm') ? m.author.id : m.channel.id,
-                            message: true,
-                        });
-                        thisLoop++;
-                        if (thisLoop === 10) embed.setDescription('Seems like this is taking a while. At this point, you could pretty safely assume the remaining servers are down.');
-                        if (msg.deleted) {
-                            log('status message deleted', 'trace');
-                            bot.clearInterval(updateLoop);
-                        } else {
-                            log('checking update', 'trace');
-                            translate(responses, (newOF, newMW, newMC) => {
-                                if (current_of !== newOF || current_mc !== newMC || current_mw !== newMW || thisLoop === 10) {
-                                    log(current_of, 'trace');
-                                    log(newOF, 'trace');
-                                    log('status changed', 'trace');
-
-
-                                    if (responses.optifine && !(responses.mojang_web || responses.mojang)) {
-                                        embed.fields[0].value = newOF;
-                                    } else
-                                    if ((responses.mojang_web || responses.mojang) && !responses.optifine) {
-                                        embed.fields[0].value = newMW;
-                                        embed.fields[1].value = newMC;
-                                    } else
-                                    if (responses.optifine && responses.mojang_web && responses.mojang) {
-                                        embed.fields[0].value = newOF;
-                                        embed.fields[1].value = newMW;
-                                        embed.fields[2].value = newMC;
-                                    }
-
-                                    embed.setFooter(footer);
-
-                                    if (s1 && s2 && s3 && s4) {
-                                        embed.description = null;
-                                        msg.edit("_ _", { embed: embed });
-
-                                        log('status message updated', 'trace');
-                                        log('finished checking status', 'trace');
-                                        bot.clearInterval(updateLoop);
-
-                                        responses.timestamp = new Date().getTime();
-                                        memory.bot.status = responses;
-                                        bot.setTimeout(() => {
-                                            if (memory.bot.status.timestamp === responses.timestamp) {
-                                                log('status expired', 'debug');
-                                                memory.bot.status = {}
-                                            }
-                                        }, (1000 * 60 * 5));
-                                    } else {
-                                        msg.edit("_ _", { embed: embed });
-
-                                        log('status message updated', 'trace');
-                                        current_of = JSON.parse(JSON.stringify(newOF));
-                                        current_mc = JSON.parse(JSON.stringify(newMC));
-                                        current_mw = JSON.parse(JSON.stringify(newMW));
-                                    }
-                                } else log('no update', 'trace');
-                            });
-                        }
-
-                    }, 1000);
-
-                    if (responses.optifine) {
-                        log('making optifine requests', 'trace');
-                        request({ url: 'http://optifine.net/home', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                            if (err) {
-                                if (err.code === 'ETIMEDOUT') {
-                                    responses.optifine[0].status = 'red';
-                                    responses.optifine[0].code = 'error';
-                                    s1 = true;
-                                } else {
-                                    responses.optifine[0].status = 'orange';
-                                    responses.optifine[0].code = 'error';
-                                    s1 = true;
-                                    log(err.stack, 'error');
-                                }
-                            } else
-                            if (!res || !body) {
-                                responses.optifine[0].status = 'black';
-                                responses.optifine[0].code = 'error';
-                                s1 = true;
-                            } else
-                            if (res.statusCode === 200) {
-                                responses.optifine[0].status = 'green';
-                                responses.optifine[0].code = res.statusCode;
-                                s1 = true;
-                            } else
-                            if ([404, 503, 520, 522, 524].indexOf(res.statusCode) !== -1) {
-                                responses.optifine[0].status = 'red';
-                                responses.optifine[0].code = res.statusCode;
-                                s1 = true;
-                            } else {
-                                log('Unexpected response from ' + responses.optifine[0].server + ' - ' + res.statusCode, 'error');
-                                responses.optifine[0].status = 'teal';
-                                responses.optifine[0].code = res.statusCode;
-                                s1 = true;
-                            }
-                        });
-
-                        request({ url: 'http://s.optifine.net', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                            if (err) {
-                                if (err.code === 'ETIMEDOUT') {
-                                    responses.optifine[1].status = 'red';
-                                    responses.optifine[1].code = 'Error';
-                                    s2 = true;
-                                } else {
-                                    responses.optifine[1].status = 'orange';
-                                    responses.optifine[1].code = 'Error';
-                                    s2 = true;
-                                    log(err.stack, 'error');
-                                }
-                            } else
-                            if (!res) {
-                                responses.optifine[1].status = 'black';
-                                responses.optifine[1].code = 'Error';
-                                s2 = true;
-                            } else
-                            if (res.statusCode === 404) {
-                                responses.optifine[1].status = 'green';
-                                responses.optifine[1].code = res.statusCode;
-                                s2 = true;
-                            } else
-                            if ([503, 520, 522, 524].indexOf(res.statusCode) !== -1) {
-                                responses.optifine[1].status = 'red';
-                                responses.optifine[1].code = res.statusCode;
-                                s2 = true;
-                            } else {
-                                log('Unexpected response from ' + responses.optifine[1].server + ' - ' + res.statusCode, 'error');
-                                responses.optifine[1].status = 'teal';
-                                responses.optifine[1].code = res.statusCode;
-                                s2 = true;
-                            }
-                        });
-
-                        request({ url: 'http://optifined.net', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                            if (err) {
-                                if (err.code === 'ETIMEDOUT') {
-                                    responses.optifine[2].status = 'red';
-                                    responses.optifine[2].code = 'error';
-                                    s3 = true;
-                                } else {
-                                    responses.optifine[2].status = 'orange';
-                                    responses.optifine[2].code = 'error';
-                                    s3 = true;
-                                    log(err.stack, 'error');
-                                }
-                            } else
-                            if (!res || !body) {
-                                responses.optifine[2].status = 'black';
-                                responses.optifine[2].code = 'error';
-                                s3 = true;
-                            } else
-                            if (res.statusCode === 200) {
-                                responses.optifine[2].status = 'green';
-                                responses.optifine[2].code = res.statusCode;
-                                s3 = true;
-                            } else
-                            if ([404, 503, 520, 522, 524].indexOf(res.statusCode) !== -1) {
-                                responses.optifine[2].status = 'red';
-                                responses.optifine[2].code = res.statusCode;
-                                s3 = true;
-                            } else {
-                                log('Unexpected response from ' + responses.optifine[2].server + ' - ' + res.statusCode, 'error');
-                                responses.optifine[2].status = 'teal';
-                                responses.optifine[2].code = res.statusCode;
-                                s3 = true;
-                            }
-                        });
-                    }
-
-                    if (responses.mojang || responses.mojang_web) {
-                        log('making mojang requests', 'trace');
-                        request({ url: 'https://status.mojang.com/check', headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                            if (err) {
-                                if (err.code === 'ETIMEDOUT') {
-                                    for (let i_m in responses.mojang) {
-                                        responses.mojang[i_m].status = 'black';
-                                        responses.mojang[i_m].code = 'error';
-                                    }
-
-                                    for (let i_m in responses.mojang_web) {
-                                        responses.mojang_web[i_m].status = 'black';
-                                        responses.mojang_web[i_m].code = 'error';
-                                    }
-                                    s4 = true;
-                                } else {
-                                    s4 = true;
-                                    log(err.stack, 'error');
-                                }
-                            } else
-                            if (!res || !body) {
-                                for (let i_m in responses.mojang) {
-                                    responses.mojang[i_m].status = 'black';
-                                    responses.mojang[i_m].code = 'error';
-                                }
-
-                                for (let i_m in responses.mojang_web) {
-                                    responses.mojang_web[i_m].status = 'black';
-                                    responses.mojang_web[i_m].code = 'error';
-                                }
-                                s4 = true;
-                            } else {
-                                let json = JSON.parse(body);
-
-                                /*
-                                // for testing only
-                                json[0][Object.keys(json[0])] = 'yellow';
-                                json[3][Object.keys(json[3])] = 'red';
-                                */
-
-                                let i_s = 0;
-                                let i_w = 0;
-                                let web = [responses.mojang_web[0].server, responses.mojang_web[1].server, responses.mojang_web[2].server];
-
-                                (function mojLoop() {
-                                    log('MCR loop ' + i_s, 'trace');
-                                    if (i_s === json.length) {
-                                        s4 = true;
-                                    } else {
-                                        let index = web.indexOf(Object.keys(json[i_s])[0]);
-                                        let newData = json[i_s][Object.keys(json[i_s])];
-                                        if (index !== -1) {
-                                            responses.mojang_web[index].status = newData;
-                                            responses.mojang_web[index].code = newData;
-
-                                            i_w++;
-                                            i_s++;
-                                            mojLoop();
-                                        } else {
-                                            responses.mojang[i_s - i_w].status = newData;
-                                            responses.mojang[i_s - i_w].code = newData;
-
-                                            i_s++;
-                                            mojLoop();
-                                        }
-                                    }
-                                })();
-                            }
-                        });
-                    }
-
-                    if (!responses.optifine && !responses.mojang && !responses.mojang_web) {
-                        throw new Error('No servers to check.');
-                    }
-                }).catch(err => {
-                    TOOLS.errorHandler({err:err});
-                });
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'blacklist',
-    short_desc: `Add a URL to OptiBot's StopModReposts URL Blacklist.`,
-    long_desc: `Add a URL to OptiBot's StopModReposts URL Blacklist. \n\nNote that this requires the ENTIRE URL, not just the name.`,
-    usage: `<URL>`,
-    tags: ['MODERATOR_ONLY', 'NO_DM'],
-    fn: (m, args) => {
-        if (!args[0]) {
-            TOOLS.errorHandler({ err: "You must specify a URL.", m:m });
-        } else {
-            try {
-                let whitelist = require('./cfg/url_whitelist.json');
-                let url = new URL(args[0]);
-                let hostname = url.hostname;
-
-                if (hostname.startsWith('www.')) {
-                    hostname = url.hostname.substring(4);
-                }
-
-                
-                if (hostname.length === 0) {
-                    TOOLS.errorHandler({ err: `You must specify a complete, valid URL.`, m:m });
-                } else 
-                if (whitelist.indexOf(hostname) > -1) {
-                    TOOLS.errorHandler({ err: `That URL has been whitelisted.`, m:m });
-                } else {
-                    memory.db.smr.find({ url: hostname }, (err, docs) => {
-                        if (err) {
-                            TOOLS.errorHandler({ err: err, m:m });
-                        } else
-                        if (docs[0]) {
-                            TOOLS.errorHandler({ err: `That URL has already been blacklisted.`, m:m });
-                        } else {
-                            let confirm = new discord.RichEmbed()
-                                .setColor(cfg.vs.embed.default)
-                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-                                .setAuthor(`Are you sure want to blacklist this URL?`, 'attachment://icon.png')
-                                .setDescription(`\`\`\`${hostname}\`\`\` \nType \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`);
-
-                            m.channel.send({embed: confirm}).then(msg => {
-                                TOOLS.typerHandler(m.channel, false);
-                                TOOLS.confirmationHandler(m, (result) => {
-                                    if (result === 1) {
-                                        let db_data = {
-                                            url: hostname,
-                                            writer: m.author.id,
-                                            date: new Date().getTime()
-                                        }
-            
-                                        memory.db.smr.insert(db_data, (err) => {
-                                            if (err) {
-                                                TOOLS.errorHandler({ err: err, m:m });
-                                            } else {
-                                                memory.bot.smr.push(hostname);
-
-                                                let embed = new discord.RichEmbed()
-                                                .setColor(cfg.vs.embed.okay)
-                                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                                                .setAuthor('Successfully added URL to blacklist.', 'attachment://icon.png')
-
-                                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                                                    TOOLS.errorHandler({err:err});
-                                                });
-                                            }
-                                        });
-                                    } else
-                                    if (result === 0) {
-                                        let embed = new discord.RichEmbed()
-                                        .setColor(cfg.vs.embed.default)
-                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                                        .setAuthor(`Request cancelled.`, 'attachment://icon.png')
-                                        .setDescription('URL has not been blacklisted.')
-
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                                            TOOLS.errorHandler({err:err});
-                                        });
-                                    } else
-                                    if (result === -1) {
-                                        let embed = new discord.RichEmbed()
-                                        .setColor(cfg.vs.embed.default)
-                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                                        .setAuthor(`Request timed out.`, 'attachment://icon.png')
-                                        .setDescription('URL has not been blacklisted.')
-                                        
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                                            TOOLS.errorHandler({err:err});
-                                        });
-                                    }
-                                });
-                            }).catch(err => {
-                                TOOLS.errorHandler({err:err});
-                            });
-                        }
-                    });
-                }
-            }
-            catch(err) {
-                if (err.message.toLowerCase().indexOf('invalid url') > -1) {
-                    TOOLS.errorHandler({ err: `You must specify a complete, valid URL.`, m:m });
-                } else {
-                    TOOLS.errorHandler({ err: err, m:m });
-                }
-            }
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'cv',
-    short_desc: 'Verifies cape ownership.',
-    long_desc: `Adds a user to the list of "verified" cape owners. This adds a checkmark along with a user tag to the embeds used in the \`${memory.bot.trigger}cape\` command (It doesn't ping anyone, don't worry. It just lets you to view someones profile/nickname.) Usernames are translated into Minecraft UUIDs by using the Mojang API, so it's not necessary to use this again when someone changes their username.`,
-    usage: '<discord user> <minecraft username>',
-    tags: ['MODERATOR_ONLY', 'NO_DM'],
-    fn: (m, args) => {
-        if (!args[0]) {
-            TOOLS.errorHandler({ err: "You must specify a user.", m:m });
-        } else
-        if (!args[1]) {
-            TOOLS.errorHandler({ err: "You must specify the user's Minecraft username.", m:m });
-        } else {
-            TOOLS.getTargetUser(m, args[0], (userid, name) => {
-                if (!userid) {
-                    TOOLS.errorHandler({ err: "You must specify a valid user @mention, ID#, or shortcut (^)", m:m });
-                } else
-                if (args[1].match(/\W+/) !== null) {
-                    TOOLS.errorHandler({ err: 'Minecraft usernames can only contain letters, numbers, and underscores (_)', m: m });
-                } else
-                if (args[1].length > 16) {
-                    TOOLS.errorHandler({ err: 'Usernames cannot exceed 16 characters in length.', m: m });
-                } else {
-                    request({url: 'https://api.mojang.com/users/profiles/minecraft/'+encodeURIComponent(args[1]), encoding: null}, (err, res, data) => {
-                        if (err || !res || !data) {
-                            TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the Mojang API'), m: m });
-                        } else 
-                        if (res.statusCode === 204) {
-                            TOOLS.errorHandler({ err: 'Invalid Minecraft username.', m: m });
-                        } else
-                        if (res.statusCode !== 200) {
-                            TOOLS.errorHandler({ err: new Error('Unexpected response code from Mojang API: '+res.statusCode), m: m });
-                        } else {
-                            let js = JSON.parse(data)
-
-                            request({ url: 'https://optifine.net/capes/'+encodeURIComponent(js.name)+'.png', encoding: null }, (err_o, res_o, data_o) => {
-                                if (err_o || !res_o || !data_o) {
-                                    TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the OptiFine API.'), m: m });
-                                } else
-                                if (res_o.statusCode === 404) {
-                                    TOOLS.errorHandler({ err: 'There is no OptiFine cape linked to that Minecraft account.', m: m });
-                                } else {
-                                    TOOLS.getProfile(m, userid, (profile) => {
-                                        if (profile.cape && profile.cape.uuid === js.id) {
-                                            TOOLS.errorHandler({ err:'That username has already been saved.', m:m });
-                                        } else {
-                                            memory.db.profiles.find({"cape.uuid": js.id}, (err, docs) => {
-                                                if (err) TOOLS.errorHandler({ err: err, m:m });
-                                                else
-                                                if (docs.length > 0) {
-                                                    bot.guilds.get(cfg.basic.of_server).fetchMember(docs[0].member_id).then(member => {
-                                                        TOOLS.errorHandler({ err: `That username has already been claimed by ${member.user.username}#${member.user.discriminator}`, m:m });
-                                                    }).catch(err => {
-                                                        TOOLS.errorHandler({err:err});
-                                                    });
-                                                } else {
-                                                    let updated = (profile.cape && profile.cape.uuid.length > 0);
-                                                    profile.cape = {
-                                                        uuid: js.id
-                                                    }
-
-                                                    memory.db.profiles.update({ member_id: userid }, profile, (err) => {
-                                                        if (err) TOOLS.errorHandler({ err: err, m:m });
-                                                        else {
-                                                            let embed = new discord.RichEmbed()
-                                                                .setColor(cfg.vs.embed.okay)
-                                                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                        
-                                                            if (updated) {
-                                                                embed.setAuthor(`Updated. ${name}'s username is now "${js.name}"`, 'attachment://icon.png')
-                                                                .setFooter('Reminder: This is not needed for every username change! This is only needed for changing Minecraft accounts.')
-                                                            } else {
-                                                                embed.setAuthor(`Added ${name} to verified cape owner list, with the username of "${js.name}"`, 'attachment://icon.png')
-                                                            }
-                        
-                                                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                                                                TOOLS.errorHandler({err:err});
-                                                            });
-                                                        }
-                                                    });
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'removecv',
-    short_desc: 'Removes cape ownership from a user.',
-    long_desc: `Removes a user from the list of "verified" cape owners. OptiBot will ask you to confirm before proceeding.`,
-    usage: '<discord user>',
-    tags: ['MODERATOR_ONLY', 'NO_DM'],
-    fn: (m, args) => {
-        if (!args[0]) {
-            TOOLS.errorHandler({ err: "You must specify a user.", m:m });
-        } else {
-            TOOLS.getTargetUser(m, args[0], (userid, name) => {
-                if (!userid) {
-                    TOOLS.errorHandler({ err: "You must specify a valid user @mention, ID#, or shortcut (^)", m:m });
-                } else {
-                    TOOLS.getProfile(m, userid, (profile) => {
-                        if (!profile.cape) {
-                            TOOLS.errorHandler({err:'That user does not have a verified cape.', m:m});
-                        } else {
-                            let confirm = new discord.RichEmbed()
-                                .setColor(cfg.vs.embed.default)
-                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-                                .setAuthor(`Are you sure want to remove ${name} from the verified cape owner list?`, 'attachment://icon.png')
-                                .setDescription(`Type \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`);
-
-                            m.channel.send({embed: confirm}).then(msg => {
-                                TOOLS.typerHandler(m.channel, false);
-                                TOOLS.confirmationHandler(m, (result) => {
-                                    let embed = new discord.RichEmbed()
-                                        .setColor(cfg.vs.embed.okay)
-                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                                    if (result === 1) {
-                                        delete profile.cape;
-                                        memory.db.profiles.update({member_id: userid}, profile, (err) => {
-                                            if (err) {
-                                                TOOLS.errorHandler({err:err, m:m});
-                                            } else {
-                                                embed.setAuthor(`Removed ${name} from the verified cape owner list.`, 'attachment://icon.png');
-                                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                                                    TOOLS.errorHandler({err:err});
-                                                });
-                                            }
-                                        });
-                                    } else
-                                    if (result === 0) {
-                                        let embed = new discord.RichEmbed()
-                                        .setColor(cfg.vs.embed.default)
-                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                                        .setAuthor(`Request cancelled.`, 'attachment://icon.png')
-                                        .setDescription('User has not been removed from verified cape owner list.')
-
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                                            TOOLS.errorHandler({err:err});
-                                        });
-                                    } else
-                                    if (result === -1) {
-                                        let embed = new discord.RichEmbed()
-                                        .setColor(cfg.vs.embed.default)
-                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                                        .setAuthor(`Request timed out.`, 'attachment://icon.png')
-                                        .setDescription('User has not been removed from verified cape owner list.')
-                                        
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                                            TOOLS.errorHandler({err:err});
-                                        });
-                                    }
-                                });
-                            }).catch(err => {
-                                TOOLS.errorHandler({err:err});
-                            });
-                        }
-                    });
-                }
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'tidbits',
-    short_desc: `Details OptiBot's miscellaneous functions.`,
-    usage: `[page #]`,
-    tags: ['BOT_CHANNEL_ONLY', 'DM_OPTIONAL'],
-    fn: (m, args) => {
-        let pages = [
-            new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"), new discord.Attachment(memory.bot.images.get('red_x.png'), "thumbnail.png")])
-            .setThumbnail('attachment://thumbnail.png')
-            .addField('Deleting Bot Messages', `On Discord, you're allowed to delete any message you post at any time for any reason. No problem. On the other hand, you cannot delete other people's messages (unless you're a moderator, obviously). This goes for bot messages as well. \n\n*Until now!* \n\nFor your convenience, OptiBot will automatically and immediately add an emoji reaction to itself after almost every message it posts. This emoji appears as a red cross, and is aptly named \`:click_to_delete:\`. By clicking on this reaction, the bot will promptly delete the message in question. This only works for yourself, as the person the bot was responding to. If anyone else tries to delete the message, it will simply be ignored.\n\nIt should be noted that OptiBot will only track up to ${cfg.db.size} messages at any given time. Once the message is old enough and has gone beyond this limit, it will be removed from OptiBot's memory. At this point, it can no longer be removed by anyone other than a Moderator or Admin.`),
-
-            new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-            .addField('GitHub References', `You can reference any issue or pull request from the [OptiFine GitHub repository](https://github.com/sp614x/optifine/issues) by simply typing a hash followed by a string of numbers, like so: \`\`\`#[number]\`\`\` OptiBot will ignore these if the hash is prefixed with a backwards slash (\\\\) or any other word character (A-Z). Additionally, to prevent accidental usage, issues/PRs #100 and older are all entirely ignored, as well as any number that is more than 4 characters in length. \n\nIn summary, the following will NOT work: \`\`\`#45\`\`\` \`\`\`#9999999\`\`\` \`\`\`\\#2000\`\`\` \`\`\`etc...\`\`\``),
-
-            new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
-            .addField('StopModReposts Detector', `OptiBot will automatically flag any message that contains a link to an illegal Minecraft mod website. The list of bad sites is automatically downloaded and read from https://stopmodreposts.org/sites.html. This helps to prevent the spread of malware, viruses, and other malicious things that are lurking in these fake websites. Avoid them as much as possible!\n\nUnlike any other message posted by OptiBot, you are NOT allowed to delete these. This is to stop anyone with any possible malicious intent. \n\nRead more about the StopModReposts campaign here: https://stopmodreposts.org/`)
-        ];
-
-        let pageNum = 1;
-        let pageLimit = pages.length;
-        if (args[0] && !isNaN(args[0]) && parseInt(args[0]) > 0 && parseInt(args[0]) <= pageLimit) {
-            pageNum = parseInt(args[0]);
-        }
-
-        pages[pageNum-1].setAuthor(`OptiBot Tidbits | Page ${pageNum}/${pageLimit}`, 'attachment://icon.png')
-
-        m.channel.send({ embed: pages[pageNum-1] }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-            TOOLS.errorHandler({err:err});
-        });
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'serverlist',
-    short_desc: 'Displays a list of Discord servers.',
-    long_desc: `Displays a handpicked list of Discord servers that are relevant to OptiFine.`,
-    usage: `[page #]`,
-    tags: ['BOT_CHANNEL_ONLY', 'DM_OPTIONAL'],
-    fn: (m, args) => {
-        let pageNum = 1;
-        let maxPageLength = 10;
-        let pageLimit = Math.ceil(serverlist.length / maxPageLength);
-        if (args[0] && !isNaN(args[0]) && parseInt(args[0]) > 0 && parseInt(args[0]) <= pageLimit) {
-            pageNum = parseInt(args[0]);
-        }
-
-        let embed = new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_discord.png'), "icon.png"))
-            .setAuthor(`Related Discord Servers | Page ${pageNum}/${pageLimit}`, 'attachment://icon.png')
-            .setDescription(`You can get a quick link to any of these servers by using the \`${memory.bot.trigger}server\` command. (See \`${memory.bot.trigger}help server\` for details)`);
-
-        let i = (pageNum > 1) ? (maxPageLength * (pageNum - 1)) : 0;
-        let added = 0;
-        (function addList() {
-            embed.addField(serverlist[i].name, serverlist[i].link);
-            added++;
-            
-            if (added >= maxPageLength || i+1 >= serverlist.length) {
-                embed.setFooter(`Showing ${added}/${serverlist.length} servers`)
-                m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg)).catch(err => {
-                    TOOLS.errorHandler({err:err});
-                });
-            } else {
-                i++;
-                addList();
-            }
-        })();
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'server',
-    short_desc: 'Link a specific Discord server.',
-    long_desc: `Searches for a Discord server with the given name, and then provides an invite link. \n\nNote that this only searches within a specially picked group of servers. (See \`${memory.bot.trigger}serverlist\`) This command does **not** search through ALL servers across the entirety of Discord.`,
-    usage: '<server name?>',
-    tags: ['DM_OPTIONAL'],
-    fn: (m, args) => {
-        if (!args[0]) {
-            TOOLS.errorHandler({ err: "You must specify a server to find.", m:m });
-        } else {
-            let query = m.content.substring((memory.bot.trigger+'server ').length).toLowerCase();
-            let match = cstr.findBestMatch(query, Object.keys(memory.bot.servers));
-
-            if (match.bestMatch.rating < 0.1) {
-                TOOLS.errorHandler({ err: "Could not find a Discord server with that name.", m:m });
-            } else {
-                bot.fetchInvite(memory.bot.servers[match.bestMatch.target]).then(invite => {
-                    let filetype = 'png';
-                    if (invite.guild.icon.startsWith('a_')) filetype = 'gif';
-
-                    /*
-                    let p0 = jimp.read(`https://cdn.discordapp.com/icons/${invite.guild.id}/${invite.guild.icon}.${filetype}`);
-                    let p1 = jimp.read(memory.bot.icons.get('optifine_thumbnail_mask.png'));
-
-                    Promise.all([p0, p1]).then((imgs) => {
-                        imgs[0].mask(imgs[1].resize(128, 128, jimp.RESIZE_BILINEAR), 0, 0)
-                        .getBuffer(jimp.AUTO, (err, buffer) => {
-                            if (err) {
-                                TOOLS.errorHandler({ err:new Error(err), m:m });
-                            } else {
-                                let embed = new discord.RichEmbed()
-                                .setColor(cfg.vs.embed.default)
-                                .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_discord.png'), "icon.png"), new discord.Attachment(buffer, "thumbnail."+filetype)])
-                                .setAuthor(invite.guild.name, 'attachment://icon.png')
-                                .setThumbnail('attachment://thumbnail.'+filetype)
-                                .setDescription(`${invite.url}\n\n${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`);
-
-                                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-                            }
-                        });
-                    });
-                    */
-
-                    let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.default)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_discord.png'), "icon.png"))
-                    .setAuthor(invite.guild.name, 'attachment://icon.png')
-                    .setThumbnail(`https://cdn.discordapp.com/icons/${invite.guild.id}/${invite.guild.icon}.${filetype}`)
-                    .setDescription(`${invite.url}\n\n${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`);
-
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                        TOOLS.errorHandler({err:err});
-                    });
-                }).catch(err => {
-                    TOOLS.errorHandler({ err: err, m:m });
-                })
-            }
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'medals',
-    short_desc: "View someones medal count. Defaults to yourself if no name is provided.",
-    usage: "[discord user]",
-    tags: ['DM_OPTIONAL'],
-    fn: (m, args) => {
-        if (args[0]) {
-            TOOLS.getTargetUser(m, args[0], (userid, name) => {
-                if (userid) {
-                    if (userid === m.author.id) {
-                        log('search medals for self', 'trace');
-                        final(m.author.id);
-                    } else {
-                        log('search medals for another user', 'trace');
-                        final(userid, name);
-                    }
-                } else {
-                    log('failed to find user, search medals for self', 'trace');
-                    final(m.author.id);
-                }
-            });
-        } else {
-            log('search medals for self', 'trace');
-            final(m.author.id);
-        }
-
-        function final(userid, name) {
-            TOOLS.getProfile(m, userid, (profile) => {
-                let embed = new discord.RichEmbed()
-                .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
-
-                if (profile.medals) {
-                    embed.setAuthor(`${(name) ? name+' has' : 'You have' } earned ${profile.medals.count} medal(s).`, 'attachment://icon.png')
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                        TOOLS.errorHandler({err:err});
-                    });
-                } else {
-                    embed.setAuthor(`${(name) ? name+' has' : 'You have' } not earned any medals.`, 'attachment://icon.png')
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                        TOOLS.errorHandler({err:err});
-                    });
-                }
-            });
-        }
-        
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'rule',
-    short_desc: "Display a single rule.",
-    usage: '<rule #>',
-    tags: ['DM_OPTIONAL'],
-    fn: (m, args) => {
-        if (!args[0]) {
-            TOOLS.errorHandler({ err: "You must specify a rule to display.", m:m });
-        } else
-        if (isNaN(args[0])) {
-            TOOLS.errorHandler({ err: "You must specify a valid number.", m:m });
-        } else {
-            bot.guilds.get(cfg.basic.of_server).channels.get('479192475727167488').fetchMessage('621909657858080779').then((msg) => {
-                let rules_rgx = msg.content.match(/\d\).+$/gmi);
-
-                let rules = {}
-                rules_rgx.forEach(rule => {
-                    let split = rule.split(') ');
-                    rules[parseInt(split[0])] = split[1];
-                });
-
-                if (rules[parseInt(args[0])]) {
-                    let embed = new discord.RichEmbed()
-                        .setColor(cfg.vs.embed.default)
-                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_docs.png'), "icon.png"))
-                        .setAuthor("Rule #"+parseInt(args[0]), 'attachment://icon.png')
-                        .setDescription(rules[parseInt(args[0])]);
-
-                        m.channel.send({embed:embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                } else {
-                    let joke;
-                    if (parseInt(args[0]) < 0) {
-                        joke = '.tsixe ton seod elur tahT';
-                    } else
-                    if (parseInt(args[0]) === 0) {
-                        joke = 'undefined';
-                    } else
-                    if (args[0] === '007') {
-                        joke = 'No, Mr. Bond, I expect you to die.';
-                    } else
-                    if (parseInt(args[0]) === 32) {
-                        joke = '2,147,483,647';
-                    } else
-                    if (parseInt(args[0]) === 34) {
-                        joke = 'Hilarious.';
-                    } else
-                    if (parseInt(args[0]) === 42) {
-                        joke = 'The answer to life, the universe, and everything.';
-                    } else
-                    if (parseInt(args[0]) === 64) {
-                        joke = 'YAHOOOOOOOOOOooo';
-                    } else
-                    if (parseInt(args[0]) === 69) {
-                        joke = 'nice';
-                    } else
-                    if (parseInt(args[0]) === 88) {
-                        joke = '88 MILES PER HOOOUURR';
-                    } else
-                    if (parseInt(args[0]) === 115) {
-                        joke = "🎵 I'll bring you down all on my own 🎵";
-                    } else
-                    if (parseInt(args[0]) === 173) {
-                        joke = '[REDACTED]';
-                    } else
-                    if (parseInt(args[0]) === 314) {
-                        joke = Math.PI+'...';
-                    } else
-                    if (parseInt(args[0]) === 418) {
-                        joke = "You better not put on Stal.";
-                    } else
-                    if (parseInt(args[0]) === 420) {
-                        joke = 'DUDE WEED LMAO';
-                    } else
-                    if (parseInt(args[0]) === 523) {
-                        joke = 'Happy birthday, Jack!';
-                    } else
-                    if (parseInt(args[0]) === 614) {
-                        joke = '🙂';
-                    } else
-                    if (parseInt(args[0]) === 666) {
-                        joke = 'Rip and tear, until it is done.';
-                    } else
-                    if (parseInt(args[0]) === 1337) {
-                        joke = '7h47 rul3 d035 n07 3x157.';
-                    } else
-                    if (parseInt(args[0]) === 1701) {
-                        joke = 'These are the voyages of the starship Enterprise...';
-                    } else
-                    if (parseInt(args[0]) === 1944) {
-                        joke = 'ALLIES ARE TURNING THE WAR!';
-                    } else
-                    if (parseInt(args[0]) === 1962) {
-                        joke = 'We choose to go to the moon in this decade and do the other things.';
-                    } else
-                    if (parseInt(args[0]) === 2000) {
-                        joke = "Here's to another lousy millennium.";
-                    } else
-                    if (parseInt(args[0]) === 9001) {
-                        joke = 'This joke died 10 years ago.';
-                    } else 
-                    if (parseInt(args[0]) === 80085) {
-                        joke = 'Hilarious.';
-                    } else
-                    if (parseInt(args[0]) === 299792458) {
-                        joke = "You just googled the speed of light, didn't you?";
-                    } else 
-                    if (parseInt(args[0]) > Number.MAX_SAFE_INTEGER) {
-                        joke = 'https://stackoverflow.com/';
-                    } else {
-                        joke = 'That rule does not exist.';
-                    }
-                    TOOLS.errorHandler({ err: joke, m:m });
-                }
-            }).catch(err => {
-                TOOLS.errorHandler({ err: err, m:m });
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
     trigger: 'help',
     short_desc: `Getting started with OptiBot. (type \`${memory.bot.trigger}help help\` to learn how to use command arguments)`,
     long_desc: `Some commands *may* require additional details to tell the bot exactly how you want a command to be carried out. These details are called "arguments". \n\n\`<required>\` - Arguments in angle brackets are REQUIRED. The command cannot be used without this additional information.\n\n\`[optional]\` - Arguments in square brackets are optional. They can be freely omitted.\n\n\`<"literal phrase">\` - Arguments with quotation marks are literal. To use these, you simply type the specified word within the quotation marks.\n\n\`[match?]\` - Arguments that end with a question mark use string similarity, which makes the bot try to match your typed phrase with a set of options. Think of it as using a search engine, like Google.\n\n\`<this|or that>\` - Arguments with a vertical bar mean you can specify either one thing or the other. The bar can be simply translated to "or".\n\n\`[optional <required>]\` - Occasionally, arguments can be combined. In this example, the first argument is optional. However, specifying that argument means you MUST specify the second argument.`,
@@ -5222,12 +2290,12 @@ CMD.register(new Command({
             // default help page
             let embed = new discord.RichEmbed()
                 .setColor(cfg.vs.embed.default)
-                .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"), new discord.Attachment(memory.bot.avatar, "thumbnail.png")])
+                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_info.png'), "icon.png"))
                 .setAuthor('Getting Started', 'attachment://icon.png')
-                .setDescription(`OptiBot is a Discord bot primarily designed for utility. Whether it's moderation tools, or something to help you make a resource pack, you can probably find it here. (see \`!about\` for more info about OptiBot itself)`)
-                .setThumbnail('attachment://thumbnail.png')
+                .setTitle(`WARNING: OptiBot is currently in Ultralight mode.`)
+                .setDescription(`All non-essential commands and features are disabled, and only moderators are allowed to use this bot.`)
+                .setThumbnail(bot.user.displayAvatarURL)
                 .addField('Commands List', `\`\`\`${memory.bot.trigger}list\`\`\``)
-                .addField('Tidbits & Other Features', `\`\`\`${memory.bot.trigger}tidbits\`\`\``)
                 
 
             m.channel.send({ embed: embed }).then(msg => TOOLS.messageFinalize(m.author.id, msg)).catch(err => {
@@ -5462,125 +2530,6 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'json',
-    short_desc: 'Simple JSON Validator.',
-    long_desc: "Checks if a file is written with valid JSON syntax. Discord CDN links only.",
-    usage: "<attachment|URL|^ shortcut>",
-    tags: ['DM_OPTIONAL'],
-    fn: (m, args) => {
-        if (args[0]) {
-            if (args[0] === '^' || args[0].toLowerCase() === 'that') {
-                m.channel.fetchMessages({ limit: 25 }).then(msgs => {
-                    let itr = msgs.values();
-        
-                    (function search() {
-                        let thisID = itr.next();
-                        if (thisID.done) {
-                            TOOLS.errorHandler({ m: m, err: `Could not find an attachment to validate.` });
-                        } else
-                        if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1) {
-                            if (thisID.value.attachments.first(1)[0] !== undefined) {
-                                finalValidate(thisID.value.attachments.first(1)[0].url)
-                            } else {
-                                TOOLS.errorHandler({ err: 'That message does not contain an attachment.', m: m });
-                            }
-                        } else search();
-                    })();
-                }).catch(err => TOOLS.errorHandler({ m: m, err: err }));
-            } else {
-                try {
-                    let parseurl = new URL(args[0]);
-    
-                    if (parseurl.hostname === 'cdn.discordapp.com') {
-                        finalValidate(parseurl.toString())
-                    } else {
-                        TOOLS.errorHandler({ err: 'Links outside of cdn.discordapp.com are not allowed.', m: m });
-                    }
-                }
-                catch(e) {
-                    TOOLS.errorHandler({ err: 'You must specify a valid link or upload a file attachment.', m: m });
-                }
-            }
-        } else
-        if (m.attachments.first(1)[0]) {
-            finalValidate(m.attachments.first(1)[0].url)
-        } else {
-            TOOLS.errorHandler({ err: 'You must upload or link a file attachment to validate.', m: m });
-        }
-
-        function finalValidate(finalURL) {
-            request({ url: finalURL, headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                if (err || !res || !body || res.statusCode !== 200) {
-                    TOOLS.errorHandler({ err: err || new Error('Unable to retrieve file from Discord API.'), m: m });
-                } else {
-                    if (body.length > 1048576) {
-                        TOOLS.errorHandler({ err: 'File cannot exceed 1MB in size.', m: m });
-                        return;
-                    } 
-                    const fileContent = body.toString('utf8', 0, Math.min(body.length, 0 + 24));
-                    for (let i = 0; i < fileContent.length; ++i) {
-                        const charCode = fileContent.charCodeAt(i);
-                        if (charCode === 65533 || charCode <= 8) {
-                            // binary
-                            TOOLS.errorHandler({ err: 'File must be text-only.', m: m });
-                            break;
-                        }
-    
-                        if (i + 1 === fileContent.length) {
-                            // text
-                            try {
-                                let validate = JSON.parse(body);
-    
-                                let embed = new discord.RichEmbed()
-                                    .setColor(cfg.vs.embed.okay)
-                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "thumbnail.png"))
-                                    .setAuthor('Valid JSON', 'attachment://thumbnail.png')
-                                    .setDescription(`Your file has valid JSON formatting. This does not necessarily mean your file will work for it's intended purpose, however. Be sure to check the documentation on whatever you're using this for.`)
-    
-                                m.channel.send({ embed: embed }).then(msg => {
-                                    TOOLS.messageFinalize(m.author.id, msg)
-                                }).catch(err => {
-                                    TOOLS.errorHandler({ err: err });
-                                });
-                            }
-                            catch (err) {
-                                let errMsg = err.toString().split(' ');
-                                let positionText = errMsg.indexOf('position');
-
-                                if(positionText === -1) {
-                                    TOOLS.errorHandler({ err: err, m: m });
-                                } else {
-                                    let position = parseInt(errMsg[positionText+1]);
-                                    let bodyCut = body.substring(0, position);
-                                    let lineSplits = bodyCut.split('\n');
-                                    log(position);
-                                    log(bodyCut);
-
-                                    let index_invalid = errMsg.indexOf('token')+1;
-                                    errMsg[index_invalid] = `"${errMsg[index_invalid]}"`;
-
-                                    let embed = new discord.RichEmbed()
-                                    .setColor(cfg.vs.embed.error)
-                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
-                                    .setAuthor('Invalid JSON', 'attachment://thumbnail.png')
-                                    .setDescription(`\`\`\`${errMsg.join(' ')} \n\nCalculated position: Ln ${lineSplits.length}, Col ${lineSplits[lineSplits.length-1].length+1}\`\`\` \nNote that this will only return the FIRST error the validator finds. You can use the following website to find all issues at once: https://jsonlint.com/`)
-    
-                                    m.channel.send({ embed: embed }).then(msg => {
-                                        TOOLS.messageFinalize(m.author.id, msg)
-                                    }).catch(err => {
-                                        TOOLS.errorHandler({ err: err });
-                                    });
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
     trigger: 'mock',
     short_desc: 'MoCkInG tOnE translator',
     long_desc: 'Rewrites a message with a mOcKiNg tOnE. In other words, this will pseudo-randomize the capitalization of each letter in the given text.',
@@ -5614,7 +2563,6 @@ CMD.register(new Command({
                     newStr += thisChar;
 
                     if (i+1 === message.length) {
-                        TOOLS.typerHandler(m.channel, false);
                         m.channel.send(newStr).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
                             TOOLS.errorHandler({err:err});
                         });
@@ -5653,52 +2601,9 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'dr',
-    short_desc: 'Verifies your donator status.',
-    long_desc: `Verifies your donator status. If successful, this will grant you the Donator role, and reset your Donator token in the process. \n\nYou can find your donator token by logging in through the website. https://optifine.net/login. Look at the bottom of the page for a string of random characters. (see picture for example) \n**Remember that your "Donation ID" is NOT your token!**\n\nPlease note that this will NOT automatically verify you for the \`${memory.bot.trigger}cape\` command. [See this FAQ entry for instructions on that.](https://discordapp.com/channels/423430686880301056/531622141393764352/622494425616089099)`,
-    usage: "<donation e-mail> <token>",
-    image: `token.png`,
-    tags: ['DM_ONLY', 'DELETE_ON_MISUSE'],
-    fn: (m, args, member) => {
-        if (member.roles.has(cfg.roles.donator)) {
-            TOOLS.errorHandler({ err: "You already have the donator role.", m: m });
-        } else
-        if (!args[0]) {
-            TOOLS.errorHandler({ err: "You must provide the e-mail you used when donating.", m: m});
-        } else
-        if (args[0].indexOf('@') < 0 && args[0].indexOf('.') < 0) {
-            TOOLS.errorHandler({ err: "You must provide a valid e-mail address.", m: m });
-        } else
-        if (!args[1]) {
-            TOOLS.errorHandler({ err: "You must provide your donator token.", m: m });
-        } else {
-            request({ url: 'https://optifine.net/validateToken?e=' + encodeURIComponent(args[0]) + '&t=' + encodeURIComponent(args[1]), headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
-                if (err || !res || !body || res.statusCode !== 200) {
-                    TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the OptiFine API'), m: m });
-                } else 
-                if (body === 'true') {
-                    member.addRole(cfg.roles.donator, 'Donator status verified.').then(() => {
-                        let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.okay)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                            .setAuthor('Thank you for your contribution! Your donator role has been granted.', 'attachment://icon.png')
-                            .setFooter('Please note, your token has now been renewed.');
-
-                        TOOLS.typerHandler(m.channel, false);
-                        m.channel.send({ embed: embed });
-                    }).catch(err => TOOLS.errorHandler({ err: err, m: m }));
-                } else {
-                    TOOLS.errorHandler({ err: 'Invalid credentials. Please be sure that your token and email are the same as what you see on https://optifine.net/login', m: m });
-                }
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
     trigger: 'exec',
     usage: "<js>",
-    tags: ['DM_OPTIONAL', 'HIDDEN'],
+    tags: ['DM_OPTIONAL', 'HIDDEN', 'DEVELOPER_ONLY'],
     fn: (m, args, member) => {
         // args and member arent used in this by default, but given this commands purpose, it just makes sense to have them available anyway.
         try {
@@ -5723,15 +2628,12 @@ CMD.register(new Command({
                 } catch (e) { }
 
                 if (Buffer.isBuffer(returnMsg)) {
-                    TOOLS.typerHandler(m.channel, false);
                     m.channel.send(undefined, new discord.Attachment(returnMsg, 'buffer.png'));
                 } else 
                 if (msg.length >= 2000) {
                     log(returnMsg, 'warn');
-                    TOOLS.typerHandler(m.channel, false);
                     m.channel.send(`Output too long, see attached file.`, new discord.Attachment(Buffer.from(JSON.stringify(returnMsg)), 'output.json'));
                 } else {
-                    TOOLS.typerHandler(m.channel, false);
                     m.channel.send(msg);
                 }
             }, 1500);
@@ -5741,10 +2643,8 @@ CMD.register(new Command({
             let errMsg = `\`\`\`${err.stack}\`\`\``;
 
             if (errMsg.length >= 2000) {
-                TOOLS.typerHandler(m.channel, false);
                 m.channel.send('Error occurred during evaluation. (Stack trace too long, see log.)');
             } else {
-                TOOLS.typerHandler(m.channel, false);
                 m.channel.send(errMsg);
             }
         }
@@ -5778,188 +2678,6 @@ CMD.register(new Command({
         } else {
             TOOLS.muteHandler(m, args, false);
         }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'cape',
-    short_desc: "Donator Cape Viewer",
-    long_desc: `Displays donator capes for a specified user. \n\nIf someone has a *verified* cape, you can use their @mention in place of their Minecraft username. Additionally, if no username is provided, this will default to yourself. Finally, you can view the full cape texture by typing "full" after the username.`,
-    usage: `[minecraft username OR discord user] ["full"]`,
-    tags: ['BOT_CHANNEL_ONLY','DM_OPTIONAL'],
-    fn: (m, args) => {
-        let target = (args[0]) ? args[0] : m.author.id;
-
-        function getOFcape(result) {
-            let username = result.name;
-            request({ url: 'https://optifine.net/capes/' + username + '.png', encoding: null }, (err, res, data) => {
-                if (err || !res || !data || [200, 404].indexOf(res.statusCode) === -1) {
-                    TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the OptiFine API'), m: m });
-                } else
-                if (res.statusCode === 404) {
-                    TOOLS.errorHandler({ err: 'That player does not have an OptiFine cape', m: m });
-                } else {
-                    jimp.read(data, (err_j, image) => {
-                        if (err_j) TOOLS.errorHandler({ err: err, m: m });
-                        else {
-                            let full = false;
-                            let fallback = false;
-                            if (args[1] && args[1].toLowerCase() === 'full' && image.bitmap.width <= 92) {
-                                full = true;
-                                image.resize(276, jimp.AUTO, jimp.RESIZE_NEAREST_NEIGHBOR);
-                                finalize(image);
-                            } else
-                            if(image.bitmap.width > 92) {
-                                fallback = true;
-                                finalize(image);
-                            } else
-                            if (jimp.intToRGBA(image.getPixelColor(1, 1)).a !== 0) {
-                                // standard capes
-                                let elytra = image.clone();
-                                let cape = image.clone();
-
-                                cape.crop(1, 1, 10, 16);
-                                elytra.crop(36, 2, 10, 20);
-
-                                new jimp(21, 20, (err_s2, image_s2) => {
-                                    if (err_s2) TOOLS.errorHandler({ err: err_s2, m: m });
-                                    else {
-                                        image_s2.composite(cape, 0, 0);
-                                        image_s2.composite(elytra, 11, 0);
-                                        image_s2.resize(jimp.AUTO, 200, jimp.RESIZE_NEAREST_NEIGHBOR);
-
-                                        finalize(image_s2);
-                                    }
-                                });
-                            } else {
-                                // banner capes
-                                let elytra = image.clone();
-                                let cape = image.clone();
-
-                                cape.crop(2, 2, 20, 32);
-                                elytra.crop(72, 4, 20, 40);
-
-                                new jimp(42, 40, (err_s2, image_s2) => {
-                                    if (err_s2) TOOLS.errorHandler({ err: err_s2, m: m });
-                                    else {
-                                        image_s2.composite(cape, 0, 0);
-                                        image_s2.composite(elytra, 22, 0);
-                                        image_s2.resize(jimp.AUTO, 200, jimp.RESIZE_NEAREST_NEIGHBOR);
-
-                                        finalize(image_s2);
-                                    }
-                                });
-                            }
-
-                            function finalize(image_p) {
-                                image_p.getBuffer(jimp.AUTO, (err_b, imgFinal) => {
-                                    if (err_b) TOOLS.errorHandler({ err: err_b, m: m });
-                                    else {
-                                        let embed = new discord.RichEmbed()
-                                            .setColor(cfg.vs.embed.default)
-                                            .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_cape.png'), "thumbnail.png"), new discord.Attachment(imgFinal, "cape.png")])
-                                            .setImage('attachment://cape.png')
-                                            .setFooter('IGN: ' + username);
-
-                                        let desc = "";
-
-                                        memory.db.profiles.find({ "cape.uuid": result.id }, (dberr, dbdocs) => {
-                                            if (dberr) TOOLS.errorHandler({ err: dberr, m: m });
-                                            else {
-                                                if (dbdocs.length !== 0) {
-                                                    desc += '<:okay:642112445997121536> Cape owned by <@' + dbdocs[0].member_id + '>\n\n';
-                                                }
-                                                if (fallback && (!args[1] || (args[1] && args[1].toLowerCase() !== 'full'))) {
-                                                    desc += `This image could not be cropped because the cape texture has an unusual resolution.`;
-                                                }
-
-                                                if (full || fallback) {
-                                                    embed.setAuthor('Donator Cape (Full Texture)', 'attachment://thumbnail.png');
-                                                } else {
-                                                    embed.setAuthor('Donator Cape', 'attachment://thumbnail.png');
-                                                }
-
-                                                if (desc.length > 0) {
-                                                    embed.setDescription(desc);
-                                                }
-
-                                                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                                                    TOOLS.errorHandler({err:err});
-                                                });
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        }
-                    });
-                }
-            });
-        }
-
-        TOOLS.getTargetUser(m, target, (userid, name) => {
-            if (userid) {
-                TOOLS.getProfile(m, userid, (profile) => {
-                    if (!profile.cape) {
-                        if(userid === m.author.id) {
-                            let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.error)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
-                            .setAuthor('You must specify a Minecraft username, @mention, or Discord user ID.', 'attachment://thumbnail.png')
-                            .setDescription(`If you're a donator and you're trying to view your own cape, enter your Minecraft username or [get your cape verified.](https://discordapp.com/channels/423430686880301056/531622141393764352/622494425616089099)`);
-                            
-
-                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                        } else {
-                            TOOLS.errorHandler({ err: `${name} does not have a verified donator cape.`, m: m });
-                        }
-                    } else {
-                        request({ url: 'https://api.mojang.com/user/profiles/' + profile.cape.uuid + '/names', encoding: null }, (err, res, data) => {
-                            if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-                                TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the Mojang API'), m: m });
-                            } else
-                            if (res.statusCode === 204) {
-                                TOOLS.errorHandler({ err: new Error('Unable to get Minecraft UUID of that user.'), m: m });
-                            } else {
-                                let dp = JSON.parse(data);
-                                let dataNormalized = {
-                                    name: dp[dp.length - 1]["name"],
-                                    id: profile.cape.uuid
-                                }
-                                getOFcape(dataNormalized);
-                            }
-                        });
-                    }
-                });
-            } else
-            if (target.match(/\W+/) !== null) {
-                TOOLS.errorHandler({ err: 'Minecraft usernames can only contain upper/lowercase letters, numbers, and underscores (_)', m: m });
-            } else
-            if (target.length > 16) {
-                TOOLS.errorHandler({ err: 'Minecraft usernames cannot exceed 16 characters in length.', m: m });
-            } else {
-                request({ url: 'https://api.mojang.com/users/profiles/minecraft/' + target, encoding: null }, (err, res, data) => {
-                    if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-                        TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the Mojang API'), m: m });
-                    } else
-                    if (res.statusCode === 204) {
-                        let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.error)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_err.png'), "thumbnail.png"))
-                            .setAuthor('That player does not exist.', 'attachment://thumbnail.png')
-                            .setFooter('Maybe check your spelling?');
-
-                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                    } else {
-                        getOFcape(JSON.parse(data));
-                    }
-                });
-            }
-        });
     }
 }));
 
@@ -6032,191 +2750,6 @@ CMD.register(new Command({
 }));
 
 CMD.register(new Command({
-    trigger: 'google',
-    short_desc: 'Let me Google that for you.',
-    usage: '<query>',
-    tags: ['DM_OPTIONAL'],
-    fn: (m, args) => {
-        if (!args[0]) {
-            var embed = new discord.RichEmbed()
-            .setColor(cfg.vs.embed.error)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_search_error.png'), "thumbnail.png"))
-            .setAuthor('An Incredibly Convenient Search Tool', 'attachment://thumbnail.png')
-            .setDescription('[All your questions will be answered if you just click this link.](http://lmgtfy.com/?q='+encodeURIComponent('how to use discord bots')+'&s=g)')
-
-            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        } else {
-            var embed = new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_search.png'), "thumbnail.png"))
-            .setAuthor('An Incredibly Convenient Search Tool', 'attachment://thumbnail.png')
-            .setDescription('[All your questions will be answered if you just click this link.](http://lmgtfy.com/?q='+encodeURIComponent(m.content.substr(8))+'&s=g)')
-
-            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'modmail',
-    short_desc: `Message moderators directly and privately.`,
-    long_desc: `Sends a message directly to a private channel for only moderators to read. Messages must have a minimum length of 32 characters, and a maximum length of 1024.`,
-    usage: `<message>`,
-    tags: ['DM_ONLY'],
-    fn: (m, args) => {
-        // could maybe delete messages when used in server chat, but also try sending the existing message to the users DM to avoid having to retype everything
-        let modmail = m.content.substring( (`${memory.bot.trigger}modmail `).length );
-        let modmail_ver = 2;
-        if(!args[0]) {
-            TOOLS.errorHandler({err: "You must specify a message to send.", m:m});
-        } else
-        if(modmail.length < 32) {
-            TOOLS.errorHandler({err: "Messages must be at least 32 characters in length.", m:m});
-        } else
-        if(modmail.length > 1024) {
-            TOOLS.errorHandler({err: "Messages cannot exceed 1024 characters in length.", m:m});
-        } else {
-            TOOLS.getProfile(m, m.author.id, (profile) => {
-                if(!profile.modmail || profile.modmail === true || (typeof profile.modmail === 'object' && profile.modmail.constructor === Object && (profile.modmail.version < modmail_ver || profile.modmail.accepted === false)) ) {
-                    let desc = `**__Please read this information to completion.__ This is your first time using this command, so you will only have to read this once.**`;
-
-                    if(profile.modmail === true || (typeof profile.modmail === 'object' && profile.modmail.constructor === Object && profile.modmail.version < modmail_ver)) {
-                        desc = `**__Please read this information to completion.__ This information has been updated since the last time you used this command.**`;
-                    } else
-                    if (typeof profile.modmail === 'object' && profile.modmail.constructor === Object && profile.modmail.accepted === false) {
-                        desc = `**__Please read this information to completion.__ You must confirm that you've read the following before you can send your message.**`;
-                    }
-
-                    let warning = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.default)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-                    .setAuthor(`Important Notice`, 'attachment://icon.png')
-                    .setDescription(desc)
-                    .addField('What is this?', `This command allows you to send messages directly to server moderators in the privacy of your DMs. We've created this function to allow users to still be able to contact us, even when we have our DMs disabled or we're ignoring random friend requests.`)
-                    .addField(`How it works`, `Upon submitting your message, OptiBot will take your text and send it directly to a private channel where only us server moderators can view it. Here, we can see your message and your username, much like a regular DM. (Or more accurately, a group DM.) \n\nFrom here, one of the moderators will "take your case" and attempt to respond by sending you a DM or friend request.`)
-                    .addField('Misuse, Spam, and Abuse', `To be absolutely clear: __**This is not an invitation to freely message us about literally anything.**__ This command is designed for users to privately contact us for safety concerns, reports, and other genuinely important matters. Using this command to ask about donation/cape-related issues, request technical support, and to otherwise purposefully send us spam and nonsense **will result in an immediate ban.**`)
-                    .addField(`With all that said...`, `Type \`${memory.bot.trigger}confirm\` to confirm that you've read and understood these terms.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`)
-
-                    profile.modmail = {
-                        version: modmail_ver,
-                        accepted: false,
-                    }
-
-                    memory.db.profiles.update({member_id: profile.member_id}, profile, {}, (err) => {
-                        if(err) {
-                            TOOLS.errorHandler({err: err, m:m});
-                        } else {
-                            m.channel.send({embed: warning}).then(msg => {
-                                TOOLS.typerHandler(m.channel, false);
-                                TOOLS.confirmationHandler(m, (result) => {
-                                    if (result === 1) {
-                                        profile.modmail.accepted = true;
-                                        memory.db.profiles.update({member_id: profile.member_id}, profile, {}, (err) => {
-                                            if(err) {
-                                                TOOLS.errorHandler({err: err, m:m});
-                                            } else {
-                                                confirmSend();
-                                            }
-                                        });
-                                    } else
-                                    if (result === 0) {
-                                        let embed = new discord.RichEmbed()
-                                        .setColor(cfg.vs.embed.default)
-                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                                        .setAuthor(`Request cancelled.`, 'attachment://icon.png')
-                                        .setDescription(`Your message has not been sent. You must confirm that you've read and understood the terms.`)
-            
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                                            TOOLS.errorHandler({err:err});
-                                        });
-                                    } else
-                                    if (result === -1) {
-                                        let embed = new discord.RichEmbed()
-                                        .setColor(cfg.vs.embed.default)
-                                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                                        .setAuthor(`Request timed out.`, 'attachment://icon.png')
-                                        .setDescription(`Your message has not been sent. You must confirm that you've read and understood the terms.`)
-                                        
-                                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                                            TOOLS.errorHandler({err:err});
-                                        });
-                                    }
-                                });
-                            }).catch(err => {
-                                TOOLS.errorHandler({err:err});
-                            });
-                        }
-                    });
-                } else {
-                    confirmSend();
-                }
-            });
-
-            function confirmSend() {
-                let confirm = new discord.RichEmbed()
-                .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-                .setAuthor(`Are you sure want to send this message?`, 'attachment://icon.png')
-                .setDescription(`This action cannot be undone. \n\nType \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`)
-                .addField('The following message will be sent:', modmail);
-
-                m.channel.send({embed: confirm}).then(msg => {
-                    TOOLS.typerHandler(m.channel, false);
-                    TOOLS.confirmationHandler(m, (result) => {
-                        if (result === 1) {
-                            let mm_message = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.default)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_mail.png'), "icon.png"))
-                            .setAuthor(`You've got mail!`, 'attachment://icon.png')
-                            .setDescription(`New message from ${m.author} (${m.author.username}#${m.author.discriminator})`)
-                            .setThumbnail(m.author.displayAvatarURL)
-                            .addField(`Message Contents`, modmail)
-                            .setFooter(`Author User ID: ${m.author.id}`)
-
-
-                            bot.guilds.get(cfg.basic.of_server).channels.get('467073441904984074').send({embed: mm_message}).then(() => {
-                                let embed = new discord.RichEmbed()
-                                .setColor(cfg.vs.embed.okay)
-                                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                                .setAuthor(`Message sent.`, 'attachment://icon.png');
-                                
-                                m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
-                            }).catch((err) => {
-                                TOOLS.errorHandler({err: err, m:m});
-                            });
-                        } else
-                        if (result === 0) {
-                            let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.default)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                            .setAuthor(`Request cancelled.`, 'attachment://icon.png')
-                            .setDescription('Your message has not been sent.')
-
-                            m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
-                        } else
-                        if (result === -1) {
-                            let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.default)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                            .setAuthor(`Request timed out.`, 'attachment://icon.png')
-                            .setDescription('Your message has not been sent.')
-                            
-                            m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) });
-                        }
-                    });
-                }).catch(err => {
-                    TOOLS.errorHandler({err:err});
-                });
-            }
-        }
-    }
-}));
-
-CMD.register(new Command({
     trigger: 'purge',
     short_desc: 'Delete several messages at once.',
     long_desc: "Delete the last [x amount] messages. Useful for mass spam. \n\nWhen using this command, OptiBot will ask you to CONFIRM your request before proceeding. The bot will retain the position the original command was used at, meaning that messages that happen to be posted while you're confirming the request will be ignored.",
@@ -6246,7 +2779,6 @@ CMD.register(new Command({
                 .setDescription(`This action cannot be undone. \n\nType \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`)
 
             m.channel.send({embed: confirm}).then(msg => {
-                TOOLS.typerHandler(m.channel, false);
                 TOOLS.confirmationHandler(m, (result) => {
                     if (result === 1) {
                         m.channel.fetchMessages({before: m.id, limit: amount}).then(index_messages=> {
@@ -6291,190 +2823,6 @@ CMD.register(new Command({
                 });
             }).catch(err => {
                 TOOLS.errorHandler({err:err});
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'docs', 
-    short_desc: 'Search OptiFine documentation.',
-    long_desc: `Search for various files in the current version of OptiFine documentation. If no search query is provided, OptiBot will just give you a link to the documentation on GitHub. \n\nDue to the nature of this command, *some* files may be missing, especially if they've only been recently added. For the legacy version of this command, use \`${memory.bot.trigger}docfile\`. This command will always be up-to-date, as it downloads directly from OptiFine's GitHub repository.`,
-    usage: '[query?]',
-    tags: ['DM_OPTIONAL'],
-    fn: (m, args) => {
-        if (!args[0]) {
-            let embed = new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get("opti_docs.png"), "icon.png"))
-            .setAuthor("Official OptiFine Documentation", 'attachment://icon.png')
-            .addField("Main Directory", "https://github.com/sp614x/optifine/tree/master/OptiFineDoc/doc");
-
-            m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        } else {
-            let query = m.content.substring((memory.bot.trigger + 'docs ').length).toLowerCase();
-            let match = cstr.findBestMatch(query, Object.keys(memory.bot.docs_cat));
-
-            if (match.bestMatch.rating < 0.1) {
-                TOOLS.errorHandler({ err: "Could not find any files matching that query.", m:m });
-            } else {
-                let data = memory.bot.docs_cat[match.bestMatch.target];
-
-                let embed = new discord.RichEmbed()
-                .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.icons.get("opti_docs.png"), "icon.png"))
-                .setAuthor("Official OptiFine Documentation", 'attachment://icon.png')
-                .setDescription(`You can link to individual files by using the \`${memory.bot.trigger}docfile\` command.`)
-                .addField(data.name, data.links.join('\n\n'))
-                .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
-
-                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                    TOOLS.errorHandler({err:err});
-                });
-            }
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'docfile',
-    short_desc: 'Search/link a single file in the OptiFine documentation.',
-    long_desc: "Search for files in the current version of OptiFine documentation.",
-    usage: '<query?> [line #]',
-    tags: ['DM_OPTIONAL'],
-    fn: (m, args) => {
-        let embed = new discord.RichEmbed()
-            .setColor(cfg.vs.embed.default)
-            .attachFile(new discord.Attachment(memory.bot.icons.get("opti_docs.png"), "thumbnail.png"))
-            .setAuthor("Official OptiFine Documentation", 'attachment://thumbnail.png')
-
-        if (!args[0]) {
-            TOOLS.errorHandler({err: "You must specify a file to search for.", m:m});
-        } else {
-            let files = [];
-
-            for(let i = 0; i < memory.bot.docs.length; i++) {
-                files.push(memory.bot.docs[i].name);
-
-                if (i+1 === memory.bot.docs.length) {
-                    let match = cstr.findBestMatch(args[0], files)
-
-                    if (match.bestMatch.rating < 0.1) {
-                        TOOLS.errorHandler({err: "Could not find a file matching that query.", m:m});
-                    } else {
-                        let title = match.bestMatch.target;
-                        let url = memory.bot.docs[match.bestMatchIndex].html_url;
-
-                        if (match.bestMatch.target.endsWith('.png')) {
-                            embed.setImage(memory.bot.docs[match.bestMatchIndex].download_url);
-                        } else
-                        if (args[1] && !isNaN(args[1]) && Math.round(parseInt(args[1])) > 0) {
-                            url += '#L'+Math.round(parseInt(args[1]));
-                            title += ' | Line '+Math.round(parseInt(args[1]));
-                        }
-    
-                        embed.addField(title, url)
-                        embed.setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
-    
-                        m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                    }
-                }
-            }
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'say',
-    short_desc: 'Ventriloquism!',
-    usage: '<message AND/OR attachment>',
-    fn: (m, args) => {
-        if (!args[0]) {
-            TOOLS.errorHandler({err: "You must specify a channel ID to speak in.", m:m});
-        } else
-        if (!args[1] && m.attachments.size === 0) {
-            TOOLS.errorHandler({err: "You must specify something to say/send", m:m});
-        } else {
-            let v_msg = (args[1]) ? m.content.substring((memory.bot.trigger+'say '+args[0]+' ').length) : undefined
-            let attachment = (m.attachments.size !== 0) ? {files:[m.attachments.first(1)[0].url]} : undefined
-
-            log('[saying] '+v_msg+'\n[attachment] '+attachment, 'warn');
-
-            bot.guilds.get(cfg.basic.of_server).channels.get(args[0]).send(v_msg, attachment).then(() => {
-                let embed = new discord.RichEmbed()
-                    .setColor(cfg.vs.embed.okay)
-                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "thumbnail.png"))
-                    .setAuthor('Message sent.', 'attachment://thumbnail.png')
-
-                m.channel.send({embed: embed}).then(msg => { TOOLS.messageFinalize(m.author.id, msg) });
-            }).catch(err => {
-                TOOLS.errorHandler({err:err, m:m});
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'award',
-    short_desc: 'Give medals to users.',
-    long_desc: 'Gives a medal to the specified user. This is an alternative to adding a medal emoji to someones message.',
-    usage: '<discord user>',
-    tags: ['MODERATOR_ONLY', 'NO_DM'],
-    fn: (m, args) => {
-        if (!args[0]) {
-            TOOLS.errorHandler({err: "You must specify a user to give an medal to.", m:m});
-        } else {
-            TOOLS.getTargetUser(m, args[0], (userid, name) => {
-                if (!userid) {
-                    TOOLS.errorHandler({err: "You must specify a valid user.", m:m});
-                } else
-                if (userid === bot.user.id) {
-                    TOOLS.errorHandler({err: "I'm not allowed to have medals. :(", m:m});
-                } else
-                if (userid === m.author.id) {
-                    let embed = new discord.RichEmbed()
-                        .attachFiles([new discord.Attachment(memory.bot.images.get('medal_self.png'), "image.png")])
-                        .setColor(cfg.vs.embed.error)
-                        .setImage('attachment://image.png');
-
-                    m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                        TOOLS.errorHandler({err:err});
-                    });
-                } else {
-                    TOOLS.getProfile(m, userid, (profile) => {
-                        if (!profile.medals) {
-                            profile.medals = {
-                                count: 1,
-                                msgs: []
-                            }
-                        } else {
-                            profile.medals.count++;
-                        }
-                        
-                        memory.db.profiles.update({ member_id: userid }, profile, (err) => {
-                            if (err) TOOLS.errorHandler({ err: err, m: m });
-                            else {
-                                log(`${name} was awarded a medal by ${m.author.username}#${m.author.discriminator}`);
-        
-                                let embed = new discord.RichEmbed()
-                                    .setColor(cfg.vs.embed.default)
-                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_medal.png'), "icon.png"))
-                                    .setAuthor('Medal awarded', 'attachment://icon.png')
-                                    .setDescription(`<@${userid}> was awarded a medal by ${m.author}!`)
-
-                                m.channel.send({ embed: embed }).then(msg => {
-                                    TOOLS.messageFinalize(m.author.id, msg);
-                                }).catch(err => {
-                                    TOOLS.errorHandler({err:err});
-                                });
-                            }
-                        });
-                    });
-                }
             });
         }
     }
@@ -6536,362 +2884,6 @@ CMD.register(new Command({
                     m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
                         TOOLS.errorHandler({err:err});
                     });
-                }
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'faq',
-    short_desc: 'Search for a question in <#531622141393764352>',
-    long_desc: 'Searches for an answered question in the <#531622141393764352> channel. Due to the complexity of this command, results may vary.',
-    usage: '<query?>',
-    tags: ['DM_OPTIONAL'],
-    fn: (m, args) => {
-        if (!args[0]) {
-            TOOLS.errorHandler({ err: `You must specify a question to search for.`, m:m });
-        } else {
-            let highest = {
-                rating: 0,
-                message: undefined
-            };
-            let query = m.content.substring( (memory.bot.trigger + 'faq ').length );
-            let qrgx = new RegExp('(?<=Q: \\*\\*).+(?=\\*\\*)');
-
-            bot.guilds.get(cfg.basic.of_server).channels.get('531622141393764352').fetchMessages({ limit: 100, after: '531629512559951872' }).then(entries => {
-                let messages = [...entries.values()];
-                let i = 0;
-                (function search() {
-                    log('search loop'+i, 'trace');
-                    let question = messages[i].content.match(qrgx);
-                    let answer = messages[i].content.split('\n').slice(1).join('\n').replace(/A:/i, "").replace(/_\s+_\s*$/, "").trim();
-
-                    if (question !== null) {
-                        // dice's coefficient
-                        let match = cstr.compareTwoStrings(query.toLowerCase(), question[0].toLowerCase());
-
-                        // jaro-winkler
-                        //let match = wink(query.toLowerCase(), question[0].toLowerCase());
-
-                        if (match > highest.rating) {
-                            highest.rating = match;
-                            highest.message = messages[i];
-                            highest.question = question;
-                            highest.answer = answer;
-                        }
-                    }
-
-                    if (i+1 === messages.length || highest.rating === 1) {
-                        if (highest.rating < 0.05 || highest.message === undefined) {
-                            TOOLS.errorHandler({ err: 'Could not find an answer to that question.', m:m });
-                        } else {
-                            let embed = new discord.RichEmbed()
-                            .setColor(cfg.vs.embed.default)
-                            .attachFile(new discord.Attachment(memory.bot.icons.get('opti_faq.png'), "icon.png"))
-                            .setAuthor('Frequently Asked Questions', 'attachment://icon.png')
-                            .setFooter(`${(highest.rating * 100).toFixed(1)}% match during search.`);
-
-                            let infotext = `Click here to go to the original message link.](${highest.message.url})\n\n Be sure to also check out the <#531622141393764352> channel for more questions and answers.`;
-                            
-                            if (highest.answer) {
-                                if (highest.answer.length < 512) {
-                                    embed.setDescription('['+infotext)
-                                    .addField(highest.question, highest.answer);
-                                } else {
-                                    embed.setDescription(`[**The answer to this question is too long to show in an embed.**\n ${infotext}`)
-                                    .addField(highest.question, highest.answer.substring(0, 512).trim()+'...');
-                                }
-                            } else {
-                                embed.setDescription('['+infotext)
-                                .addField(highest.question, "_ _");
-                            }
-
-                            if (highest.message.attachments.size > 0) {
-                                if (highest.message.attachments.first(1)[0].url.match(/.(jpg|jpeg|png|gif)$/i) !== null) {
-                                    embed.setImage(highest.message.attachments.first(1)[0].url)
-                                } else {
-                                    highest.message += '\n\n'+highest.message.attachments.first(1)[0].url;
-                                }
-                            }
-
-                            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                                TOOLS.errorHandler({err:err});
-                            });
-                        }
-                    } else {
-                        i++
-                        search();
-                    }
-                })();
-            }).catch(err => {
-                TOOLS.errorHandler({ err: err, m:m });
-            })
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'mcwiki',
-    short_desc: 'Search the Minecraft Wiki.',
-    query: '[query]',
-    tags: ['DM_OPTIONAL'],
-    fn: (m, args) => {
-        let embed = new discord.RichEmbed()
-        .setColor(cfg.vs.embed.default)
-        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_mcwiki.png'), "icon.png"))
-        .setAuthor('Official Minecraft Wiki', 'attachment://icon.png');
-
-        if (!args[0]) {
-            embed.setDescription('https://minecraft.gamepedia.com/Minecraft_wiki')
-            .setFooter('To link a specific article, please specify a search query.')
-
-            m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        } else {
-            let query = m.content.split("\n", 1)[0].substring( (memory.bot.trigger+'mcwiki ').length ).trim();
-            let url = "https://minecraft.gamepedia.com/api.php?action=query&format=json&generator=search&gsrsearch="+encodeURIComponent(query)+"&gsrlimit=1&prop=info&inprop=url";
-            if (query.toLowerCase() === 'random') url = "https://minecraft.gamepedia.com/api.php?action=query&format=json&generator=random&prop=info&inprop=url";
-
-            request(url, (err, res, data) => {
-                if (err || !res || !data) {
-                    TOOLS.errorHandler({ err: err || new Error('Failed to get a response from the Minecraft Wiki API'), m: m });
-                } else {
-                    let result = JSON.parse(data);
-
-                    if (!result.query) {
-                        embed.setDescription('https://minecraft.gamepedia.com/Minecraft_wiki')
-                        .setFooter('Could not find a page matching that query.')
-
-                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                    } else {
-                        let resultID = Object.keys(result.query.pages)[0];
-                        embed.addField(result.query.pages[resultID].title, result.query.pages[resultID].fullurl);
-
-                        m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                    }
-                }
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'setmotd',
-    short_desc: 'Set MOTD message.',
-    long_desc: `Adds a message to OptiBot's MOTD, which is sent to every new user that joins the server. This can be undone by using the \`${memory.bot.trigger}clearmotd\` command.`,
-    usage: '[message]',
-    tags: ['MODERATOR_ONLY', 'NO_JR_MOD', 'NO_DM'],
-    fn: (m, args) => {
-        if(!args[0]) {
-            TOOLS.errorHandler({ err: "You must specify a message.", m: m });
-        } else {
-            let newMsg = m.content.substring( (memory.bot.trigger + 'motd ').length );
-            let messageformatted = '> '+newMsg.replace('\n', '> \n').substring(0, 1024);
-
-            if (memory.bot.motd.fields[0] && memory.bot.motd.fields[0].value.toLowerCase() === newMsg.trim().toLowerCase()) {
-                TOOLS.errorHandler({ err: "New MOTD Message cannot be the same as the current message.", m: m });
-                return;
-            }
-
-            let confirm = new discord.RichEmbed()
-                .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_warn.png'), "icon.png"))
-                .setAuthor(`Are you sure want to change the MOTD message?`, 'attachment://icon.png')
-                .setDescription(`This message will be shown to ALL users who join the server. \n\nType \`${memory.bot.trigger}confirm\` to continue.\nType \`${memory.bot.trigger}cancel\` or simply ignore this message to cancel.`)
-
-            if (memory.bot.motd.fields[0]) {
-                confirm.addField('Current Message Preview', memory.bot.motd.fields[0].value);
-            }
-
-            confirm.addField('New Message Preview', messageformatted)
-                .setFooter('Note that messages must be less than 1024 characters in length. Your message may have been automatically shortened to fit.');
-
-            
-            m.channel.send({ embed: confirm }).then(() => {
-                TOOLS.typerHandler(m.channel, false);
-                TOOLS.confirmationHandler(m, (result) => {
-                    if (result === 1) {
-                        let motd_data = {
-                            motd: true,
-                            date: new Date(),
-                            message: messageformatted,
-                        }
-                        
-                        memory.db.motd.update({motd: true}, motd_data, { upsert: true }, (err) => {
-                            if (err) {
-                                TOOLS.errorHandler({ m:m, err:err });
-                            } else {
-                                if (memory.bot.motd.fields[0]) {
-                                    memory.bot.motd.fields[0].name = `A message from Moderators (Posted on ${motd_data.date.toUTCString()})`;
-                                    memory.bot.motd.fields[0].value = messageformatted;
-                                } else {
-                                    memory.bot.motd.addField(`A message from Moderators (Posted on ${motd_data.date.toUTCString()})`, messageformatted)
-                                }
-        
-                                let embed = new discord.RichEmbed()
-                                    .attachFile(new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"))
-                                    .setColor(cfg.vs.embed.okay)
-                                    .setAuthor("Message set.", "attachment://icon.png")
-                                    .setDescription(`Type \`${memory.bot.trigger}motd\` to see how it looks.`)
-        
-                                m.channel.send({ embed: embed }).then(msg => { TOOLS.messageFinalize(m.author.id, msg) }).catch(err => {
-                                    TOOLS.errorHandler({err:err});
-                                });
-                            }
-                        });
-                    } else
-                    if (result === 0) {
-                        let embed = new discord.RichEmbed()
-                        .setColor(cfg.vs.embed.default)
-                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                        .setAuthor(`Request cancelled.`, 'attachment://icon.png')
-                        .setDescription('MOTD message has not been changed.')
-
-                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                    } else
-                    if (result === -1) {
-                        let embed = new discord.RichEmbed()
-                        .setColor(cfg.vs.embed.default)
-                        .attachFile(new discord.Attachment(memory.bot.icons.get('opti_wait.png'), "icon.png"))
-                        .setAuthor(`Request timed out.`, 'attachment://icon.png')
-                        .setDescription('MOTD message has not been changed.')
-                        
-                        m.channel.send({embed: embed}).then(msg2 => { TOOLS.messageFinalize(m.author.id, msg2) }).catch(err => {
-                            TOOLS.errorHandler({err:err});
-                        });
-                    }
-                });
-            }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'split',
-    short_desc: 'Split a texture into smaller textures.',
-    long_desc: `Split a given image attachment into smaller textures. Define the size of each block with the \`width\` and \`height\` arguments. **All numbers must be EVEN, including the resolution of your intial image texture!**`,
-    usage:`<width> <height>`,
-    fn: (m, args) => {
-        // todo: make minimum block size dependent on the total image size.
-        let timeStart = new Date().getTime();
-        if (m.attachments.size === 0) {
-            TOOLS.errorHandler({ err:'You must include an image to dice.', m:m });
-        } else
-        if (!args[0]) {
-            TOOLS.errorHandler({ err:'You must specify the width of the grid blocks.', m:m });
-        } else
-        if (!args[1]) {
-            TOOLS.errorHandler({ err:'You must specify the height of the grid blocks.', m:m });
-        } else
-        if (isNaN(args[0]) || isNaN(args[1])) {
-            TOOLS.errorHandler({ err:'You must specify valid numbers.', m:m });
-        } else
-        if (parseInt(args[0]) % 2 === 1 || parseInt(args[0]) % 2 === 1) {
-            TOOLS.errorHandler({ err:'You cannot use odd numbers.', m:m });
-        } else
-        if (parseInt(args[0]) < 8 || parseInt(args[0]) < 8) {
-            TOOLS.errorHandler({ err:'Blocks cannot be smaller than 8x8 pixels.', m:m });
-        } else {
-            jimp.read(m.attachments.first(1)[0].url, (err, image) => {
-                if (err) {
-                    TOOLS.errorHandler({ err:err, m:m });
-                } else
-                if (image.bitmap.width % 2 === 1 || image.bitmap.height % 2 === 1) {
-                    TOOLS.errorHandler({ err:'Image must have an even width and height.', m:m });
-                } else 
-                if (image.bitmap.width > 1024 || image.bitmap.height > 1024) {
-                    TOOLS.errorHandler({ err:'Image cannot exceed 1024 pixels in width or height.', m:m });
-                } else 
-                if (image.bitmap.width < parseInt(args[0]) || image.bitmap.height < parseInt(args[1])) {
-                    TOOLS.errorHandler({ err:'Block size cannot exceed image dimensions.', m:m });
-                } else {
-                    let column = 0;
-                    let row = 0;
-                    
-                    let filenum = 0;
-                    let zip = new archive();
-
-                    (function splitter() {
-                        log(`now doing c${column+1} r${row+1}`, 'trace');
-                        log(`this image at x${parseInt(args[0]) * column} y${parseInt(args[1]) * row}`)
-                        let newimg = image.clone();
-
-                        newimg.crop((parseInt(args[0]) * column), (parseInt(args[1]) * row), parseInt(args[0]), parseInt(args[1]))
-                        .getBuffer(jimp.AUTO, (err, buffer) => {
-                            if (err) {
-                                TOOLS.errorHandler({ err:err, m:m });
-                            } else {
-                                zip.addFile(`${filenum}.png`, buffer);
-
-                                filenum++;
-                                if (column+2 > (image.bitmap.width / parseInt(args[0])) ) {
-                                    if (row+2 > (image.bitmap.height / parseInt(args[1])) ) {
-                                        let embed = new discord.RichEmbed()
-                                        .setColor(cfg.vs.embed.okay)
-                                        .attachFiles([new discord.Attachment(memory.bot.icons.get('opti_okay.png'), "icon.png"), new discord.Attachment(zip.toBuffer(), "output.zip")])
-                                        .setAuthor(`Successfully generated ${filenum} images in ${(new Date().getTime() - timeStart) / 1000} seconds.`, 'attachment://icon.png')
-
-                                        m.channel.send({embed: embed}).then(msg => TOOLS.messageFinalize(m.author.id, msg)).catch(err => {
-                                            TOOLS.errorHandler({err:err});
-                                        });
-                                    } else {
-                                        column = 0;
-                                        row++;
-                                        splitter();
-                                    }
-                                } else {
-                                    column++;
-                                    splitter();
-                                }
-                            }
-                        });
-                    })();
-                }
-            });
-        }
-    }
-}));
-
-CMD.register(new Command({
-    trigger: 'join',
-    short_desc: 'Stitch several textures together.',
-    long_desc: `Stitches a series of given images into a single texture. You must include all images to join, in the form of a .zip file. Define the size of the canvas the \`width\` and \`height\` arguments. **All numbers must be EVEN, including the resolution of your intial image textures!**`,
-    usage:`<width> <height>`,
-    fn: (m, args) => {
-        let timeStart = new Date().getTime();
-        if (m.attachments.size === 0) {
-            TOOLS.errorHandler({ err:'You must include a zip file.', m:m });
-        } else
-        if (!args[0]) {
-            TOOLS.errorHandler({ err:'You must specify the width of the canvas.', m:m });
-        } else
-        if (!args[1]) {
-            TOOLS.errorHandler({ err:'You must specify the height of the canvas.', m:m });
-        } else
-        if (isNaN(args[0]) || isNaN(args[1])) {
-            TOOLS.errorHandler({ err:'You must specify valid numbers.', m:m });
-        } else
-        if (parseInt(args[0]) % 2 === 1 || parseInt(args[0]) % 2 === 1) {
-            TOOLS.errorHandler({ err:'You cannot use odd numbers.', m:m });
-        } else {
-            request(m.attachments.first(1)[0].url, (err, res, data) => {
-                if (err || res.statusCode === 404) {
-                    TOOLS.errorHandler({ err:err||new Error('Unable to download attachment.'), m:m });
-                } else {
-                    let zip = new archive(data);
-                    let entries = zip.getEntries();
-
-                    // todo
                 }
             });
         }
@@ -7038,7 +3030,9 @@ TOOLS.statusHandler = (type) => {
                 ACT_game = 'Mod Mode 🔒';
             }
         } else {
-            ACT_status = 'online';
+            ACT_status = 'dnd';
+            ACT_type = 'PLAYING';
+            ACT_game = 'Ultralight Mode 🔒';
         }
     } else
     if (type === 2) {
@@ -7052,25 +3046,6 @@ TOOLS.statusHandler = (type) => {
     memory.activity.game = ACT_game;
     memory.activity.type = ACT_type;
     memory.activity.url = ACT_url;
-}
-
-/**
- * Simple typing status handler.
- * 
- * @param {discord.TextChannel|discord.DMChannel} channel The channel to start/stop typing in.
- * @param {boolean} state Start typing? If true, the bot will begin typing in the specified channel. If false, the bot will stop typing in that channel.
- */
-TOOLS.typerHandler = (channel, state) => {
-    if (cfg.vs.typer) {
-        if (state) {
-            channel.startTyping();
-        } else {
-            channel.stopTyping();
-            setTimeout(() => {
-                channel.stopTyping();
-            }, 2000);
-        }
-    }
 }
 
 /**
@@ -7097,26 +3072,13 @@ TOOLS.shutdownHandler = (code) => {
 
     clearInterval(memory.bot.status_check);
 
-    if(memory.stats && memory.stats.old) {
-        TOOLS.packStats().then(() => {
-            final();
-        }).catch(err => {
-            TOOLS.errorHandler({err: err});
-            final();
-        });
-    } else {
-        final();
-    }
-
-    function final() {
-        bot.setTimeout(() => {
-            bot.destroy();
-            process.title = 'OptiBot ' + pkg.version;
-            setTimeout(() => {
-                process.exit(code);
-            }, 500);
-        }, 250);
-    }
+    bot.setTimeout(() => {
+        bot.destroy();
+        process.title = 'OptiBot ' + pkg.version;
+        setTimeout(() => {
+            process.exit(code);
+        }, 500);
+    }, 250);
 }
 
 /**
@@ -7126,58 +3088,7 @@ TOOLS.shutdownHandler = (code) => {
  * @param {discord.Message} botm The new message posted by OptiBot.
  */
 TOOLS.messageFinalize = (author, m) => {
-    TOOLS.typerHandler(m.channel, false);
 
-    if(m.channel.type !== 'dm') {
-        log('message sent, adding to cache', 'debug');
-        m.react(bot.guilds.get(cfg.basic.ob_server).emojis.get('642085525460877334')).then(() => {
-            let cacheData = {
-                time: new Date().getTime(),
-                guild: m.guild.id,
-                channel: m.channel.id,
-                message: m.id,
-                user: author
-            }
-
-            memory.db.msg.insert(cacheData, (err) => {
-                if (err) {
-                    TOOLS.errorHandler({ err: err });
-                } else {
-                    log('successfully added message to cache', 'debug');
-                    log('checking cache limit', 'debug');
-                    memory.db.msg.find({}).sort({ time: 1 }).exec((err, docs) => {
-                        if (err) {
-                            TOOLS.errorHandler({ err: err });
-                        } else
-                        if (docs.length > cfg.db.size) {
-                            log('reached cache limit, removing first element from cache.', 'debug');
-                            memory.db.msg.remove(docs[0], {}, (err) => {
-                                if (err) {
-                                    TOOLS.errorHandler({ err: err });
-                                } else {
-                                    bot.guilds.get(docs[0].guild).channels.get(docs[0].channel).fetchMessage(docs[0].message).then((msg) => {
-                                        let reaction = msg.reactions.get('click_to_delete:642085525460877334');
-
-                                        if(reaction && reaction.me) {
-                                            reaction.remove().then(() => {
-                                                log('Time expired for message deletion.', 'trace');
-                                            }).catch(err => {
-                                                TOOLS.errorHandler({ err: err });
-                                            })
-                                        }
-                                    }).catch(err => {
-                                        TOOLS.errorHandler({ err: err });
-                                    });
-                                }
-                            });
-                        }
-                    });
-                }
-            })
-        }).catch(err => {
-            TOOLS.errorHandler({ err: err });
-        });
-    }
 }
 
 /**
@@ -7223,7 +3134,6 @@ TOOLS.errorHandler = (data) => {
             if (data.temp) {
                 embed.setFooter('This message will self-destruct in 10 seconds.')
                 data.m.channel.send({ embed: embed }).then(msg => {
-                    TOOLS.typerHandler(data.m.channel, false);
                     bot.setTimeout(() => {
                         if (!msg.deleted) {
                             msg.delete();
@@ -7238,38 +3148,6 @@ TOOLS.errorHandler = (data) => {
                 });
             }
         }
-    }
-}
-
-/**
- * Simplified RNG handler.
- * 
- * @param {*} val1 First value.
- * @param {*} [val2] Second value.
- * 
- * If val1 is an Array, this will pick a random item from the array.
- * 
- * If val1 is an Object Literal, this will pick a random key from the first level of the object.
- * 
- * If val1 and val2 are both numbers, this will pick a random number between the two.
- */
-TOOLS.randomizer = (val1, val2) => {
-    if (Array.isArray(val1)) {
-        // array []
-        return val1[~~(Math.random() * val1.length)];
-    } else
-    if (typeof val1 === 'object' && val1.constructor === Object) {
-        // object {}
-        let keys = Object.keys(val1);
-        if (keys.length > 0) return keys[~~(Math.random() * keys.length)];
-        else return null;
-    } else
-    if (!isNaN(val1) && !isNaN(val2)) {
-        // numbers
-        if (val1 >= 0) return ~~((Math.random() * val2) + val1);
-        else return ~~((Math.random() * (val2 - val1)) + val1);
-    } else {
-        return null;
     }
 }
 
@@ -7511,14 +3389,11 @@ TOOLS.muteHandler = (m, args, action) => {
                 } else {
                     embed.setAuthor(`Updated. ${muted_name} will now be muted for ${final}.`, 'attachment://icon.png');   
                 }
+            } else
+            if (time === null) {
+                embed.setAuthor(`Muted ${muted_name} until hell freezes over.`, 'attachment://icon.png');
             } else {
-                if(cfg.statistics.enabled) memory.stats.users.mutes++;
-
-                if (time === null) {
-                    embed.setAuthor(`Muted ${muted_name} until hell freezes over.`, 'attachment://icon.png');
-                } else {
-                    embed.setAuthor(`Muted ${muted_name} for ${final}.`, 'attachment://icon.png');
-                }
+                embed.setAuthor(`Muted ${muted_name} for ${final}.`, 'attachment://icon.png');
             }
         } else {
             embed.setAuthor(`Unmuted ${muted_name}.`, 'attachment://icon.png');
@@ -7649,87 +3524,6 @@ TOOLS.getTargetUser = (m, target, cb) => {
     }
 }
 
-TOOLS.cooldownHandler = (m, isAdmin) => {
-    if (isAdmin) return;
-    if (memory.cd.active) return;
-
-    memory.cd.threshold++;
-    log('CD: command issued', 'debug');
-    log('memory.cd.threshold === ' + memory.cd.threshold, 'debug');
-
-    if (memory.cd.timer && memory.cd.threshold > cfg.cd.ol_threshold) {
-        TOOLS.statusHandler(2);
-        log('COOLDOWN MODE ACTIVATED', 'warn');
-        memory.cd.threshold = 0;
-        memory.cd.timer = false;
-        log('memory.cd.timer === ' + memory.cd.timer, 'debug');
-        memory.cd.active = true;
-
-        let timeout = new Number(cfg.cd.timer_min * memory.cd.mult);
-
-        bot.setTimeout(() => {
-            let embed = new discord.RichEmbed()
-                .setColor(cfg.vs.embed.default)
-                .attachFile(new discord.Attachment(memory.bot.icons.get('opti_timer.png'), 'timeout.png'))
-                .setAuthor("OptiBot is in cooldown mode!", 'attachment://timeout.png')
-                .setDescription("Please wait " + timeout + " seconds.");
-
-            TOOLS.typerHandler(m.channel, false);
-            m.channel.send("_ _", { embed: embed }).then(msg => {
-                let CD_interval = 0;
-                let countdown = bot.setInterval(() => {
-                    timeout--;
-
-                    if (timeout <= 0) {
-                        memory.cd.active = false;
-
-                        log('COOLDOWN MODE DEACTIVATED');
-                        TOOLS.statusHandler(1);
-
-                        msg.delete();
-                        bot.clearInterval(countdown);
-
-                        let newMult = memory.cd.mult + cfg.cd.post_timer_mult;
-                        if (memory.cd.mult === 1) {
-                            memory.cd.mult = newMult - 1;
-                        } else {
-                            (newMult > cfg.cd.timer_max) ? (memory.cd.mult = cfg.cd.timer_max) : (memory.cd.mult = newMult);
-                        }
-
-                        let extendTimer = bot.setInterval(() => {
-                            if (memory.cd.mult === 1 || memory.cd.active) {
-                                bot.clearInterval(extendTimer);
-                            } else {
-                                memory.cd.mult--;
-                            }
-                        }, cfg.cd.post_timer * 1000);
-                    } else
-                        if (cfg.cd.show_countdown) {
-                            CD_interval++;
-                            if (CD_interval === cfg.cd.countdown_interval) {
-                                CD_interval = 0;
-
-                                embed.description = "Please wait " + timeout + " seconds.";
-                                msg.edit("_ _", { embed: embed });
-                            }
-                        }
-                }, 1000);
-            }).catch(err => {
-                TOOLS.errorHandler({err:err});
-            });
-        }, 300);
-    } else {
-        memory.cd.timer = true;
-        log('memory.cd.timer === ' + memory.cd.timer, 'debug');
-        bot.setTimeout(() => {
-            if (!memory.cd.active) {
-                memory.cd.timer = false;
-                log('memory.cd.timer === ' + memory.cd.timer, 'debug');
-            }
-        }, cfg.cd.ol_timer * 1000);
-    }
-}
-
 /**
  * Gets data from parent process (bootstrapper)
  */
@@ -7760,65 +3554,4 @@ TOOLS.pickupData = (type, cb) => {
             bot.clearInterval(check);
         }
     }, 1000);
-}
-
-if(cfg.statistics.enabled) {
-    TOOLS.packStats = () => {
-        return new Promise((resolve, reject) => {
-            log(memory.stats, 'debug');
-            let newStats = JSON.parse(JSON.stringify(cfg.statistics.template));
-    
-            newStats.month = new Date().getUTCMonth();
-    
-            log('trace', 'trace');
-        
-            newStats.users.join = memory.stats.old.users.join + memory.stats.users.join;
-            newStats.users.leave = memory.stats.old.users.leave + memory.stats.users.leave;
-            newStats.users.bans = memory.stats.old.users.bans + memory.stats.users.bans;
-            newStats.users.kicks = memory.stats.old.users.kicks + memory.stats.users.kicks;
-            newStats.users.mutes = memory.stats.old.users.mutes + memory.stats.users.mutes;
-        
-            newStats.users.unique = [...new Set(memory.stats.old.users.unique.concat(memory.stats.users.unique))];
-        
-            newStats.messages = memory.stats.old.messages + memory.stats.messages;
-            newStats.dms = memory.stats.old.dms + memory.stats.dms;
-            newStats.commands.total = memory.stats.old.commands.total + memory.stats.commands.total;
-    
-            log('trace', 'trace');
-    
-            if(newStats.commands.total > 0) {
-                let allCMDs = Object.keys(memory.stats.old.commands.list).concat(Object.keys(memory.stats.commands.list));
-    
-                log(allCMDs, 'trace');
-            
-                allCMDs.forEach((key, i, arr) => {
-                    let endValue = 0;
-    
-                    log('packStat loop'+i, 'debug');
-            
-                    if(memory.stats.old.commands.list[key]) endValue += memory.stats.old.commands.list[key];
-                    if(memory.stats.commands.list[key]) endValue += memory.stats.commands.list[key];
-            
-                    newStats.commands.list[key] = endValue;
-            
-                    if(i+1 >= arr.length) {
-                        finish()
-                    }
-                });
-            } else {
-                finish()
-            }
-    
-            function finish() {
-                memory.db.stats.update({ month: newStats.month }, newStats, (err) => {
-                    if(err) {
-                        reject(err);
-                    } else {
-                        log(newStats, 'debug');
-                        resolve(newStats);
-                    }
-                });
-            }
-        });
-    }
 }

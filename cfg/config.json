@@ -5,38 +5,6 @@
         "of_server": "423430686880301056",
         "ob_server": "627527422312710154"
     },
-    "cd": {
-        "timer_min": 5,
-        "timer_max": 30,
-        "ol_threshold": 1,
-        "ol_timer": 2,
-        "post_timer_mult": 3,
-        "post_timer": 3,
-        "countdown_interval": 2,
-        "show_countdown": true
-    },
-    "statistics": {
-        "enabled": true,
-        "template": {
-            "month": null,
-            "active": true,
-            "users": {
-                "join": 0,
-                "leave": 0,
-                "bans": 0,
-                "kicks": 0,
-                "mutes": 0,
-                "warns": 0,
-                "unique": []
-            },
-            "messages": 0,
-            "dms": 0,
-            "commands": {
-                "total": 0,
-                "list": {}
-            }
-        }
-    },
     "db": {
         "size": 64
     },
@@ -45,8 +13,7 @@
             "default": "E29F00",
             "okay": "43B581",
             "error": "DD2E44"
-        },
-        "typer": true
+        }
     },
     "superusers": [
         "181214529340833792"
@@ -77,27 +44,5 @@
         "bot": [
             "626843115650547743"
         ]
-    },
-    "splash": [
-        "uwu",
-        "<3",
-        "${splashtext}",
-        "if (\"true\" === \"true\") return !false",
-        "now in 3 new flavors",
-        "while yall here be sure to check out my soundcloud",
-        "lmao n00b gg ez",
-        "psp exclusive",
-        "bot of the year",
-        "this bot has gone 0 days bug-free",
-        "[next version] hype",
-        "optifine 1.15 when???",
-        "i cant read",
-        "establish communism",
-        "my wife left me",
-        "FUCK EPIC",
-        "the all new range rover sport",
-        "hilarious joke",
-        "JavaScript, also known as Java for short.",
-        "catch blocks? haha what are those"
-    ]
+    }
 }

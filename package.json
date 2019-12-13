@@ -1,7 +1,7 @@
 {
-  "name": "optibot",
-  "version": "2.0.12",
-  "description": "Official OptiFine Discord Server bot.",
+  "name": "optibotlite",
+  "version": "1.0.0",
+  "description": "Official OptiFine Discord Server bot. (LITE EDITION)",
   "homepage": "https://discord.gg/3mMpcwW",
   "author": {
     "name": "Kyle Edwards",
@@ -12,17 +12,13 @@
     "url": "https://github.com/realjackasterisk/OptiBot"
   },
   "scripts": {
-    "start": "node bootstrapper.js"
+    "start": "init.bat"
   },
   "dependencies": {
-    "adm-zip": "^0.4.13",
     "caller-id": "^0.1.0",
-    "cheerio": "^1.0.0-rc.3",
     "discord.js": "^11.4.2",
     "jaro-winkler": "^0.2.8",
-    "jimp": "^0.6.0",
     "nedb": "^1.8.0",
-    "request": "^2.88.0",
     "string-similarity": "^3.0.0"
   }
 }

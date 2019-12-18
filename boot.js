@@ -47,7 +47,7 @@ const env = {
     }
 }
 
-const log = (m, lvl, data) => {
+const log = (m, lvl, file) => {
     let call = callerId.getData();
     let entry = {
         timestamp: {
@@ -69,32 +69,32 @@ const log = (m, lvl, data) => {
     }
 
     if(lvl) {
-        if(lvl.toLowerCase() === 'fatal') {
-            entry.level.content = 'FATAL';
+        if(lvl.toLowerCase() === `fatal`) {
+            entry.level.content = `FATAL`;
             entry.level.color = '\x1b[7;91m';
             entry.message.color = '\x1b[91m';
         } else
-        if(lvl.toLowerCase() === 'error') {
+        if(lvl.toLowerCase() === `error`) {
             if (env.log.level > 4) return;
-            entry.level.content = 'ERROR';
+            entry.level.content = `ERROR`;
             entry.level.color = '\x1b[91m';
             entry.message.color = '\x1b[91m';
         } else
-        if(lvl.toLowerCase() === 'warn') {
+        if(lvl.toLowerCase() === `warn`) {
             if (env.log.level > 3) return;
-            entry.level.content = 'WARN';
+            entry.level.content = `WARN`;
             entry.level.color = '\x1b[93m';
             entry.message.color = '\x1b[93m';
         } else
-        if(lvl.toLowerCase() === 'info') {
+        if(lvl.toLowerCase() === `info`) {
             if (env.log.level > 2) return;
-            entry.level.content = 'INFO';
+            entry.level.content = `INFO`;
             entry.level.color = '\x1b[0m';
             entry.message.color = '\x1b[97m';
         } else
-        if(lvl.toLowerCase() === 'debug') {
+        if(lvl.toLowerCase() === `debug`) {
             if (env.log.level > 1) return;
-            entry.level.content = 'DEBUG';
+            entry.level.content = `DEBUG`;
             entry.level.color = '\x1b[35m';
             entry.message.color = '\x1b[35m';
         } else
@@ -142,6 +142,10 @@ const log = (m, lvl, data) => {
         }
     }
 
+    if(file) {
+        entry.file.content = file;
+    }
+
     let m1 = `[${entry.timestamp.color}${entry.timestamp.content}\x1b[0m] [${entry.file.color}${entry.file.content}\x1b[0m] ${entry.level.color}[${entry.level.content}]\x1b[0m : `;
     let m2 = entry.message.color+entry.message.content.replace(/\n/g, `\n${(` `.repeat(m1.length))}`)+`\x1b[0m`;
 
@@ -152,32 +156,59 @@ const log = (m, lvl, data) => {
     if(env.log.stream) env.log.stream.write(m1c+m2c);
 }
 
-if (!fs.existsSync('./logs')) {
-    fs.mkdirSync('./logs')
+// check and setup required directories and files
+
+if (!fs.existsSync(`./assets`)) {
+    throw new Error(`./assets directory not found.`);
 }
 
-if (!fs.existsSync('./data')) {
-    fs.mkdirSync('./data')
+if (!fs.existsSync(`./assets/img`)) {
+    throw new Error(`./assets/img directory not found.`);
 }
 
-if (!fs.existsSync('./cmd')) {
-    throw new Error('Commands directory not found.');
+if (!fs.existsSync(`./cfg`)) {
+    throw new Error(`./cfg directory not found.`);
 }
 
-if (!fs.existsSync('./core')) {
-    throw new Error('Core directory not found.');
+if (!fs.existsSync(`./cfg/config.json`)) {
+    throw new Error(`./cfg/config.json file not found.`);
 }
 
-if (!fs.existsSync('./cfg')) {
-    throw new Error('Config directory not found.');
+if (!fs.existsSync(`./cfg/keys.json`)) {
+    throw new Error(`./cfg/keys.json file not found.`);
+}
+
+if(typeof require(`./cfg/keys.json`).discord !== 'string') {
+    throw new Error(`./cfg/keys.json - Missing Discord API token.`);
+}
+
+if (!fs.existsSync(`./cmd`)) {
+    throw new Error(`Commands directory not found.`);
+}
+
+if (!fs.existsSync(`./core`)) {
+    throw new Error(`Core directory not found.`);
+}
+
+if (!fs.existsSync(`./data`)) {
+    fs.mkdirSync(`./data`)
+}
+
+if (!fs.existsSync(`./data/profiles.db`)) {
+    fs.writeFileSync(`./data/profiles.db`, ``);
+}
+
+if (!fs.existsSync(`./logs`)) {
+    fs.mkdirSync(`./logs`)
 }
 
 process.title = `OptiBot ${pkg.version}`;
 
 (function q1() {
+    process.stdout.write('\033c');
     process.stdout.write(`\u001b[2J\u001b[0;0H`);
-    if(process.argv.indexOf('--skipsetup') > -1) {
-        if(process.argv.indexOf('--dev') > -1) {
+    if(process.argv.indexOf(`--skipsetup`) > -1) {
+        if(process.argv.indexOf(`--dev`) > -1) {
             env.dev = true;
             env.rl.close();
         } else {
@@ -185,11 +216,11 @@ process.title = `OptiBot ${pkg.version}`;
         }
         init();
     } else {
-        env.rl.question('Start OptiBot [Y/N]\n', (res) => {
-            if(res.trim().toLowerCase() === 'y') {
+        env.rl.question(`Start OptiBot [Y/N]\n`, (res) => {
+            if(res.trim().toLowerCase() === `y`) {
                 q2();
             } else
-            if(res.trim().toLowerCase() === 'n') {
+            if(res.trim().toLowerCase() === `n`) {
                 process.exit();
             } else {
                 q1();
@@ -199,14 +230,15 @@ process.title = `OptiBot ${pkg.version}`;
 })();
 
 function q2() {
+    process.stdout.write('\033c');
     process.stdout.write(`\u001b[2J\u001b[0;0H`);
-    env.rl.question('Enable Dev Environment [Y/N]\n', (res) => {
-        if(res.trim().toLowerCase() === 'y') {
+    env.rl.question(`Enable Dev Environment [Y/N]\n`, (res) => {
+        if(res.trim().toLowerCase() === `y`) {
             env.dev = true;
             env.rl.close();
             init()
         } else
-        if(res.trim().toLowerCase() === 'n') {
+        if(res.trim().toLowerCase() === `n`) {
             env.log.level = 2;
             env.rl.close();
             init()
@@ -217,28 +249,63 @@ function q2() {
 }
 
 function init() {
+    process.stdout.write('\033c');
     process.stdout.write(`\u001b[2J\u001b[0;0H`);
     
-    env.log.filename = new Date().toUTCString().replace(/[/\\?%*:|"<>]/g, '.')
+    env.log.filename = new Date().toUTCString().replace(/[/\\?%*:|"<>]/g, `.`)
     env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);
 
+    log('spawning child process (index.js)');
+    const bot = child.spawn('node', ['index.js'], {
+        stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+    });
 
-    let width = 64; //inner width of box
+    bot.stdout.on('data', (data) => {
+        log(data, undefined, 'index.js:NULL');
+    });
+
+    bot.stderr.on('data', (data) => {
+        log(data, 'fatal', 'index.js:NULL');
+    });
+
+    bot.on('message', (data) => {
+        if(data.type === 'log') {
+            log(data.message, data.level, data.misc);
+        } else
+        if(data.type === 'ready') {
+            log('Bot ready');
+        } else
+        if(data.type === 'logLvl') {
+            env.log.level = parseInt(data.content)
+            log('Log level updated.', 'fatal');
+        }
+    });
+
+    bot.on('exit', (code) => {
+        log(`Child process ended with exit code ${code}`);
+    });
+
+    
+
+
+    /* let width = 64; //inner width of box
 
     function centerText(text, totalWidth) {
         let leftMargin = Math.floor((totalWidth - (text.length)) / 2);
         let rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
 
-        return '│' + (' '.repeat(leftMargin)) + text + (' '.repeat(rightMargin)) + '│';
+        return `│` + (` `.repeat(leftMargin)) + text + (` `.repeat(rightMargin)) + `│`;
     }
 
-    log(`╭${'─'.repeat(width)}╮`, 'info'); 
-    log(centerText(`  `, width), 'info');
-    log(centerText(`OptiBot ${pkg.version}`, width), 'info');
-    log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2019`, width), 'info');
-    //log(centerText(`Successfully booted in ${bootTimeTaken} seconds.`, width), 'info');
-    //log(centerText(`  `, width), 'info');
-    //log(centerText(TOOLS.randomizer(cfg.splash), width), 'info');
-    log(centerText(`  `, width), 'info');
-    log(`╰${'─'.repeat(width)}╯`, 'info');
+    log(`╭${'─'.repeat(width)}╮`, `info`); 
+    log(centerText(`  `, width), `info`);
+    log(centerText(`OptiBot ${pkg.version}`, width), `info`);
+    log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2019`, width), `info`);
+    //log(centerText(`Successfully booted in ${bootTimeTaken} seconds.`, width), `info`);
+    //log(centerText(`  `, width), `info`);
+    //log(centerText(TOOLS.randomizer(cfg.splash), width), `info`);
+    log(centerText(`  `, width), `info`);
+    log(`╰${'─'.repeat(width)}╯`, `info`); */
+
+
 }

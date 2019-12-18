@@ -4,15 +4,27 @@ module.exports = class OptiBot extends djs.Client {
     constructor (options) {
         super(options);
 
-        this.cfg = require('./cfg/config.json');
-        this.memory = {}
-    }
+        let memory = null;
 
-    get cfg() {
-        return this.cfg;
-    }
+        Object.defineProperty(this, 'cfg', {
+            get: function() {
+                return require('../cfg/config.json');
+            }
+        });
 
-    get data() {
-        return this.memory;
+        Object.defineProperty(this, 'keys', {
+            get: function() {
+                return require('../cfg/keys.json');
+            }
+        });
+
+        Object.defineProperty(this, 'memory', {
+            get: function() {
+                return memory;
+            },
+            set: function(value) {
+                memory = value;
+            }
+        });
     }
 }

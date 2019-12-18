@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 // Written by Kyle Edwards <wingedasterisk@gmail.com>, November 2019
 // 6,000+ lines of complete and utter shit coming right up.
 // ========================================================================
@@ -7730,33 +7731,18 @@ TOOLS.cooldownHandler = (m, isAdmin) => {
     }
 }
 
+=======
+>>>>>>> Stashed changes
 /**
- * Gets data from parent process (bootstrapper)
+ * OptiBot NX - Main Program
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * Written by Kyle Edwards <wingedasterisk@gmail.com>, December 2019
  */
-TOOLS.pickupData = (type, cb) => {
-    let data_id = new Date().getTime();
-    process.send({
-        type: type,
-        id: data_id
-    });
 
-    let tries = 0;
-    let check = bot.setInterval(() => {
-        tries++;
-        let pickup = memory.bot.dataPickup[data_id];
-        if(pickup) {
-            if(pickup.type === type) {
-                cb(pickup);
-            } else {
-                cb(null);
-            }
-            
-            bot.clearInterval(check);
-        } else
-        if(tries > 30) {
-            TOOLS.errorHandler({err: new Error(`Failed to get data "${type}" from parent node.`)});
-            cb(null);
+const fs = require(`fs`);
+const OptiBot = require(`./core/optibot.js`);
 
+<<<<<<< Updated upstream
             bot.clearInterval(check);
         }
     }, 1000);
@@ -7822,3 +7808,6 @@ if(cfg.statistics.enabled) {
         });
     }
 }
+=======
+const bot = new OptiBot();
+>>>>>>> Stashed changes

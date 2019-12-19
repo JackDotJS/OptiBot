@@ -69,4 +69,11 @@ module.exports = class OptiBot extends djs.Client {
             },
         });
     }
+
+    exit(code = 0) {
+        this.destroy();
+        setTimeout(() => {
+            process.exit(code);
+        }, 500);
+    }
 }

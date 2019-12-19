@@ -1,5 +1,6 @@
-const Command = require(`../core/command.js`)
 const path = require(`path`);
+const Command = require(`../core/command.js`)
+
 
 module.exports = class Ping extends Command {
     constructor (optibot) {
@@ -12,6 +13,6 @@ module.exports = class Ping extends Command {
     }
 
     async exec (m, args, data) {
-        m.channel.send(this.optibot.ping)
+        m.channel.send(Math.round(this.optibot.ping))
     }
 }

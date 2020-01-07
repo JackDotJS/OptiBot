@@ -4,15 +4,16 @@ const Command = require(`../core/command.js`)
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
-    short_desc: `Ping!`,
-    authlevel: 1,
+    short_desc: `Provides a link to download AdoptOpenJDK.`,
+    authlevel: 0,
     tags: ['DM_OPTIONAL', 'INSTANT'],
 
     run: (m, args, data) => {
         let embed = new djs.RichEmbed()
-        .setAuthor(`${Math.round(bot.ping)}ms`, bot.icons.find('ICO_wifi'))
-        .setColor(bot.cfg.embed.default);
+        .setColor(bot.cfg.embed.default)
+        .setAuthor('AdoptOpenJDK', bot.icons.find('ICO_jdk'))
+        .setTitle('https://adoptopenjdk.net/')
 
-        m.channel.send({embed: embed});
+        m.channel.send({ embed: embed });
     }
 })}

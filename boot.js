@@ -1,7 +1,7 @@
 /**
  * OptiBot NX - Core & Boot Manager
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * Written by Kyle Edwards <wingedasterisk@gmail.com>, December 2019
+ * Written by Kyle Edwards <wingedasterisk@gmail.com>, January 2020
  * 
  * My final gift to you.
  * Here's to another lousy decade.
@@ -10,6 +10,7 @@
 const child = require(`child_process`);
 const readline = require(`readline`);
 const fs = require(`fs`);
+const util = require(`util`);
 const crypto = require(`crypto`);
 const callerId = require(`caller-id`);
 const zip = require(`adm-zip`);
@@ -103,6 +104,9 @@ const log = (m, lvl, file) => {
 
     if(typeof m !== `string`) {
         entry.message.color = `\x1b[33m`;
+        if(m instanceof Error) {
+            entry.message.content = m.stack;
+        } else
         if(typeof m === `null`) {
             entry.message.content = `null`;
         } else
@@ -114,9 +118,6 @@ const log = (m, lvl, file) => {
         } else 
         if(Buffer.isBuffer(m)) {
             entry.message.content = m.toString();
-        } else 
-        if(m instanceof Error) {
-            entry.message.content = m.stack;
         } else {
             try {
                 // try Map
@@ -131,8 +132,8 @@ const log = (m, lvl, file) => {
                 }
                 catch(e3) {
                     try {
-                        // try JSON
-                        entry.message.content = JSON.stringify(m, null, 4);
+                        // try inspect
+                        entry.message.content = util.inspect(m);
                     }
                     catch(e) {
                         log(`failed interp of log entry`, `error`);
@@ -146,11 +147,11 @@ const log = (m, lvl, file) => {
         entry.file.content = file;
     }
 
-    let m1 = `[${entry.timestamp.color}${entry.timestamp.content}\x1b[0m] [${entry.file.color}${entry.file.content}\x1b[0m] ${entry.level.color}[${entry.level.content}]\x1b[0m : `;
-    let m2 = entry.message.color+entry.message.content.replace(/\n/g, `\n${(` `.repeat(m1.length))}`)+`\x1b[0m`;
-
     let m1c = `[${entry.timestamp.content}] [${entry.file.content}] [${entry.level.content}] : `;
-    let m2c = entry.message.content.replace(/\n/g, `\n${(` `.repeat(m1.length))}`)+`\n`;
+    let m2c = entry.message.content.replace(/\n/g, `\n${(` `.repeat(m1c.length))}`)+`\n`;
+
+    let m1 = `[${entry.timestamp.color}${entry.timestamp.content}\x1b[0m] [${entry.file.color}${entry.file.content}\x1b[0m] ${entry.level.color}[${entry.level.content}]\x1b[0m : `;
+    let m2 = entry.message.color+entry.message.content.replace(/\n/g, `\n${(` `.repeat(m1c.length))}`)+`\x1b[0m`;
 
     console.log(m1+m2);
     if(env.log.stream) env.log.stream.write(m1c+m2c);
@@ -256,7 +257,7 @@ function init() {
     env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);
 
     log('spawning child process (index.js)');
-    const bot = child.spawn('node', ['index.js'], {
+    const bot = child.spawn('node', ['index.js', env.dev], {
         stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     });
 
@@ -288,24 +289,7 @@ function init() {
     
 
 
-    /* let width = 64; //inner width of box
-
-    function centerText(text, totalWidth) {
-        let leftMargin = Math.floor((totalWidth - (text.length)) / 2);
-        let rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
-
-        return `│` + (` `.repeat(leftMargin)) + text + (` `.repeat(rightMargin)) + `│`;
-    }
-
-    log(`╭${'─'.repeat(width)}╮`, `info`); 
-    log(centerText(`  `, width), `info`);
-    log(centerText(`OptiBot ${pkg.version}`, width), `info`);
-    log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2019`, width), `info`);
-    //log(centerText(`Successfully booted in ${bootTimeTaken} seconds.`, width), `info`);
-    //log(centerText(`  `, width), `info`);
-    //log(centerText(TOOLS.randomizer(cfg.splash), width), `info`);
-    log(centerText(`  `, width), `info`);
-    log(`╰${'─'.repeat(width)}╯`, `info`); */
+    
 
 
 }

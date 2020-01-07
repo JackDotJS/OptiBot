@@ -1,34 +1,48 @@
-const path = require(`path`);
+const djs = require(`discord.js`);
 
 module.exports = class Command {
     constructor (optibot, {
         name = null,
         short_desc = `This command has no set description.`,
-        long_desc = `This command has no set description.`,
+        long_desc = null,
         usage = null,
         image = null,
-        tags = null
+        authlevel = null,
+        tags = null,
+        run = null
     }) {
-        if(name === null) {
-            throw new TypeError(`Command name not specified.`)
+        if(typeof name !== 'string') {
+            throw new TypeError(`Command name not specified or invalid.`)
+        } else 
+        if(name.match(/[^a-zA-Z0-9]/) !== null) {
+            throw new Error(`Command name cannot have special characters.`)
+        } else 
+        if(typeof run !== 'function') {
+            throw new Error(`Command function not specified or invalid.`)
+        } else 
+        if(typeof authlevel !== 'number') {
+            throw new Error(`Authorization level not specified or invalid.`)
         } else {
             const metadata = {
                 name: name,
                 short_desc: short_desc,
-                long_desc: long_desc,
+                long_desc: (long_desc) ? long_desc : short_desc,
                 usage: `${optibot.trigger}${name} ${(usage) ? usage : ''}`,
                 image: image,
+
+                /**
+                 * Authorization Level
+                 * 
+                 * 0 = Normal Member
+                 * 1 = Junior Moderator
+                 * 2 = Senior Moderator
+                 * 3 = Administrator
+                 * 4 = Developer
+                 * 5+ = God himself
+                 */
+                authlevel: authlevel,
+
                 tags: {
-                    // Only moderators and admins can use this command
-                    MODERATOR_ONLY: false,
-        
-                    // Junior Moderators not allowed to use this command. 
-                    // Must be paired with MODERATOR_ONLY
-                    NO_JR_MOD: false,
-        
-                    // Only developers can use this command
-                    DEVELOPER_ONLY: false, 
-        
                     // Cannot be used in Direct Messages
                     NO_DM: false, 
         
@@ -45,25 +59,32 @@ module.exports = class Command {
                     // Can only be used in moderator-only channels. 
                     MOD_CHANNEL_ONLY: false, 
         
+                    // Normally, users with authlevel 1 and higher are exempt from the BOT_CHANNEL_ONLY tag.
+                    // Users with authlevel 4 are also exempt from the tags MOD_CHANNEL_ONLY, NO_DM, and DM_ONLY.
+                    // This tag makes it so all restrictions are applied, regardless of authlevel.
+                    STRICT: false,
+
                     // Deletes the users message if any restriction results in the command not firing.
+                    // Useful for reducing spam, or for commands that require particularly sensitive information as arguments.
                     DELETE_ON_MISUSE: false, 
         
-                    // Moderators, administrators, and developers are not exempt from restrictions.
-                    STRICT: false,
-        
-                    // Command is treated as non-existent to any user apart from developers.
+                    // Command is treated as non-existent to any user without the required authlevel.
                     // Mutually exclusive with STRICT
                     HIDDEN: false,
 
                     // Command will execute almost immediately. If omitted, the bot will start typing in the channel and wait until the command has finished.
+                    // Commands with this tag MUST use the channel.stopTyping() method after sending a response message.
                     INSTANT: false 
                 }
             }
 
             if(Array.isArray(tags)) {
                 tags.forEach(t => {
-                    if(typeof metadata.tags[t] === 'boolean') {
-                        metadata.tags[t] = true;
+                    if(typeof t !== 'string') {
+                        throw new TypeError(`Tags must be specified as strings.`);
+                    } else
+                    if(typeof metadata.tags[t.toUpperCase()] === 'boolean') {
+                        metadata.tags[t.toUpperCase()] = true;
                     }
                 });
     
@@ -86,14 +107,6 @@ module.exports = class Command {
                 if(metadata.tags[`BOT_CHANNEL_ONLY`] && metadata.tags[`NO_DM`]) {
                     throw new Error(`Command "${name}": Tags BOT_CHANNEL_ONLY and NO_DM are mutually exclusive.`);
                 }
-    
-                if(metadata.tags[`MODERATOR_ONLY`] && metadata.tags[`DEVELOPER_ONLY`]) {
-                    throw new Error(`Command "${name}": Tags MODERATOR_ONLY and DEVELOPER_ONLY are mutually exclusive.`);
-                }
-    
-                if(metadata.tags[`NO_JR_MOD`] && !metadata.tags[`MODERATOR_ONLY`]) {
-                    throw new Error(`Command "${name}": Tag NO_JR_MOD must be paired with MODERATOR_ONLY`);
-                }
             } else {
                 metadata.tags['DEVELOPER_ONLY'] = true;
             }
@@ -103,6 +116,22 @@ module.exports = class Command {
                     return metadata;
                 }
             });
+
+            Object.defineProperty(this, 'raw', {
+                get: function() {
+                    return run;
+                }
+            });
+
+            Object.defineProperty(this, 'bot', {
+                get: function() {
+                    return optibot;
+                }
+            });
         }
+    }
+
+    exec(m, args, log, data) {
+        this.raw(m, args, log, data);
     }
 }

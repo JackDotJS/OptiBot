@@ -1,21 +1,20 @@
 const path = require(`path`);
+const djs = require(`discord.js`);
 const Command = require(`../core/command.js`)
 
+module.exports = (bot, log) => { return new Command(bot, {
+    name: path.parse(__filename).name,
+    short_desc: `Shut down OptiBot.`,
+    authlevel: 2,
+    tags: ['NO_DM', 'INSTANT'],
+    
+    run: (m, args, data) => {
+        let embed = new djs.RichEmbed()
+        .setAuthor('Shutting down...', bot.icons.find('ICO_door'))
+        .setColor(bot.cfg.embed.default);
 
-module.exports = class Stop extends Command {
-    constructor (optibot) {
-        super(optibot, {
-            name: path.parse(__filename).name,
-            short_desc: `Shut down OptiBot.`,
-            tags: ['MODERATOR_ONLY', 'NO_JR_MOD', 'NO_DM', 'INSTANT']
-        });
-
-        this.optibot = optibot;
-    }
-
-    async exec (m, args, data) {
-        m.channel.send('Goodbye').then(() => {
-            this.optibot.exit();
+        m.channel.send({embed: embed}).then(() => {
+            bot.exit();
         });
     }
-}
+})}

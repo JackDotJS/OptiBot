@@ -24,6 +24,7 @@
         "nedb": "^1.8.0",
         "request": "^2.88.0",
         "request-promise": "^4.2.5",
-        "string-similarity": "^3.0.0"
+        "string-similarity": "^3.0.0",
+        "timeago.js": "^4.0.2"
     }
 }

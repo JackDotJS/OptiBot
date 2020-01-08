@@ -197,7 +197,8 @@ module.exports = class OptiBot extends djs.Client {
 
             const log = bot.log;
 
-            let commands = fs.readdirSync(`./cmd`);
+            let commands = fs.readdirSync(`./modules/cmd`);
+            let utilities = fs.readdirSync(`./modules/util`);
             let images = fs.readdirSync(`./assets/img`);
             let clcache = false;
 
@@ -207,36 +208,70 @@ module.exports = class OptiBot extends djs.Client {
             }
 
             let i1 = 0;
-            (function cmdLoader() {
+            let i2 = 0;
+            let i3 = 0;
+            let i4 = 0;
+            (function utilRefresh() {
+                let endItr = () => {
+                    if(i1+1 >= utilities.length) {
+                        cmdLoader();
+                    } else {
+                        i1++;
+                        utilRefresh();
+                    }
+                }
+
+                let util = utilities[i4];
+
+                if(!util.endsWith('.js')) {
+                    endItr();
+                } else {
+                    if(clcache) {
+                        delete require.cache[require.resolve(`../modules/util/${util}`)];
+                        endItr();
+                    } else {
+                        cmdLoader();
+                    }
+                }
+            })();
+
+            function cmdLoader() {
+                let endItr = () => {
+                    if(i1+1 >= commands.length) {
+                        imageLoader();
+                    } else {
+                        i1++;
+                        cmdLoader();
+                    }
+                }
+
                 let cmd = commands[i1];
+
+                if(!cmd.endsWith('.js')) {
+                    endItr();
+                    return;
+                }
+                
                 if(clcache) {
-                    delete require.cache[require.resolve(`../cmd/${cmd}`)];
+                    delete require.cache[require.resolve(`../modules/cmd/${cmd}`)];
                 }
 
                 try {
-                    bot.commands.register(require(`../cmd/${cmd}`)(bot, log)).then((reg) => {
+                    bot.commands.register(require(`../modules/cmd/${cmd}`)(bot, log)).then((reg) => {
                         log(`Command registered: ${reg.metadata.name}`, `debug`);
-    
-                        if(i1+1 >= commands.length) {
-                            imageLoader();
-                        } else {
-                            i1++;
-                            cmdLoader();
-                        }
+                        endItr();
                     }).catch(err => {
                         log(err.stack, 'error');
-                        i1++;
-                        cmdLoader();
+                        endItr();
                     });
                 }
                 catch (err) {
                     log(err.stack, 'error');
-                    i1++;
-                    cmdLoader();
+                    endItr();
                 }
-            })();
+            };
 
-            let i2 = 0;
+            
             function imageLoader() {
                 let file = images[i2];
                 if(file.match(/(\.)(?!.*\1)/) !== null) {
@@ -254,7 +289,7 @@ module.exports = class OptiBot extends djs.Client {
                 }
             }
 
-            let i3 = 0;
+            
             function iconLoader() {
                 let emojiCollection = [...bot.guilds.get(bot.cfg.guilds.optibot).emojis.values()];
                 let emoji = emojiCollection[i3];

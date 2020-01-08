@@ -184,7 +184,19 @@ bot.on('message', (m) => {
                     checkMisuse('This command can only be used in moderator-only channels.');
                 } else {
                     if(!cmd.metadata.tags['INSTANT']) m.channel.startTyping();
-                    cmd.exec(m, input.args, {member, authlvl, input, cmd});
+                    try {
+                        cmd.exec(m, input.args, {member, authlvl, input, cmd});
+                    }
+                    catch (err) {
+                        log(err.stack, 'error');
+                        let embed = new djs.RichEmbed()
+                        .setAuthor('Something went wrong while doing that. Oops.', bot.icons.find('ICO_error'))
+                        .setColor(bot.cfg.embed.error)
+                        .setDescription(`\`\`\`diff\n-${err}\`\`\` \nIf this continues, please contact <@181214529340833792> or <@251778569397600256>`);
+
+                        if(!cmd.metadata.tags['INSTANT']) m.channel.stopTyping();
+                        m.channel.send({embed: embed});
+                    }
                 }
 
             }).catch(err => {

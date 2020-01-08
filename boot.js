@@ -183,10 +183,6 @@ if(typeof require(`./cfg/keys.json`).discord !== 'string') {
     throw new Error(`./cfg/keys.json - Missing Discord API token.`);
 }
 
-if (!fs.existsSync(`./cmd`)) {
-    throw new Error(`Commands directory not found.`);
-}
-
 if (!fs.existsSync(`./core`)) {
     throw new Error(`Core directory not found.`);
 }
@@ -201,6 +197,18 @@ if (!fs.existsSync(`./data/profiles.db`)) {
 
 if (!fs.existsSync(`./logs`)) {
     fs.mkdirSync(`./logs`)
+}
+
+if (!fs.existsSync(`./modules`)) {
+    fs.mkdirSync(`./modules`)
+}
+
+if (!fs.existsSync(`./modules/cmd`)) {
+    throw new Error(`Commands directory not found.`);
+}
+
+if (!fs.existsSync(`./modules/util`)) {
+    throw new Error(`Utilities directory not found.`);
 }
 
 process.title = `OptiBot ${pkg.version}`;

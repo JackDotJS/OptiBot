@@ -1,6 +1,6 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const Command = require(`../core/command.js`)
+const Command = require(path.resolve(`./core/command.js`))
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,

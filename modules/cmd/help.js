@@ -1,6 +1,6 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const Command = require(`../core/command.js`)
+const Command = require(path.resolve(`./core/command.js`))
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
@@ -75,6 +75,13 @@ module.exports = (bot, log) => { return new Command(bot, {
                         restrictions.push(`<:okay:642112445997121536> This command can be used in any channel, including DMs (Direct Messages)`);
                     }
 
+                    if(md.tags['STRICT']) {
+                        restrictions.push('<:locked:642112455333511178> Restrictions apply to ALL members, regardless of roles or permissions.');
+                    } else
+                    if(md.tags['BOT_CHANNEL_ONLY']) {
+                        restrictions.push(`<:unlocked:642112465240588338> Moderators exempt from some restrictions.`);
+                    }
+
                     if (md.authlevel === 0) {
                         restrictions.push(`<:unlocked:642112465240588338> This command can be used by all members.`);
                     }
@@ -89,13 +96,6 @@ module.exports = (bot, log) => { return new Command(bot, {
                     } else
                     if (md.authlevel === 4) {
                         restrictions.push('<:locked:642112455333511178> OptiBot developers only.');
-                    }
-
-                    if(md.tags['STRICT']) {
-                        restrictions.push('<:locked:642112455333511178> Restrictions apply to ALL members.');
-                    } else
-                    if(md.tags['BOT_CHANNEL_ONLY']) {
-                        restrictions.push(`<:unlocked:642112465240588338> Moderators exempt from some restrictions.`);
                     }
 
                     if(md.tags['HIDDEN']) {

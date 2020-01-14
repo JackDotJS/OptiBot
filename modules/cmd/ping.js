@@ -1,6 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const Command = require(path.resolve(`./core/command.js`))
+const Command = require(path.resolve(`./core/command.js`));
+const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
@@ -13,6 +14,6 @@ module.exports = (bot, log) => { return new Command(bot, {
         .setAuthor(`${Math.round(bot.ping)}ms`, bot.icons.find('ICO_wifi'))
         .setColor(bot.cfg.embed.default);
 
-        m.channel.send({embed: embed});
+        m.channel.send({embed: embed}).then(msg => { msgFinalizer(m.author.id, msg, bot, log); });
     }
 })}

@@ -45,6 +45,9 @@ const env = {
                 env.autostart.hour = now;
             }
         }, 1000)
+    },
+    cr: {
+        logfile: null
     }
 }
 
@@ -283,6 +286,17 @@ function init() {
         } else
         if(data.type === 'ready') {
             log('Bot ready');
+            if(env.cr.logfile !== null) {
+                // send crash data
+                bot.send({ crashlog: env.cr.logfile }, (err) => {
+                    if(err) {
+                        log('Failed to send crashlog data: '+err.stack, 'error');
+                    } else {
+                        // once finished, clear crash data so it's not sent again during next scheduled restart.
+                        env.cr.logfile = null;
+                    }
+                });
+            }
         } else
         if(data.type === 'logLvl') {
             env.log.level = parseInt(data.content)
@@ -291,13 +305,113 @@ function init() {
     });
 
     bot.on('exit', (code) => {
-        log(`Child process ended with exit code ${code}`);
+        log(`Child process ended with exit code ${code}`, 'info');
+
+        if(code === 0) {
+            log('OptiBot is now shutting down at user request.', 'info');
+            end(code, true);
+        } else
+        if(code === 1) {
+            log('OptiBot seems to have crashed. Restarting...', 'info');
+            let logSuffix = 'CRASH';
+
+            env.cr.logfile = `${env.log.filename}_${logSuffix}.log`;
+            end(code, false, logSuffix);
+        } else
+        if(code === 2) {
+            log('OptiBot is now restarting at user request...', 'info');
+            end(code, false);
+        } else
+        if(code === 3) {
+            log('Resetting at user request...', 'info');
+            fs.unlink('./data/messages.db', (err) => {
+                if(err) log('Failed to delete messages database.', 'fatal');
+                setTimeout(() => {
+                    env.log.stream.end();
+
+                    setTimeout(() => {
+                        // i know this looks like a fucking mess of commands and switches but trust me it NEEDS to be structured precisely like this to work.
+                        // fuck windows batch
+                        child.spawn(`cmd`, ['/C', 'start', '""', 'cmd', '/C', 'init.bat', '--skip', (env.debug) ? '--dev' : undefined], {
+                            detached: true,
+                            stdio: 'ignore',
+                            cwd: __dirname
+                        }).unref();
+
+                        process.exit(3);
+                    }, 500);
+                }, 500);
+            });
+        } else
+        if(code === 4) {
+            log('OptiBot is now being updated...');
+            update();
+        } else
+        if(code === 10) {
+            log('OptiBot is now undergoing scheduled restart.');
+            end(code, false);
+        } else
+        if(code === 24) {
+            log(`OptiBot encountered a fatal error. This is likely a problem that the program cannot solve on it's own. The program will attempt to restart anyway, just in case.`, 'fatal');
+            end(code, false, 'FATAL');
+        } else
+        if(code === 1000) {
+            log(`OptiBot was forcefully shut down.`, 'fatal');
+            end(code, true, 'OBES');
+        }
     });
 
-    
+    function end(code, exit, log_suffix) {
+        env.rph++;
 
+        setTimeout(() => {
+            env.log.stream.end();
 
-    
+            if(log_suffix) {
+                fs.rename(`./logs/${env.log.filename}.log`, `./logs/${env.log.filename}_${log_suffix}.log`, (err) => {
+                    if(err) throw err;
+                    else {
+                        if(exit) {
+                            process.exit(code);
+                        } else {
+                            setTimeout(() => {
+                                init();
+                            }, (env.debug) ? 5000 : 500);
+                        }
+                    }
+                });
+            } else {
+                setTimeout(() => {
+                    if(exit) {
+                        process.exit(code);
+                    } else {
+                        init();
+                    }
+                }, 500);
+            }
+        }, 500);
+    }
 
+    function update() {
+        setTimeout(() => {
+            child.execSync('git fetch --all');
+            child.execSync('git reset --hard master');
+            child.execSync('npm install');
 
+            setTimeout(() => {
+                env.log.stream.end();
+
+                setTimeout(() => {
+                    // see line 517 for an explanation on this monstrosity
+                    child.spawn(`cmd`, ['/C', 'start', '""', 'cmd', '/C', 'init.bat', '--skip', (env.debug) ? '--dev' : undefined], {
+                        detached: true,
+                        stdio: 'ignore',
+                        cwd: __dirname
+                    }).unref();
+
+                    process.exit(3);
+                }, 500);
+            }, 500);
+        }, 500);
+    }
 }

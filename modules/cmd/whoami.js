@@ -2,6 +2,7 @@ const path = require(`path`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
 const Command = require(path.resolve(`./core/command.js`))
+const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
@@ -90,6 +91,6 @@ module.exports = (bot, log) => { return new Command(bot, {
         .addField('Server Roles', `${(m.channel.type === 'dm') ? "These probably won't show correctly in DMs. Sorry! Blame Discord.\n\n" : ""}${roles.reverse().join(' ')}`)
         .addField('Status & Activity', presence.join('\n'))
 
-        m.channel.send({embed: embed});
+        m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
     }
 })}

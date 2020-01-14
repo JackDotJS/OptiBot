@@ -1,6 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./core/command.js`))
+const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
@@ -19,7 +20,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             .addField('Commands List', `\`\`\`${bot.trigger}list\`\`\``)
             .addField('Tidbits & Other Features', `\`\`\`${bot.trigger}tidbits\`\`\``)
 
-            m.channel.send({ embed: embed });
+            m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
         } else {
             bot.commands.find(args[0]).then((cmd) => {
                 if (!cmd || (cmd.metadata.tags['HIDDEN'] && data.authlvl < cmd.metadata.authlevel)) {
@@ -27,14 +28,14 @@ module.exports = (bot, log) => { return new Command(bot, {
                     .setAuthor(`The "${args[0]}" command does not exist.`, bot.icons.find('ICO_error'))
                     .setColor(bot.cfg.embed.error);
 
-                    m.channel.send({embed: embed});
+                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                 } else
                 if (data.authlvl < cmd.metadata.authlevel) {
                     let embed = new djs.RichEmbed()
                     .setAuthor(`You do not have permission to view the "${args[0]}" command.`, bot.icons.find('ICO_error'))
                     .setColor(bot.cfg.embed.error);
 
-                    m.channel.send({embed: embed});
+                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                 } else {
                     let md = cmd.metadata;
                     let files = [];
@@ -104,7 +105,7 @@ module.exports = (bot, log) => { return new Command(bot, {
 
                     embed.addField('Restrictions', restrictions.join('\n'));
 
-                    m.channel.send({ embed: embed });
+                    m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                 }
             });
         }

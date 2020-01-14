@@ -25,9 +25,14 @@ module.exports = class Command {
         } else {
             const metadata = {
                 name: name,
+                aliases: [],
                 short_desc: short_desc,
                 long_desc: (long_desc) ? long_desc : short_desc,
                 usage: `${optibot.trigger}${name} ${(usage) ? usage : ''}`,
+
+                // Image to be shown as a thumbnail when this command is viewed through !help.
+                // Must be a plain string specifying a complete filename from the ../assets/img directory.
+                // i.e. "IMG_token.png"
                 image: image,
 
                 /**
@@ -74,7 +79,10 @@ module.exports = class Command {
 
                     // Command will execute almost immediately. If omitted, the bot will start typing in the channel and wait until the command has finished.
                     // Commands with this tag MUST use the channel.stopTyping() method after sending a response message.
-                    INSTANT: false 
+                    INSTANT: false,
+
+                    // (UNUSED) Command will be preserved during Lite mode.
+                    LITE: false
                 }
             }
 
@@ -108,7 +116,7 @@ module.exports = class Command {
                     throw new Error(`Command "${name}": Tags BOT_CHANNEL_ONLY and NO_DM are mutually exclusive.`);
                 }
             } else {
-                metadata.tags['DEVELOPER_ONLY'] = true;
+                if(authlevel !== 4) metadata.authlevel = 4;
             }
 
             Object.defineProperty(this, 'metadata', {

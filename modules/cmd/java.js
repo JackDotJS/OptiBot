@@ -1,6 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./core/command.js`))
+const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
@@ -14,6 +15,6 @@ module.exports = (bot, log) => { return new Command(bot, {
         .setAuthor('AdoptOpenJDK', bot.icons.find('ICO_jdk'))
         .setTitle('https://adoptopenjdk.net/')
 
-        m.channel.send({ embed: embed });
+        m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
     }
 })}

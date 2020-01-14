@@ -3,6 +3,7 @@ const djs = require(`discord.js`);
 const timeago = require("timeago.js");
 const Command = require(path.resolve(`./core/command.js`))
 const targetUser = require(path.resolve(`./modules/util/targetUser.js`))
+const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
@@ -18,23 +19,30 @@ module.exports = (bot, log) => { return new Command(bot, {
             .setDescription(`\`\`\`${data.cmd.metadata.usage}\`\`\``)
             .setColor(bot.cfg.embed.default);
 
-            m.channel.send({embed: embed});
+            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
         } else {
             targetUser(m, args[0], bot, log).then((result) => {
-                if(result.type === 'unknown' || result.type === 'id') {
+                if(!result) {
                     let embed = new djs.RichEmbed()
                     .setAuthor('You must specify a valid user @mention, ID, or target shortcut (^)', bot.icons.find('ICO_error'))
                     .setColor(bot.cfg.embed.error)
         
-                    m.channel.send({embed: embed});
+                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                } else 
+                if(result.type === 'unknown' || result.type === 'id') {
+                    let embed = new djs.RichEmbed()
+                    .setAuthor('Unable to find a user.', bot.icons.find('ICO_error'))
+                    .setDescription(`If that person is no longer in the server, I can't get information about them. Sorry!`)
+                    .setColor(bot.cfg.embed.error)
+        
+                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                 } else {
                     let mem = result.target;
                     let embed = new djs.RichEmbed()
                     .setAuthor(`That is...`, bot.icons.find('ICO_docs'))
                     .setColor(bot.cfg.embed.default)
-                    .setTitle(mem.user.tag)
+                    .setTitle(`${mem.user.tag} ${(mem.user.bot) ? "🤖" : ""}`)
                     .setThumbnail(mem.user.displayAvatarURL)
-                    .setFooter(`Discord User ID: ${mem.user.id}`)
 
                     if(mem.nickname !== null) embed.setDescription(`AKA "${mem.nickname}"`);
 
@@ -48,9 +56,9 @@ module.exports = (bot, log) => { return new Command(bot, {
                     let presence = []
 
                     if(mem.user.presence.status === 'dnd') {
-                        presence.push(`They are currently set as ${mem.user.presence.status.toUpperCase()}. (Do Not Disturb)`)
+                        presence.push(`${(mem.user.bot) ? "This bot is" : "They are"} currently set as ${mem.user.presence.status.toUpperCase()}. (Do Not Disturb)`)
                     } else {
-                        presence.push(`They are currently set as ${mem.user.presence.status.toUpperCase()}.`)
+                        presence.push(`${(mem.user.bot) ? "This bot is" : "They are"} currently set as ${mem.user.presence.status.toUpperCase()}.`)
                     }
 
                     if(mem.user.presence.clientStatus !== null) {
@@ -94,20 +102,22 @@ module.exports = (bot, log) => { return new Command(bot, {
                             doing = 'watching'
                         } else
 
-                        presence.push(`They are ${doing} "${game.name}" ${(game.url) ? "at "+game.url : ""}`)
+                        presence.push(`${(mem.user.bot) ? "This bot is" : "They are"} ${doing} "${game.name}" ${(game.url) ? "at "+game.url : ""}`)
                     }
 
-                    if(mem.user.bot) {
-                        embed.addField('Discord Bot', `This is a Discord bot. Useful for some things, but don't expect to hold a conversation with it.`, true)
-                    }
+                    let identity = [
+                        `Mention: ${mem.toString()}`,
+                        `Discord ID: \`\`\`yaml\n${mem.user.id}\`\`\``
+                    ].join('\n');
 
-                    embed.addField('User Mention', mem.toString(), true)
+                    embed.addField('Identification', identity, true)
                     .addField('Account Creation Date', `${mem.user.createdAt.toUTCString()}\n(${timeago.format(mem.user.createdAt)})`, true)
-                    .addField('Server Join Date', `${mem.joinedAt.toUTCString()}\n(${timeago.format(mem.joinedAt)})`, true)
+                    .addField('Server Join Date', `${mem.joinedAt.toUTCString()}\n(${timeago.format(mem.joinedAt)})`)
                     .addField('Server Roles', `${(m.channel.type === 'dm') ? "These probably won't show correctly in DMs. Sorry! Blame Discord.\n\n" : ""}${roles.reverse().join(' ')}`)
                     .addField('Status & Activity', presence.join('\n'))
+                    
 
-                    m.channel.send({embed: embed});
+                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                 }
             });
         }

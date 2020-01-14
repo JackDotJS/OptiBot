@@ -6,12 +6,11 @@
 
 if(!process.send) throw new Error(`Cannot run standalone. Please use the "init.bat" file.`);
 
-
-const util = require(`util`);
-const fs = require(`fs`);
 const callerId = require('caller-id');
 const wink = require('jaro-winkler');
+const path = require(`path`);
 const djs = require(`discord.js`);
+const msgFinalizer = require(`./modules/util/msgFinalizer.js`)
 const OptiBot = require(`./core/optibot.js`);
 
 const log = (message, level, lineNum) => {
@@ -33,6 +32,10 @@ const bot = new OptiBot({}, {debug: Boolean(process.argv[2])}, log);
 bot.login(bot.keys.discord).catch(err => {
     log(err, 'fatal');
 });
+
+////////////////////////////////////////
+// Bot Ready Event
+////////////////////////////////////////
 
 bot.on('ready', () => {
     process.title = `Loading...`;
@@ -63,11 +66,19 @@ bot.on('ready', () => {
         log(`╰${'─'.repeat(width)}╯`, `info`);
 
         process.title = `OptiBot ${bot.memory.version}`;
+
+        process.send({
+            type: 'ready'
+        });
     }).catch(err => {
         log(err.stack, 'fatal');
         bot.exit(1);
     });
 });
+
+////////////////////////////////////////
+// Message Received Event
+////////////////////////////////////////
 
 bot.on('message', (m) => {
     if (m.author.bot || m.author.system) return;
@@ -145,7 +156,7 @@ bot.on('message', (m) => {
                         embed.setDescription(`Perhaps you meant \`${bot.trigger}${closest.command}\`? (${(closest.distance * 100).toFixed(1)}% match)`)
                     }
 
-                    m.channel.send({embed: embed});
+                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                 }
 
                 let checkMisuse = (msg) => {
@@ -156,8 +167,11 @@ bot.on('message', (m) => {
                     if(cmd.metadata.tags['DELETE_ON_MISUSE']) embed.setDescription('This message will self-destruct in 10 seconds.');
 
                     m.channel.send({embed: embed}).then(msg => {
-                        if(cmd.metadata.tags['DELETE_ON_MISUSE']) msg.delete(10000);
-                        
+                        if(cmd.metadata.tags['DELETE_ON_MISUSE']) {
+                            msg.delete(10000);
+                        } else {
+                            msgFinalizer(m.author.id, bm, bot, log)
+                        }
                     });
                 }
 
@@ -195,7 +209,7 @@ bot.on('message', (m) => {
                         .setDescription(`\`\`\`diff\n-${err}\`\`\` \nIf this continues, please contact <@181214529340833792> or <@251778569397600256>`);
 
                         if(!cmd.metadata.tags['INSTANT']) m.channel.stopTyping();
-                        m.channel.send({embed: embed});
+                        m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                     }
                 }
 
@@ -232,4 +246,154 @@ bot.on('message', (m) => {
             m.react(bot.guilds.get(bot.cfg.guilds.optifine).emojis.get('663409134644887572'));
         }
     }
+});
+
+////////////////////////////////////////
+// Node.js Parent Node Message Event
+////////////////////////////////////////
+
+process.on('message', (m) => {
+    if(m.crashlog !== null) {
+        log('got crash data', 'trace');
+        bot.guilds.get(bot.cfg.guilds.optifine).fetchMember('181214529340833792').then(jack => {
+            jack.send(`**=== OptiBot Crash Recovery Report ===**`, new djs.Attachment(`./logs/${m.crashlog}`));
+        }).catch(err => {
+            log(err.stack, 'error');
+        });
+    }
+});
+
+////////////////////////////////////////
+// Raw Packet Data
+////////////////////////////////////////
+
+bot.on('raw', packet => {
+    if(packet.t === 'MESSAGE_REACTION_ADD') {
+        let channel = bot.channels.get(packet.d.channel_id);
+        if (channel.messages.has(packet.d.message_id)) return;
+        channel.fetchMessage(packet.d.message_id).then(m => {
+            let emoji = packet.d.emoji.id ? `${packet.d.emoji.name}:${packet.d.emoji.id}` : packet.d.emoji.name;
+            let reaction = m.reactions.get(emoji);
+
+            if (reaction) {
+                reaction.users.set(packet.d.user_id, bot.users.get(packet.d.user_id));
+            }
+
+            log('old emoji detected', 'trace');
+            bot.emit('messageReactionAdd', reaction, bot.users.get(packet.d.user_id));
+        }).catch(err => {
+            TOOLS.errorHandler({err:err});
+        });
+    } else
+    if(packet.t === 'MESSAGE_DELETE') {
+        // this packet does not contain the actual message data, unfortunately.
+
+        // as of writing, this only contains the message ID, the channel ID, and the guild ID.
+
+        // i was planning on using this to extend the message deletion event to be able to log old deleted messages, but this doesn't even contain the contents so it's a little bit useless now.
+
+        // I might still use this anyway, sometime in the future.
+    }
+});
+
+////////////////////////////////////////
+// Message Reaction Add
+////////////////////////////////////////
+
+bot.on('messageReactionAdd', (mr, user) => {
+    if (mr.message.channel.type === 'dm') return;
+    if (user.id === bot.user.id) return;
+
+    if (mr.emoji.name === bot.cfg.emoji.medal) {
+        // todo
+    } else 
+    if (mr.emoji.id === bot.cfg.emoji.deleter) {
+        bot.db.msg.find({message: mr.message.id}, (err, docs) => {
+            if(err) {
+                log(err.stack, 'error');
+            } else
+            if(docs.length > 0) {
+                if(docs[0].user === user.id) {
+                    mr.message.delete().then(() => {
+                        bot.db.msg.remove(docs[0], {}, (err) => {
+                            if (err) {
+                                log(err.stack, 'error');
+                            } else {
+                                log('Bot message deleted at user request.');
+                            }
+                        });
+                    }).catch(err => {
+                        log(err.stack, 'error');
+                    });
+                }
+            }
+        });
+    }
+});
+
+////////////////////////////////////////
+// Ratelimit Event
+////////////////////////////////////////
+
+bot.on('ratelimit', rl => {
+    let rlInfo = [
+        `Request Limit: ${rl.requestLimit}`,
+        `Time Difference: ${rl.timeDifference}`,
+        `HTTP Method: ${rl.method}`,
+        `Path: ${rl.path}`
+    ].join('\n');
+
+    log("OptiBot is being ratelimited! \n" + rlInfo, 'warn');
+});
+
+////////////////////////////////////////
+// Websocket Disconnect Event
+////////////////////////////////////////
+
+bot.on('disconnect', event => {
+    if (event.code === 1000) {
+        log("Disconnected from websocket with event code 1000. (Task Complete)", 'warn');
+    } else {
+        log(`Disconnected from websocket with event code ${event.code}`, 'fatal');
+    }
+});
+
+////////////////////////////////////////
+// Websocket Reconnecting Event
+////////////////////////////////////////
+
+bot.on('reconnecting', () => {
+    log('Attempting to reconnect to websocket...', 'warn');
+});
+
+////////////////////////////////////////
+// General Warning
+////////////////////////////////////////
+
+bot.on('warn', info => {
+    log(info, 'warn');
+});
+
+////////////////////////////////////////
+// General Debug
+////////////////////////////////////////
+
+bot.on('debug', info => {
+    log(info, 'debug');
+});
+
+////////////////////////////////////////
+// WebSocket Resume
+////////////////////////////////////////
+
+bot.on('resume', replayed => {
+    log('WebSocket resumed. Number of events replayed: '+replayed, 'warn');
+});
+
+////////////////////////////////////////
+// WebSocket Error
+////////////////////////////////////////
+
+bot.on('error', err => {
+    log(err.stack || err, 'error');
 });

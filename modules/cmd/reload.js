@@ -1,6 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./core/command.js`))
+const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
@@ -18,7 +19,8 @@ module.exports = (bot, log) => { return new Command(bot, {
 
         log(`${m.author.tag} (${m.author.id}) requested asset update.`, 'info')
 
-        m.channel.send('_ _', {embed: embed}).then((msg) => {
+        m.channel.send('_ _', {embed: embed}).then(bm => {
+            msgFinalizer(m.author.id, bm, bot, log);
             bot.loadAssets().then((time) => {
                 let embed2 = new djs.RichEmbed()
                 .setAuthor(`Assets successfully reloaded in ${time / 1000} seconds.`, bot.icons.find('ICO_okay'))
@@ -27,7 +29,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                 log(`Assets successfully reloaded in ${time / 1000} seconds.`, 'info')
 
                 bot.setTimeout(() => {
-                    msg.edit({embed: embed2});
+                    bm.edit({embed: embed2});
                 }, 1000);
             })
         });

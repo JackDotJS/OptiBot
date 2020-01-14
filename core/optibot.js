@@ -1,5 +1,7 @@
 const fs = require(`fs`);
 const djs = require(`discord.js`);
+const path = require(`path`);
+const database = require('nedb');
 const Command = require(`./command.js`);
 
 module.exports = class OptiBot extends djs.Client {
@@ -19,8 +21,16 @@ module.exports = class OptiBot extends djs.Client {
             version: require('../package.json').version
         };
 
+        const storage = {
+            msg: new database({ filename: './data/messages.db', autoload: true }),
+            motd: new database({ filename: './data/motd.db', autoload: true }),
+            profiles: new database({ filename: './data/profiles.db', autoload: true }),
+            stats: new database({ filename: './data/statistics.db', autoload: true }),
+            smr: new database({ filename: './data/smr.db', autoload: true })
+        }
+
         const cfg = require('../cfg/config.json');
-        let trigger = (misc.debug) ? cfg.triggers.debug : cfg.triggers.default;
+        const trigger = (misc.debug) ? cfg.triggers.debug : cfg.triggers.default;
         const keys = require('../cfg/keys.json');
         const commands = {
             index: [],
@@ -78,6 +88,21 @@ module.exports = class OptiBot extends djs.Client {
             }
         };
 
+        Object.defineProperty(this, 'memory', {
+            get: function() {
+                return memory;
+            },
+            set: function(value) {
+                memory = value;
+            }
+        });
+
+        Object.defineProperty(this, 'db', {
+            get: function() {
+                return storage;
+            }
+        });
+
         Object.defineProperty(this, 'cfg', {
             get: function() {
                 return cfg;
@@ -93,15 +118,6 @@ module.exports = class OptiBot extends djs.Client {
         Object.defineProperty(this, 'keys', {
             get: function() {
                 return keys;
-            }
-        });
-
-        Object.defineProperty(this, 'memory', {
-            get: function() {
-                return memory;
-            },
-            set: function(value) {
-                memory = value;
             }
         });
 
@@ -213,10 +229,10 @@ module.exports = class OptiBot extends djs.Client {
             let i4 = 0;
             (function utilRefresh() {
                 let endItr = () => {
-                    if(i1+1 >= utilities.length) {
+                    if(i4+1 >= utilities.length) {
                         cmdLoader();
                     } else {
-                        i1++;
+                        i4++;
                         utilRefresh();
                     }
                 }
@@ -227,6 +243,7 @@ module.exports = class OptiBot extends djs.Client {
                     endItr();
                 } else {
                     if(clcache) {
+                        log(`cache delete: ${require.resolve(`../modules/util/${util}`)}`)
                         delete require.cache[require.resolve(`../modules/util/${util}`)];
                         endItr();
                     } else {
@@ -253,6 +270,7 @@ module.exports = class OptiBot extends djs.Client {
                 }
                 
                 if(clcache) {
+                    log(`cache delete: ${require.resolve(`../modules/cmd/${cmd}`)}`)
                     delete require.cache[require.resolve(`../modules/cmd/${cmd}`)];
                 }
 

@@ -3,14 +3,15 @@
  * 1. `type`
  * 2. `target`
  * 
- * `type` will always specify what kind of item the `target` is. This will be one of 3 strings: "user", "id", and "unknown" if no user was found.
+ * `type` will always specify what kind of item the `target` is. This will be one of 3 strings: "user", "id", and "notfound" if no user was found.
  * `target` will usually be a GuildMember object, if at all possible. Otherwise this will be either a user ID, or just `null`.
  * 
  * The boolean generally only returns false if the input was a plain ID, and the ID was not found via `fetchMember()`.
- * Both properties will be undefined if the input is invalid, or a user just cannot be found.
+ * Both properties will be undefined if the input is invalid.
  * 
  * @param {Message} m The original input message.
  * @param {String} target The target user. Can be either a Discord mention, shortcuts ("me", "myself", "^", etc...), or just a plain numerical user ID.
+ * @param bot OptiBot
  * @param {Function} log A function to send log events to. These are pretty much only for debugging.
  * @returns {Promise<Object>} `{ type, target }`
  */
@@ -23,25 +24,36 @@ module.exports = (m, target, bot, log = function(){}) => {
         log(m.mentions.users.size > 0, 'trace');
         log(target.match(/^(<@).*(>)$/) !== null && m.mentions.users.size > 0, 'trace');
 
+        function checkServer(id) {
+            bot.guilds.get(bot.cfg.guilds.optifine).fetchMember(id).then(mem => {
+                resolve({ type: "user", target: mem });
+            }).catch(err => {
+                if (err.stack.indexOf('Invalid or uncached') > -1) {
+                    resolve({ type: "id", target: id });
+                } else {
+                    reject(err);
+                }
+            });
+        }
+
         if (target.toLowerCase() === 'me' || target.toLowerCase() === 'myself') {
-            resolve({ type: "user", target: m.member });
+            log('self')
+            if(m.guild.id !== bot.cfg.guilds.optifine) {
+                checkServer(m.author.id);
+            } else {
+                resolve({ type: "user", target: m.member });
+            }
         } else
         if (target.match(/^(<@).*(>)$/) !== null && m.mentions.users.size > 0) {
+            log('@mention')
             if(m.mentions.members !== null && m.guild.id === bot.cfg.guilds.optifine) {
                 resolve({ type: "user", target: m.mentions.members.first(1)[0] });
             } else {
-                bot.guilds.get(bot.cfg.guilds.optifine).fetchMember(m.mentions.users.first(1)[0].id).then(mem => {
-                    resolve({ type: "user", target: mem });
-                }).catch(err => {
-                    if (err.stack.indexOf('Invalid or uncached') > -1) {
-                        resolve({ type: "id", target: m.mentions.users.first(1)[0].id });
-                    } else {
-                        reject(err);
-                    }
-                });
+                checkServer(m.mentions.users.first(1)[0].id);
             }
         } else
         if (target === "^") {
+            log('target shortcut')
             m.channel.fetchMessages({ limit: 25 }).then(msgs => {
                 let itr = msgs.values();
 
@@ -51,7 +63,11 @@ module.exports = (m, target, bot, log = function(){}) => {
                         resolve({ type: "unknown", target: null });
                     } else
                         if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1 && !thisID.value.author.bot) {
-                            resolve({ type: "user", target: thisID.value.member });
+                            if(m.guild.id !== bot.cfg.guilds.optifine) {
+                                checkServer(thisID.value.member.user.id);
+                            } else {
+                                resolve({ type: "user", target: thisID.value.member });
+                            }
                         } else {
                             search();
                         }
@@ -59,17 +75,10 @@ module.exports = (m, target, bot, log = function(){}) => {
             }).catch(err => reject(err));
         } else
         if (!isNaN(target)) {
-            bot.guilds.get(bot.cfg.guilds.optifine).fetchMember(target).then(mem => {
-                resolve({ type: "user", target: mem });
-            }).catch(err => {
-                if (err.stack.indexOf('Invalid or uncached') > -1) {
-                    resolve({ type: "id", target: target });
-                } else {
-                    reject(err);
-                }
-            });
+            log('id')
+            checkServer(target);
         } else {
-            resolve({ type: "unknown", target: null });
+            resolve();
         }
     });
 }

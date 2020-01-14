@@ -1,6 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./core/command.js`))
+const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
@@ -17,7 +18,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             .setDescription(`\`\`\`${data.cmd.metadata.usage}\`\`\``)
             .setColor(bot.cfg.embed.default);
 
-            m.channel.send({embed: embed});
+            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
         } else {
             let translate = function(message) {
                 let newStr = '';
@@ -45,7 +46,7 @@ module.exports = (bot, log) => { return new Command(bot, {
 
                     if (i+1 === message.length) {
                         m.channel.stopTyping();
-                        m.channel.send(newStr)
+                        m.channel.send(newStr).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                     }
                 }
             }
@@ -65,7 +66,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                             .setAuthor(`Could not find a user.`, bot.icons.find('ICO_error'))
                             .setFooter('Note that this shortcut will skip yourself, and any Discord bot.');
         
-                            m.channel.send({ embed: embed })
+                            m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                         } else
                         if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1 && !thisID.value.author.bot) {
                             translate(thisID.value.content);

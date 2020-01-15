@@ -1,62 +1,97 @@
 const path = require(`path`);
 const util = require(`util`);
 const fileType = require('file-type');
-const Discord = require(`discord.js`);
+const djs = require(`discord.js`);
 const Command = require(path.resolve(`./core/command.js`))
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `Evaluate JavaScript code.`,
     usage: '<js>',
     authlevel: 4,
-    tags: ['DM_OPTIONAL', 'INSTANT', 'HIDDEN'],
+    tags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'HIDDEN', 'DELETE_ON_MISUSE'],
     
     run: (m, args, data) => {
-        try {
-            let output = eval(m.content.substring( (bot.trigger+'exec ').length ));
-            
-            let response = `RAW OUTPUT: \`\`\`${output}\`\`\` \nINSPECTION UTILITY: \`\`\`${util.inspect(output)}\`\`\``;
+        bot.setTimeout(() => {
+            try {
+                let code = m.content.substring( `${bot.trigger}${path.parse(__filename).name} `.length );
+                let execStart = new Date().getTime();
+                let output = eval(code);
+                let execEnd = new Date().getTime();
 
+                let raw = `${output}`;
+                let inspect = `${util.inspect(output)}`
+                let time = `${execEnd - execStart}ms (${(execEnd - execStart) / 1000} seconds)`;
+                let contents = [
+                    `REAL EXECUTION TIME:`,
+                    `\`\`\`${time}\`\`\``,
+                    `RAW OUTPUT:`,
+                    `\`\`\`${raw}\`\`\``,
+                    `INSPECTION UTILITY:`,
+                    `\`\`\`javascript\n${inspect}\`\`\``
+                ].join('\n');
+    
+                if(Buffer.isBuffer(output)) {
+                    let ft = fileType(output);
+                    if(ft !== null) {
+                        contents = [
+                            `REAL EXECUTION TIME:`,
+                            `\`\`\`${time}\`\`\``,
+                            `IMAGE OUTPUT:`
+                        ].join('\n');
 
-            if(Buffer.isBuffer(output)) {
-                let ft = fileType(output);
-                if(ft !== null) {
-                    m.channel.send({ files: [new Discord.Attachment(output, 'output.'+ft.ext)] }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                        m.channel.stopTyping(true);
+                        m.channel.send(contents, {files: [new djs.Attachment(output, 'output.'+ft.ext)]})
+                    } else {
+                        defaultRes()
+                    }
                 } else {
                     defaultRes()
                 }
-            } else {
-                defaultRes()
-            }
-
-            
-
-            function defaultRes() {
-                if(response.length > 1900) {
-                    response = [
-                        '////////////////////////////////////////////////////////////////',
-                        '// RAW OUTPUT',
-                        '////////////////////////////////////////////////////////////////',
-                        '',
-                        output,
-                        '',
-                        '',
-                        '////////////////////////////////////////////////////////////////',
-                        '// INSPECTION UTILITY',
-                        '////////////////////////////////////////////////////////////////',
-                        '',
-                        util.inspect(output)
-                    ];
     
-                    m.channel.send({ files: [new Discord.Attachment(Buffer.from(response.join('\n')), 'output.txt')] }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
-                } else{
-                    m.channel.send(response).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                function defaultRes() {
+                    if(contents.length > 2000) {
+                        contents = [
+                            '////////////////////////////////////////////////////////////////',
+                            '// INPUT',
+                            '////////////////////////////////////////////////////////////////',
+                            '',
+                            code,
+                            '',
+                            '',
+                            '////////////////////////////////////////////////////////////////',
+                            '// EXECUTION TIME',
+                            '////////////////////////////////////////////////////////////////',
+                            '',
+                            time,
+                            '',
+                            '',
+                            '////////////////////////////////////////////////////////////////',
+                            '// RAW OUTPUT',
+                            '////////////////////////////////////////////////////////////////',
+                            '',
+                            raw,
+                            '',
+                            '',
+                            '////////////////////////////////////////////////////////////////',
+                            '// INSPECTION UTILITY',
+                            '////////////////////////////////////////////////////////////////',
+                            '',
+                            inspect
+                        ].join('\n');
+
+                        m.channel.stopTyping(true);
+                        m.channel.send(`Output too long, see attached file:`, { files: [new djs.Attachment(Buffer.from(contents), 'output.txt')] })
+                    } else {
+                        m.channel.stopTyping(true);
+                        m.channel.send(contents)
+                    }
                 }
             }
-        }
-        catch (err) {
-            m.channel.send(`\`\`\`diff\n-${err.stack || err}\`\`\``).then(bm => msgFinalizer(m.author.id, bm, bot, log));
-        }
+            catch (err) {    
+                m.channel.stopTyping(true);
+                m.channel.send(`\`\`\`diff\n-${err.stack || err}\`\`\``)
+            }
+        }, 250);
     }
 })}

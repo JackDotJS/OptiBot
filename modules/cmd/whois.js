@@ -29,7 +29,7 @@ module.exports = (bot, log) => { return new Command(bot, {
         
                     m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                 } else 
-                if(result.type === 'unknown' || result.type === 'id') {
+                if(result.type === 'notfound' || result.type === 'id') {
                     let embed = new djs.RichEmbed()
                     .setAuthor('Unable to find a user.', bot.icons.find('ICO_error'))
                     .setDescription(`If that person is no longer in the server, I can't get information about them. Sorry!`)

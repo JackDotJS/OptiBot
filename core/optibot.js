@@ -9,6 +9,7 @@ module.exports = class OptiBot extends djs.Client {
         super(options);
 
         const memory = {
+            sm: {},
             bot: {
                 locked: misc.debug,
             },
@@ -20,6 +21,75 @@ module.exports = class OptiBot extends djs.Client {
             },
             version: require('../package.json').version
         };
+
+        let sm_i = 0;
+        const sm_check = this.setInterval(() => {
+            /**
+             * FORMAT:
+             * 
+             * 0000000000000000: {
+                    past: [],
+                    now: 0,
+                    mps: 0.0,
+                    manual: false,
+                    i: 0,
+                    until: null,
+                }
+             */
+
+            let channels = Object.keys(memory.sm);
+            if(channels.length > 0) {
+                channels.forEach((id, i) => {
+                    let tc = memory.sm[id];
+                    tc.past.push(tc.now);
+                    tc.now = 0;
+
+                    if(tc.past.length > 5) {
+                        tc.past.shift();
+                    }
+
+                    tc.mps = tc.past.reduce((a, b) => a + b) / tc.past.length;
+
+                    if(tc.mps !== 0) log(`${id}: ${tc.mps} mps`);
+
+                    if(tc.until !== null) {
+                        if(new Date().getTime() >= tc.until) {
+                            // disable slowmode
+                            tc.until = null;
+                            tc.i = 0;
+
+                            log(`Slowmode disabled in ${id}`, 'info')
+                        }
+                    }
+
+                    if(sm_i === 2) {
+                        if(tc.mps > 1 && tc.until === null) {
+                            // enable slowmode
+                            tc.until = new Date().getTime() + (1000 * 60 * 10); // 10 minutes
+                            tc.i = 5;
+
+                            log(`Slowmode set to 3 seconds in ${id}`, 'info')
+                        } else
+                        if(tc.mps > 0.75 && tc.until === null) {
+                            // enable slowmode
+                            tc.until = new Date().getTime() + (1000 * 60 * 10); // 10 minutes
+                            tc.i = 3;
+
+                            log(`Slowmode set to 3 seconds in ${id}`, 'info')
+                        }
+                    }
+
+
+                    if(parseInt(i)+1 >= channels.length) {
+                        if(sm_i === 2) {
+                            sm_i = 0;   
+                        } else {
+                            sm_i++;
+                        }
+                    }
+                });
+            }
+        }, 1000);
 
         const storage = {
             msg: new database({ filename: './data/messages.db', autoload: true }),

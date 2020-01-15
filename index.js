@@ -83,6 +83,21 @@ bot.on('ready', () => {
 bot.on('message', (m) => {
     if (m.author.bot || m.author.system) return;
 
+    if(m.channel.type !== 'dm' && m.guild.id === bot.cfg.guilds.optifine) {
+        if(bot.memory.sm[m.channel.id]) {
+            bot.memory.sm[m.channel.id].now++;
+        } else {
+            bot.memory.sm[m.channel.id] = {
+                past: [ 0, 0, 0, 0, 0,],
+                now: 1,
+                mps: 0.0,
+                manual: false,
+                i: 0,
+                until: null,
+            }
+        }
+    }
+
     let fl = m.content.trim().split("\n", 1)[0]; // first line of the message
     let input = {
         valid: fl.match(new RegExp(`^\\${bot.trigger}(?![^a-zA-Z0-9])[a-zA-Z0-9]+(?=\\s|$)`)), // checks if the input starts with the trigger, immediately followed by valid characters.
@@ -164,7 +179,12 @@ bot.on('message', (m) => {
                     .setAuthor(msg, bot.icons.find('ICO_error'))
                     .setColor(bot.cfg.embed.error)
 
-                    if(cmd.metadata.tags['DELETE_ON_MISUSE']) embed.setDescription('This message will self-destruct in 10 seconds.');
+                    if(cmd.metadata.tags['DELETE_ON_MISUSE']) {
+                        m.delete().catch(err => {
+                            log(err.stack, 'error');
+                        });
+                        embed.setDescription('This message will self-destruct in 10 seconds.');
+                    }
 
                     m.channel.send({embed: embed}).then(msg => {
                         if(cmd.metadata.tags['DELETE_ON_MISUSE']) {
@@ -191,10 +211,10 @@ bot.on('message', (m) => {
                 if(cmd.metadata.tags['DM_ONLY'] && m.channel.type !== 'dm' && (authlvl < 4 || cmd.metadata.tags['STRICT'])) {
                     checkMisuse('This command can only be used in DMs.');
                 } else
-                if(cmd.metadata.tags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && m.channel.id !== '626843115650547743' && (authlvl === 0 || cmd.metadata.tags['STRICT'])) {
+                if(cmd.metadata.tags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.bot.indexOf(m.channel.id) === -1 && bot.cfg.channels.bot.indexOf(m.channel.parentID) === -1) && (authlvl === 0 || cmd.metadata.tags['STRICT'])) {
                     checkMisuse('This command can only be used in DMs OR the #optibot channel.');
                 } else
-                if(cmd.metadata.tags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && m.channel.parentID !== '626864678198575114' && (authlvl < 4 || cmd.metadata.tags['STRICT'])) {
+                if(cmd.metadata.tags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1) && (authlvl < 4 || cmd.metadata.tags['STRICT'])) {
                     checkMisuse('This command can only be used in moderator-only channels.');
                 } else {
                     if(!cmd.metadata.tags['INSTANT']) m.channel.startTyping();
@@ -314,17 +334,23 @@ bot.on('messageReactionAdd', (mr, user) => {
             } else
             if(docs.length > 0) {
                 if(docs[0].user === user.id) {
-                    mr.message.delete().then(() => {
-                        bot.db.msg.remove(docs[0], {}, (err) => {
-                            if (err) {
-                                log(err.stack, 'error');
-                            } else {
-                                log('Bot message deleted at user request.');
-                            }
+                    if(mr.message.content === bot.cfg.messages.confirmDelete) {
+                        mr.message.delete().then(() => {
+                            bot.db.msg.remove(docs[0], {}, (err) => {
+                                if (err) {
+                                    log(err.stack, 'error');
+                                } else {
+                                    log('Bot message deleted at user request.');
+                                }
+                            });
+                        }).catch(err => {
+                            log(err.stack, 'error');
                         });
-                    }).catch(err => {
-                        log(err.stack, 'error');
-                    });
+                    } else {
+                        mr.message.edit(bot.cfg.messages.confirmDelete).catch(err => {
+                            log(err.stack, 'error');
+                        });
+                    }
                 }
             }
         });

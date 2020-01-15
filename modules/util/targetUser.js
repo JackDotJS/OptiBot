@@ -38,7 +38,7 @@ module.exports = (m, target, bot, log = function(){}) => {
 
         if (target.toLowerCase() === 'me' || target.toLowerCase() === 'myself') {
             log('self')
-            if(m.guild.id !== bot.cfg.guilds.optifine) {
+            if(m.channel.type === 'dm' || m.guild.id !== bot.cfg.guilds.optifine) {
                 checkServer(m.author.id);
             } else {
                 resolve({ type: "user", target: m.member });
@@ -60,7 +60,7 @@ module.exports = (m, target, bot, log = function(){}) => {
                 (function search() {
                     let thisID = itr.next();
                     if (thisID.done) {
-                        resolve({ type: "unknown", target: null });
+                        resolve({ type: "notfound", target: null });
                     } else
                         if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1 && !thisID.value.author.bot) {
                             if(m.guild.id !== bot.cfg.guilds.optifine) {

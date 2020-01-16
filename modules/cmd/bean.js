@@ -14,7 +14,7 @@ module.exports = (bot, log) => { return new Command(bot, {
 
     run: (m, args, data) => {
         let embed = new djs.RichEmbed()
-        .setAuthor(`Success`, bot.icons.find('ICO_okay'))
+        .setAuthor(`Successfully beaned user`, bot.icons.find('ICO_okay'))
         .setColor(bot.cfg.embed.okay);
 
         if(!args[0]) {

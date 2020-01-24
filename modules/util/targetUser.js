@@ -44,6 +44,24 @@ module.exports = (m, target, bot, log = function(){}) => {
                 resolve({ type: "user", target: m.member });
             }
         } else
+        if (target.toLowerCase() === 'someone' || target.toLowerCase() === 'somebody' || target.toLowerCase() === 'random') {
+            log('random user')
+            if(m.channel.type === 'dm') {
+                checkServer(m.author.id);
+            } else {
+                let users = [];
+                if(m.guild.id !== bot.cfg.guilds.optifine) {
+                    users = [...bot.guilds.get(bot.cfg.guilds.optifine).members.values()];
+                } else {
+                    users = [...m.guild.members.values()];
+                }
+
+                log(users.length)
+
+                let someone = users[~~(Math.random() * users.length)];
+                resolve({ type: "user", target: someone });
+            }
+        } else
         if (target.match(/^(<@).*(>)$/) !== null && m.mentions.users.size > 0) {
             log('@mention')
             if(m.mentions.members !== null && m.guild.id === bot.cfg.guilds.optifine) {

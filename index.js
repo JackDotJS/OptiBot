@@ -82,6 +82,17 @@ bot.on('ready', () => {
 
 bot.on('message', (m) => {
     if (m.author.bot || m.author.system) return;
+    
+    if (bot.memory.users.indexOf(m.author.id) === -1) {
+        bot.memory.users.push(m.author.id);
+        bot.getProfile(m.author.id, false).then(profile => {
+            if(profile) {
+                profile.data.lastSeen = new Date().getTime();
+
+                bot.updateProfile(m.author.id, profile)
+            }
+        });
+    }
 
     if(m.channel.type !== 'dm' && m.guild.id === bot.cfg.guilds.optifine) {
         if(bot.memory.sm[m.channel.id]) {

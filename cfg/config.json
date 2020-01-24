@@ -48,7 +48,10 @@
         "okay": "#43b581",
         "error": "#dd2e44"
     },
+    "profiles": {
+        "expiration": 30
+    },
     "db": {
-        "limit": 16   
+        "limit": 16  
     }
 }

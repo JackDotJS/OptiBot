@@ -19,7 +19,13 @@ module.exports = class OptiBot extends djs.Client {
                 type: '',
                 url: ''
             },
-            version: require('../package.json').version
+            version: require('../package.json').version,
+            vote: {
+                issue: null,
+                author: null,
+                message: null
+            },
+            users: []
         };
 
         let sm_i = 0;
@@ -400,6 +406,51 @@ module.exports = class OptiBot extends djs.Client {
                     iconLoader();
                 }
             }
+        });
+    }
+
+    getProfile(id, create) {
+        return new Promise((resolve, reject) => {
+            this.log('get profile: '+id);
+            this.db.profiles.find({ userid: id, format: 2 }, (err, docs) => {
+                if(err) {
+                    reject(err);
+                } else
+                if(docs[0]) {
+                    resolve(docs[0]);
+                } else
+                if(create) {
+                    let profile = {
+                        userid: id,
+                        format: 2,
+                        data: {
+                            lastSeen: new Date().getTime()
+                        }
+                    }
+
+                    this.db.profiles.insert(profile, (err) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve(profile);
+                        }
+                    });
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    updateProfile(id, data) {
+        return new Promise((resolve, reject) => {
+            this.db.profiles.update({ userid: id, format: 2 }, data, (err) => {
+                if(err) {
+                    reject(err);
+                } else {
+                    resolve(data);
+                }
+            });
         });
     }
 }

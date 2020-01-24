@@ -1,4 +1,5 @@
 const path = require(`path`);
+const timeago = require("timeago.js");
 const util = require(`util`);
 const fileType = require('file-type');
 const djs = require(`discord.js`);
@@ -51,6 +52,7 @@ module.exports = (bot, log) => { return new Command(bot, {
     
                 function defaultRes() {
                     if(contents.length > 2000) {
+                        let oldlength = contents.length;
                         contents = [
                             '////////////////////////////////////////////////////////////////',
                             '// INPUT',
@@ -81,7 +83,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                         ].join('\n');
 
                         m.channel.stopTyping(true);
-                        m.channel.send(`Output too long, see attached file:`, { files: [new djs.Attachment(Buffer.from(contents), 'output.txt')] })
+                        m.channel.send(`Output too long! (${contents.length.toLocaleString()})`, { files: [new djs.Attachment(Buffer.from(contents), 'output.txt')] })
                     } else {
                         m.channel.stopTyping(true);
                         m.channel.send(contents)

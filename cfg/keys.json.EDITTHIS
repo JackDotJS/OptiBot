@@ -1,4 +1,7 @@
 {
-    "discord": "",
+    "discord": {
+        "main": "",
+        "log": "",
+    },
     "github": ""
 }

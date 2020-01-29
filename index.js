@@ -6,30 +6,39 @@
 
 if(!process.send) throw new Error(`Cannot run standalone. Please use the "init.bat" file.`);
 
-const callerId = require('caller-id');
+const cid = require('caller-id');
 const wink = require('jaro-winkler');
 const path = require(`path`);
+const util = require(`util`);
 const djs = require(`discord.js`);
+const timeago = require("timeago.js");
 const msgFinalizer = require(`./modules/util/msgFinalizer.js`)
-const OptiBot = require(`./core/optibot.js`);
+const errMsg = require(`./modules/util/simpleError.js`);
+const OptiBot = require(`./modules/core/optibot.js`);
 
-const log = (message, level, lineNum) => {
-    let cid = callerId.getData();
-    let path = (cid.evalFlag) ? 'eval()' : cid.filePath;
-    let filename = path.substring(path.lastIndexOf('\\')+1);
-    let line = cid.lineNumber;
+const log = (message, level, file, line) => {
+    let call = cid.getData();
+    if (!file) file = (call.evalFlag) ? 'eval()' : call.filePath.substring(call.filePath.lastIndexOf('\\')+1);
+    if (!line) line = call.lineNumber;
 
     process.send({
         type: 'log',
         message: message,
         level: level,
-        misc: filename+`:`+((lineNum) ? lineNum : line) 
+        misc: `${file}:${line}`
     });
 }
 
-const bot = new OptiBot({}, {debug: Boolean(process.argv[2])}, log);
+const bot = new OptiBot({}, Boolean(process.argv[2]), log);
 
-bot.login(bot.keys.discord).catch(err => {
+bot.login(bot.keys.discord.main).then(() => {
+    if(typeof bot.keys.discord.log === 'string') {
+        bot.memory.log = new djs.Client();
+        bot.memory.log.login(bot.keys.discord.log).catch(err => {
+            log(err, 'fatal');
+        });
+    }
+}).catch(err => {
     log(err, 'fatal');
 });
 
@@ -38,42 +47,79 @@ bot.login(bot.keys.discord).catch(err => {
 ////////////////////////////////////////
 
 bot.on('ready', () => {
-    process.title = `Loading...`;
-    log('Successfully connected to Discord API.', 'info');
+    if(bot.memory.bot.init) {
+        process.title = `Loading...`;
+        log('Successfully connected to Discord API.', 'info');
 
-    bot.setStatus(0);
+        bot.setStatus(0);
 
-    bot.loadAssets().then((time) => {
-        bot.setStatus(1);
+        bot.loadAssets().then((time) => {
+            bot.setStatus(1);
 
-        let width = 64; //inner width of box
+            let width = 64; //inner width of box
+            function centerText(text, totalWidth) {
+                let leftMargin = Math.floor((totalWidth - (text.length)) / 2);
+                let rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
 
-        function centerText(text, totalWidth) {
-            let leftMargin = Math.floor((totalWidth - (text.length)) / 2);
-            let rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
+                return `│` + (` `.repeat(leftMargin)) + text + (` `.repeat(rightMargin)) + `│`;
+            }
 
-            return `│` + (` `.repeat(leftMargin)) + text + (` `.repeat(rightMargin)) + `│`;
-        }
+            let splash = bot.splash[~~(Math.random() * bot.splash.length)];
 
-        log(`╭${'─'.repeat(width)}╮`, `info`); 
-        log(centerText(`  `, width), `info`);
-        log(centerText(`OptiBot ${bot.memory.version}`, width), `info`);
-        log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2020`, width), `info`);
-        log(centerText(`  `, width), `info`);
-        log(centerText(`Finished initialization in ${process.uptime().toFixed(3)} seconds.`, width), `info`);
-        log(centerText(`Assets loaded in ${time / 1000} seconds.`, width), `info`);
-        log(centerText(`  `, width), `info`);
-        log(`╰${'─'.repeat(width)}╯`, `info`);
+            if(splash.indexOf('\n') > -1) {
+                splash = splash.substring(splash.lastIndexOf('\n')+1).substring(0, width);
+            }
 
-        process.title = `OptiBot ${bot.memory.version}`;
+            log(splash, 'debug');
 
-        process.send({
-            type: 'ready'
+            log(`╭${'─'.repeat(width)}╮`, `info`); 
+            log(centerText(`  `, width), `info`);
+            log(centerText(`OptiBot ${bot.version}`, width), `info`);
+            log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2020`, width), `info`);
+            log(centerText(`  `, width), `info`);
+            log(centerText(splash, width), `info`);
+            log(centerText(`  `, width), `info`);
+            log(centerText(`Finished initialization in ${process.uptime().toFixed(3)} seconds.`, width), `info`);
+            log(centerText(`Assets loaded in ${time / 1000} seconds.`, width), `info`);
+            log(centerText(`  `, width), `info`);
+            log(`╰${'─'.repeat(width)}╯`, `info`);
+
+            if(bot.keys.discord.log) bot.memory.bot.bootTime = process.uptime().toFixed(3);
+
+            process.title = `OptiBot ${bot.version}`;
+
+            process.send({
+                type: 'ready'
+            });
+
+            if(bot.memory.log === null) bot.memory.bot.init = false;
+        }).catch(err => {
+            log(err.stack, 'fatal');
+            bot.exit(1);
         });
-    }).catch(err => {
-        log(err.stack, 'fatal');
-        bot.exit(1);
-    });
+    }
+});
+
+if(bot.memory.log !== null) bot.memory.log.on('ready', () => {
+    if(bot.memory.bot.init) {
+        let timeNow = new Date();
+        log('OptiLog ready.', 'warn');
+        bot.memory.log.user.setStatus('invisible');
+
+        let embed = new djs.RichEmbed()
+        .setColor(bot.cfg.embed.default)
+        .setAuthor('OptiBot Initialized', bot.icons.find('ICO_info'))
+        .setTitle(`Version: ${bot.version}`)
+        .setDescription(`Boot Time: ${bot.memory.bot.bootTime} second(s)`)
+        .addField('The following message was brought to you by Math.random()®️', `\`\`\`${bot.splash[~~(Math.random() * bot.splash.length)]}\`\`\``)
+        .setThumbnail(bot.user.displayAvatarURL)
+        .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+        .setTimestamp(timeNow)
+
+        bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+
+        bot.memory.bot.init = false;
+    }
 });
 
 ////////////////////////////////////////
@@ -94,27 +140,26 @@ bot.on('message', (m) => {
         });
     }
 
-    if(m.channel.type !== 'dm' && m.guild.id === bot.cfg.guilds.optifine) {
-        if(bot.memory.sm[m.channel.id]) {
-            bot.memory.sm[m.channel.id].now++;
-        } else {
-            bot.memory.sm[m.channel.id] = {
-                past: [ 0, 0, 0, 0, 0,],
-                now: 1,
-                mps: 0.0,
-                manual: false,
-                i: 0,
-                until: null,
+    if(m.channel.type !== 'dm' && m.guild.id === bot.cfg.guilds.optibot) {
+        if(bot.cfg.channels.blacklist.indexOf(m.channel.id) === -1 && bot.cfg.channels.blacklist.indexOf(m.channel.parentID) === -1) {
+            if(bot.cfg.channels.nomodify.indexOf(m.channel.id) === -1 && bot.cfg.channels.nomodify.indexOf(m.channel.parentID) === -1) {
+                if(bot.memory.sm[m.channel.id]) {
+                    bot.memory.sm[m.channel.id].now++;
+                } else {
+                    bot.memory.sm[m.channel.id] = {
+                        past: [ 0, 0, 0, 0, 0,],
+                        now: 1,
+                        mps: 0.0,
+                        manual: false,
+                        i: 0,
+                        until: null,
+                    }
+                }
             }
         }
     }
 
-    let fl = m.content.trim().split("\n", 1)[0]; // first line of the message
-    let input = {
-        valid: fl.match(new RegExp(`^\\${bot.trigger}(?![^a-zA-Z0-9])[a-zA-Z0-9]+(?=\\s|$)`)), // checks if the input starts with the trigger, immediately followed by valid characters.
-        cmd: fl.toLowerCase().split(" ")[0].substr(1),
-        args: fl.split(" ").slice(1).filter(function (e) { return e.length != 0 })
-    }
+    let input = bot.parseInput(m.content);
 
     if(input.valid) {
         /////////////////////////////////////////////////////////////
@@ -190,20 +235,27 @@ bot.on('message', (m) => {
                     .setAuthor(msg, bot.icons.find('ICO_error'))
                     .setColor(bot.cfg.embed.error)
 
+                    let content = '_ _';
+
                     if(cmd.metadata.tags['DELETE_ON_MISUSE']) {
                         m.delete().catch(err => {
                             log(err.stack, 'error');
                         });
+                        content = m.author;
                         embed.setDescription('This message will self-destruct in 10 seconds.');
                     }
 
-                    m.channel.send({embed: embed}).then(msg => {
+                    m.channel.send(content, {embed: embed}).then(msg => {
                         if(cmd.metadata.tags['DELETE_ON_MISUSE']) {
                             msg.delete(10000);
                         } else {
                             msgFinalizer(m.author.id, bm, bot, log)
                         }
                     });
+                }
+
+                if(cmd && ((m.channel.type === 'text' && m.guild.id === bot.cfg.guilds.optifine) || (m.channel.type === 'dm'))) {
+                    log(`[LVL${authlvl}] [${(m.channel.type === 'dm') ? "DM" : '#'+m.channel.name}] Command issued by ${m.author.tag} (${m.author.id}) : ${(cmd.metadata.tags['CONFIDENTIAL']) ? m.content.replace(/\S/gi, '*') : m.content}`, 'info')
                 }
 
                 if(!cmd) {
@@ -233,13 +285,9 @@ bot.on('message', (m) => {
                         cmd.exec(m, input.args, {member, authlvl, input, cmd});
                     }
                     catch (err) {
-                        log(err.stack, 'error');
-                        let embed = new djs.RichEmbed()
-                        .setAuthor('Something went wrong while doing that. Oops.', bot.icons.find('ICO_error'))
-                        .setColor(bot.cfg.embed.error)
-                        .setDescription(`\`\`\`diff\n-${err}\`\`\` \nIf this continues, please contact <@181214529340833792> or <@251778569397600256>`);
-
+                        let embed = errMsg(err, bot, log);
                         if(!cmd.metadata.tags['INSTANT']) m.channel.stopTyping();
+                        
                         m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                     }
                 }
@@ -295,6 +343,358 @@ process.on('message', (m) => {
 });
 
 ////////////////////////////////////////
+// Message Deletion Events
+////////////////////////////////////////
+
+bot.on('messageDelete', m => {
+    let timeNow = new Date();
+    if (m.channel.type === 'dm') return;
+    //if (m.guild.id !== bot.cfg.guilds.optifine) return;
+    if (m.author.system || m.author.bot) return;
+    if (bot.parseInput(m).cmd === 'dr') return;
+
+    bot.setTimeout(() => {
+        log('begin calculation of executor', 'trace')
+        bot.guilds.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
+
+            let ad = [...audit.entries.values()];
+
+            let dlog = null;
+            let clog = null;
+            let dType = 0;
+            // 0 = author
+            // 1 = moderator
+
+            for(let i = 0; i < ad.length; i++) {
+                if (ad[i].target.id === m.author.id) {
+                    dlog = ad[i];
+
+                    for(let i = 0; i < bot.memory.audit.length; i++) {
+                        if (bot.memory.audit[i].id === dlog.id && clog === null) {
+                            clog = bot.memory.audit[i];
+                        }
+                        
+                        if (i+1 === bot.memory.audit.length) {
+                            if(dlog !== null && clog === null) {
+                                dType = 1;
+                                finalLog();
+                            } else
+                            if(dlog === null && clog === null) {
+                                finalLog();
+                            } else
+                            if(dlog === null && clog !== null) {
+                                finalLog();
+                            } else
+                            if(dlog !== null && clog !== null) {
+                                if(dlog.extra.count > clog.extra.count) {
+                                    dType = 1;
+                                    finalLog();
+                                } else {
+                                    finalLog();
+                                }
+                            }
+                        }
+                    }
+                    break;
+                } else
+                if (i+1 === ad.length) {
+                    // deleted message does not exist in audit log, therefore it was deleted by the author
+                    finalLog();
+                }
+            }
+
+            
+
+            function finalLog() {
+                let embed = new djs.RichEmbed()
+                .setColor(bot.cfg.embed.error)
+                .setDescription(`Original message posted on ${m.createdAt.toUTCString()}\n(${timeago.format(m.createdAt)})`)
+                .addField('Author', `${m.author} | ${m.author.tag} \n\`\`\`yaml\n${m.author.id}\`\`\``)
+                .addField(`Message Location`, `${m.channel} | [Direct URL](${m.url})`)
+                .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+                .setTimestamp(timeNow)
+
+                if(dType === 1) {
+                    embed.setAuthor(`Message Deleted by Moderator`, bot.icons.find('ICO_trash'))
+                    .addField('Moderator Responsible', `${dlog.executor} | ${dlog.executor.tag} \n\`\`\`yaml\n${dlog.executor.id}\`\`\``)
+                    .addField('Reason', (dlog.reason === null) ? 'No reason provided.' : dlog.reason)
+                } else 
+                if(m.member !== null && m.member.deleted) {
+                    embed.setAuthor(`Message Deleted`, bot.icons.find('ICO_trash'))
+                    embed.addField('Note', 'This message *may* have been deleted as part of a user ban.');
+                } else {
+                    embed.setAuthor(`Message Deleted by Author`, bot.icons.find('ICO_trash'))
+                }
+
+                embed.addField('Deleted Message', m.content);
+
+                let attach = [];
+                if (m.attachments.size > 0) {
+                    m.attachments.tap(at => {
+                        attach.push(at.url);
+                    });
+
+                    embed.addField('Message Attachments', attach.join('\n'));
+                }
+
+                if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+
+                
+                bot.memory.audit = [...audit.entries.values()];
+            }
+        })
+    }, 2000);
+});
+
+bot.on('messageDeleteBulk', ms => {
+    let timeNow = new Date();
+
+    let embed = new djs.RichEmbed()
+    .setColor(bot.cfg.embed.error)
+    .setAuthor(`Multiple Messages Deleted`, bot.icons.find('ICO_trash'))
+    .setDescription('See attached file above for details.')
+    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+    .setTimestamp(timeNow);
+
+    let contents = [
+        '////////////////////////////////////////////////////////////////',
+        'OptiLog Multiple Message Deletion Report',
+        `Date: ${timeNow.toUTCString()}`,
+        '////////////////////////////////////////////////////////////////',
+        ''
+    ]
+    ms.tap(m => {
+        let tm = [
+            `Author: ${m.author.tag} (${m.author.id})`,
+            `Post Date: ${m.createdAt.toUTCString()}`,
+            `Message ID: ${m.id}`,
+            `Location: #${m.channel.name} (${m.channel.id})`,
+            ``,
+            `Message Content:`,
+            m.content
+        ]
+
+        if (m.attachments.size > 0) {
+            tm.push('');
+            tm.push('Attachments:')
+            m.attachments.tap(at => {
+                tm.push(at.url);
+            });
+        }
+
+        tm.push('\n////////////////////////////////////////////////////////////////\n',)
+
+        contents.push(tm.join('\n'));
+    });
+
+    if(bot.memory.log !== null) {
+        bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({
+            embed: embed, 
+            files: [new djs.Attachment(Buffer.from(contents.join('\n')), 'deleted_messages.txt')]
+        });
+    }
+});
+
+////////////////////////////////////////
+// Message Edited Event
+////////////////////////////////////////
+
+bot.on('messageUpdate', (m, mNew) => {
+    let timeNow = new Date();
+    if (m.channel.type === 'dm') return;
+    if (mNew.guild.id !== bot.cfg.guilds.optifine) return;
+    if (m.author.system || m.author.bot) return;
+    if (m.content.trim().toLowerCase() == mNew.content.trim().toLowerCase()) return;
+    if (bot.parseInput(mNew).cmd === 'dr') return;
+
+    let embed = new djs.RichEmbed()
+    .setColor(bot.cfg.embed.default)
+    .setAuthor('Message Edited', bot.icons.find('ICO_edit'))
+    .setDescription(`Original message posted on ${m.createdAt.toUTCString()}\n(${timeago.format(m.createdAt)})`)
+    .addField('Author', `${m.author} | ${m.author.tag} \n\`\`\`yaml\n${m.author.id}\`\`\``)
+    .addField('Message Location', `${m.channel} | [Direct URL](${m.url})`)
+    .addField('Original Message', `${m.content}`)
+    .addField('New Message', `${mNew.content}`)
+    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+    .setTimestamp(timeNow)
+
+    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+});
+
+////////////////////////////////////////
+// User Joined
+////////////////////////////////////////
+
+bot.on('guildMemberAdd', (member) => {
+    let timeNow = new Date();
+    //if (member.guild.id !== bot.cfg.guilds.optifine) return;
+
+    let embed = new djs.RichEmbed()
+    .setColor(bot.cfg.embed.okay)
+    .setAuthor('New Member', bot.icons.find('ICO_join'))
+    .setDescription(`${member} | ${member.user.tag} \n\`\`\`yaml\n${member.user.id}\`\`\``)
+    .setThumbnail(member.user.displayAvatarURL)
+    .addField('Account Creation Date', `${member.user.createdAt.toUTCString()} (${timeago.format(member.user.createdAt)})`)
+    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+    .setTimestamp(timeNow)
+
+    if((member.user.createdAt.getTime() + (1000 * 60 * 60 * 7)) > timeNow.getTime()) {
+        embed.setTitle('Warning: New Discord Account')
+    }
+
+    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+
+    bot.setTimeout(() => {
+        let count = bot.guilds.get(bot.cfg.guilds.optifine).memberCount;
+
+        if(count % 1000 === 0) {
+            let embed = new djs.RichEmbed()
+            .setColor(bot.cfg.embed.okay)
+            .setAuthor('Milestone Achieved', bot.icons.find('ICO_star'))
+            .setTitle(`This server has reached ${count.toLocaleString()} members!`)
+            .setDescription(`User ${member} (${member.user.tag}) was our ${count.toLocaleString()}th member.`)
+            .setThumbnail(member.user.displayAvatarURL)
+            .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+            .setTimestamp(timeNow)
+
+            if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+        }
+    }, 2500);
+});
+
+////////////////////////////////////////
+// User Left/Kicked
+////////////////////////////////////////
+
+bot.on('guildMemberRemove', (member) => {
+    let timeNow = new Date();
+    if (member.guild.id !== bot.cfg.guilds.optifine) return;
+
+    bot.setTimeout(() => {
+        bot.guilds.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10 }).then((audit) => {
+            let ad = [...audit.entries.values()];
+
+            for(let i = 0; i < ad.length; i++) {
+                if (ad[i].target.id === member.user.id && (ad[i].action === 'MEMBER_KICK' || ad[i].action === 'MEMBER_BAN_ADD')) {
+                    if(ad[i].action === 'MEMBER_KICK') {
+                        let embed = new djs.RichEmbed()
+                        .setColor(bot.cfg.embed.error)
+                        .setAuthor('User Kicked', bot.icons.find('ICO_kick'))
+                        .setTitle((ad[i].reason) ? "Reason: "+ad[i].reason : "No reason provided.")
+                        .addField('Kicked User', `${member} | ${member.user.tag} \n\`\`\`yaml\n${member.user.id}\`\`\``)
+                        .addField('Moderator Responsible', `${ad[i].executor} | ${ad[i].executor.tag} \n\`\`\`yaml\n${ad[i].executor.id}\`\`\``)
+                        .setThumbnail(member.user.displayAvatarURL)
+                        .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+                        .setTimestamp(timeNow)
+
+                        if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                    }
+                    break;
+                } else
+                if (i+1 === ad.length) {
+                    let embed = new djs.RichEmbed()
+                    .setColor(bot.cfg.embed.error)
+                    .setAuthor('Member Left', bot.icons.find('ICO_leave'))
+                    .setDescription(`${member} | ${member.user.tag} \n\`\`\`yaml\n${member.user.id}\`\`\``)
+                    .setThumbnail(member.user.displayAvatarURL)
+                    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+                    .setTimestamp(timeNow)
+
+                    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                }
+            }
+        }).catch(err => log(err.stack, 'error'));
+    }, 2000);
+});
+
+////////////////////////////////////////
+// User Banned
+////////////////////////////////////////
+
+bot.on('guildBanAdd', (guild, user) => {
+    let timeNow = new Date();
+    if (guild.id !== bot.cfg.guilds.optifine) return;
+
+    bot.setTimeout(() => {
+        bot.guilds.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_ADD' }).then((audit) => {
+            let ad = [...audit.entries.values()];
+
+            for(let i = 0; i < ad.length; i++) {
+                if (ad[i].target.id === user.id) {
+                    let embed = new djs.RichEmbed()
+                    .setColor(bot.cfg.embed.error)
+                    .setAuthor('User Banned', bot.icons.find('ICO_ban'))
+                    .setTitle((ad[i].reason) ? "Reason: "+ad[i].reason : "No reason provided.")
+                    .addField('Banned User', `${user} | ${user.tag} \n\`\`\`yaml\n${user.id}\`\`\``)
+                    .addField('Moderator Responsible', `${ad[i].executor} | ${ad[i].executor.tag} \n\`\`\`yaml\n${ad[i].executor.id}\`\`\``)
+                    .setThumbnail(user.displayAvatarURL)
+                    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+                    .setTimestamp(timeNow)
+
+                    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                    break;
+                } else
+                if (i+1 === ad.length) {
+                    let embed = new djs.RichEmbed()
+                    .setColor(bot.cfg.embed.error)
+                    .setAuthor('User Banned', bot.icons.find('ICO_ban'))
+                    .setTitle(`Log Error: Unable to determine Moderator responsible. See Audit Logs.`)
+                    .addField('Banned User', `${user} | ${user.tag} \n\`\`\`yaml\n${user.id}\`\`\``)
+                    .setThumbnail(user.displayAvatarURL)
+                    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+                    .setTimestamp(timeNow)
+
+                    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                }
+            }
+        }).catch(err => log(err.stack, 'error'));
+    }, 2000);
+});
+
+////////////////////////////////////////
+// User Ban Revoked
+////////////////////////////////////////
+
+bot.on('guildBanRemove', (guild, user) => {
+    let timeNow = new Date();
+    if (guild.id !== bot.cfg.guilds.optifine) return;
+
+    bot.setTimeout(() => {
+        bot.guilds.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_REMOVE' }).then((audit) => {
+            let ad = [...audit.entries.values()];
+
+            for(let i = 0; i < ad.length; i++) {
+                if (ad[i].target.id === user.id) {
+                    let embed = new djs.RichEmbed()
+                    .setColor(bot.cfg.embed.default)
+                    .setAuthor('Ban Revoked', bot.icons.find('ICO_unban'))
+                    .addField('Unbanned User', `${user} | ${user.tag} \n\`\`\`yaml\n${user.id}\`\`\``)
+                    .addField('Moderator Responsible', `${ad[i].executor} | ${ad[i].executor.tag} \n\`\`\`yaml\n${ad[i].executor.id}\`\`\``)
+                    .setThumbnail(user.displayAvatarURL)
+                    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+                    .setTimestamp(timeNow)
+
+                    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                    break;
+                } else
+                if (i+1 === ad.length) {
+                    let embed = new djs.RichEmbed()
+                    .setColor(bot.cfg.embed.default)
+                    .setAuthor('Ban Revoked', bot.icons.find('ICO_ban'))
+                    .setTitle(`Log Error: Unable to determine Moderator responsible. See Audit Logs.`)
+                    .addField('Unbanned User', `${user} | ${user.tag} \n\`\`\`yaml\n${user.id}\`\`\``)
+                    .setThumbnail(user.displayAvatarURL)
+                    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+                    .setTimestamp(timeNow)
+
+                    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                }
+            }
+        }).catch(err => log(err.stack, 'error'));
+    }, 2000);
+});
+
+////////////////////////////////////////
 // Raw Packet Data
 ////////////////////////////////////////
 
@@ -313,7 +713,7 @@ bot.on('raw', packet => {
             log('old emoji detected', 'trace');
             bot.emit('messageReactionAdd', reaction, bot.users.get(packet.d.user_id));
         }).catch(err => {
-            TOOLS.errorHandler({err:err});
+            log(err.stack, 'error');
         });
     } else
     if(packet.t === 'MESSAGE_DELETE') {
@@ -369,7 +769,7 @@ bot.on('messageReactionAdd', (mr, user) => {
 });
 
 ////////////////////////////////////////
-// Ratelimit Event
+// Ratelimit Events
 ////////////////////////////////////////
 
 bot.on('ratelimit', rl => {
@@ -381,6 +781,17 @@ bot.on('ratelimit', rl => {
     ].join('\n');
 
     log("OptiBot is being ratelimited! \n" + rlInfo, 'warn');
+});
+
+if(bot.memory.log !== null) bot.memory.log.on('ratelimit', rl => {
+    let rlInfo = [
+        `Request Limit: ${rl.requestLimit}`,
+        `Time Difference: ${rl.timeDifference}`,
+        `HTTP Method: ${rl.method}`,
+        `Path: ${rl.path}`
+    ].join('\n');
+
+    log("OptiBot Logging is being ratelimited! \n" + rlInfo, 'warn');
 });
 
 ////////////////////////////////////////
@@ -395,12 +806,24 @@ bot.on('disconnect', event => {
     }
 });
 
+if(bot.memory.log !== null) bot.memory.log.on('disconnect', event => {
+    if (event.code === 1000) {
+        log("OptiLog disconnected from websocket with event code 1000. (Task Complete)", 'warn');
+    } else {
+        log(`OptiLog disconnected from websocket with event code ${event.code}`, 'fatal');
+    }
+});
+
 ////////////////////////////////////////
 // Websocket Reconnecting Event
 ////////////////////////////////////////
 
 bot.on('reconnecting', () => {
     log('Attempting to reconnect to websocket...', 'warn');
+});
+
+bot.on('reconnecting', () => {
+    log('OptiLog attempting to reconnect to websocket...', 'warn');
 });
 
 ////////////////////////////////////////
@@ -411,13 +834,17 @@ bot.on('warn', info => {
     log(info, 'warn');
 });
 
+if(bot.memory.log !== null) bot.memory.log.on('warn', info => {
+    log(info, 'warn');
+});
+
 ////////////////////////////////////////
 // General Debug
 ////////////////////////////////////////
 
-bot.on('debug', info => {
+/* bot.on('debug', info => {
     log(info, 'debug');
-});
+}); */
 
 ////////////////////////////////////////
 // WebSocket Resume
@@ -427,10 +854,18 @@ bot.on('resume', replayed => {
     log('WebSocket resumed. Number of events replayed: '+replayed, 'warn');
 });
 
+if(bot.memory.log !== null) bot.memory.log.on('resume', replayed => {
+    log('OptiLog WebSocket resumed. Number of events replayed: '+replayed, 'warn');
+});
+
 ////////////////////////////////////////
 // WebSocket Error
 ////////////////////////////////////////
 
 bot.on('error', err => {
+    log(err.stack || err, 'error');
+});
+
+if(bot.memory.log !== null) bot.memory.log.on('error', err => {
     log(err.stack || err, 'error');
 });

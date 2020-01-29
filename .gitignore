@@ -1,5 +1,6 @@
 archive
 assets/ref.txt
+assets/emoji/src
 cfg/keys.json
 data
 !data/build.json

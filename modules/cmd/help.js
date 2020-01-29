@@ -1,6 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const Command = require(path.resolve(`./core/command.js`))
+const Command = require(path.resolve(`./modules/core/command.js`));
+const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
@@ -45,6 +46,10 @@ module.exports = (bot, log) => { return new Command(bot, {
                     .setTitle(`${bot.trigger}${md.name}`)
                     .setDescription(md.long_desc)
                     .addField('Usage', `\`\`\`${md.usage}\`\`\``)
+
+                    if (md.aliases) {
+                        embed.addField('Alias(es)', `\`\`\`${bot.trigger}${md.aliases.join(`, ${bot.trigger}`)}\`\`\``)
+                    }
 
                     if (md.image) {
                         embed.attachFile(new djs.Attachment(bot.images.find(md.image), "thumbnail.png"))

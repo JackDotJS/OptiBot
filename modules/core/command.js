@@ -1,8 +1,7 @@
-const djs = require(`discord.js`);
-
 module.exports = class Command {
     constructor (optibot, {
         name = null,
+        aliases = [],
         short_desc = `This command has no set description.`,
         long_desc = null,
         usage = null,
@@ -25,7 +24,7 @@ module.exports = class Command {
         } else {
             const metadata = {
                 name: name,
-                aliases: [],
+                aliases: (Array.isArray(aliases)) ? aliases : [],
                 short_desc: short_desc,
                 long_desc: (long_desc) ? long_desc : short_desc,
                 usage: `${optibot.trigger}${name} ${(usage) ? usage : ''}`,
@@ -80,6 +79,9 @@ module.exports = class Command {
                     // Command will execute almost immediately. If omitted, the bot will start typing in the channel and wait until the command has finished.
                     // Commands with this tag MUST use the channel.stopTyping() method after sending a response message.
                     INSTANT: false,
+
+                    // Details of this command will not be logged.
+                    CONFIDENTIAL: false,
 
                     // (UNUSED) Command will be preserved during Lite mode.
                     LITE: false

@@ -16,7 +16,7 @@
  * @returns {Promise<Object>} `{ type, target }`
  */
 
-module.exports = (m, target, bot, log = function(){}) => {
+module.exports = (m, target, bot, log = function(){}, data) => {
     return new Promise((resolve, reject) => {
         log('get user id out of '+target, 'trace');
 
@@ -38,11 +38,7 @@ module.exports = (m, target, bot, log = function(){}) => {
 
         if (target.toLowerCase() === 'me' || target.toLowerCase() === 'myself') {
             log('self')
-            if(m.channel.type === 'dm' || m.guild.id !== bot.cfg.guilds.optifine) {
-                checkServer(m.author.id);
-            } else {
-                resolve({ type: "user", target: m.member });
-            }
+            resolve({ type: "user", target: data.member });
         } else
         if (target.toLowerCase() === 'someone' || target.toLowerCase() === 'somebody' || target.toLowerCase() === 'random') {
             log('random user')

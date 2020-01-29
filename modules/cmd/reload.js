@@ -1,6 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const Command = require(path.resolve(`./core/command.js`))
+const Command = require(path.resolve(`./modules/core/command.js`));
+const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
@@ -19,7 +20,8 @@ module.exports = (bot, log) => { return new Command(bot, {
 
         log(`${m.author.tag} (${m.author.id}) requested asset update.`, 'info')
 
-        m.channel.send('_ _', {embed: embed}).then(bm => {
+        m.channel.send('_ _', {embed: embed})
+        .then(bm => {
             bot.loadAssets().then((time) => {
                 let embed2 = new djs.RichEmbed()
                 .setAuthor(`Assets successfully reloaded in ${time / 1000} seconds.`, bot.icons.find('ICO_okay'))
@@ -28,11 +30,17 @@ module.exports = (bot, log) => { return new Command(bot, {
                 log(`Assets successfully reloaded in ${time / 1000} seconds.`, 'info')
 
                 bot.setTimeout(() => {
-                    bm.edit({embed: embed2}).then(bm => {
-                        msgFinalizer(m.author.id, bm, bot, log);
-                    })
+                    bm.edit({embed: embed2})
+                    .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+                    .catch(err => {
+                        m.channel.send({embed: errMsg(err, bot, log)})
+                        .catch(e => { log(err.stack, 'error') });
+                    });
                 }, 1000);
             })
+        }).catch(err => {
+            m.channel.send({embed: errMsg(err, bot, log)})
+            .catch(e => { log(err.stack, 'error') });
         });
     }
 })}

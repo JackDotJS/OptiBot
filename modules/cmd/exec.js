@@ -2,11 +2,14 @@ const path = require(`path`);
 const timeago = require("timeago.js");
 const util = require(`util`);
 const fileType = require('file-type');
+const request = require('request');
 const djs = require(`discord.js`);
-const Command = require(path.resolve(`./core/command.js`))
+const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
+const Command = require(path.resolve(`./modules/core/command.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
+    aliases: ['eval'],
     short_desc: `Evaluate JavaScript code.`,
     usage: '<js>',
     authlevel: 4,
@@ -25,19 +28,19 @@ module.exports = (bot, log) => { return new Command(bot, {
                 let time = `${execEnd - execStart}ms (${(execEnd - execStart) / 1000} seconds)`;
                 let contents = [
                     `REAL EXECUTION TIME:`,
-                    `\`\`\`${time}\`\`\``,
+                    `\`\`\`${time} \`\`\``,
                     `RAW OUTPUT:`,
-                    `\`\`\`${raw}\`\`\``,
+                    `\`\`\`${raw} \`\`\``,
                     `INSPECTION UTILITY:`,
-                    `\`\`\`javascript\n${inspect}\`\`\``
+                    `\`\`\`javascript\n${inspect} \`\`\``
                 ].join('\n');
     
                 if(Buffer.isBuffer(output)) {
                     let ft = fileType(output);
-                    if(ft !== null) {
+                    if(ft !== null && ft !== undefined) {
                         contents = [
                             `REAL EXECUTION TIME:`,
-                            `\`\`\`${time}\`\`\``,
+                            `\`\`\`${time} \`\`\``,
                             `IMAGE OUTPUT:`
                         ].join('\n');
 
@@ -83,7 +86,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                         ].join('\n');
 
                         m.channel.stopTyping(true);
-                        m.channel.send(`Output too long! (${contents.length.toLocaleString()})`, { files: [new djs.Attachment(Buffer.from(contents), 'output.txt')] })
+                        m.channel.send(`Output too long! (${(oldlength - 2000).toLocaleString()} characters over message limit)`, { files: [new djs.Attachment(Buffer.from(contents), 'output.txt')] })
                     } else {
                         m.channel.stopTyping(true);
                         m.channel.send(contents)

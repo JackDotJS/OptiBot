@@ -29,7 +29,12 @@
     },
     "roles": {
         "jrmod": "644668061818945557",
-        "moderator": "467060304145023006"
+        "moderator": "467060304145023006",
+        "donator": "424169541346525194"
+    },
+    "logging": {
+        "guild": "627527422312710154",
+        "channel": "671181053133848576"
     },
     "emoji": {
         "medal": "🏅",
@@ -46,12 +51,16 @@
     "embed": {
         "default": "#e29f00",
         "okay": "#43b581",
-        "error": "#dd2e44"
+        "error": "#dd2e44",
+        "egg": "#202225"
     },
     "profiles": {
         "expiration": 30
     },
     "db": {
         "limit": 16  
-    }
+    },
+    "uuidFilter": [
+        "f84c6a790a4e45e0879bcd49ebd4c4e2"
+    ]
 }

@@ -53,9 +53,14 @@ const env = {
 
 const log = (m, lvl, file) => {
     let call = callerId.getData();
+    let now = new Date();
+    let t_hour = now.getUTCHours().toString().padStart(2, '0');
+    let t_min = now.getUTCMinutes().toString().padStart(2, '0');
+    let t_sec = now.getUTCSeconds().toString().padStart(2, '0');
+    let t_ms = now.getUTCMilliseconds().toString().padStart(3, '0');
     let entry = {
         timestamp: {
-            content: `${new Date().toLocaleTimeString()} | ${new Date().getMilliseconds()}`,
+            content: `${t_hour}:${t_min}:${t_sec}.${t_ms}`,
             color: `\x1b[0m`
         },
         file: {
@@ -182,12 +187,8 @@ if (!fs.existsSync(`./cfg/keys.json`)) {
     throw new Error(`./cfg/keys.json file not found.`);
 }
 
-if(typeof require(`./cfg/keys.json`).discord !== 'string') {
+if(typeof require(`./cfg/keys.json`).discord.main !== 'string') {
     throw new Error(`./cfg/keys.json - Missing Discord API token.`);
-}
-
-if (!fs.existsSync(`./core`)) {
-    throw new Error(`Core directory not found.`);
 }
 
 if (!fs.existsSync(`./data`)) {
@@ -208,6 +209,18 @@ if (!fs.existsSync(`./modules`)) {
 
 if (!fs.existsSync(`./modules/cmd`)) {
     throw new Error(`Commands directory not found.`);
+}
+
+if (!fs.existsSync(`./modules/core`)) {
+    throw new Error(`Core directory not found.`);
+}
+
+if (!fs.existsSync(`./modules/core/command.js`)) {
+    throw new Error(`Command Class Module not found.`);
+}
+
+if (!fs.existsSync(`./modules/core/optibot.js`)) {
+    throw new Error(`OptiBot Core Module not found.`);
 }
 
 if (!fs.existsSync(`./modules/util`)) {
@@ -316,7 +329,9 @@ function init() {
             let logSuffix = 'CRASH';
 
             env.cr.logfile = `${env.log.filename}_${logSuffix}.log`;
-            end(code, false, logSuffix);
+            setTimeout(() => {
+                end(code, false, logSuffix)
+            }, env.dev ? 5000 : 10);
         } else
         if(code === 2) {
             log('OptiBot is now restarting at user request...', 'info');

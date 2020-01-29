@@ -1,7 +1,8 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const Command = require(path.resolve(`./core/command.js`))
+const Command = require(path.resolve(`./modules/core/command.js`));
+const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
@@ -19,7 +20,12 @@ module.exports = (bot, log) => { return new Command(bot, {
             .setDescription(`\`\`\`${data.cmd.metadata.usage}\`\`\``)
             .setColor(bot.cfg.embed.default);
 
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            m.channel.send({embed: embed})
+            .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+            .catch(err => {
+                m.channel.send({embed: errMsg(err, bot, log)})
+                .catch(e => { log(err.stack, 'error') });
+            });
         } else
         if (args[0].toLowerCase() === 'start') {
             if(bot.memory.vote.issue !== null) {
@@ -27,7 +33,12 @@ module.exports = (bot, log) => { return new Command(bot, {
                 .setAuthor(`You cannot start a poll while one is already active.`, bot.icons.find('ICO_error'))
                 .setColor(bot.cfg.embed.error);
 
-                m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                m.channel.send({embed: embed})
+                .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+                .catch(err => {
+                    m.channel.send({embed: errMsg(err, bot, log)})
+                    .catch(e => { log(err.stack, 'error') });
+                });
             } else {
                 let type;
 
@@ -40,7 +51,12 @@ module.exports = (bot, log) => { return new Command(bot, {
                         .setAuthor(`Numbered polls must have a minimum of 2 options.`, bot.icons.find('ICO_error'))
                         .setColor(bot.cfg.embed.error);
 
-                        m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                        m.channel.send({embed: embed})
+                        .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+                        .catch(err => {
+                            m.channel.send({embed: errMsg(err, bot, log)})
+                            .catch(e => { log(err.stack, 'error') });
+                        });
                         return;
                     } else
                     if(parseInt(args[1]) > 10) {
@@ -48,7 +64,12 @@ module.exports = (bot, log) => { return new Command(bot, {
                         .setAuthor(`Numbered polls cannot exceed 10 options.`, bot.icons.find('ICO_error'))
                         .setColor(bot.cfg.embed.error);
 
-                        m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                        m.channel.send({embed: embed})
+                        .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+                        .catch(err => {
+                            m.channel.send({embed: errMsg(err, bot, log)})
+                            .catch(e => { log(err.stack, 'error') });
+                        });
                         return;
                     } else {
                         type = 1;
@@ -58,7 +79,12 @@ module.exports = (bot, log) => { return new Command(bot, {
                     .setAuthor(`You must specify valid voting options.`, bot.icons.find('ICO_error'))
                     .setColor(bot.cfg.embed.error);
 
-                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                    m.channel.send({embed: embed})
+                    .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+                    .catch(err => {
+                        m.channel.send({embed: errMsg(err, bot, log)})
+                        .catch(e => { log(err.stack, 'error') });
+                    });
                     return;
                 }
 
@@ -67,7 +93,12 @@ module.exports = (bot, log) => { return new Command(bot, {
                     .setAuthor(`You must specify the details of the poll.`, bot.icons.find('ICO_error'))
                     .setColor(bot.cfg.embed.error);
 
-                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                    m.channel.send({embed: embed})
+                    .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+                    .catch(err => {
+                        m.channel.send({embed: errMsg(err, bot, log)})
+                        .catch(e => { log(err.stack, 'error') });
+                    });
                 } else {
                     let vote = {
                         issue: m.content.substring( `${bot.trigger}${path.parse(__filename).name} ${args[0]} ${args[1]} `.length ),
@@ -84,7 +115,12 @@ module.exports = (bot, log) => { return new Command(bot, {
                         .setAuthor(`Poll message cannot exceed 1,000 characters.`, bot.icons.find('ICO_error'))
                         .setColor(bot.cfg.embed.error);
 
-                        m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                        m.channel.send({embed: embed})
+                        .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+                        .catch(err => {
+                            m.channel.send({embed: errMsg(err, bot, log)})
+                            .catch(e => { log(err.stack, 'error') });
+                        });
                     }
 
                     let embed = new djs.RichEmbed()
@@ -114,6 +150,9 @@ module.exports = (bot, log) => { return new Command(bot, {
                                 }
                             });
                         })();
+                    }).catch(err => {
+                        m.channel.send({embed: errMsg(err, bot, log)})
+                        .catch(e => { log(err.stack, 'error') });
                     });
                 }
             }
@@ -167,7 +206,12 @@ module.exports = (bot, log) => { return new Command(bot, {
             .setAuthor(`You must specify a valid action to perform.`, bot.icons.find('ICO_error'))
             .setColor(bot.cfg.embed.error);
 
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            m.channel.send({embed: embed})
+            .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+            .catch(err => {
+                m.channel.send({embed: errMsg(err, bot, log)})
+                .catch(e => { log(err.stack, 'error') });
+            });
         }
     }
 })}

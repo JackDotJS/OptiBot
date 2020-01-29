@@ -1,7 +1,8 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const Command = require(path.resolve(`./core/command.js`))
+const Command = require(path.resolve(`./modules/core/command.js`));
 const targetUser = require(path.resolve(`./modules/util/targetUser.js`))
+const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
@@ -36,7 +37,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             let botTarget = false;
             let selfTarget = false;
 
-            targetUser(m, target, bot, log).then((result) => {
+            targetUser(m, target, bot, log, data).then((result) => {
                 if(result && result.type === 'user') {
                     target = result.target.toString();
 

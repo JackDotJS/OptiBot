@@ -1,6 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const Command = require(path.resolve(`./core/command.js`))
+const Command = require(path.resolve(`./modules/core/command.js`));
+const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
@@ -14,6 +15,10 @@ module.exports = (bot, log) => { return new Command(bot, {
         .setColor(bot.cfg.embed.default);
 
         m.channel.send({embed: embed}).then(() => {
+            bot.exit(2);
+        }).catch(err => {
+            m.channel.send({embed: errMsg(err, bot, log)})
+            .catch(e => { log(err.stack, 'error') });
             bot.exit(2);
         });
     }

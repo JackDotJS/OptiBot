@@ -1,6 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const Command = require(path.resolve(`./core/command.js`))
+const Command = require(path.resolve(`./modules/core/command.js`));
+const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
@@ -18,7 +19,12 @@ module.exports = (bot, log) => { return new Command(bot, {
             .setDescription(`\`\`\`${data.cmd.metadata.usage}\`\`\``)
             .setColor(bot.cfg.embed.default);
 
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            m.channel.send({embed: embed})
+            .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+            .catch(err => {
+                m.channel.send({embed: errMsg(err, bot, log)})
+                .catch(e => { log(err.stack, 'error') });
+            });
         } else {
             let translate = function(message) {
                 let newStr = '';
@@ -46,7 +52,12 @@ module.exports = (bot, log) => { return new Command(bot, {
 
                     if (i+1 === message.length) {
                         m.channel.stopTyping();
-                        m.channel.send(newStr).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                        m.channel.send(newStr)
+                        .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+                        .catch(err => {
+                            m.channel.send({embed: errMsg(err, bot, log)})
+                            .catch(e => { log(err.stack, 'error') });
+                        });
                     }
                 }
             }
@@ -66,13 +77,21 @@ module.exports = (bot, log) => { return new Command(bot, {
                             .setAuthor(`Could not find a user.`, bot.icons.find('ICO_error'))
                             .setFooter('Note that this shortcut will skip yourself, and any Discord bot.');
         
-                            m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                            m.channel.send({ embed: embed })
+                            .then(bm => msgFinalizer(m.author.id, bm, bot, log))
+                            .catch(err => {
+                                m.channel.send({embed: errMsg(err, bot, log)})
+                                .catch(e => { log(err.stack, 'error') });
+                            });
                         } else
                         if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1 && !thisID.value.author.bot) {
                             translate(thisID.value.content);
                         } else search();
                     })();
-                })
+                }).catch(err => {
+                    m.channel.send({embed: errMsg(err, bot, log)})
+                    .catch(e => { log(err.stack, 'error') });
+                });
             }
         }
     }

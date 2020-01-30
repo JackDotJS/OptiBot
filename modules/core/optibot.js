@@ -9,7 +9,11 @@ module.exports = class OptiBot extends djs.Client {
     constructor (options, debug, logc) {
         super(options);
 
+        const keys = require(path.resolve('./cfg/keys.json'));
         const cfg = require(path.resolve('./cfg/config.json'));
+        const version = require(path.resolve('./package.json')).version;
+        const trigger = (debug) ? cfg.triggers.debug : cfg.triggers.default;
+        const splashtext = require(path.resolve('./cfg/splash.json'));
 
         const memory = {
             sm: {},
@@ -32,109 +36,6 @@ module.exports = class OptiBot extends djs.Client {
             log: null,
             audit: null
         };
-
-        let sm_i = 0;
-        let agg = 4;
-        let sm_alt = {
-            now: 0,
-            count: 0,
-        };
-        const sm_check = this.setInterval(() => {
-            /**
-             * FORMAT:
-             * 
-             * 0000000000000000: {
-                    past: [],
-                    now: 0,
-                    mps: 0.0,
-                    manual: false,
-                    i: 0,
-                    until: null,
-                }
-             */
-
-            let channels = Object.keys(memory.sm);
-            if(channels.length > 0) {
-                channels.forEach((id, i) => {
-                    let tc = memory.sm[id];
-                    tc.past.push(tc.now);
-                    tc.now = 0;
-
-                    if(tc.past.length > 10) {
-                        tc.past.shift();
-                    }
-
-                    if(sm_alt.now === 0) {
-                        tc.mps = tc.past.reduce((a, b) => a + b) / tc.past.length;
-                    }
-
-                    if(tc.mps !== 0) logc(`${id}: ${tc.mps} mps`);
-
-                    if(tc.until !== null) {
-                        if(new Date().getTime() >= tc.until) {
-                            // disable slowmode
-                            tc.until = null;
-                            tc.i = 0;
-
-                            this.guilds.get(cfg.guilds.optibot).channels.get(id).setRateLimitPerUser(tc.i).then((chn) => {
-                                logc(`Slowmode disabled in ${chn.id}`, 'info');
-                                agg = 4;
-                            });
-                        }
-                    }
-
-                    if(sm_i === 0 && tc.mps > 0.5) {
-                        // check time
-                        let expiration = new Date().getTime() + (1000 * 60 * 10); // 10 minutes
-                        let ratelimit = 3;
-
-                        if(tc.mps > 2) {
-                            ratelimit = 10;
-                        } else
-                        if(tc.mps > 3) {
-                            ratelimit = 30;
-                        }
-
-                        tc.until = expiration;
-                        if(tc.i === ratelimit) {
-                            tc.i += tc.i;
-                        } else 
-                        if(tc.i < ratelimit) {
-                            tc.i = ratelimit;
-
-                            this.guilds.get(cfg.guilds.optibot).channels.get(id).setRateLimitPerUser(tc.i).then((chn) => {
-                                if(agg !== 3) {
-                                    agg--
-                                }
-                                logc(`Slowmode set to ${tc.i} seconds in ${chn.id}`, 'info');
-                            });
-                        }
-                    }
-
-                    if(parseInt(i)+1 >= channels.length) {
-                        if(sm_i === agg) {
-                            sm_i = 0;   
-                        } else {
-                            sm_i++;
-                        }
-
-                        if(sm_alt.count === 3) {
-                            if (tc.mps !== 0) logc('invert');
-                            if(sm_alt.now === 0) {
-                                sm_alt.now = 1;
-                            } else {
-                                sm_alt.now = 0;
-                            }
-                            sm_alt.count = 0;
-                        } else {
-                            sm_alt.count++;
-                        }
-
-                    }
-                });
-            }
-        }, 250);
-
         const storage = {
             msg: new database({ filename: './data/messages.db', autoload: true }),
             motd: new database({ filename: './data/motd.db', autoload: true }),
@@ -142,9 +43,6 @@ module.exports = class OptiBot extends djs.Client {
             stats: new database({ filename: './data/statistics.db', autoload: true }),
             smr: new database({ filename: './data/smr.db', autoload: true })
         }
-
-        const trigger = (debug) ? cfg.triggers.debug : cfg.triggers.default;
-        const keys = require(path.resolve('./cfg/keys.json'));
         const commands = {
             index: [],
             register: (cmd) => {
@@ -207,7 +105,6 @@ module.exports = class OptiBot extends djs.Client {
                 }
             }
         };
-        
         const icons = {
             index: [],
             default: null,
@@ -222,10 +119,6 @@ module.exports = class OptiBot extends djs.Client {
                 }
             }
         };
-
-        const version = require(path.resolve('./package.json')).version;
-
-        const splashtext = require(path.resolve('./cfg/splash.json'));
 
         Object.defineProperty(this, 'memory', {
             get: function() {
@@ -510,24 +403,72 @@ module.exports = class OptiBot extends djs.Client {
             });
 
             assets.push({
+                name: 'Scheduled Task Loader',
+                load: new Promise((resolve, reject) => {
+                    let tasks = fs.readdirSync(path.resolve(`./modules/tasks`));
+
+                    let i = 0;
+                    (function loadTask() {
+                        if(tasks[i].endsWith('.js')) {
+                            let task = require(path.resolve(`./modules/tasks/${tasks[i]}`));
+                            bot.setInterval(() => {
+                                task.fn(bot, log);
+                            }, (task.interval));
+
+                            if(i+1 === tasks.length) {
+                                resolve();
+                            } else {
+                                i++;
+                                loadTask();
+                            }
+                        } else {
+                            i++;
+                            loadTask();
+                        }
+                    })();
+                })
+            });
+
+            assets.push({
                 name: 'Icon Loader',
                 load: new Promise((resolve, reject) => {
                     bot.icons.index = [];
-                    let emoji = [...bot.guilds.get(bot.cfg.guilds.optibot).emojis.values()];
 
-                    for(let icon of emoji) {
-                        if(icon.name.startsWith('ICO_')) {
-                            if(icon.name === 'ICO_default') {
-                                bot.icons.default = icon.url;
+                    let ig = 0;
+                    (function getEmoji() {
+                        let emoji = [...bot.guilds.get(bot.cfg.emoji.guilds[ig]).emojis.values()];
+
+                        if (emoji.length === 0) {
+                            if(ig+1 === bot.cfg.emoji.guilds.length) {
+                                resolve();
                             } else {
-                                bot.icons.index.push({
-                                    name: icon.name,
-                                    data: icon.url
-                                });
+                                ig++;
+                                getEmoji();
+                            }
+                        } else {
+                            for(let i in emoji) {
+                                if(emoji[i].name.startsWith('ICO_')) {
+                                    if(emoji[i].name === 'ICO_default') {
+                                        bot.icons.default = emoji[i].url;
+                                    } else {
+                                        bot.icons.index.push({
+                                            name: emoji[i].name,
+                                            data: emoji[i].url
+                                        });
+                                    }
+                                }
+    
+                                if(parseInt(i)+1 === emoji.length) {
+                                    if(parseInt(ig)+1 === bot.cfg.emoji.guilds.length) {
+                                        resolve();
+                                    } else {
+                                        ig++;
+                                        getEmoji();
+                                    }
+                                }
                             }
                         }
-                    }
-                    resolve();
+                    })();
                 })
             });
 

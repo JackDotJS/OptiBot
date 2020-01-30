@@ -1,4 +1,5 @@
 const path = require(`path`);
+const util = require(`util`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
 const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
@@ -16,7 +17,7 @@ module.exports = (bot, log) => { return new Command(bot, {
         .setColor(bot.cfg.embed.default);
 
         m.channel.send({embed: embed})
-        .then(msg => { msgFinalizer(m.author.id, msg, bot, log); })
+        .then(msg => msgFinalizer(m.author.id, msg, bot, log))
         .catch(err => {
             m.channel.send({embed: errMsg(err, bot, log)})
             .catch(e => { log(err.stack, 'error') });

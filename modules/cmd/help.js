@@ -47,7 +47,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                     .setDescription(md.long_desc)
                     .addField('Usage', `\`\`\`${md.usage}\`\`\``)
 
-                    if (md.aliases) {
+                    if (md.aliases.length > 0) {
                         embed.addField('Alias(es)', `\`\`\`${bot.trigger}${md.aliases.join(`, ${bot.trigger}`)}\`\`\``)
                     }
 

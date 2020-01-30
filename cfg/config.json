@@ -38,7 +38,12 @@
     },
     "emoji": {
         "medal": "🏅",
-        "deleter": "642085525460877334"
+        "deleter": "672233649533616130",
+        "guilds": [
+            "627527422312710154",
+            "672286586641186829",
+            "672287077299388456"
+        ]
     },
     "messages": {
         "confirmDelete": "To remove this message, undo the emoji reaction and press it once more to confirm."

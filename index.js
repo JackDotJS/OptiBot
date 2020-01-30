@@ -281,15 +281,17 @@ bot.on('message', (m) => {
                     checkMisuse('This command can only be used in moderator-only channels.');
                 } else {
                     if(!cmd.metadata.tags['INSTANT']) m.channel.startTyping();
-                    try {
-                        cmd.exec(m, input.args, {member, authlvl, input, cmd});
-                    }
-                    catch (err) {
-                        let embed = errMsg(err, bot, log);
-                        if(!cmd.metadata.tags['INSTANT']) m.channel.stopTyping();
-                        
-                        m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
-                    }
+                    bot.setTimeout(() => {
+                        try {
+                            cmd.exec(m, input.args, {member, authlvl, input, cmd});
+                        }
+                        catch (err) {
+                            let embed = errMsg(err, bot, log);
+                            if(!cmd.metadata.tags['INSTANT']) m.channel.stopTyping();
+                            
+                            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                        }
+                    }, (cmd.metadata.tags['INSTANT']) ? 200 : 10)
                 }
 
             }).catch(err => {
@@ -319,6 +321,84 @@ bot.on('message', (m) => {
             .setDescription(`For a list of commands, type \`${bot.trigger}list\`. If you've donated and you'd like to receive your donator role, type \`${bot.trigger}help dr\` for instructions.`)
 
             m.channel.send({ embed: embed });
+        } else
+        if(m.content.indexOf('discordapp.com') > -1) {
+            let urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
+
+            if(urls !== null) {
+                for(let link of urls) {
+                    let seg = link.split(/(?<!\/)\/(?!\/)|(?<!\\)\\(?!\\)/g).reverse();
+
+                    if(!isNaN(parseInt(seg[0])) && !isNaN(parseInt(seg[1])) && !isNaN(parseInt(seg[2]))) {
+                        foundQuote(seg);
+                        break;
+                    }
+                }
+
+                function foundQuote(seg) {
+                    let rg = seg[2];
+                    let rc = seg[1];
+                    let rm = seg[0];
+
+                    bot.guilds.get(rg).channels.get(rc).fetchMessage(rm).then(msg => {
+                        let contents = msg.content;
+                        let image = null;
+                        let embed = new djs.RichEmbed()
+                        .setColor(bot.cfg.embed.default)
+                        .setAuthor(`Message Quote`, bot.icons.find('ICO_quote'))
+                        .setTitle(msg.author.tag)
+                        .setFooter(`Quoted by ${m.author.tag}`)
+
+                        /* if(msg.author.displayAvatarURL.endsWith('.gif')) {
+                            embed.setThumbnail(msg.author.displayAvatarURL.substring(0, msg.author.displayAvatarURL.lastIndexOf('.')))
+                        } else {
+                            embed.setThumbnail(msg.author.displayAvatarURL)
+                        } */
+
+                        if(msg.content.length === 0) {
+                            contents = []
+                            if(msg.embeds.length > 0) {
+                                contents.push(`\`[${msg.embeds.length} Embed(s)]\``);
+                            }
+
+                            if(msg.attachments.size > 0) {
+                                let attURL = msg.attachments.first().url;
+                                if(attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
+                                    image = attURL;
+
+                                    if((msg.attachments.size - 1) > 0) {
+                                        contents.push(`\`[${msg.attachments.size} Attachment(s)]\``);
+                                    }
+                                } else {
+                                    contents.push(`\`[${msg.attachments.size} Attachment(s)]\``);
+                                }
+                            }
+
+                            if(contents.length > 0) {
+                                contents = contents.join('\n');
+                            }
+                        } else
+                        if(msg.attachments.size > 0) {
+                            let attURL = msg.attachments.first().url;
+                            if(attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
+                                image = attURL;
+                            }
+                        }
+
+                        if(contents.length !== 0) {
+                            embed.setDescription(contents);
+                        }
+
+                        if(image !== null) {
+                            embed.setImage(image);
+                        }
+
+                        m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                    }).catch(err => {
+                        log(err.stack, 'error');
+                    });
+                }
+            }
         }
 
         if (m.isMentioned(bot.user)) {
@@ -527,7 +607,7 @@ bot.on('messageUpdate', (m, mNew) => {
 
 bot.on('guildMemberAdd', (member) => {
     let timeNow = new Date();
-    //if (member.guild.id !== bot.cfg.guilds.optifine) return;
+    if (member.guild.id !== bot.cfg.guilds.optifine) return;
 
     let embed = new djs.RichEmbed()
     .setColor(bot.cfg.embed.okay)
@@ -538,7 +618,7 @@ bot.on('guildMemberAdd', (member) => {
     .setFooter(`Event logged on ${timeNow.toUTCString()}`)
     .setTimestamp(timeNow)
 
-    if((member.user.createdAt.getTime() + (1000 * 60 * 60 * 7)) > timeNow.getTime()) {
+    if((member.user.createdAt.getTime() + (1000 * 60 * 60 * 24 * 7)) > timeNow.getTime()) {
         embed.setTitle('Warning: New Discord Account')
     }
 

@@ -1,4 +1,5 @@
 const path = require(`path`);
+const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
 const Command = require(path.resolve(`./modules/core/command.js`));
@@ -180,12 +181,19 @@ module.exports = (bot, log) => { return new Command(bot, {
                             presence.push(`${doing} "${game.name}" ${(game.url) ? "at "+game.url : ""}`)
                         }
         
-                        embed.setDescription(presence.join('\n\n'));
+                        embed.setDescription(`${(profile && profile.data.quote) ? `***\`"${profile.data.quote}"\`***\n\n` : ''}${presence.join('\n\n')}`);
         
                         let roles = [];
-                        mem.roles.tap((role) => {
+                        let rolec = [...mem.roles.values()];
+                        rolec.sort((a, b) => a.calculatedPosition - b.calculatedPosition)
+                        rolec.reverse().forEach((role) => {
+                            log(role.calculatedPosition);
                             if(role.id !== mem.guild.id) {
-                                roles.push(role.toString());
+                                if(m.channel.type === 'dm' || m.guild.id !== bot.cfg.guilds.optifine) {
+                                    roles.push(`\`@${role.name}\``);
+                                } else {
+                                    roles.push(role.toString());
+                                }
                             }
                         });
         
@@ -202,7 +210,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                         }
         
                         if(roles.length > 0) {
-                            embed.addField('Server Roles', `${(m.channel.type === 'dm') ? "These probably won't show correctly in DMs. Sorry! Blame Discord.\n\n" : ""}${roles.reverse().join(' ')}`)
+                            embed.addField('Server Roles', roles.join(' '))
                         }
         
                         if(profile) {

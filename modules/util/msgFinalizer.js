@@ -13,7 +13,7 @@ module.exports = (author, m, bot, log = function(){}) => {
 
     if(m.channel.type !== 'dm') {
         log('message sent, adding to cache', 'debug');
-        m.react(bot.guilds.get(bot.cfg.guilds.optibot).emojis.get('642085525460877334')).then(() => {
+        m.react(bot.guilds.get(bot.cfg.guilds.optibot).emojis.get(bot.cfg.emoji.deleter)).then(() => {
             let cacheData = {
                 time: new Date().getTime(), 
                 /**
@@ -48,7 +48,7 @@ module.exports = (author, m, bot, log = function(){}) => {
                                     log(err.stack, 'error');
                                 } else {
                                     bot.guilds.get(docs[0].guild).channels.get(docs[0].channel).fetchMessage(docs[0].message).then((msg) => {
-                                        let reaction = msg.reactions.get('click_to_delete:642085525460877334');
+                                        let reaction = msg.reactions.get('click_to_delete:'+bot.cfg.emoji.deleter);
 
                                         if(reaction && reaction.me) {
                                             reaction.remove().then(() => {

@@ -1,5 +1,5 @@
 module.exports = class Command {
-    constructor (optibot, {
+    constructor (bot, {
         name = null,
         aliases = [],
         short_desc = `This command has no set description.`,
@@ -27,7 +27,7 @@ module.exports = class Command {
                 aliases: (Array.isArray(aliases)) ? aliases : [],
                 short_desc: short_desc,
                 long_desc: (long_desc) ? long_desc : short_desc,
-                usage: `${optibot.trigger}${name} ${(usage) ? usage : ''}`,
+                usage: `${bot.prefix}${name} ${(usage) ? usage : ''}`,
 
                 // Image to be shown as a thumbnail when this command is viewed through !help.
                 // Must be a plain string specifying a complete filename from the ../assets/img directory.
@@ -135,7 +135,7 @@ module.exports = class Command {
 
             Object.defineProperty(this, 'bot', {
                 get: function() {
-                    return optibot;
+                    return bot;
                 }
             });
         }

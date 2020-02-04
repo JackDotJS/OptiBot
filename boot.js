@@ -187,7 +187,7 @@ if (!fs.existsSync(`./cfg/keys.json`)) {
     throw new Error(`./cfg/keys.json file not found.`);
 }
 
-if(typeof require(`./cfg/keys.json`).discord.main !== 'string') {
+if(typeof require(`./cfg/keys.json`).discord !== 'string') {
     throw new Error(`./cfg/keys.json - Missing Discord API token.`);
 }
 
@@ -276,6 +276,8 @@ function q2() {
 function init() {
     process.stdout.write('\033c');
     process.stdout.write(`\u001b[2J\u001b[0;0H`);
+
+    process.title = `OptiBot | Spawning Process...`;
     
     env.log.filename = new Date().toUTCString().replace(/[/\\?%*:|"<>]/g, `.`)
     env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);

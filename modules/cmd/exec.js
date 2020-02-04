@@ -18,22 +18,32 @@ module.exports = (bot, log) => { return new Command(bot, {
     run: (m, args, data) => {
         bot.setTimeout(() => {
             try {
-                let code = m.content.substring( `${bot.trigger}${path.parse(__filename).name} `.length );
+                let code = m.content.substring( `${bot.prefix}${path.parse(__filename).name} `.length );
                 let execStart = new Date().getTime();
                 let output = eval(code);
                 let execEnd = new Date().getTime();
 
                 let raw = `${output}`;
                 let inspect = `${util.inspect(output)}`
-                let time = `${execEnd - execStart}ms (${(execEnd - execStart) / 1000} seconds)`;
+                let time = `${(execEnd - execStart).toLocaleString()}ms (${(execEnd - execStart) / 1000} seconds)`;
                 let contents = [
                     `REAL EXECUTION TIME:`,
-                    `\`\`\`${time} \`\`\``,
-                    `RAW OUTPUT:`,
-                    `\`\`\`${raw} \`\`\``,
-                    `INSPECTION UTILITY:`,
-                    `\`\`\`javascript\n${inspect} \`\`\``
-                ].join('\n');
+                    `\`\`\`${time} \`\`\``
+                ]
+
+                if(raw === inspect) {
+                    contents = contents.concat([
+                        `OUTPUT (COMBINED):`,
+                        `\`\`\`javascript\n${inspect} \`\`\``
+                    ]).join('\n');
+                } else {
+                    contents = contents.concat([
+                        `RAW OUTPUT:`,
+                        `\`\`\`${raw} \`\`\``,
+                        `INSPECTION UTILITY:`,
+                        `\`\`\`javascript\n${inspect} \`\`\``
+                    ]).join('\n');
+                }
     
                 if(Buffer.isBuffer(output)) {
                     let ft = fileType(output);
@@ -71,19 +81,32 @@ module.exports = (bot, log) => { return new Command(bot, {
                             time,
                             '',
                             '',
-                            '////////////////////////////////////////////////////////////////',
-                            '// RAW OUTPUT',
-                            '////////////////////////////////////////////////////////////////',
-                            '',
-                            raw,
-                            '',
-                            '',
-                            '////////////////////////////////////////////////////////////////',
-                            '// INSPECTION UTILITY',
-                            '////////////////////////////////////////////////////////////////',
-                            '',
-                            inspect
-                        ].join('\n');
+                        ]
+
+                        if(raw === inspect) {
+                            contents = contents.concat([
+                                '////////////////////////////////////////////////////////////////',
+                                '// OUTPUT (COMBINED)',
+                                '////////////////////////////////////////////////////////////////',
+                                '',
+                                raw
+                            ]).join('\n')
+                        } else {
+                            contents = contents.concat([
+                                '////////////////////////////////////////////////////////////////',
+                                '// RAW OUTPUT',
+                                '////////////////////////////////////////////////////////////////',
+                                '',
+                                raw,
+                                '',
+                                '',
+                                '////////////////////////////////////////////////////////////////',
+                                '// INSPECTION UTILITY',
+                                '////////////////////////////////////////////////////////////////',
+                                '',
+                                inspect
+                            ]).join('\n')
+                        }
 
                         m.channel.stopTyping(true);
                         m.channel.send(`Output too long! (${(oldlength - 2000).toLocaleString()} characters over message limit)`, { files: [new djs.Attachment(Buffer.from(contents), 'output.txt')] })

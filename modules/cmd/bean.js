@@ -33,7 +33,7 @@ module.exports = (bot, log) => { return new Command(bot, {
 
             m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
         } else {
-            let target = m.content.substring( `${bot.trigger}${path.parse(__filename).name} `.length ).trim();
+            let target = m.content.substring( `${bot.prefix}${path.parse(__filename).name} `.length ).trim();
             let botTarget = false;
             let selfTarget = false;
 

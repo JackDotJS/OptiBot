@@ -31,15 +31,12 @@ const log = (message, level, file, line) => {
 
 const bot = new OptiBot({}, Boolean(process.argv[2]), log);
 
-bot.login(bot.keys.discord.main).then(() => {
-    if(typeof bot.keys.discord.log === 'string') {
-        bot.memory.log = new djs.Client();
-        bot.memory.log.login(bot.keys.discord.log).catch(err => {
-            log(err, 'fatal');
-        });
-    }
-}).catch(err => {
+process.title = `OptiBot ${bot.version} | Connecting...`;
+
+bot.login(bot.keys.discord).catch(err => {
+    process.title = `OptiBot ${bot.version} | Connection Failed.`;
     log(err, 'fatal');
+    process.exit(1);
 });
 
 ////////////////////////////////////////
@@ -48,10 +45,11 @@ bot.login(bot.keys.discord.main).then(() => {
 
 bot.on('ready', () => {
     if(bot.memory.bot.init) {
-        process.title = `Loading...`;
         log('Successfully connected to Discord API.', 'info');
 
         bot.setStatus(0);
+
+        process.title = `OptiBot ${bot.version} | Loading Assets...`;
 
         bot.loadAssets().then((time) => {
             bot.setStatus(1);
@@ -84,41 +82,27 @@ bot.on('ready', () => {
             log(centerText(`  `, width), `info`);
             log(`╰${'─'.repeat(width)}╯`, `info`);
 
-            if(bot.keys.discord.log) bot.memory.bot.bootTime = process.uptime().toFixed(3);
+            let embed = new djs.RichEmbed()
+            .setColor(bot.cfg.embed.default)
+            .setAuthor('OptiBot Initialized', bot.icons.find('ICO_info'))
+            .setTitle(`Version: ${bot.version}`)
+            .setDescription(`Boot Time: ${process.uptime().toFixed(3)} second(s)`)
+            .addField('The following message was brought to you by Math.random()®️', `\`\`\`${bot.splash[~~(Math.random() * bot.splash.length)]}\`\`\``)
+            .setThumbnail(bot.user.displayAvatarURL)
+            .setFooter(`Event logged on ${new Date().toUTCString()}`)
+            .setTimestamp(new Date())
 
-            process.title = `OptiBot ${bot.version}`;
+            bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
 
             process.send({
                 type: 'ready'
             });
 
-            if(bot.memory.log === null) bot.memory.bot.init = false;
+            bot.memory.bot.init = false;
         }).catch(err => {
             log(err.stack, 'fatal');
             bot.exit(1);
         });
-    }
-});
-
-if(bot.memory.log !== null) bot.memory.log.on('ready', () => {
-    if(bot.memory.bot.init) {
-        let timeNow = new Date();
-        log('OptiLog ready.', 'warn');
-        bot.memory.log.user.setStatus('invisible');
-
-        let embed = new djs.RichEmbed()
-        .setColor(bot.cfg.embed.default)
-        .setAuthor('OptiBot Initialized', bot.icons.find('ICO_info'))
-        .setTitle(`Version: ${bot.version}`)
-        .setDescription(`Boot Time: ${bot.memory.bot.bootTime} second(s)`)
-        .addField('The following message was brought to you by Math.random()®️', `\`\`\`${bot.splash[~~(Math.random() * bot.splash.length)]}\`\`\``)
-        .setThumbnail(bot.user.displayAvatarURL)
-        .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-        .setTimestamp(timeNow)
-
-        bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
-
-        bot.memory.bot.init = false;
     }
 });
 
@@ -140,21 +124,32 @@ bot.on('message', (m) => {
         });
     }
 
-    if(m.channel.type !== 'dm' && m.guild.id === bot.cfg.guilds.optibot) {
-        if(bot.cfg.channels.blacklist.indexOf(m.channel.id) === -1 && bot.cfg.channels.blacklist.indexOf(m.channel.parentID) === -1) {
-            if(bot.cfg.channels.nomodify.indexOf(m.channel.id) === -1 && bot.cfg.channels.nomodify.indexOf(m.channel.parentID) === -1) {
-                if(bot.memory.sm[m.channel.id]) {
-                    bot.memory.sm[m.channel.id].now++;
-                } else {
-                    bot.memory.sm[m.channel.id] = {
-                        past: [ 0, 0, 0, 0, 0,],
-                        now: 1,
-                        mps: 0.0,
-                        manual: false,
-                        i: 0,
-                        until: null,
+    if(m.channel.type !== 'dm' && m.guild.id === bot.cfg.guilds.optifine) {
+        if(!bot.debug) {
+            // dynamic slowmode
+            if(bot.cfg.channels.blacklist.indexOf(m.channel.id) === -1 && bot.cfg.channels.blacklist.indexOf(m.channel.parentID) === -1) {
+                if(bot.cfg.channels.nomodify.indexOf(m.channel.id) === -1 && bot.cfg.channels.nomodify.indexOf(m.channel.parentID) === -1) {
+                    if(bot.memory.sm[m.channel.id]) {
+                        bot.memory.sm[m.channel.id].now++;
+                    } else {
+                        bot.memory.sm[m.channel.id] = {
+                            past: [ 0, 0, 0, 0, 0,],
+                            now: 1,
+                            mps: 0.0,
+                            manual: false,
+                            i: 0,
+                            until: null,
+                        }
                     }
                 }
+            }
+        }
+
+        // update moderator's last message for !modping
+        for(let i in bot.memory.mods) {
+            if(bot.memory.mods[i].id === m.author.id) {
+                bot.memory.mods[i].status = m.author.presence.status
+                bot.memory.mods[i].last_message = m.createdTimestamp
             }
         }
     }
@@ -200,10 +195,21 @@ bot.on('message', (m) => {
                                 
                     bot.commands.index.filter((thisCmd) => thisCmd.metadata.authlevel <= authlvl && !thisCmd.metadata.tags['HIDDEN'])
                     .forEach((thisCmd) => {
-                        ratings.push({
+                        let rating = {
                             command: thisCmd.metadata.name,
+                            alias: null,
                             distance: wink(input.cmd, thisCmd.metadata.name)
-                        })
+                        }
+
+                        for(let alias of thisCmd.metadata.aliases) {
+                            let adist = wink(input.cmd, alias);
+                            if(adist > rating.distance) {
+                                rating.distance = adist;
+                                rating.alias = alias;
+                            }
+                        }
+
+                        ratings.push(rating);
                     });
 
                     ratings.sort((a, b) => {
@@ -224,7 +230,15 @@ bot.on('message', (m) => {
                     .setColor(bot.cfg.embed.default)
 
                     if (closest.distance > 0.8) {
-                        embed.setDescription(`Perhaps you meant \`${bot.trigger}${closest.command}\`? (${(closest.distance * 100).toFixed(1)}% match)`)
+                        embed.setFooter(`${(closest.distance * 100).toFixed(1)}% match`);
+
+                        if(closest.alias !== null) {
+                            embed.setDescription(`Perhaps you meant \`${bot.prefix}${closest.alias}\`? (Alias of \`${bot.prefix}${closest.command}\`)`);
+                        } else {
+                            embed.setDescription(`Perhaps you meant \`${bot.prefix}${closest.command}\`?`);
+                        }
+                    } else {
+                        embed.setDescription(`Type \`${bot.prefix}list\` for a list of commands.`);
                     }
 
                     m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
@@ -286,12 +300,26 @@ bot.on('message', (m) => {
                             cmd.exec(m, input.args, {member, authlvl, input, cmd});
                         }
                         catch (err) {
-                            let embed = errMsg(err, bot, log);
+
+                            // todo: remove this garbage
+                            let file;
+                            let line;
+                            try {
+                                let loc = err.stack.split('\n')[1];
+                                let locn = loc.substring(loc.lastIndexOf('\\')+1, loc.length-1).split(':');
+                                file = locn[0];
+                                line = locn[1];
+                            }
+                            catch(e) {
+                                log(e.stack, 'error');
+                            }
+
+                            let embed = errMsg(err, bot, log, file, line);
                             if(!cmd.metadata.tags['INSTANT']) m.channel.stopTyping();
                             
                             m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                         }
-                    }, (cmd.metadata.tags['INSTANT']) ? 200 : 10)
+                    }, (cmd.metadata.tags['INSTANT']) ? 10 : Math.round(bot.ping)+250)
                 }
 
             }).catch(err => {
@@ -318,7 +346,7 @@ bot.on('message', (m) => {
             .setColor(bot.cfg.embed.default)
             //.setAuthor(`Hi there!`, bot.icons.find('ICO_info'))
             .setTitle('Hi there!')
-            .setDescription(`For a list of commands, type \`${bot.trigger}list\`. If you've donated and you'd like to receive your donator role, type \`${bot.trigger}help dr\` for instructions.`)
+            .setDescription(`For a list of commands, type \`${bot.prefix}list\`. If you've donated and you'd like to receive your donator role, type \`${bot.prefix}help dr\` for instructions.`)
 
             m.channel.send({ embed: embed });
         } else
@@ -423,6 +451,29 @@ process.on('message', (m) => {
 });
 
 ////////////////////////////////////////
+// Guild Presence Update
+////////////////////////////////////////
+
+bot.on('presenceUpdate', (oldMem, newMem) => {
+    if (oldMem.guild.id !== bot.cfg.guilds.optifine) return;
+    if (oldMem.user.bot) return;
+
+    for(let i in bot.memory.mods) {
+        let mod = bot.memory.mods[i];
+        if(mod.id === oldMem.id) {
+            log('moderator updated');
+            log('OLD')
+            log(mod.status)
+            log('NEW')
+            log(newMem.presence.status)
+
+            bot.memory.mods[i].status = newMem.presence.status
+            bot.memory.mods[i].last_message = (newMem.lastMessage) ? newMem.lastMessage.createdTimestamp : mod.last_message
+        }
+    }
+});
+
+////////////////////////////////////////
 // Message Deletion Events
 ////////////////////////////////////////
 
@@ -506,7 +557,7 @@ bot.on('messageDelete', m => {
                     embed.setAuthor(`Message Deleted by Author`, bot.icons.find('ICO_trash'))
                 }
 
-                embed.addField('Deleted Message', m.content);
+                embed.addField('Deleted Message', m.content || 'null');
 
                 let attach = [];
                 if (m.attachments.size > 0) {
@@ -517,7 +568,7 @@ bot.on('messageDelete', m => {
                     embed.addField('Message Attachments', attach.join('\n'));
                 }
 
-                if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
 
                 
                 bot.memory.audit = [...audit.entries.values()];
@@ -567,12 +618,10 @@ bot.on('messageDeleteBulk', ms => {
         contents.push(tm.join('\n'));
     });
 
-    if(bot.memory.log !== null) {
-        bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({
-            embed: embed, 
-            files: [new djs.Attachment(Buffer.from(contents.join('\n')), 'deleted_messages.txt')]
-        });
-    }
+    bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({
+        embed: embed, 
+        files: [new djs.Attachment(Buffer.from(contents.join('\n')), 'deleted_messages.txt')]
+    });
 });
 
 ////////////////////////////////////////
@@ -598,7 +647,7 @@ bot.on('messageUpdate', (m, mNew) => {
     .setFooter(`Event logged on ${timeNow.toUTCString()}`)
     .setTimestamp(timeNow)
 
-    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+    bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
 });
 
 ////////////////////////////////////////
@@ -622,7 +671,7 @@ bot.on('guildMemberAdd', (member) => {
         embed.setTitle('Warning: New Discord Account')
     }
 
-    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+    bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
 
     bot.setTimeout(() => {
         let count = bot.guilds.get(bot.cfg.guilds.optifine).memberCount;
@@ -637,7 +686,7 @@ bot.on('guildMemberAdd', (member) => {
             .setFooter(`Event logged on ${timeNow.toUTCString()}`)
             .setTimestamp(timeNow)
 
-            if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+            bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
         }
     }, 2500);
 });
@@ -667,7 +716,7 @@ bot.on('guildMemberRemove', (member) => {
                         .setFooter(`Event logged on ${timeNow.toUTCString()}`)
                         .setTimestamp(timeNow)
 
-                        if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                        bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
                     }
                     break;
                 } else
@@ -676,11 +725,12 @@ bot.on('guildMemberRemove', (member) => {
                     .setColor(bot.cfg.embed.error)
                     .setAuthor('Member Left', bot.icons.find('ICO_leave'))
                     .setDescription(`${member} | ${member.user.tag} \n\`\`\`yaml\n${member.user.id}\`\`\``)
+                    .addField('Initial Join Date', (member.joinedAt !== null) ? `${member.joinedAt.toUTCString()}\n(${timeago.format(member.joinedAt)})` : 'Unknown.')
                     .setThumbnail(member.user.displayAvatarURL)
                     .setFooter(`Event logged on ${timeNow.toUTCString()}`)
                     .setTimestamp(timeNow)
 
-                    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                    bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
                 }
             }
         }).catch(err => log(err.stack, 'error'));
@@ -711,7 +761,7 @@ bot.on('guildBanAdd', (guild, user) => {
                     .setFooter(`Event logged on ${timeNow.toUTCString()}`)
                     .setTimestamp(timeNow)
 
-                    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                    bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
                     break;
                 } else
                 if (i+1 === ad.length) {
@@ -724,7 +774,7 @@ bot.on('guildBanAdd', (guild, user) => {
                     .setFooter(`Event logged on ${timeNow.toUTCString()}`)
                     .setTimestamp(timeNow)
 
-                    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                    bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
                 }
             }
         }).catch(err => log(err.stack, 'error'));
@@ -754,7 +804,7 @@ bot.on('guildBanRemove', (guild, user) => {
                     .setFooter(`Event logged on ${timeNow.toUTCString()}`)
                     .setTimestamp(timeNow)
 
-                    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                    bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
                     break;
                 } else
                 if (i+1 === ad.length) {
@@ -767,7 +817,7 @@ bot.on('guildBanRemove', (guild, user) => {
                     .setFooter(`Event logged on ${timeNow.toUTCString()}`)
                     .setTimestamp(timeNow)
 
-                    if(bot.memory.log !== null) bot.memory.log.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
+                    bot.guilds.get(bot.cfg.logging.guild).channels.get(bot.cfg.logging.channel).send({embed: embed});
                 }
             }
         }).catch(err => log(err.stack, 'error'));
@@ -781,17 +831,27 @@ bot.on('guildBanRemove', (guild, user) => {
 bot.on('raw', packet => {
     if(packet.t === 'MESSAGE_REACTION_ADD') {
         let channel = bot.channels.get(packet.d.channel_id);
-        if (channel.messages.has(packet.d.message_id)) return;
+        if (channel.messages.has(packet.d.message_id)) return; // stops if the message exists in the bot's cache.
         channel.fetchMessage(packet.d.message_id).then(m => {
             let emoji = packet.d.emoji.id ? `${packet.d.emoji.name}:${packet.d.emoji.id}` : packet.d.emoji.name;
             let reaction = m.reactions.get(emoji);
 
+            let user = bot.users.get(packet.d.user_id);
+
+            if(user === undefined) {
+                if (channel.guild !== null && channel.guild !== undefined) {
+                    // todo: fetch user manually
+                } else {
+                    return;
+                }
+            }
+
             if (reaction) {
-                reaction.users.set(packet.d.user_id, bot.users.get(packet.d.user_id));
+                reaction.users.set(packet.d.user_id, user);
             }
 
             log('old emoji detected', 'trace');
-            bot.emit('messageReactionAdd', reaction, bot.users.get(packet.d.user_id));
+            bot.emit('messageReactionAdd', reaction, user);
         }).catch(err => {
             log(err.stack, 'error');
         });
@@ -863,17 +923,6 @@ bot.on('ratelimit', rl => {
     log("OptiBot is being ratelimited! \n" + rlInfo, 'warn');
 });
 
-if(bot.memory.log !== null) bot.memory.log.on('ratelimit', rl => {
-    let rlInfo = [
-        `Request Limit: ${rl.requestLimit}`,
-        `Time Difference: ${rl.timeDifference}`,
-        `HTTP Method: ${rl.method}`,
-        `Path: ${rl.path}`
-    ].join('\n');
-
-    log("OptiBot Logging is being ratelimited! \n" + rlInfo, 'warn');
-});
-
 ////////////////////////////////////////
 // Websocket Disconnect Event
 ////////////////////////////////////////
@@ -883,14 +932,6 @@ bot.on('disconnect', event => {
         log("Disconnected from websocket with event code 1000. (Task Complete)", 'warn');
     } else {
         log(`Disconnected from websocket with event code ${event.code}`, 'fatal');
-    }
-});
-
-if(bot.memory.log !== null) bot.memory.log.on('disconnect', event => {
-    if (event.code === 1000) {
-        log("OptiLog disconnected from websocket with event code 1000. (Task Complete)", 'warn');
-    } else {
-        log(`OptiLog disconnected from websocket with event code ${event.code}`, 'fatal');
     }
 });
 
@@ -914,10 +955,6 @@ bot.on('warn', info => {
     log(info, 'warn');
 });
 
-if(bot.memory.log !== null) bot.memory.log.on('warn', info => {
-    log(info, 'warn');
-});
-
 ////////////////////////////////////////
 // General Debug
 ////////////////////////////////////////
@@ -934,18 +971,10 @@ bot.on('resume', replayed => {
     log('WebSocket resumed. Number of events replayed: '+replayed, 'warn');
 });
 
-if(bot.memory.log !== null) bot.memory.log.on('resume', replayed => {
-    log('OptiLog WebSocket resumed. Number of events replayed: '+replayed, 'warn');
-});
-
 ////////////////////////////////////////
 // WebSocket Error
 ////////////////////////////////////////
 
 bot.on('error', err => {
-    log(err.stack || err, 'error');
-});
-
-if(bot.memory.log !== null) bot.memory.log.on('error', err => {
     log(err.stack || err, 'error');
 });

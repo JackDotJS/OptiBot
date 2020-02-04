@@ -111,7 +111,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                     }
                 }
             } else {
-                translate(m.cleanContent.substring(`${bot.trigger}${data.cmd.metadata.name} `.length), m.url);
+                translate(m.cleanContent.substring(`${bot.prefix}${data.cmd.metadata.name} `.length), m.url);
             }
         }
     }

@@ -30,6 +30,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             });
         } else {
             targetUser(m, args[0], bot, log, data).then((result) => {
+                log(util.inspect(result));
                 if(!result) {
                     let embed = new djs.RichEmbed()
                     .setAuthor('You must specify a valid user @mention, ID, or target shortcut (^)', bot.icons.find('ICO_error'))
@@ -81,36 +82,32 @@ module.exports = (bot, log) => { return new Command(bot, {
                         .catch(e => { log(err.stack, 'error') });
                     });
                 } else 
-                /* if(result.target.user.id === bot.memory.log.user.id || result.target.user.id === bot.user.id) {
+                if(result.target.user.id === bot.user.id) {
                     bot.getProfile(m.author.id, true).then(profile => {
                         if(!profile.data.eggs) {
                             profile.data.eggs = {};
                         }
 
-                        // TODO
-
                         if(!profile.data.eggs["1"]) {
-                            profile.data.eggs["1"] = {
-                                title: '🤖 Curious Being',
-                                desc: 'I know what you are, but what am I?',
-                                steps: `Attempt to view OptiBot's Profile via \`${bot.trigger}${path.parse(__filename).name}\`.`
-                            }
+                            profile.data.eggs["1"] = new Date().getTime();
 
-                            let embed = new djs.RichEmbed()
-                            .setAuthor(`I know what you are, but what am I?`, bot.icons.find('ICO_mystery'))
-                            .setColor(bot.cfg.embed.egg)
-                            .setDescription(`Type \`${bot.trigger}eggs\` to view all secrets you've unlocked.`)
+                            bot.updateProfile(m.author.id, profile).then(() => {
+                                let embed = new djs.RichEmbed()
+                                .setAuthor(`I know what you are, but what am I?`, bot.icons.find('ICO_z'))
+                                .setColor(bot.cfg.embed.egg)
+                                .setDescription(`The \`${bot.prefix}eggs\` command has been unlocked for you.`)
 
-                            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                                m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                            });
                         } else {
                             let embed = new djs.RichEmbed()
-                            .setAuthor(`You've been here before.`, bot.icons.find('ICO_mystery'))
+                            .setAuthor(`No longer here.`, bot.icons.find('ICO_z'))
                             .setColor(bot.cfg.embed.egg)
 
                             m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
                         }
                     });
-                } else  */{
+                } else {
                     bot.getProfile(result.target.user.id, false).then(profile => {
                         let mem = result.target;
                         let embed = new djs.RichEmbed()

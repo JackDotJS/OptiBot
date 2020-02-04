@@ -15,16 +15,6 @@ module.exports = (author, m, bot, log = function(){}) => {
         log('message sent, adding to cache', 'debug');
         m.react(bot.guilds.get(bot.cfg.guilds.optibot).emojis.get(bot.cfg.emoji.deleter)).then(() => {
             let cacheData = {
-                time: new Date().getTime(), 
-                /**
-                 * the "time" property of this is only used to sort entries by age,
-                 * which is then used to delete the oldest entry when the message limit is reached.
-                 * 
-                 * theoretically, this could be replaced by the message ID alone,
-                 * but i have no actual idea how snowflake IDs are structured.
-                 * 
-                 * i'll probably experiment with this idea in the future.
-                 */
                 guild: m.guild.id,
                 channel: m.channel.id,
                 message: m.id,
@@ -37,7 +27,7 @@ module.exports = (author, m, bot, log = function(){}) => {
                 } else {
                     log('successfully added message to cache', 'debug');
                     log('checking cache limit', 'debug');
-                    bot.db.msg.find({}).sort({ time: 1 }).exec((err, docs) => {
+                    bot.db.msg.find({}).sort({ message: 1 }).exec((err, docs) => {
                         if (err) {
                             log(err.stack, 'error');
                         } else

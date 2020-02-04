@@ -20,12 +20,12 @@ module.exports = (bot, log) => { return new Command(bot, {
 
             m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
         } else 
-        if(m.content.substring(`${bot.trigger}${path.parse(__filename).name} `.length).length > 256) {
+        if(m.content.substring(`${bot.prefix}${path.parse(__filename).name} `.length).length > 256) {
             let embed = errMsg('Message cannot exceed 256 characters in length.', bot, log);
             m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
         } else {
             bot.getProfile(m.author.id, true).then(profile => {
-                profile.data.quote = m.content.substring(`${bot.trigger}${path.parse(__filename).name} `.length);
+                profile.data.quote = m.content.substring(`${bot.prefix}${path.parse(__filename).name} `.length);
 
                 bot.updateProfile(m.author.id, profile).then(() => {
                     let embed = new djs.RichEmbed()

@@ -63,7 +63,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             }
 
             if(args[0] !== '^') {
-                translate(m.content.substring(`${bot.trigger}${data.cmd.metadata.name} `.length));
+                translate(m.content.substring(`${bot.prefix}${data.cmd.metadata.name} `.length));
             } else {
                 m.channel.fetchMessages({ limit: 5 }).then(msgs => {
                     let itr = msgs.values();

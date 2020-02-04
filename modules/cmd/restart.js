@@ -5,6 +5,7 @@ const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
+    aliases: ['reset'],
     short_desc: `Restart OptiBot.`,
     authlevel: 2,
     tags: ['NO_DM', 'INSTANT'],

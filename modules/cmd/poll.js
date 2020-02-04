@@ -7,8 +7,9 @@ const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
+    aliases: ['vote'],
     short_desc: `Start, view, or end a poll.`,
-    long_desc: `Starts, displays, or ends a poll. \n\nTo start a vote, specify the type of answers, and then the details of the vote. The details will be displayed in the vote message.\n\n To view or simply end an existing vote, type \`${bot.trigger}${path.parse(__filename).name} view\` or \`${bot.trigger}${path.parse(__filename).name} end\`.`,
+    long_desc: `Starts, displays, or ends a poll. \n\nTo start a vote, specify the type of answers, and then the details of the vote. The details will be displayed in the vote message.\n\n To view or simply end an existing vote, type \`${bot.prefix}${path.parse(__filename).name} view\` or \`${bot.prefix}${path.parse(__filename).name} end\`.`,
     usage: `<start|view|end> [<yn|2-10> <message>]`,
     authlevel: 1,
     tags: ['NO_DM', 'INSTANT'],
@@ -101,7 +102,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                     });
                 } else {
                     let vote = {
-                        issue: m.content.substring( `${bot.trigger}${path.parse(__filename).name} ${args[0]} ${args[1]} `.length ),
+                        issue: m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} ${args[1]} `.length ),
                         author: m.author.tag,
                         message: {
                             g: m.guild.id,

@@ -6,6 +6,7 @@ const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
+    aliases: ['slowmode', 'slow'],
     short_desc: `Set manual slowmode time.`,
     long_desc: `Manually sets interval for slowmode in the current channel. If specified, OptiBot will keep slowmode on until the given time limit is up. Once finished, OptiBot will return to dynamic slowmode. If not specified, the bot will keep slowmode enabled until manually disabled.`,
     usage: `<seconds> [time limit]`,

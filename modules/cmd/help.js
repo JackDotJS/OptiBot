@@ -16,10 +16,10 @@ module.exports = (bot, log) => { return new Command(bot, {
             let embed = new djs.RichEmbed()
             .setColor(bot.cfg.embed.default)
             .setAuthor('Getting Started', bot.icons.find('ICO_info'))
-            .setDescription(`OptiBot is a Discord bot primarily designed for utility. Whether it's moderation tools, or something to help you make a resource pack, you can probably find it here. (see \`${bot.trigger}about\` for more info about OptiBot itself)`)
+            .setDescription(`OptiBot is a Discord bot primarily designed for utility. Whether it's moderation tools, or something to help you make a resource pack, you can probably find it here. (see \`${bot.prefix}about\` for more info about OptiBot itself)`)
             .setThumbnail(bot.user.displayAvatarURL)
-            .addField('Commands List', `\`\`\`${bot.trigger}list\`\`\``)
-            .addField('Tidbits & Other Features', `\`\`\`${bot.trigger}tidbits\`\`\``)
+            .addField('Commands List', `\`\`\`${bot.prefix}list\`\`\``)
+            .addField('Tidbits & Other Features', `\`\`\`${bot.prefix}tidbits\`\`\``)
 
             m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
         } else {
@@ -43,12 +43,12 @@ module.exports = (bot, log) => { return new Command(bot, {
                     let embed = new djs.RichEmbed()
                     .setColor(bot.cfg.embed.default)
                     .setAuthor('OptiBot Commands', bot.icons.find('ICO_info'))
-                    .setTitle(`${bot.trigger}${md.name}`)
+                    .setTitle(`${bot.prefix}${md.name}`)
                     .setDescription(md.long_desc)
                     .addField('Usage', `\`\`\`${md.usage}\`\`\``)
 
                     if (md.aliases.length > 0) {
-                        embed.addField('Alias(es)', `\`\`\`${bot.trigger}${md.aliases.join(`, ${bot.trigger}`)}\`\`\``)
+                        embed.addField('Alias(es)', `\`\`\`${bot.prefix}${md.aliases.join(`, ${bot.prefix}`)}\`\`\``)
                     }
 
                     if (md.image) {
@@ -85,7 +85,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                         restrictions.push('<:locked:642112455333511178> Restrictions apply to ALL members, regardless of roles or permissions.');
                     } else
                     if(md.tags['BOT_CHANNEL_ONLY']) {
-                        restrictions.push(`<:unlocked:642112465240588338> Moderators exempt from some restrictions.`);
+                        restrictions.push(`<:unlocked:642112465240588338> Moderators exempt from some of these restrictions.`);
                     }
 
                     if (md.authlevel === 0) {

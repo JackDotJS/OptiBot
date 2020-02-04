@@ -1,3 +1,5 @@
+const util = require(`util`);
+
 /**
  * Attempts to get a user from the target input. Returns a promise that resolves with an object containing 2 properties:
  * 1. `type`

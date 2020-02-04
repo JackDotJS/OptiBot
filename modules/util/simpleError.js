@@ -8,10 +8,10 @@ const cid = require('caller-id');
  * @param bot OptiBot
  */
 
-module.exports = (err, bot, log) => {
+module.exports = (err, bot, log, file, line) => {
     let call = cid.getData();
-    let file = (call.evalFlag) ? 'eval()' : call.filePath.substring(call.filePath.lastIndexOf('\\')+1);
-    let line = call.lineNumber;
+    if(!file) file = (call.evalFlag) ? 'eval()' : call.filePath.substring(call.filePath.lastIndexOf('\\')+1)
+    if(!line) line = call.lineNumber;
 
     let embed = new djs.RichEmbed()
     .setColor(bot.cfg.embed.error)

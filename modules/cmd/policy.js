@@ -3,7 +3,7 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const sim = require('string-similarity');
 const Command = require(path.resolve(`./modules/core/command.js`));
-const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
+const erm = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
@@ -16,12 +16,7 @@ module.exports = (bot, log) => { return new Command(bot, {
 
     run: (m, args, data) => {
         if(!args[0]) {
-            let embed = new djs.RichEmbed()
-            .setAuthor(`Usage:`, bot.icons.find('ICO_info'))
-            .setDescription(`\`\`\`${data.cmd.metadata.usage}\`\`\``)
-            .setColor(bot.cfg.embed.default);
-
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            data.cmd.noArgs(m);
         } else {
             const policies = {
                 index: require(path.resolve(`./cfg/policies.js`))(bot),
@@ -43,14 +38,12 @@ module.exports = (bot, log) => { return new Command(bot, {
                     let embed = policies.index[i].embed
                     .setAuthor('OptiFine Discord Moderation Policies', bot.icons.find('ICO_docs'))
                     .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
-                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
                     break;
                 }
 
                 if(i+1 === policies.index.length) {
-                    let err = new Error('Unable to find a policy.');
-                    m.channel.send({embed: errMsg(err, bot, log)})
-                    .catch(err => { log(err.stack, 'error') });
+                    erm(new Error('Unable to find a policy.'), bot, {m:m});
                 }
             }
         }

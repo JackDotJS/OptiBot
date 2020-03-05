@@ -1,7 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
+const erm = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
@@ -14,17 +14,7 @@ module.exports = (bot, log) => { return new Command(bot, {
 
     run: (m, args, data) => {
         if (!args[0]) {
-            let embed = new djs.RichEmbed()
-            .setAuthor(`Usage:`, bot.icons.find('ICO_info'))
-            .setDescription(`\`\`\`${data.cmd.metadata.usage}\`\`\``)
-            .setColor(bot.cfg.embed.default);
-
-            m.channel.send({embed: embed})
-            .then(bm => msgFinalizer(m.author.id, bm, bot, log))
-            .catch(err => {
-                m.channel.send({embed: errMsg(err, bot, log)})
-                .catch(e => { log(err.stack, 'error') });
-            });
+            data.cmd.noArgs(m);
         } else {
             let translate = function(message) {
                 let newStr = '';
@@ -52,12 +42,7 @@ module.exports = (bot, log) => { return new Command(bot, {
 
                     if (i+1 === message.length) {
                         m.channel.stopTyping();
-                        m.channel.send(newStr)
-                        .then(bm => msgFinalizer(m.author.id, bm, bot, log))
-                        .catch(err => {
-                            m.channel.send({embed: errMsg(err, bot, log)})
-                            .catch(e => { log(err.stack, 'error') });
-                        });
+                        m.channel.send(newStr).then(bm => msgFinalizer(m.author.id, bm, bot))
                     }
                 }
             }
@@ -65,32 +50,24 @@ module.exports = (bot, log) => { return new Command(bot, {
             if(args[0] !== '^') {
                 translate(m.content.substring(`${bot.prefix}${data.cmd.metadata.name} `.length));
             } else {
-                m.channel.fetchMessages({ limit: 5 }).then(msgs => {
+                m.channel.messages.fetch({ limit: 5 }).then(msgs => {
                     let itr = msgs.values();
         
                     (function search() {
                         let thisID = itr.next();
 
                         if (thisID.done) {
-                            let embed = new djs.RichEmbed()
-                            .setColor(bot.cfg.embed.error)
-                            .setAuthor(`Could not find a user.`, bot.icons.find('ICO_error'))
+                            let embed = erm(`Could not find a user.`, bot)
                             .setFooter('Note that this shortcut will skip yourself, and any Discord bot.');
         
-                            m.channel.send({ embed: embed })
-                            .then(bm => msgFinalizer(m.author.id, bm, bot, log))
-                            .catch(err => {
-                                m.channel.send({embed: errMsg(err, bot, log)})
-                                .catch(e => { log(err.stack, 'error') });
-                            });
+                            m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot))
                         } else
                         if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1 && !thisID.value.author.bot) {
                             translate(thisID.value.content);
                         } else search();
                     })();
                 }).catch(err => {
-                    m.channel.send({embed: errMsg(err, bot, log)})
-                    .catch(e => { log(err.stack, 'error') });
+                    erm(err, bot, {m: m})
                 });
             }
         }

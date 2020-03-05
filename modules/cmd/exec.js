@@ -4,7 +4,6 @@ const util = require(`util`);
 const fileType = require('file-type');
 const request = require('request');
 const djs = require(`discord.js`);
-const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
 const Command = require(path.resolve(`./modules/core/command.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
@@ -55,7 +54,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                         ].join('\n');
 
                         m.channel.stopTyping(true);
-                        m.channel.send(contents, {files: [new djs.Attachment(output, 'output.'+ft.ext)]})
+                        m.channel.send(contents, {files: [new djs.MessageAttachment(output, 'output.'+ft.ext)]})
                     } else {
                         defaultRes()
                     }
@@ -109,7 +108,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                         }
 
                         m.channel.stopTyping(true);
-                        m.channel.send(`Output too long! (${(oldlength - 2000).toLocaleString()} characters over message limit)`, { files: [new djs.Attachment(Buffer.from(contents), 'output.txt')] })
+                        m.channel.send(`Output too long! (${(oldlength - 2000).toLocaleString()} characters over message limit)`, { files: [new djs.MessageAttachment(Buffer.from(contents), 'output.txt')] })
                     } else {
                         m.channel.stopTyping(true);
                         m.channel.send(contents)

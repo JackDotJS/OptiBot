@@ -1,7 +1,8 @@
 const path = require(`path`);
+const util = require(`util`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
+const erm = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
@@ -13,7 +14,7 @@ module.exports = (bot, log) => { return new Command(bot, {
     run: (m, args, data) => {
         if (!args[0]) {
             // default help page
-            let embed = new djs.RichEmbed()
+            let embed = new djs.MessageEmbed()
             .setColor(bot.cfg.embed.default)
             .setAuthor('Getting Started', bot.icons.find('ICO_info'))
             .setDescription(`OptiBot is a Discord bot primarily designed for utility. Whether it's moderation tools, or something to help you make a resource pack, you can probably find it here. (see \`${bot.prefix}about\` for more info about OptiBot itself)`)
@@ -21,26 +22,18 @@ module.exports = (bot, log) => { return new Command(bot, {
             .addField('Commands List', `\`\`\`${bot.prefix}list\`\`\``)
             .addField('Tidbits & Other Features', `\`\`\`${bot.prefix}tidbits\`\`\``)
 
-            m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot));
         } else {
             bot.commands.find(args[0]).then((cmd) => {
                 if (!cmd || (cmd.metadata.tags['HIDDEN'] && data.authlvl < cmd.metadata.authlevel)) {
-                    let embed = new djs.RichEmbed()
-                    .setAuthor(`The "${args[0]}" command does not exist.`, bot.icons.find('ICO_error'))
-                    .setColor(bot.cfg.embed.error);
-
-                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                    erm(`The "${args[0]}" command does not exist.`, bot, {m:m})
                 } else
                 if (data.authlvl < cmd.metadata.authlevel) {
-                    let embed = new djs.RichEmbed()
-                    .setAuthor(`You do not have permission to view the "${args[0]}" command.`, bot.icons.find('ICO_error'))
-                    .setColor(bot.cfg.embed.error);
-
-                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                    erm(`You do not have permission to view the "${args[0]}" command.`, bot, {m:m})
                 } else {
                     let md = cmd.metadata;
                     let files = [];
-                    let embed = new djs.RichEmbed()
+                    let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
                     .setAuthor('OptiBot Commands', bot.icons.find('ICO_info'))
                     .setTitle(`${bot.prefix}${md.name}`)
@@ -51,8 +44,21 @@ module.exports = (bot, log) => { return new Command(bot, {
                         embed.addField('Alias(es)', `\`\`\`${bot.prefix}${md.aliases.join(`, ${bot.prefix}`)}\`\`\``)
                     }
 
+                    if (data.authlvl >= 4 && (bot.cfg.channels.mod.indexOf(m.channel.id) > -1 || bot.cfg.channels.mod.indexOf(m.channel.parentID) > -1)) {
+                        let taglist = [];
+
+                        Object.keys(md.tags).forEach((tag) => {
+                            if(md.tags[tag] === true) taglist.push(tag);
+                        });
+
+                        if(taglist.length === 0) taglist = 'This command has no active flags.'
+
+                        embed.addField('(DEV) Permission Level', `\`\`\`javascript\n${md.authlevel}\`\`\``)
+                        .addField('(DEV) Flags', `\`\`\`javascript\n${util.inspect(taglist)}\`\`\``)
+                    }
+
                     if (md.image) {
-                        embed.attachFile(new djs.Attachment(bot.images.find(md.image), "thumbnail.png"))
+                        embed.attachFile(new djs.MessageAttachment(bot.images.find(md.image), "thumbnail.png"))
                         .setThumbnail('attachment://thumbnail.png');
                     }
 
@@ -110,7 +116,7 @@ module.exports = (bot, log) => { return new Command(bot, {
 
                     embed.addField('Restrictions', restrictions.join('\n'));
 
-                    m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                    m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot));
                 }
             });
         }

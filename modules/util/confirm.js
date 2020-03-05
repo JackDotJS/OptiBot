@@ -5,14 +5,14 @@
  * @param author User ID.
  * @param m OptiBot Message.
  * @param bot OptiBot itself.
- * @param {Function} log A function to send log events to.
  */
 
-module.exports = (author, m, bot, log = function(){}) => {
+module.exports = (author, m, bot) => {
+    const log = bot.log;
     m.channel.stopTyping(true);
 
-    m.react(bot.guilds.get(bot.cfg.guilds.optibot).emojis.get(bot.cfg.emoji.confirm)).then(() => {
-        m.react(bot.guilds.get(bot.cfg.guilds.optibot).emojis.get(bot.cfg.emoji.cancel)).then(() => {
+    m.react(bot.guilds.cache.get(bot.cfg.guilds.optibot).emojis.get(bot.cfg.emoji.confirm)).then(() => {
+        m.react(bot.guilds.cache.get(bot.cfg.guilds.optibot).emojis.get(bot.cfg.emoji.cancel)).then(() => {
             // massive todo
         }).catch(err => {
             log(err.stack, 'error');

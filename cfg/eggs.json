@@ -3,5 +3,10 @@
         "id": 1,
         "name": "I know what you are, but what am I?",
         "desc": "Attempt to view OptiBot's profile."
+    },
+    {
+        "id": 2,
+        "name": "Can't touch this",
+        "desc": "Attempt to mute OptiBot."
     }
 ]

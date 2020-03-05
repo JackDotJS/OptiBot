@@ -1,26 +1,21 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
+const erm = require(path.resolve(`./modules/util/simpleError.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
-    aliases: ['reset'],
     short_desc: `Restart OptiBot.`,
     authlevel: 2,
     tags: ['NO_DM', 'INSTANT'],
     
     run: (m, args, data) => {
-        let embed = new djs.RichEmbed()
+        let embed = new djs.MessageEmbed()
         .setAuthor('Restarting...', bot.icons.find('ICO_door'))
         .setColor(bot.cfg.embed.default);
 
         m.channel.send({embed: embed}).then(() => {
-            bot.exit(2);
-        }).catch(err => {
-            m.channel.send({embed: errMsg(err, bot, log)})
-            .catch(e => { log(err.stack, 'error') });
-            bot.exit(2);
+            bot.exit(16);
         });
     }
 })}

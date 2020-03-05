@@ -4,7 +4,7 @@ const djs = require(`discord.js`);
 const jimp = require('jimp');
 const request = require('request');
 const Command = require(path.resolve(`./modules/core/command.js`));
-const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
+const erm = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 const targetUser = require(path.resolve(`./modules/util/targetUser.js`));
 
@@ -17,14 +17,9 @@ module.exports = (bot, log) => { return new Command(bot, {
 
     run: (m, args, data) => {
         if(!args[0]) {
-            let embed = new djs.RichEmbed()
-            .setAuthor(`Usage:`, bot.icons.find('ICO_info'))
-            .setDescription(`\`\`\`${data.cmd.metadata.usage}\`\`\``)
-            .setColor(bot.cfg.embed.default);
-
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            data.cmd.noArgs(m);
         } else {
-            targetUser(m, args[0], bot, log, data).then((result) => {
+            targetUser(m, args[0], bot, data).then((result) => {
                 if(!result || result.type === 'notfound') {
                     getMCname();
                 } else {
@@ -37,11 +32,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                         if(profile.data.cape) {
                             getMCname(profile.data.cape.uuid);
                         } else {
-                            let embed = new djs.RichEmbed()
-                            .setAuthor(`${(result.type === 'id') ? result.target : result.target.user.tag} does not have a verified cape on their profile.`, bot.icons.find('ICO_error'))
-                            .setColor(bot.cfg.embed.error)
-                
-                            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                            erm(`${(result.type === 'id') ? result.target : result.target.user.tag} does not have a verified cape on their profile.`, bot, {m:m})
                         }
                     });
                 }
@@ -51,10 +42,10 @@ module.exports = (bot, log) => { return new Command(bot, {
                 if(uuid) {
                     request({ url: `https://api.mojang.com/user/profiles/${uuid}/names`, encoding: null }, (err, res, data) => {
                         if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-                            throw new Error('Failed to get a response from the Mojang API.')
+                            erm(err || new Error('Failed to get a response from the Mojang API.'), bot, {m:m})
                         } else
                         if (res.statusCode === 204) {
-                            throw new Error('Failed to get Minecraft UUID from the Mojang API.')
+                            erm(new Error('Failed to get Minecraft UUID from the Mojang API.'), bot, {m:m})
                         } else {
                             let dp = JSON.parse(data);
                             let dataNormalized = {
@@ -66,30 +57,20 @@ module.exports = (bot, log) => { return new Command(bot, {
                     });
                 } else
                 if (args[0].match(/\W+/) !== null) {
-                    let embed = new djs.RichEmbed()
-                    .setAuthor(`Minecraft usernames can only contain letters, numbers, and underscores (_)`, bot.icons.find('ICO_error'))
-                    .setColor(bot.cfg.embed.error)
-        
-                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                    erm(`Minecraft usernames can only contain letters, numbers, and underscores (_)`, bot, {m:m})
                 } else
                 if (args[0].length > 16) {
-                    let embed = new djs.RichEmbed()
-                    .setAuthor(`Minecraft usernames cannot exceed 16 characters in length.`, bot.icons.find('ICO_error'))
-                    .setColor(bot.cfg.embed.error)
-        
-                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                    erm(`Minecraft usernames cannot exceed 16 characters in length.`, bot, {m:m})
                 } else {
                     request({ url: 'https://api.mojang.com/users/profiles/minecraft/' + args[0], encoding: null }, (err, res, data) => {
                         if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-                            throw new Error('Failed to get a response from the Mojang API');
+                            erm(err || new Error('Failed to get a response from the Mojang API'), bot, {m:m})
                         } else
                         if (res.statusCode === 204) {
-                            let embed = new djs.RichEmbed()
-                            .setColor(bot.cfg.embed.error)
-                            .setAuthor(`Player "${args[0]}" does not exist.`, bot.icons.find('ICO_error'))
-                            .setFooter('Maybe check your spelling?');
+                            let embed = erm(`Player "${args[0]}" does not exist.`, bot)
+                            .setDescription('Maybe check your spelling?');
 
-                            m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                            m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot));
                         } else {
                             getCape(JSON.parse(data));
                         }
@@ -100,25 +81,19 @@ module.exports = (bot, log) => { return new Command(bot, {
             function getCape(player) {
                 log(util.inspect(player));
 
-                if(bot.cfg.uuidFilter.indexOf(player.id) > -1) {
-                    let embed = new djs.RichEmbed()
-                    .setColor(bot.cfg.embed.error)
-                    .setAuthor(`Sorry, this player's cape has been blacklisted.`, bot.icons.find('ICO_error'))
+                // TODO: this whole image processing really needs some optimization and reworking to account for HD custom capes.
 
-                    m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                if(bot.cfg.uuidFilter.indexOf(player.id) > -1) {
+                    erm(`Sorry, this player's cape has been blacklisted.`, bot, {m:m})
                     return;
                 }
 
                 request({ url: 'https://optifine.net/capes/' + player.name + '.png', encoding: null }, (err, res, data) => {
                     if (err || !res || !data || [200, 404].indexOf(res.statusCode) === -1) {
-                        new Error('Failed to get a response from the OptiFine API')
+                        erm(err || new Error('Failed to get a response from the OptiFine API'), bot, {m:m})
                     } else
                     if (res.statusCode === 404) {
-                        let embed = new djs.RichEmbed()
-                        .setAuthor(`Player "${player.name}" does not have an OptiFine cape.`, bot.icons.find('ICO_error'))
-                        .setColor(bot.cfg.embed.error)
-            
-                        m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                        erm(`Player "${player.name}" does not have an OptiFine cape.`, bot, {m:m})
                     } else {
                         jimp.read(data, (err, image) => {
                             if (err) {
@@ -179,9 +154,9 @@ module.exports = (bot, log) => { return new Command(bot, {
                                     image_p.getBuffer(jimp.AUTO, (err, imgFinal) => {
                                         if (err) throw err
                                         else {
-                                            let embed = new djs.RichEmbed()
+                                            let embed = new djs.MessageEmbed()
                                             .setColor(bot.cfg.embed.default)
-                                            .attachFile(new djs.Attachment(imgFinal, "cape.png"))
+                                            .attachFiles([new djs.MessageAttachment(imgFinal, "cape.png")])
                                             .setImage('attachment://cape.png')
                                             .setFooter('IGN: ' + player.name);
 
@@ -207,7 +182,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                                                         embed.setDescription(desc);
                                                     }
 
-                                                    m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+                                                    m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot));
                                                 }
                                             });
                                         }

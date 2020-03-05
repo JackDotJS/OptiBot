@@ -2,7 +2,7 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
+const erm = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
@@ -13,7 +13,7 @@ module.exports = (bot, log) => { return new Command(bot, {
     tags: ['DM_OPTIONAL', 'INSTANT'],
 
     run: (m, args, data) => {
-        let embed = new djs.RichEmbed()
+        let embed = new djs.MessageEmbed()
         .setAuthor(`Ping...`, bot.icons.find('ICO_wifi'))
         .setColor(bot.cfg.embed.default)
         .setDescription(`API Latency: ... \nMessage Latency: ...`)
@@ -24,7 +24,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             let timeTaken = new Date().getTime() - timeStart;
             bot.setTimeout(() => {
                 let desc = []
-                let api = Math.round(bot.ping).toLocaleString();
+                let api = Math.round(bot.ws.ping).toLocaleString();
                 let message = timeTaken.toLocaleString();
 
                 if(api < 100) {
@@ -63,15 +63,11 @@ module.exports = (bot, log) => { return new Command(bot, {
                 embed.author.name = `Pong!`
                 embed.description = desc.join('\n');
                 msg.edit('_ _', {embed:embed}).then(() => {
-                    msgFinalizer(m.author.id, msg, bot, log);
+                    msgFinalizer(m.author.id, msg, bot);
                 }).catch(err => {
-                    m.channel.send({embed: errMsg(err, bot, log)})
-                    .catch(err => { log(err.stack, 'error') });
+                    erm(err, bot, {m: m});
                 });
             }, 1000);
-        }).catch(err => {
-            m.channel.send({embed: errMsg(err, bot, log)})
-            .catch(err => { log(err.stack, 'error') });
         });
     }
 })}

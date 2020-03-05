@@ -5,15 +5,16 @@
  * @param author The original input message.
  * @param m The message that OptiBot has just sent.
  * @param bot OptiBot
- * @param {Function} log A function to send log events to.
  */
 
-module.exports = (author, m, bot, log = function(){}) => {
+module.exports = (author, m, bot) => {
     m.channel.stopTyping(true);
+
+    const log = bot.log;
 
     if(m.channel.type !== 'dm') {
         log('message sent, adding to cache', 'debug');
-        m.react(bot.guilds.get(bot.cfg.guilds.optibot).emojis.get(bot.cfg.emoji.deleter)).then(() => {
+        m.react(bot.guilds.cache.get(bot.cfg.guilds.optibot).emojis.cache.get(bot.cfg.emoji.deleter)).then(() => {
             let cacheData = {
                 guild: m.guild.id,
                 channel: m.channel.id,
@@ -37,8 +38,8 @@ module.exports = (author, m, bot, log = function(){}) => {
                                 if (err) {
                                     log(err.stack, 'error');
                                 } else {
-                                    bot.guilds.get(docs[0].guild).channels.get(docs[0].channel).fetchMessage(docs[0].message).then((msg) => {
-                                        let reaction = msg.reactions.get('click_to_delete:'+bot.cfg.emoji.deleter);
+                                    bot.guilds.cache.get(docs[0].guild).channels.cache.get(docs[0].channel).messages.fetch(docs[0].message).then((msg) => {
+                                        let reaction = msg.reactions.cache.get('click_to_delete:'+bot.cfg.emoji.deleter);
 
                                         if(reaction && reaction.me) {
                                             reaction.remove().then(() => {

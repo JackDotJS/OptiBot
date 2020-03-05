@@ -10,6 +10,6 @@ function statusName(code) {
 module.exports = {
     interval: 1000,
     fn: (bot, log) => {
-        process.title = `OptiBot ${bot.version} | ${Math.round(bot.ping)}ms | Status Code ${bot.status} (${statusName(bot.status)})`;
+        process.title = `OptiBot ${bot.version} | ${Math.round(bot.ws.ping)}ms | Status Code ${bot.ws.status} (${statusName(bot.ws.status)})`;
     }
 }

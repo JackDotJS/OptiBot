@@ -1,7 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
+const erm = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
@@ -13,27 +13,25 @@ module.exports = (bot, log) => { return new Command(bot, {
 
     run: (m, args, data) => {
         if(!args[0]) {
-            let embed = new djs.RichEmbed()
-            .setAuthor(`Usage:`, bot.icons.find('ICO_info'))
-            .setDescription(`\`\`\`${data.cmd.metadata.usage}\`\`\``)
-            .setColor(bot.cfg.embed.default);
-
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            data.cmd.noArgs(m);
         } else 
         if(m.content.substring(`${bot.prefix}${path.parse(__filename).name} `.length).length > 256) {
-            let embed = errMsg('Message cannot exceed 256 characters in length.', bot, log);
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            erm('Message cannot exceed 256 characters in length.', bot, {m:m})
         } else {
             bot.getProfile(m.author.id, true).then(profile => {
                 profile.data.quote = m.content.substring(`${bot.prefix}${path.parse(__filename).name} `.length);
 
                 bot.updateProfile(m.author.id, profile).then(() => {
-                    let embed = new djs.RichEmbed()
+                    let embed = new djs.MessageEmbed()
                     .setAuthor(`Your profile has been updated`, bot.icons.find('ICO_okay'))
                     .setColor(bot.cfg.embed.okay);
 
-                    m.channel.send({embed: embed}).then(msg => { msgFinalizer(m.author.id, msg, bot, log); });
-                })
+                    m.channel.send({embed: embed}).then(msg => { msgFinalizer(m.author.id, msg, bot); });
+                }).catch(err => {
+                    erm(err, bot, {m:m})
+                });
+            }).catch(err => {
+                erm(err, bot, {m:m})
             });
         }
     }

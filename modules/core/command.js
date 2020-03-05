@@ -1,3 +1,8 @@
+const path = require(`path`);
+const util = require(`util`);
+const djs = require(`discord.js`);
+const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
+
 module.exports = class Command {
     constructor (bot, {
         name = null,
@@ -24,7 +29,7 @@ module.exports = class Command {
         } else {
             const metadata = {
                 name: name,
-                aliases: (Array.isArray(aliases)) ? aliases : [],
+                aliases: (Array.isArray(aliases)) ? [...new Set(aliases)] : [],
                 short_desc: short_desc,
                 long_desc: (long_desc) ? long_desc : short_desc,
                 usage: `${bot.prefix}${name} ${(usage) ? usage : ''}`,
@@ -88,15 +93,23 @@ module.exports = class Command {
                 }
             }
 
-            if(Array.isArray(tags)) {
+            if(Array.isArray(tags) && tags.length > 0) {
+                tags = [...new Set(tags)];
+                let found = 0;
+
                 tags.forEach(t => {
                     if(typeof t !== 'string') {
                         throw new TypeError(`Tags must be specified as strings.`);
                     } else
                     if(typeof metadata.tags[t.toUpperCase()] === 'boolean') {
                         metadata.tags[t.toUpperCase()] = true;
+                        found++;
                     }
                 });
+
+                if(found === 0) {
+                    throw new Error(`All given tags are invalid.`);
+                }
     
                 if(metadata.tags[`NO_DM`] && metadata.tags[`DM_OPTIONAL`]) {
                     throw new Error(`Command "${name}": Tags NO_DM and DM_OPTIONAL are mutually exclusive.`);
@@ -139,6 +152,15 @@ module.exports = class Command {
                 }
             });
         }
+    }
+
+    noArgs(m) {
+        let embed = new djs.MessageEmbed()
+        .setAuthor(`Missing Arguments`, this.bot.icons.find('ICO_info'))
+        .setColor(this.bot.cfg.embed.default)
+        .addField('Usage', `\`\`\`${this.metadata.usage}\`\`\``)
+
+        m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, this.bot))
     }
 
     exec(m, args, log, data) {

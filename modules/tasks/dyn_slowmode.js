@@ -44,7 +44,7 @@ module.exports = {
                         tc.until = null;
                         tc.i = 0;
 
-                        this.guilds.get(cfg.guilds.optibot).channels.get(id).setRateLimitPerUser(tc.i).then((chn) => {
+                        this.guilds.cache.get(cfg.guilds.optibot).channels.cache.get(id).setRateLimitPerUser(tc.i).then((chn) => {
                             log(`Slowmode disabled in ${chn.id}`, 'info');
                             agg = 4;
                         });
@@ -70,7 +70,7 @@ module.exports = {
                     if(tc.i < ratelimit) {
                         tc.i = ratelimit;
 
-                        this.guilds.get(cfg.guilds.optibot).channels.get(id).setRateLimitPerUser(tc.i).then((chn) => {
+                        this.guilds.cache.get(cfg.guilds.optibot).channels.cache.get(id).setRateLimitPerUser(tc.i).then((chn) => {
                             if(agg !== 3) {
                                 agg--
                             }

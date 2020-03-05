@@ -277,6 +277,8 @@ function init() {
     process.stdout.write('\033c');
     process.stdout.write(`\u001b[2J\u001b[0;0H`);
 
+    // 🦀
+
     process.title = `OptiBot | Spawning Process...`;
     
     env.log.filename = new Date().toUTCString().replace(/[/\\?%*:|"<>]/g, `.`)
@@ -322,6 +324,9 @@ function init() {
     bot.on('exit', (code) => {
         log(`Child process ended with exit code ${code}`, 'info');
 
+        // recently updated to account for node.js's built-in exit codes
+        // needs to be updated in other parts of the bot
+
         if(code === 0) {
             log('OptiBot is now shutting down at user request.', 'info');
             end(code, true);
@@ -336,45 +341,64 @@ function init() {
             }, env.dev ? 5000 : 10);
         } else
         if(code === 2) {
+            log('Bash Error. (How the fuck?)', 'fatal');
+            end(code, true);
+        } else
+        if(code === 3) {
+            log('Internal JavaScript parse error.', 'fatal');
+            end(code, true);
+        } else
+        if(code === 4) {
+            log('Internal JavaScript Evaluation Failure.', 'fatal');
+            end(code, true);
+        } else
+        if(code === 5) {
+            log('Fatal Error.', 'fatal');
+            end(code, true);
+        } else
+        if(code === 6) {
+            log('Non-function Internal Exception Handler.', 'fatal');
+            end(code, true);
+        } else
+        if(code === 7) {
+            log('Internal Exception Handler Run-Time Failure.', 'fatal');
+            end(code, true);
+        } else
+        if(code === 8) {
+            log('Uncaught exception. (Unused in newer NodeJS)', 'fatal');
+            end(code, true);
+        } else
+        if(code === 9) {
+            log('Invalid Launch Argument(s).', 'fatal');
+            end(code, true);
+        } else
+        if(code === 10) {
+            log('Internal JavaScript Run-Time Failure.', 'fatal');
+            end(code, true);
+        } else
+        if(code === 12) {
+            log('Invalid Debug Argument(s).', 'fatal');
+            end(code, true);
+        } else
+
+
+        if(code === 16) {
             log('OptiBot is now restarting at user request...', 'info');
             end(code, false);
         } else
-        if(code === 3) {
-            log('Resetting at user request...', 'info');
-            fs.unlink('./data/messages.db', (err) => {
-                if(err) log('Failed to delete messages database.', 'fatal');
-                setTimeout(() => {
-                    env.log.stream.end();
-
-                    setTimeout(() => {
-                        // i know this looks like a fucking mess of commands and switches but trust me it NEEDS to be structured precisely like this to work.
-                        // fuck windows batch
-                        child.spawn(`cmd`, ['/C', 'start', '""', 'cmd', '/C', 'init.bat', '--skip', (env.debug) ? '--dev' : undefined], {
-                            detached: true,
-                            stdio: 'ignore',
-                            cwd: __dirname
-                        }).unref();
-
-                        process.exit(3);
-                    }, 500);
-                }, 500);
-            });
-        } else
-        if(code === 4) {
-            log('OptiBot is now being updated...');
+        if(code === 17) {
+            log('OptiBot is now being updated...', 'info');
             update();
         } else
-        if(code === 10) {
-            log('OptiBot is now undergoing scheduled restart.');
+        if(code === 18) {
+            log('OptiBot is now undergoing scheduled restart.', 'info');
             end(code, false);
         } else
-        if(code === 24) {
-            log(`OptiBot encountered a fatal error. This is likely a problem that the program cannot solve on it's own. The program will attempt to restart anyway, just in case.`, 'fatal');
-            end(code, false, 'FATAL');
-        } else
-        if(code === 1000) {
-            log(`OptiBot was forcefully shut down.`, 'fatal');
-            end(code, true, 'OBES');
+
+        
+        if(code > 128) {
+            log(`Signal exit code ${code - 128}.`, 'fatal');
+            end(code, false);
         }
     });
 

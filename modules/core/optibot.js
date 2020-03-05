@@ -35,7 +35,8 @@ module.exports = class OptiBot extends djs.Client {
             users: [],
             audit: null,
             confirm: [],
-            mods: []
+            mods: [],
+            mutes: []
         };
         const storage = {
             msg: new database({ filename: './data/messages.db', autoload: true }),
@@ -136,6 +137,15 @@ module.exports = class OptiBot extends djs.Client {
             }
         });
 
+        Object.defineProperty(this, 'exitTime', {
+            get: function() {
+                let now = new Date()
+                now.setUTCDate(now.getUTCDate()+1)
+                now.setUTCHours(8, 0, 0, 0)
+                return now;
+            }
+        });
+
         Object.defineProperty(this, 'cfg', {
             get: function() {
                 return cfg;
@@ -198,9 +208,20 @@ module.exports = class OptiBot extends djs.Client {
     }
 
     exit(code = 0) {
-        this.destroy().then(() => {
+
+        /**
+         * 0 = standard shutdown
+         * 1 = error/crash
+         * 16 = requested restart
+         * 17 = requested update
+         * 18 = scheduled restart
+         */
+
+        this.destroy()
+
+        setTimeout(() => {
             process.exit(code);
-        });
+        }, 500);
     }
 
     setStatus(type) {
@@ -254,25 +275,91 @@ module.exports = class OptiBot extends djs.Client {
          * type
          * 
          * 0 = everything
-         * 1 = only commands
-         * 2 = something else coming soon maybe idk
+         * 1 = commands, utilities, and images
+         * 2 = only images
          */
 
         let bot = this;
         const log = this.log;
         let timeStart = new Date().getTime();
         return new Promise((success, failure) => {
+            log('Loading assets...', 'info');
+
             let stages = [];
             let assetsAsync = [];
-            let clrcache = false;
+            let totals = 0;
+            let done = 0;
 
-            if(bot.commands.index.length > 0) {
-                bot.commands.index = [];
-                clrcache = true;
+            if(type === 0 || type === 1 || type === 2) {
+                stages.push({
+                    name: 'Icon Loader',
+                    load: new Promise((resolve, reject) => {
+                        bot.icons.index = [];
+    
+                        let ig = 0;
+                        (function getEmoji() {
+                            let emoji = [...bot.guilds.cache.get(bot.cfg.guilds.emoji[ig]).emojis.cache.values()];
+    
+                            if (emoji.length === 0) {
+                                if(ig+1 === bot.cfg.guilds.emoji.length) {
+                                    resolve();
+                                } else {
+                                    ig++;
+                                    getEmoji();
+                                }
+                            } else {
+                                for(let i in emoji) {
+                                    if(emoji[i].name.startsWith('ICO_')) {
+                                        if(emoji[i].name === 'ICO_default') {
+                                            bot.icons.default = emoji[i].url;
+                                        } else {
+                                            bot.icons.index.push({
+                                                name: emoji[i].name,
+                                                data: emoji[i].url
+                                            });
+                                        }
+                                    }
+        
+                                    if(parseInt(i)+1 === emoji.length) {
+                                        if(parseInt(ig)+1 === bot.cfg.guilds.emoji.length) {
+                                            resolve();
+                                        } else {
+                                            ig++;
+                                            getEmoji();
+                                        }
+                                    }
+                                }
+                            }
+                        })();
+                    })
+                });
+
+                assetsAsync.push({
+                    name: 'Image Loader',
+                    load: new Promise((resolve, reject) => {
+                        bot.images.index = [];
+                        let images = fs.readdirSync(path.resolve(`./assets/img`));
+    
+                        for(let img of images) {
+                            if(img.match(/\./) !== null) {
+                                bot.images.index.push({
+                                    name: img,
+                                    data: fs.readFileSync(path.resolve(`./assets/img/${img}`))
+                                });
+                            }
+                        }
+                        resolve();
+                    })
+                });
             }
 
             if(type === 0 || type === 1) {
-                if(clrcache) {
+                let clrcache = false;
+
+                if(bot.commands.index.length > 0) {
+                    bot.commands.index = [];
+                    clrcache = true;
+                    
                     stages.push({
                         name: 'Utility Cache Removal',
                         load: new Promise((resolve, reject) => {
@@ -320,10 +407,9 @@ module.exports = class OptiBot extends djs.Client {
                                             let register = registered[i2];
                                             (function newAliases() {
                                                 let alias = newcmd.metadata.aliases[i3];
-                                                log(`${alias} equals ${register.cmd}?`)
     
                                                 if(alias === register.cmd) {
-                                                    log(new Error(`Conflicting command names/aliases: "${alias}" (${newcmd.metadata.name}.js) === "${register.cmd}" (${register.cmd}.js)`).stack, 'error');
+                                                    log(new Error(`Failed to load command, conflicting names/aliases: "${alias}" (${newcmd.metadata.name}.js) === "${register.cmd}" (${register.cmd}.js)`).stack, 'error');
                                                     i1++;
                                                     loadCmd();
                                                 } else 
@@ -342,13 +428,12 @@ module.exports = class OptiBot extends djs.Client {
                                                     }
                                                 } else {
                                                     (function avsa() {
-                                                        log(`${alias} equals ${register.aliases[i4]}?`)
                                                         if (register.aliases[i4] === undefined) {
                                                             log(register.aliases);
                                                             log(i4);
                                                         }
                                                         if(alias === register.aliases[i4]) {
-                                                            log(new Error(`Conflicting command names/aliases: "${alias}" (${newcmd.metadata.name}.js) === "${registered[i].aliases[i2]}" (${register.cmd}.js)`).stack, 'error');
+                                                            log(new Error(`Failed to load command, conflicting names/aliases: "${alias}" (${newcmd.metadata.name}.js) === "${register.aliases[i4]}" (${register.cmd}.js)`).stack, 'error');
                                                             i1++;
                                                             loadCmd();
                                                         }
@@ -412,67 +497,6 @@ module.exports = class OptiBot extends djs.Client {
                         })();
                     })
                 });
-
-                stages.push({
-                    name: 'Icon Loader',
-                    load: new Promise((resolve, reject) => {
-                        bot.icons.index = [];
-    
-                        let ig = 0;
-                        (function getEmoji() {
-                            let emoji = [...bot.guilds.get(bot.cfg.guilds.emoji[ig]).emojis.values()];
-    
-                            if (emoji.length === 0) {
-                                if(ig+1 === bot.cfg.guilds.emoji.length) {
-                                    resolve();
-                                } else {
-                                    ig++;
-                                    getEmoji();
-                                }
-                            } else {
-                                for(let i in emoji) {
-                                    if(emoji[i].name.startsWith('ICO_')) {
-                                        if(emoji[i].name === 'ICO_default') {
-                                            bot.icons.default = emoji[i].url;
-                                        } else {
-                                            bot.icons.index.push({
-                                                name: emoji[i].name,
-                                                data: emoji[i].url
-                                            });
-                                        }
-                                    }
-        
-                                    if(parseInt(i)+1 === emoji.length) {
-                                        if(parseInt(ig)+1 === bot.cfg.guilds.emoji.length) {
-                                            resolve();
-                                        } else {
-                                            ig++;
-                                            getEmoji();
-                                        }
-                                    }
-                                }
-                            }
-                        })();
-                    })
-                });
-
-                assetsAsync.push({
-                    name: 'Image Loader',
-                    load: new Promise((resolve, reject) => {
-                        bot.images.index = [];
-                        let images = fs.readdirSync(path.resolve(`./assets/img`));
-    
-                        for(let img of images) {
-                            if(img.match(/\./) !== null) {
-                                bot.images.index.push({
-                                    name: img,
-                                    data: fs.readFileSync(path.resolve(`./assets/img/${img}`))
-                                });
-                            }
-                        }
-                        resolve();
-                    })
-                });
             }
 
             if(type === 0) {
@@ -506,7 +530,7 @@ module.exports = class OptiBot extends djs.Client {
                 stages.push({
                     name: 'Audit Log Pre-cacher',
                     load: new Promise((resolve, reject) => {
-                        bot.guilds.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
+                        bot.guilds.cache.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
                             bot.memory.audit = [...audit.entries.values()];
                             resolve();
                         });
@@ -518,7 +542,7 @@ module.exports = class OptiBot extends djs.Client {
                     load: new Promise((resolve, reject) => {
                         bot.memory.mods = [];
 
-                        bot.guilds.get(bot.cfg.guilds.optifine).roles.get(bot.cfg.roles.moderator).members.tap(mod => {
+                        bot.guilds.cache.get(bot.cfg.guilds.optifine).roles.cache.get(bot.cfg.roles.moderator).members.each(mod => {
                             if(mod.id !== '202558206495555585') {
                                 bot.memory.mods.push({
                                     id: mod.id,
@@ -527,8 +551,8 @@ module.exports = class OptiBot extends djs.Client {
                                 });
                             }
                         });
-        
-                        bot.guilds.get(bot.cfg.guilds.optifine).roles.get(bot.cfg.roles.jrmod).members.tap(mod => {
+
+                        bot.guilds.cache.get(bot.cfg.guilds.optifine).roles.cache.get(bot.cfg.roles.jrmod).members.each(mod => {
                             bot.memory.mods.push({
                                 id: mod.id,
                                 status: mod.presence.status,
@@ -539,14 +563,55 @@ module.exports = class OptiBot extends djs.Client {
                         resolve();
                     })
                 });
+
+                stages.push({
+                    name: 'Muted Member Pre-cacher',
+                    load: new Promise((resolve, reject) => {
+                        this.db.profiles.find({ "data.mute": { $exists: true }, format: 2}, (err, docs) => {
+                            if(err) {
+                                reject(err);
+                            } else
+                            if(docs.length === 0) {
+                                resolve()
+                            } else {
+                                for(let i in docs) {
+                                    if(docs[i].data.mute.cur_end !== null) {
+                                        let exp = new Date(docs[i].data.mute.cur_end);
+                                        let now = new Date();
+
+                                        if(exp.getUTCDay() <= now.getUTCDay()){
+                                            if(exp.getUTCMonth() <= now.getUTCMonth()){
+                                                if(exp.getUTCFullYear() <= now.getUTCFullYear()){
+                                                    bot.memory.mutes.push({
+                                                        userid: docs[i].userid,
+                                                        time: docs[i].data.mute.cur_end
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if(i+1 >= docs.length) {
+                                        resolve();
+                                    }
+                                }
+                            }
+                        });
+                    })
+                });
             }
+
+            totals = stages.length;
 
             let si = 0;
             (function loadStage() {
                 let stageStart = new Date().getTime();
                 stages[si].load.then(() => {
-                    let stageTime = (new Date().getTime() - stageStart) / 1000;
+                    let stageTime = (new Date().getTime() - stageStart) / 333;
                     log(`"${stages[si].name}" cleared in ${stageTime} second(s).`, 'debug');
+
+                    done++;
+                    log(`Loading assets... ${Math.round((100 * done) / totals)}%`, 'info');
 
                     
 
@@ -580,6 +645,7 @@ module.exports = class OptiBot extends djs.Client {
                     reject(err);
                 } else
                 if(docs[0]) {
+                    delete docs[0]._id;
                     resolve(docs[0]);
                 } else
                 if(create) {

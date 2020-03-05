@@ -2,12 +2,12 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
+const erm = require(path.resolve(`./modules/util/simpleError.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
-    aliases: ['commands'],
+    aliases: ['commands', 'cmds', 'cmdlist'],
     short_desc: `List all OptiBot commands.`,
     long_desc: `Lists all OptiBot commands. By default, this will show every single command you have access to.`,
     usage: `[page # [filter] | filter [page #]]`,
@@ -18,7 +18,7 @@ module.exports = (bot, log) => { return new Command(bot, {
         let list = bot.commands.index
         let filtered;
         let selectPage = 1;
-        let menu;
+        let menu = '';
         let stext = '';
 
         if (args[0] && isNaN(args[0])) {
@@ -35,82 +35,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             selectPage = parseInt(args[1]);
         }
 
-        if (menu === 'dev') {
-            if(data.authlvl < 4) {
-                let embed = errMsg(`You do not have permission to view these commands.`, bot, log)
-                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
-                return;
-            } else 
-            if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-                let embed = errMsg(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, log)
-                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
-                return;
-            } else {
-                filtered = list.filter((cmd) => (cmd.metadata.authlevel >= 4));
-                stext = `Search Filter: Only Developer Commands`;
-            }
-        } else
-        if (menu === 'admin') {
-            if(data.authlvl < 3) {
-                let embed = errMsg(`You do not have permission to view these commands.`, bot, log)
-                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
-                return;
-            } else 
-            if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-                let embed = errMsg(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, log)
-                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
-                return;
-            } else {
-                filtered = list.filter((cmd) => (cmd.metadata.authlevel === 3));
-                stext = `Search Filter: Only Administrator Commands`;
-            }
-            
-        } else
-        if (menu === 'mod') {
-            if(data.authlvl < 1) {
-                let embed = errMsg(`You do not have permission to view these commands.`, bot, log)
-                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
-                return;
-            } else 
-            if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-                let embed = errMsg(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, log)
-                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
-                return;
-            } else {
-                filtered = list.filter((cmd) => (cmd.metadata.authlevel === 1 || cmd.metadata.authlevel === 2));
-                stext = `Search Filter: All Moderator Commands`;
-            }
-        } else
-        if (menu === 'srmod') {
-            if(data.authlvl < 1) {
-                let embed = errMsg(`You do not have permission to view these commands.`, bot, log)
-                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
-                return;
-            } else 
-            if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-                let embed = errMsg(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, log)
-                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
-                return;
-            } else {
-                filtered = list.filter((cmd) => (cmd.metadata.authlevel === 2));
-                stext = `Search Filter: Only Sr. Moderator Commands`;
-            }
-        } else
-        if (menu === 'jrmod') {
-            if(data.authlvl < 1) {
-                let embed = errMsg(`You do not have permission to view these commands.`, bot, log)
-                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
-                return;
-            } else 
-            if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-                let embed = errMsg(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, log)
-                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
-                return;
-            } else {
-                filtered = list.filter((cmd) => (cmd.metadata.authlevel === 1));
-                stext = `Search Filter: Only Jr. Moderator Commands`;
-            }
-        } else {
+        let defaultFilter = () => {
             if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
                 filtered = list.filter((cmd) => (cmd.metadata.authlevel === 0));
                 stext = `Note: Some commands have been hidden because you're in a public channel.`;
@@ -119,10 +44,95 @@ module.exports = (bot, log) => { return new Command(bot, {
             }
         }
 
-        if(filtered.length === 0) {
-            let embed = errMsg(`Could not find any commands with the "${menu}" filter.`, bot, log)
+        if (menu === 'dev') {
+            if(data.authlvl < 4) {
+                erm(`You do not have permission to view these commands.`, bot, {m:m})
+                return;
+            } else 
+            if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
+                erm(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+                return;
+            } else {
+                filtered = list.filter((cmd) => (cmd.metadata.authlevel >= 4));
+                stext = `Search Filter: Developer Commands`;
+            }
+        } else
+        if (menu === 'admin') {
+            if(data.authlvl < 3) {
+                erm(`You do not have permission to view these commands.`, bot, {m:m})
+                return;
+            } else 
+            if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
+                erm(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+                return;
+            } else {
+                filtered = list.filter((cmd) => (cmd.metadata.authlevel === 3));
+                stext = `Search Filter: Administrator Commands`;
+            }
+        } else
+        if (menu === 'mod') {
+            if(data.authlvl < 1) {
+                erm(`You do not have permission to view these commands.`, bot, {m:m})
+                return;
+            } else 
+            if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
+                erm(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+                return;
+            } else {
+                filtered = list.filter((cmd) => (cmd.metadata.authlevel === 1 || cmd.metadata.authlevel === 2));
+                stext = `Search Filter: All Moderator Commands`;
+            }
+        } else
+        if (menu === 'srmod') {
+            if(data.authlvl < 1) {
+                erm(`You do not have permission to view these commands.`, bot, {m:m})
+                return;
+            } else 
+            if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
+                erm(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+                return;
+            } else {
+                filtered = list.filter((cmd) => (cmd.metadata.authlevel === 2));
+                stext = `Search Filter: Sr. Moderator Commands`;
+            }
+        } else
+        if (menu === 'jrmod') {
+            if(data.authlvl < 1) {
+                erm(`You do not have permission to view these commands.`, bot, {m:m})
+                return;
+            } else 
+            if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
+                erm(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+                return;
+            } else {
+                filtered = list.filter((cmd) => (cmd.metadata.authlevel === 1));
+                stext = `Search Filter: Jr. Moderator Commands`;
+            }
+        } else
+        if(menu.startsWith('flag:')) {
+            if(data.authlvl < 4) {
+                defaultFilter();
+            } else {
+                if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
+                    erm(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+                    return;
+                } else {
+                    let flag = menu.substring( `flag:`.length ).toUpperCase();
+                    filtered = list.filter((cmd) => (cmd.metadata.tags[`${flag}`] ));
+                    stext = `Search Filter: FLAG \`${flag}\``;
+                }
+            }
+        } else {
+            defaultFilter();
+        }
 
-            m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
+        if(filtered.length === 0) {
+            if(menu.startsWith('flag:') && data.authlvl >= 4) {
+                let flag = menu.substring( `flag:`.length ).toUpperCase();
+                erm(`Could not find any commands with the "${flag}" flag.`, bot, {m:m})
+            } else {
+                erm(`Could not find any commands with the "${menu}" filter.`, bot, {m:m})
+            }
             return;
         }
 
@@ -132,7 +142,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             pageNum = selectPage;
         }
 
-        let embed = new djs.RichEmbed()
+        let embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
         .setAuthor(`OptiBot Command Index | Page ${pageNum}/${pageLimit}`, bot.icons.find('ICO_docs'))
         .setDescription(`Hover over the tooltip icons [ℹ️](${m.url.replace(/\/\d+$/, '')} "No easter eggs here... 👀") or use \`${bot.prefix}help <command>\` for detailed information.`)
@@ -209,7 +219,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             added++;
             
             if (added >= 10 || i+1 >= filtered.length) {
-                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot, log))
+                m.channel.send({embed: embed}).then(msg => msgFinalizer(m.author.id, msg, bot))
             } else {
                 i++;
                 addList();

@@ -14,20 +14,22 @@ const util = require(`util`);
  * @param {Message} m The original input message.
  * @param {String} target The target user. Can be either a Discord mention, shortcuts ("me", "myself", "^", etc...), or just a plain numerical user ID.
  * @param bot OptiBot
- * @param {Function} log A function to send log events to. These are pretty much only for debugging.
  * @returns {Promise<Object>} `{ type, target }`
  */
 
-module.exports = (m, target, bot, log = function(){}, data) => {
+module.exports = (m, target, bot, data) => {
+    const log = bot.log;
     return new Promise((resolve, reject) => {
         log('get user id out of '+target, 'trace');
+
+        // todo: add string similarity
 
         log(target.match(/^(<@).*(>)$/) !== null, 'trace');
         log(m.mentions.users.size > 0, 'trace');
         log(target.match(/^(<@).*(>)$/) !== null && m.mentions.users.size > 0, 'trace');
 
         function checkServer(id) {
-            bot.guilds.get(bot.cfg.guilds.optifine).fetchMember(id).then(mem => {
+            bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch(id).then(mem => {
                 resolve({ type: "user", target: mem });
             }).catch(err => {
                 if (err.stack.indexOf('Invalid or uncached') > -1) {
@@ -38,20 +40,20 @@ module.exports = (m, target, bot, log = function(){}, data) => {
             });
         }
 
-        if (target.toLowerCase() === 'me' || target.toLowerCase() === 'myself') {
+        if (target.toLowerCase() === 'me' || target.toLowerCase() === 'myself' || target.toLowerCase() === 'self') {
             log('self')
             resolve({ type: "user", target: data.member });
         } else
         if (target.toLowerCase() === 'someone' || target.toLowerCase() === 'somebody' || target.toLowerCase() === 'random') {
             log('random user')
             if(m.channel.type === 'dm') {
-                checkServer(m.author.id);
+                resolve({ type: "user", target: data.member });
             } else {
                 let users = [];
                 if(m.guild.id !== bot.cfg.guilds.optifine) {
-                    users = [...bot.guilds.get(bot.cfg.guilds.optifine).members.values()];
+                    users = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).members.cache.values()];
                 } else {
-                    users = [...m.guild.members.values()];
+                    users = [...m.guild.members.cache.values()];
                 }
 
                 log(users.length)
@@ -70,7 +72,7 @@ module.exports = (m, target, bot, log = function(){}, data) => {
         } else
         if (target === "^") {
             log('target shortcut')
-            m.channel.fetchMessages({ limit: 25 }).then(msgs => {
+            m.channel.messages.fetch({ limit: 25 }).then(msgs => {
                 let itr = msgs.values();
 
                 (function search() {
@@ -90,7 +92,7 @@ module.exports = (m, target, bot, log = function(){}, data) => {
                 })();
             }).catch(err => reject(err));
         } else
-        if (!isNaN(target)) {
+        if (!isNaN(target) && parseInt(target) >= 1420070400000) {
             log('id')
             checkServer(target);
         } else {

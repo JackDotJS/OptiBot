@@ -2,7 +2,7 @@ const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
 const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
-const errMsg = require(path.resolve(`./modules/util/simpleError.js`));
+const erm = require(path.resolve(`./modules/util/simpleError.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
@@ -15,42 +15,38 @@ module.exports = (bot, log) => { return new Command(bot, {
 
     run: (m, args, data) => {
         if(!args[0]) {
-            let embed = new djs.RichEmbed()
-            .setAuthor(`Usage:`, bot.icons.find('ICO_info'))
-            .setDescription(`\`\`\`${data.cmd.metadata.usage}\`\`\``)
-            .setColor(bot.cfg.embed.default);
-
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            data.cmd.noArgs(m);
         } else
         if(bot.cfg.channels.nomodify.indexOf(m.channel.id) > -1 || bot.cfg.channels.nomodify.indexOf(m.channel.parentID) > -1) {
-            let embed = new djs.RichEmbed()
+            let embed = new djs.MessageEmbed()
             .setAuthor('This channel is not allowed to be modified.', bot.icons.find('ICO_error'))
             .setColor(bot.cfg.embed.error)
 
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
         } else
         if(parseInt(args[0]) > 21600) {
-            let embed = new djs.RichEmbed()
+            let embed = new djs.MessageEmbed()
             .setAuthor('Slowmode cannot exceed 6 hours. (21,600 seconds)', bot.icons.find('ICO_error'))
             .setColor(bot.cfg.embed.error)
 
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
         } else 
         if(parseInt(args[0]) < 0) {
-            let embed = new djs.RichEmbed()
+            let embed = new djs.MessageEmbed()
             .setAuthor('Slowmode cannot use negative values.', bot.icons.find('ICO_error'))
             .setColor(bot.cfg.embed.error)
 
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
+            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
         } else {
             m.channel.setRateLimitPerUser(parseInt(args[0]), `Slowmode set by ${m.author.tag} (${m.author.id})`).then(() => {
-                let ds = parseInt(args[0]) === 0;
-                let embed = new djs.RichEmbed()
-                .setAuthor(`Slowmode ${(ds) ? `disabled.` : `set to ${parseInt(args[0]).toLocaleString()} second(s).`}`, bot.icons.find('ICO_okay'))
+                let embed = new djs.MessageEmbed()
+                .setAuthor(`Slowmode ${(parseInt(args[0]) === 0) ? `disabled.` : `set to ${parseInt(args[0]).toLocaleString()} second(s).`}`, bot.icons.find('ICO_okay'))
                 .setColor(bot.cfg.embed.okay)
 
-                m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot, log));
-            });
+                m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
+            }).catch(err => {
+                erm(err, bot, {m:m})
+            })
         }
     }
 })}

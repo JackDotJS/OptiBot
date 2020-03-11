@@ -15,7 +15,7 @@ module.exports = (bot, log) => { return new Command(bot, {
     run: (m, args, data) => {
         let embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
-        .attachFile(new djs.MessageAttachment(path.resolve(`./assets/img/IMG_shitcord.png`), 'shitcord.png'))
+        .attachFiles([new djs.MessageAttachment(path.resolve(`./assets/img/IMG_shitcord.png`), 'shitcord.png')])
         .setImage('attachment://shitcord.png')
 
         m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));

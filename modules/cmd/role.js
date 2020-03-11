@@ -30,7 +30,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                 if (result.target.user.id === m.author.id || result.target.user.id === bot.user.id) {
                     erm('Nice try.', bot, {m:m})
                 } else {
-                    let roles = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).roles.filter(role => bot.cfg.roles.grantable.indexOf(role.id) > -1).values()];
+                    let roles = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).roles.cache.filter(role => bot.cfg.roles.grantable.indexOf(role.id) > -1).values()];
                     let match = {
                         role: null,
                         rating: 0,
@@ -49,8 +49,8 @@ module.exports = (bot, log) => { return new Command(bot, {
                     if (match.rating < 0.2) {
                         erm('What kind of role is that?', bot, {m:m})
                     } else
-                    if (!result.target.roles.has(match.role.id)) {
-                        result.target.addRole(match.role.id, `Role granted by ${m.author.tag}`).then(() => {
+                    if (!result.target.roles.cache.has(match.role.id)) {
+                        result.target.roles.add(match.role.id, `Role granted by ${m.author.tag}`).then(() => {
                             let embed = new djs.MessageEmbed()
                             .setColor(bot.cfg.embed.okay)
                             .setAuthor(`Role added`, bot.icons.find('ICO_okay'))
@@ -59,7 +59,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                             m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot))
                         }).catch(err => erm(err, bot, {m:m}));
                     } else {
-                        result.target.removeRole(match.role.id, `Role removed by ${m.author.tag}`).then(() => {
+                        result.target.roles.remove(match.role.id, `Role removed by ${m.author.tag}`).then(() => {
                             let embed = new djs.MessageEmbed()
                             .setColor(bot.cfg.embed.okay)
                             .setAuthor(`Role removed`, bot.icons.find('ICO_okay'))

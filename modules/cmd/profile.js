@@ -14,7 +14,7 @@ module.exports = (bot, log) => { return new Command(bot, {
     short_desc: `Displays detailed information about a specified user.`,
     usage: `<discord user> ["raw"]`,
     authlevel: 0,
-    tags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY', 'INSTANT'],
+    tags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY'],
 
     run: (m, args, data) => {
         if(!args[0]) {
@@ -67,20 +67,20 @@ module.exports = (bot, log) => { return new Command(bot, {
                             .setAuthor((mem.user.id === m.author.id) ? "You are..." : "That is...", bot.icons.find('ICO_user'))
                             .setColor(bot.cfg.embed.default)
                             .setTitle(`${mem.user.tag} ${(mem.user.bot) ? "🤖" : ""}`)
-                            .setThumbnail(mem.user.displayAvatarURL)
+                            .setThumbnail(mem.user.displayAvatarURL({ dynamic: true, size: 64 }))
             
                             let presence = []
             
                             if(mem.user.presence.status === 'online') { 
-                                presence.push(`🟢 Online`)
+                                presence.push(`**Status:** \\🟢 Online`)
                             } else
                             if(mem.user.presence.status === 'idle') { 
-                                presence.push(`🟠 Away`)
+                                presence.push(`**Status:** \\🟡 Away`)
                             } else
                             if(mem.user.presence.status === 'dnd') {
-                                presence.push(`🔴 Do Not Disturb`)
+                                presence.push(`**Status:** \\🔴 Do Not Disturb`)
                             } else {
-                                presence.push(`⚫ Offline (Invisible?)`)
+                                presence.push(`**Status:** \\⚫ Offline/Invisible`)
                             }
             
                             if(mem.user.presence.clientStatus !== null) {
@@ -104,37 +104,63 @@ module.exports = (bot, log) => { return new Command(bot, {
                                 }
             
                                 if(msg.length === 1) {
-                                    presence.push(`${emoji} Discord on ${msg[0]}.`)
+                                    presence.push(`**Device(s):** Discord on ${msg[0]}`)
                                 } else
                                 if(msg.length === 2) {
-                                    presence.push(`🌐 Discord on ${msg[0]} and ${msg[1]}.`)
+                                    presence.push(`**Device(s):** Discord on ${msg[0]} and ${msg[1]}`)
                                 } else
                                 if(msg.length === 3) {
-                                    presence.push(`🌐 Discord on ${msg[0]}, ${msg[1]}, and ${msg[2]}.`)
+                                    presence.push(`**Device(s):** Discord on ${msg[0]}, ${msg[1]}, and ${msg[2]}.`)
                                 }
                             }
             
-                            if(mem.user.presence.game !== null) {
-                                let game = mem.user.presence.game;
-                                let doing = '🎮 Playing';
-            
-                                if(game.type === 1) {
-                                    doing = '🔴 Streaming'
-                                } else
-                                if(game.type === 1) {
-                                    doing = '🎧 Listening to'
-                                } else
-                                if(game.type === 1) {
-                                    doing = '📺 Watching'
-                                } else
-            
-                                presence.push(`${doing} "${game.name}" ${(game.url) ? "at "+game.url : ""}`)
+                            if(mem.user.presence.activities.length > 0 && mem.user.presence.activities[0].type !== null) {
+                                let status = mem.user.presence.activities[0];
+
+                                if(status.type === 'CUSTOM_STATUS') {
+                                    let emoji = ``;
+                                    let text = ``;
+
+                                    if(status.emoji) {
+                                        if(!status.emoji.id) {
+                                            emoji = `\\${status.emoji.name} `;
+                                        } else {
+                                            emoji = `:${status.emoji.name}: `;
+                                        }
+                                    }
+
+                                    if(status.state) {
+                                        text = status.state;
+                                    }
+
+                                    if(emoji.length > 0 || text.length > 0) {
+                                        presence.push(`**Custom Status:** ${emoji}${text}`)
+                                    }
+                                } else {
+                                    let doing = '**Activity:** Playing';
+
+                                    if(status.type === 'STREAMING') {
+                                        doing = '**Activity:** Streaming'
+                                    } else
+                                    if(status.type === 'LISTENING') {
+                                        doing = '**Activity:** Listening to'
+                                    } else
+                                    if(status.type === 'WATCHING') {
+                                        doing = '**Activity:** Watching'
+                                    }
+
+                                    if(status.url) {
+                                        presence.push(`[${doing} ${status.name}](${status.url})`)
+                                    } else {
+                                        presence.push(`${doing} ${status.name}`)
+                                    }
+                                }
                             }
             
-                            embed.setDescription(`${(profile && profile.data.quote) ? `***\`"${profile.data.quote}"\`***\n\n` : ''}${presence.join('\n\n')}`);
+                            embed.setDescription(`${(profile && profile.data.quote) ? `> ***"${profile.data.quote}"***\n\n` : ''}${presence.join('\n')}`);
             
                             let roles = [];
-                            let rolec = [...mem.roles.values()];
+                            let rolec = [...mem.roles.cache.values()];
                             rolec.sort((a, b) => a.calculatedPosition - b.calculatedPosition)
                             rolec.reverse().forEach((role) => {
                                 log(role.calculatedPosition);
@@ -149,7 +175,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             
                             let identity = [
                                 `Mention: ${mem.toString()}`,
-                                `Discord ID: \`\`\`yaml\n${mem.user.id}\`\`\``
+                                `User ID: \`\`\`yaml\n${mem.user.id}\`\`\``
                             ].join('\n');
             
                             embed.addField('Identification', identity, true)

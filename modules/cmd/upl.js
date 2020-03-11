@@ -37,11 +37,11 @@ module.exports = (bot, log) => { return new Command(bot, {
         .setAuthor('Reloading moderation policies...', bot.icons.find('ICO_load'))
 
         m.channel.send({embed: embed}).then((msg) => {
-            channel.bulkDelete(50).then(() => {
-                finallyPostShit();
+            channel.bulkDelete(100).then(() => {
+                finallyPostShit(msg);
             }).catch(err => {
                 log(err.stack, 'error');
-                planBthisfucker();
+                planBthisfucker(msg);
             });
         }).catch((err) => erm(err, bot));
 
@@ -61,13 +61,13 @@ module.exports = (bot, log) => { return new Command(bot, {
              * :)
              */
 
-            channel.fetchMessages().then(ms => {
+            channel.messages.fetch().then(ms => {
                 let msgs = [...ms.values()];
                 let im = 0;
                 (function delmsg() {
                     msgs[im].delete().then(() => {
                         if(im+1 >= msgs.length) {
-                            finallypostShit(msg);
+                            finallyPostShit(msg);
                         } else {
                             im++;
                             delmsg();

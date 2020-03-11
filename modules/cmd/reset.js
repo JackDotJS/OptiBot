@@ -17,11 +17,11 @@ module.exports = (bot, log) => { return new Command(bot, {
 
         let type = 1;
 
-        if(args[0] === 'images') {
+        if(args[0] === 'images' || args[0] === 'img' || args[0] === 'image' || args[0] === 'icons' || args[0] === 'ico' || args[0] === 'icon') {
             type = 2;
             embed.setAuthor('Resetting images and icons...', bot.icons.find('ICO_load'))
         } else 
-        if(args[0] === 'del') {
+        if(args[0] === 'del' || args[0] === 'messages' || args[0] === 'msg' || args[0] === 'message') {
             type = 3;
             embed.setAuthor('Resetting deletable messages...', bot.icons.find('ICO_load'))
         } else {

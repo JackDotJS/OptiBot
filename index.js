@@ -161,7 +161,7 @@ bot.on('message', (m) => {
         // COMMAND HANDLER
         /////////////////////////////////////////////////////////////
 
-        bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch(m.author.id).then(member => {
+        bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({ user: m.author.id, cache: true }).then(member => {
 
             /**
              * Authorization Level
@@ -303,7 +303,7 @@ bot.on('message', (m) => {
                             if(!cmd.metadata.tags['INSTANT']) m.channel.stopTyping()
                             erm(err, bot, {m: m})
                         }
-                    }, (cmd.metadata.tags['INSTANT']) ? 10 : Math.round(bot.ping)+250)
+                    }, (cmd.metadata.tags['INSTANT']) ? 10 : Math.round(bot.ws.ping)+250)
                 }
 
             }).catch(err => {
@@ -408,7 +408,9 @@ bot.on('message', (m) => {
     
                             m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
                         }).catch(err => {
-                            log(err.stack, 'error');
+                            if(err.stack.toLowerCase().indexOf('unknown message') === -1) {
+                                log(err.stack, 'error');
+                            }
                         });
                     }
                 }
@@ -428,7 +430,7 @@ bot.on('message', (m) => {
 process.on('message', (m) => {
     if(m.crashlog !== null) {
         log('got crash data', 'trace');
-        bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch('181214529340833792').then(jack => {
+        bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({user: '181214529340833792', cache: true}).then(jack => {
             jack.send(`**=== OptiBot Crash Recovery Report ===**`, new djs.MessageAttachment(`./logs/${m.crashlog}`));
         }).catch(err => {
             log(err.stack, 'error');
@@ -987,7 +989,7 @@ bot.on('raw', packet => {
                 if (channel.guild !== null && channel.guild !== undefined && channel.type === 'text') {
                     // todo: fetch user manually
                     log('fetch manual')
-                    channel.guild.members.fetch(packet.d.user_id).then(mem => {
+                    channel.guild.members.fetch({ user: packet.d.user_id, cache: true}).then(mem => {
                         user = mem.user;
                         s2()
                     });
@@ -1030,7 +1032,7 @@ bot.on('messageReactionAdd', (mr, user) => {
             } else
             if(docs.length > 0) {
                 if(docs[0].user === user.id) {
-                    if(mr.message.content === bot.cfg.messages.confirmDelete) {
+                    if(mr.message.content.indexOf(bot.cfg.messages.confirmDelete) > -1) {
                         mr.message.delete().then(() => {
                             bot.db.msg.remove(docs[0], {}, (err) => {
                                 if (err) {
@@ -1043,7 +1045,12 @@ bot.on('messageReactionAdd', (mr, user) => {
                             log(err.stack, 'error');
                         });
                     } else {
-                        mr.message.edit(bot.cfg.messages.confirmDelete).catch(err => {
+                        let nm = `${mr.message.content}\n\n${bot.cfg.messages.confirmDelete}`;
+                        if(nm.length === 2000 /* incredibly unlikely, but better safe than sorry */ || mr.message.content.length === 0) {
+                            nm = bot.cfg.messages.confirmDelete;
+                        }
+
+                        mr.message.edit(nm).catch(err => {
                             log(err.stack, 'error');
                         });
                     }

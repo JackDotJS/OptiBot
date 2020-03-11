@@ -32,7 +32,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                 if (result.target.user.id === bot.user.id) {
                     erm(':(', bot, {m:m})
                 } else 
-                if (result.target.permissions.has("KICK_MEMBERS", true) || result.target.roles.has(bot.cfg.roles.jrmod)) {
+                if (result.target.permissions.has("KICK_MEMBERS", true) || result.target.roles.cache.has(bot.cfg.roles.jrmod)) {
                     erm(`You cannot.`, bot, {m:m})
                 } else {
                     bot.getProfile(result.target.user.id, true).then(profile => {

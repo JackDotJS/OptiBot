@@ -31,7 +31,15 @@ module.exports = (bot, log) => { return new Command(bot, {
                 if(pings_msg.length === 0) {
                     if(pings_status.length === 0) {
                         // worst case scenario: no active mods, no online mods.
-                        m.channel.send(`${m.author}, one of the following moderators should be with you soon! \n\n${pings_all.join(', ')}`)
+                        let guild = bot.guilds.cache.get(bot.cfg.guilds.optifine);
+                        let role_mod = guild.roles.cache.get(bot.cfg.roles.moderator);
+                        let role_jrmod = guild.roles.cache.get(bot.cfg.roles.jrmod);
+
+                        if((role_mod.mentionable && role_jrmod.mentionable) || guild.members.cache.get(bot.user.id).hasPermission('MENTION_EVERYONE', {checkAdmin: true})) {
+                            m.channel.send(`${m.author}, a moderator should be with you soon! \n\n${role_mod} ${role_jrmod}`)
+                        } else {
+                            m.channel.send(`${m.author}, one of the following moderators should be with you soon! \n\n${pings_all.join(', ')}`);
+                        }
                     } else
                     if(pings_status.length === 1) {
                         // no active mods, one online mod

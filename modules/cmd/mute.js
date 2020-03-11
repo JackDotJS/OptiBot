@@ -52,7 +52,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                 if (result.target.user.id === bot.user.id) {
                     erm(`You have no power here.`, bot, {m:m})
                 } else 
-                if (result.target.permissions.has("KICK_MEMBERS", true) || result.target.roles.has(bot.cfg.roles.jrmod)) {
+                if (result.target.permissions.has("KICK_MEMBERS", true) || result.target.roles.cache.has(bot.cfg.roles.jrmod)) {
                     erm(`That user is too powerful to be muted.`, bot, {m:m})
                 } else {
                     s2(result.target);
@@ -253,7 +253,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                     }
 
                     bot.updateProfile(target.user.id, profile).then(() => {
-                        target.addRole(bot.cfg.roles.muted, `Member muted for ${time_remaining} by ${m.author.tag}`).then(() => {
+                        target.roles.add(bot.cfg.roles.muted, `Member muted for ${time_remaining} by ${m.author.tag}`).then(() => {
                             let embed = new djs.MessageEmbed()
                             .setColor(bot.cfg.embed.okay)
 

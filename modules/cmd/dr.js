@@ -14,7 +14,7 @@ module.exports = (bot, log) => { return new Command(bot, {
     tags: ['DM_ONLY', 'STRICT', 'DELETE_ON_MISUSE', 'INSTANT', 'CONFIDENTIAL'],
     
     run: (m, args, data) => {
-        if(data.member.roles.has(bot.cfg.roles.donator)) {
+        if(data.member.roles.cache.has(bot.cfg.roles.donator)) {
             erm(`You already have the Donator role.`, bot, {m:m});
         } else
         if(!args[0]) {
@@ -31,7 +31,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                     erm(err || new Error('Failed to get a response from the OptiFine API'), bot, {m:m});
                 } else 
                 if (body === 'true') {
-                    data.member.addRole(bot.cfg.roles.donator, 'Donator status verified.').then(() => {
+                    data.member.roles.add(bot.cfg.roles.donator, 'Donator status verified.').then(() => {
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.okay)
                         .setAuthor('Thank you for your contribution! Your donator role has been granted.', bot.icons.find('ICO_okay'))

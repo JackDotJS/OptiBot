@@ -60,8 +60,8 @@ module.exports = (bot, log) => { return new Command(bot, {
             if(bot.memory.vote.issue === null) {
                 erm(`There is no active poll.`, bot, {m: m})
             } else {
-                bot.guilds.cache.get(bot.memory.vote.message.g).channels.cache.get(bot.memory.vote.message.c).fetchMessage(bot.memory.vote.message.m).then(bm => {
-                    let votes = [...bm.reactions.filter(react => react.me).values()];
+                bot.guilds.cache.get(bot.memory.vote.message.g).channels.cache.get(bot.memory.vote.message.c).messages.fetch(bot.memory.vote.message.m).then(bm => {
+                    let votes = [...bm.reactions.cache.filter(react => react.me).values()];
                     let totalvotes = 0;
                     let counts = [];
 
@@ -70,7 +70,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                     });
 
                     votes.forEach(react => {
-                        counts.push(`${react.emoji} _ _ **${(react.count-1).toLocaleString()} vote${((react.count-1) === 1) ? '' : 's'}** | ${totalvotes === 0 ? ('0.0') : ((100 * (react.count - 1)) / totalvotes).toFixed(1)}%`);
+                        counts.push(`${react.emoji} _​ _ ${(react.count-1).toLocaleString()} vote${((react.count-1) === 1) ? '' : 's'}**｜**${totalvotes === 0 ? ('0.0') : ((100 * (react.count - 1)) / totalvotes).toFixed(1)}%`);
                     });
 
                     let embed = new djs.MessageEmbed();

@@ -33,10 +33,10 @@ module.exports = (bot, log) => { return new Command(bot, {
                 if (result.target.user.id === bot.user.id) {
                     erm(`I'm a bot. Why would I even be muted?`, bot, {m:m})
                 } else 
-                if (result.target.permissions.has("KICK_MEMBERS", true) || result.target.roles.has(bot.cfg.roles.jrmod)) {
+                if (result.target.permissions.has("KICK_MEMBERS", true) || result.target.roles.cache.has(bot.cfg.roles.jrmod)) {
                     erm(`That user is too powerful to be muted in the first place.`, bot, {m:m})
                 } else 
-                if (!result.target.roles.has(bot.cfg.roles.muted)) {
+                if (!result.target.roles.cache.has(bot.cfg.roles.muted)) {
                     erm(`That user has not been muted.`, bot, {m:m})
                 } else {
                     s2(result.target);
@@ -84,7 +84,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                     }
 
                     bot.updateProfile(target.user.id, profile).then(() => {
-                        target.removeRole(bot.cfg.roles.muted, `Member unmuted by ${m.author.tag}`).then(() => {
+                        target.roles.remove(bot.cfg.roles.muted, `Member unmuted by ${m.author.tag}`).then(() => {
                             let embed = new djs.MessageEmbed()
                             .setColor(bot.cfg.embed.okay)
                             .setAuthor(`User unmuted.`, bot.icons.find('ICO_okay'))

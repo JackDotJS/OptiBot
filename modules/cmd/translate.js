@@ -39,7 +39,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             }
 
             if(args[0] === '^') {
-                m.channel.fetchMessages({ limit: 5 }).then(msgs => {
+                m.channel.messages.fetch({ limit: 5 }).then(msgs => {
                     let itr = msgs.values();
         
                     (function search() {
@@ -79,7 +79,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                         let rc = seg[1];
                         let rm = seg[0];
     
-                        bot.guilds.cache.get(rg).channels.cache.get(rc).fetchMessage(rm).then(msg => {
+                        bot.guilds.cache.get(rg).channels.cache.get(rc).messages.fetch(rm).then(msg => {
                             translate(msg.cleanContent, msg.url);
                         }).catch(err => {
                             erm(err, bot, {m:m});

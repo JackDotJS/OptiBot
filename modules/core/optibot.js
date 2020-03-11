@@ -261,12 +261,17 @@ module.exports = class OptiBot extends djs.Client {
             ACT_status = 'idle';
         }
 
-        this.user.setStatus(ACT_status);
-        this.user.setActivity(ACT_game, { url: ACT_url, type: ACT_type });
         this.memory.activity.status = ACT_status;
         this.memory.activity.game = ACT_game;
         this.memory.activity.type = ACT_type;
         this.memory.activity.url = ACT_url;
+        this.user.setPresence({
+            status: ACT_status, 
+            activity: {
+                name: ACT_game,
+                type: ACT_type
+            }
+        });
     }
 
     loadAssets(type = 0) {
@@ -620,9 +625,7 @@ module.exports = class OptiBot extends djs.Client {
                         success(new Date().getTime() - timeStart);
                     } else {
                         si++;
-                        bot.setTimeout(() => {
-                            loadStage();
-                        }, 1000);
+                        loadStage();
                     }
                 });
             })();

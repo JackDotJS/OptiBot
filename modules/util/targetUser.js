@@ -29,7 +29,7 @@ module.exports = (m, target, bot, data) => {
         log(target.match(/^(<@).*(>)$/) !== null && m.mentions.users.size > 0, 'trace');
 
         function checkServer(id) {
-            bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch(id).then(mem => {
+            bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({ user: id, cache: true }).then(mem => {
                 resolve({ type: "user", target: mem });
             }).catch(err => {
                 if (err.stack.indexOf('Invalid or uncached') > -1) {

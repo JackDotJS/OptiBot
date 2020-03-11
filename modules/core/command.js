@@ -156,7 +156,7 @@ module.exports = class Command {
 
     noArgs(m) {
         let embed = new djs.MessageEmbed()
-        .setAuthor(`Missing Arguments`, this.bot.icons.find('ICO_info'))
+        .setAuthor(`Missing Arguments`, this.bot.icons.find('ICO_warn'))
         .setColor(this.bot.cfg.embed.default)
         .addField('Usage', `\`\`\`${this.metadata.usage}\`\`\``)
 

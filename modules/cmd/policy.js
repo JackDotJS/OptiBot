@@ -19,7 +19,7 @@ module.exports = (bot, log) => { return new Command(bot, {
             data.cmd.noArgs(m);
         } else {
             const policies = {
-                index: require(path.resolve(`./cfg/policies.js`))(bot),
+                index: require(path.resolve(`./modules/util/policies.js`))(bot),
                 kw: []
             }
     

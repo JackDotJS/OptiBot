@@ -1,15 +1,13 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `MoCkInG tOnE translator`,
     long_desc: `Rewrites a message with a mOcKiNg tOnE. In other words, this will pseudo-randomize the capitalization of each letter in the given text.`,
-    usage: `<text|^ shortcut>`,
-    authlevel: 1,
+    usage: `<text:text | target:discord message>`,
+    authlvl: 1,
     tags: ['DM_OPTIONAL', 'INSTANT'],
 
     run: (m, args, data) => {
@@ -42,34 +40,23 @@ module.exports = (bot, log) => { return new Command(bot, {
 
                     if (i+1 === message.length) {
                         m.channel.stopTyping();
-                        m.channel.send(newStr).then(bm => msgFinalizer(m.author.id, bm, bot))
+                        m.channel.send(newStr).then(bm => bot.util.responder(m.author.id, bm, bot))
                     }
                 }
             }
 
-            if(args[0] !== '^') {
-                translate(m.content.substring(`${bot.prefix}${data.cmd.metadata.name} `.length));
-            } else {
-                m.channel.messages.fetch({ limit: 5 }).then(msgs => {
-                    let itr = msgs.values();
-        
-                    (function search() {
-                        let thisID = itr.next();
-
-                        if (thisID.done) {
-                            let embed = erm(`Could not find a user.`, bot)
-                            .setFooter('Note that this shortcut will skip yourself, and any Discord bot.');
-        
-                            m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot))
-                        } else
-                        if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1 && !thisID.value.author.bot) {
-                            translate(thisID.value.content);
-                        } else search();
-                    })();
-                }).catch(err => {
-                    erm(err, bot, {m: m})
-                });
-            }
+            bot.util.target(m, args[0], bot, {type: 1, member: data.member}).then(result => {
+                if(result && result.type === 'message') {
+                    translate(result.target.cleanContent);
+                } else 
+                if(result && result.type === 'notfound') {
+                    bot.util.err('Could not find a message to translate.', bot, {m:m});
+                } else {
+                    translate(m.cleanContent.substring(`${bot.prefix}${data.input.cmd} `.length));
+                }
+            }).catch(err => {
+                bot.util.err(err, bot, {m:m});
+            });
         }
     }
 })}

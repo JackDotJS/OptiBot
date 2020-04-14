@@ -1,14 +1,12 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `Reset commands (default), image assets, and/or deletable messages.`,
-    usage: `["images"|"del"]`,
-    authlevel: 4,
+    usage: `[opt:images | opt:del]`,
+    authlvl: 5,
     tags: ['DM_OPTIONAL', 'INSTANT'],
 
     run: (m, args, data) => {
@@ -38,7 +36,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                 let timeStart = new Date().getTime();
                 bot.db.msg.remove({}, {multi:true}, (err, rm) => {
                     if(err) {
-                        erm(err, bot, {m:m});
+                        bot.util.err(err, bot, {m:m});
                     } else {
                         let time = new Date().getTime() - timeStart;
                         embed2.setAuthor(`Message cache reset in ${time / 1000} seconds.`, bot.icons.find('ICO_okay'))
@@ -46,9 +44,9 @@ module.exports = (bot, log) => { return new Command(bot, {
 
                         bot.setTimeout(() => {
                             bm.edit({embed: embed2})
-                            .then(bm => msgFinalizer(m.author.id, bm, bot))
+                            .then(bm => bot.util.responder(m.author.id, bm, bot))
                             .catch(err => {
-                                erm(err, bot, {m:m});
+                                bot.util.err(err, bot, {m:m});
                             });
                         }, 1000);
                     }
@@ -67,13 +65,13 @@ module.exports = (bot, log) => { return new Command(bot, {
     
                     bot.setTimeout(() => {
                         bm.edit({embed: embed2})
-                        .then(bm => msgFinalizer(m.author.id, bm, bot))
+                        .then(bm => bot.util.responder(m.author.id, bm, bot))
                         .catch(err => {
-                            erm(err, bot, {m:m});
+                            bot.util.err(err, bot, {m:m});
                         });
                     }, 1000);
                 }).catch(err => {
-                    erm(err, bot, {m:m});
+                    bot.util.err(err, bot, {m:m});
                 });
             }
         })

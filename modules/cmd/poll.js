@@ -2,16 +2,14 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['vote'],
     short_desc: `Start, view, or end a poll.`,
     long_desc: `Starts, displays, or ends a poll. \n\nTo start a vote, type \`${bot.prefix}${path.parse(__filename).name} start\` and then provide the details of the vote. The details will be displayed in the vote message.\n\n To view or simply end an existing vote, type \`${bot.prefix}${path.parse(__filename).name} view\` or \`${bot.prefix}${path.parse(__filename).name} end\` respectively.`,
-    usage: `<view|end|start <message>>`,
-    authlevel: 1,
+    usage: `<opt:view | opt:end | opt:start <text:message>>`,
+    authlvl: 2,
     tags: ['NO_DM', 'INSTANT'],
 
     run: (m, args, data) => {
@@ -20,10 +18,10 @@ module.exports = (bot, log) => { return new Command(bot, {
         } else
         if (args[0].toLowerCase() === 'start') {
             if(bot.memory.vote.issue !== null) {
-                erm(`You cannot start a poll while one is already active.`, bot, {m: m})
+                bot.util.err(`You cannot start a poll while one is already active.`, bot, {m: m})
             } else
             if(!args[1]) {
-                erm(`You must specify the details of the poll.`, bot, {m: m})
+                bot.util.err(`You must specify the details of the poll.`, bot, {m: m})
             } else {
                 let vote = {
                     issue: m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length ),
@@ -36,7 +34,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                 }
 
                 if(vote.issue.length > 1000) {
-                    erm(`Poll message cannot exceed 1,000 characters.`, bot, {m: m})
+                    bot.util.err(`Poll message cannot exceed 1,000 characters.`, bot, {m: m})
                 }
 
                 let embed = new djs.MessageEmbed()
@@ -52,13 +50,13 @@ module.exports = (bot, log) => { return new Command(bot, {
                         bm.react('👎');
                     });
                 }).catch(err => {
-                    erm(err, bot, {m: m})
+                    bot.util.err(err, bot, {m: m})
                 });
             }
         } else
         if (args[0].toLowerCase() === 'view' || args[0].toLowerCase() === 'end') {
             if(bot.memory.vote.issue === null) {
-                erm(`There is no active poll.`, bot, {m: m})
+                bot.util.err(`There is no active poll.`, bot, {m: m})
             } else {
                 bot.guilds.cache.get(bot.memory.vote.message.g).channels.cache.get(bot.memory.vote.message.c).messages.fetch(bot.memory.vote.message.m).then(bm => {
                     let votes = [...bm.reactions.cache.filter(react => react.me).values()];
@@ -93,11 +91,11 @@ module.exports = (bot, log) => { return new Command(bot, {
                         .addField('Current Count', counts.join('\n\n'))
                     }
 
-                    m.channel.send({embed: embed}).then(bm2 => msgFinalizer(m.author.id, bm2, bot));
+                    m.channel.send({embed: embed}).then(bm2 => bot.util.responder(m.author.id, bm2, bot));
                 });
             }
         } else {
-            erm(`You must specify a valid action to perform.`, bot, {m: m})
+            bot.util.err(`You must specify a valid action to perform.`, bot, {m: m})
         }
     }
 })}

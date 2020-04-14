@@ -1,14 +1,12 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['jdk', 'jre'],
     short_desc: `Provides a link to download AdoptOpenJDK.`,
-    authlevel: 0,
+    authlvl: 0,
     tags: ['DM_OPTIONAL', 'INSTANT'],
 
     run: (m, args, data) => {
@@ -17,6 +15,6 @@ module.exports = (bot, log) => { return new Command(bot, {
         .setAuthor('AdoptOpenJDK', bot.icons.find('ICO_jdk'))
         .setTitle('https://adoptopenjdk.net/')
 
-        m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot))
+        m.channel.send({ embed: embed }).then(bm => bot.util.responder(m.author.id, bm, bot))
     }
 })}

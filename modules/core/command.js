@@ -1,7 +1,6 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = class Command {
     constructor (bot, {
@@ -11,7 +10,7 @@ module.exports = class Command {
         long_desc = null,
         usage = null,
         image = null,
-        authlevel = null,
+        authlvl = null,
         tags = null,
         run = null
     }) {
@@ -24,7 +23,7 @@ module.exports = class Command {
         if(typeof run !== 'function') {
             throw new Error(`Command function not specified or invalid.`)
         } else 
-        if(typeof authlevel !== 'number') {
+        if(typeof authlvl !== 'number') {
             throw new Error(`Authorization level not specified or invalid.`)
         } else {
             const metadata = {
@@ -42,17 +41,20 @@ module.exports = class Command {
                 /**
                  * Authorization Level
                  * 
+                 * -1 = Muted Member
                  * 0 = Normal Member
-                 * 1 = Junior Moderator
-                 * 2 = Senior Moderator
-                 * 3 = Administrator
-                 * 4 = Developer
-                 * 5+ = God himself
+                 * 1 = Advisor
+                 * 2 = Jr. Moderator
+                 * 3 = Moderator
+                 * 4 = Administrator
+                 * 5 = Bot Developer
+                 * 6+ = God himself
                  */
-                authlevel: authlevel,
+                authlvl: authlvl,
 
                 tags: {
-                    // Cannot be used in Direct Messages
+                    // Cannot be used in Direct Messages.
+                    // Mutually exclusive with authlvl -1.
                     NO_DM: false, 
         
                     // Can be used in server chat OR Direct Messages
@@ -68,16 +70,16 @@ module.exports = class Command {
                     // Can only be used in moderator-only channels. 
                     MOD_CHANNEL_ONLY: false, 
         
-                    // Normally, users with authlevel 1 and higher are exempt from the BOT_CHANNEL_ONLY tag.
-                    // Users with authlevel 4 are also exempt from the tags MOD_CHANNEL_ONLY, NO_DM, and DM_ONLY.
-                    // This tag makes it so all restrictions are applied, regardless of authlevel.
+                    // Normally, users with authlvl 2 and higher are exempt from the BOT_CHANNEL_ONLY tag.
+                    // Users with authlvl 5 are also exempt from the tags MOD_CHANNEL_ONLY, NO_DM, and DM_ONLY.
+                    // This tag makes it so all restrictions are applied, regardless of authlvl.
                     STRICT: false,
 
                     // Deletes the users message if any restriction results in the command not firing.
                     // Useful for reducing spam, or for commands that require particularly sensitive information as arguments.
                     DELETE_ON_MISUSE: false, 
         
-                    // Command is treated as non-existent to any user without the required authlevel.
+                    // Command is treated as non-existent to any user without the required authlvl.
                     // Mutually exclusive with STRICT
                     HIDDEN: false,
 
@@ -110,6 +112,10 @@ module.exports = class Command {
                 if(found === 0) {
                     throw new Error(`All given tags are invalid.`);
                 }
+
+                if(metadata.tags[`NO_DM`] && metadata.authlvl === -1) {
+                    throw new Error(`Command "${name}": Tag NO_DM and authlvl -1 are mutually exclusive.`);
+                }
     
                 if(metadata.tags[`NO_DM`] && metadata.tags[`DM_OPTIONAL`]) {
                     throw new Error(`Command "${name}": Tags NO_DM and DM_OPTIONAL are mutually exclusive.`);
@@ -131,7 +137,7 @@ module.exports = class Command {
                     throw new Error(`Command "${name}": Tags BOT_CHANNEL_ONLY and NO_DM are mutually exclusive.`);
                 }
             } else {
-                if(authlevel !== 4) metadata.authlevel = 4;
+                if(authlvl !== 5) metadata.authlvl = 5;
             }
 
             Object.defineProperty(this, 'metadata', {
@@ -160,7 +166,7 @@ module.exports = class Command {
         .setColor(this.bot.cfg.embed.default)
         .addField('Usage', `\`\`\`${this.metadata.usage}\`\`\``)
 
-        m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, this.bot))
+        m.channel.send({embed: embed}).then(bm => this.bot.util.responder(m.author.id, bm, this.bot))
     }
 
     exec(m, args, log, data) {

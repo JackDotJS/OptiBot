@@ -15,7 +15,7 @@ module.exports = (bot) => {
             embed: new djs.MessageEmbed()
             .setColor(bot.cfg.embed.default)
             .setTitle(`Welcome to the OptiFine Discord Moderation team!`)
-            .setDescription(`Our goal is simple: Provide the best possible experience for all members of our community. By joining our team, you can now further aid us in this endeavor! We're excited to have you here, and we hope to see how you perform in moderating soon.\n\nBefore diving in, please be sure to read these policies to completion at LEAST once. Keep in mind that these can, and *will* change. It's only natural that, as our server grows, we too should evolve to moderate it effectively as we move into the future. Finally, remember this: **Moderation is volunteer work.** It's a labor of love, and nothing more.`)
+            .setDescription(`Our goal is simple: Provide the best possible experience for all members of our community. By joining our team, you can now further aid us in this endeavor! We're excited to have you here, and we hope to see how you perform in moderating soon.\n\nAdditionally, you now have access to our moderator-only server. You can join via this link: https://discord.gg/MFM7qQ7\n\nBefore diving into moderation duties, please be sure to read these policies to completion at LEAST once. Keep in mind that these can, and *will* change. It's only natural that, as our server grows, we too should evolve to moderate it effectively as we move into the future. Finally, remember this: **Moderation is volunteer work.** It's a labor of love, and nothing more.`)
             .addField('Information for Jr. Moderators', `As a <@&644668061818945557>, you do not have complete access to all moderation tools during your evaluation period. For now, you are limited to OptiBot's built-in moderation utilities. You can find exactly which tools you have access to by using this command: \`${bot.prefix}list jrmod\``)
         },
         {
@@ -71,6 +71,18 @@ module.exports = (bot) => {
             .setColor(bot.cfg.embed.default)
             .setTitle(`Don't Overwhelm Yourself!`)
             .setDescription(`If you're the only moderator online and you have something important to do in real life, *please feel free to leave.* Once again, moderating is nothing more than a community service, and you are not obligated to sit here and oversee the chat 24 hours a day. While we appreciate the enthusiasm, please don't sacrifice your own well-being for the sake of our server!`)
+        },
+        {
+            type: 0,
+            title: 'Staff Assignments',
+            files: [new djs.MessageAttachment(bot.images.find('IMG_head_assign.png'), 'header.png')]
+        },
+        {
+            type: 1,
+            embed: new djs.MessageEmbed()
+            .setColor(bot.cfg.embed.default)
+            .setTitle(`<@663122057818537995>`)
+            .setDescription(`Administrators`)
         },
         {
             type: 0,
@@ -204,8 +216,8 @@ module.exports = (bot) => {
         },
         {
             type: 2,
-            title: `Member Roles`,
-            kw: ['roles', 'member roles', 'rank', 'texture artist', 'shader developer', 'mod developer'],
+            title: `Assigning Member Roles`,
+            kw: ['roles', 'assigning member roles', 'member roles', 'rank', 'texture artist', 'shader developer', 'mod developer'],
             embed: new djs.MessageEmbed()
             .setColor(bot.cfg.embed.default)
             .setTitle('Member Roles')
@@ -229,7 +241,7 @@ module.exports = (bot) => {
             embed: new djs.MessageEmbed()
             .setColor(bot.cfg.embed.default)
             .setTitle('Member Ban Appeals')
-            .setDescription(`Ban appeals can be done via this online form: https://forms.gle/kqMKzeBxzm29pWku8`)
+            .setDescription(`Ban appeals can be done via this online form: https://forms.gle/kqMKzeBxzm29pWku8\n\nOnce a ban appeal is recieved, it must be approved by no less than 4 different moderators. Ideally, votes should be given at least 2-3 days to be processed, given time zones and moderator activity. Once an appeal is approved, the user in question should be contacted as soon as possible. **Do not unban the user without doing the following:**`)
             .addField('Policy', `Any user may request to have their ban lifted, granted they have not violated the Discord Terms of Service, Discord Community Guidelines, or rule #9. If you've been privately contacted by a banned user, simply redirect them to the form linked above.`)
         },
         {

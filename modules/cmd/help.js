@@ -2,13 +2,13 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `Getting started with OptiBot.`,
-    authlevel: 0,
+    long_desc: `temp`,
+    usage: `[text:command name]`,
+    authlvl: 0,
     tags: ['DM_OPTIONAL', 'INSTANT'],
 
     run: (m, args, data) => {
@@ -22,14 +22,14 @@ module.exports = (bot, log) => { return new Command(bot, {
             .addField('Commands List', `\`\`\`${bot.prefix}list\`\`\``)
             .addField('Tidbits & Other Features', `\`\`\`${bot.prefix}tidbits\`\`\``)
 
-            m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot));
+            m.channel.send({ embed: embed }).then(bm => bot.util.responder(m.author.id, bm, bot));
         } else {
             bot.commands.find(args[0]).then((cmd) => {
-                if (!cmd || (cmd.metadata.tags['HIDDEN'] && data.authlvl < cmd.metadata.authlevel)) {
-                    erm(`The "${args[0]}" command does not exist.`, bot, {m:m})
+                if (!cmd || (cmd.metadata.tags['HIDDEN'] && data.authlvl < cmd.metadata.authlvl)) {
+                    bot.util.err(`The "${args[0]}" command does not exist.`, bot, {m:m})
                 } else
-                if (data.authlvl < cmd.metadata.authlevel) {
-                    erm(`You do not have permission to view the "${args[0]}" command.`, bot, {m:m})
+                if (data.authlvl < cmd.metadata.authlvl) {
+                    bot.util.err(`You do not have permission to view the "${args[0]}" command.`, bot, {m:m})
                 } else {
                     let md = cmd.metadata;
                     let files = [];
@@ -44,7 +44,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                         embed.addField('Alias(es)', `\`\`\`${bot.prefix}${md.aliases.join(`, ${bot.prefix}`)}\`\`\``)
                     }
 
-                    if (data.authlvl >= 4 && (bot.cfg.channels.mod.indexOf(m.channel.id) > -1 || bot.cfg.channels.mod.indexOf(m.channel.parentID) > -1)) {
+                    if (data.authlvl >= 5 && (bot.cfg.channels.mod.indexOf(m.channel.id) > -1 || bot.cfg.channels.mod.indexOf(m.channel.parentID) > -1)) {
                         let taglist = [];
 
                         Object.keys(md.tags).forEach((tag) => {
@@ -53,7 +53,7 @@ module.exports = (bot, log) => { return new Command(bot, {
 
                         if(taglist.length === 0) taglist = 'This command has no active flags.'
 
-                        embed.addField('(DEV) Permission Level', `\`\`\`javascript\n${md.authlevel}\`\`\``)
+                        embed.addField('(DEV) Permission Level', `\`\`\`javascript\n${md.authlvl}\`\`\``)
                         .addField('(DEV) Flags', `\`\`\`javascript\n${util.inspect(taglist)}\`\`\``)
                     }
 
@@ -91,32 +91,35 @@ module.exports = (bot, log) => { return new Command(bot, {
                         restrictions.push('<:locked:642112455333511178> Restrictions apply to ALL members, regardless of roles or permissions.');
                     } else
                     if(md.tags['BOT_CHANNEL_ONLY']) {
-                        restrictions.push(`<:unlocked:642112465240588338> Moderators exempt from some of these restrictions.`);
+                        restrictions.push(`<:unlocked:642112465240588338> Moderators exempt from some restrictions.`);
                     }
 
-                    if (md.authlevel === 0) {
-                        restrictions.push(`<:unlocked:642112465240588338> This command can be used by all members.`);
-                    }
-                    if (md.authlevel === 1) {
-                        restrictions.push('<:locked:642112455333511178> Jr. Moderators, Sr. Moderators, and Administrators only.');
+                    if (md.authlvl === 0) {
+                        restrictions.push(`<:unlocked:642112465240588338> Available to all server members.`);
                     } else
-                    if (md.authlevel === 2) {
-                        restrictions.push('<:locked:642112455333511178> Sr. Moderators and Administrators only.');
+                    if (md.authlvl === 1) {
+                        restrictions.push('<:locked:642112455333511178> Advisors, Jr. Moderators, and higher.');
                     } else
-                    if (md.authlevel === 3) {
+                    if (md.authlvl === 2) {
+                        restrictions.push('<:locked:642112455333511178> Jr. Moderators, Moderators, and higher.');
+                    } else
+                    if (md.authlvl === 3) {
+                        restrictions.push('<:locked:642112455333511178> Moderators and Administrators only.');
+                    } else
+                    if (md.authlvl === 4) {
                         restrictions.push('<:locked:642112455333511178> Administrators only.');
                     } else
-                    if (md.authlevel === 4) {
+                    if (md.authlvl === 5) {
                         restrictions.push('<:locked:642112455333511178> OptiBot developers only.');
                     }
 
                     if(md.tags['HIDDEN']) {
-                        restrictions.push(`<:warn:642112437218443297> This is a hidden command. OptiBot will act as if this command does not exist to any user who does not have permission.`);
+                        restrictions.push(`<:warn:642112437218443297> This is a hidden command. OptiBot will act as if this command does not exist to any user who does not have required permissions.`);
                     }
 
                     embed.addField('Restrictions', restrictions.join('\n'));
 
-                    m.channel.send({ embed: embed }).then(bm => msgFinalizer(m.author.id, bm, bot));
+                    m.channel.send({ embed: embed }).then(bm => bot.util.responder(m.author.id, bm, bot));
                 }
             });
         }

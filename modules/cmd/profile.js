@@ -3,64 +3,60 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const targetUser = require(path.resolve(`./modules/util/targetUser.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
-const unlockEgg = require(path.resolve(`./modules/util/unlockEgg.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['whois'],
     short_desc: `Displays detailed information about a specified user.`,
-    usage: `<discord user> ["raw"]`,
-    authlevel: 0,
+    usage: `<target:discord user> [opt:raw]`,
+    authlvl: -1,
     tags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY'],
 
     run: (m, args, data) => {
         if(!args[0]) {
             data.cmd.noArgs(m);
         } else {
-            targetUser(m, args[0], bot, data).then((result) => {
+            bot.util.target(m, args[0], bot, {type:0, member:data.member}).then((result) => {
                 log(util.inspect(result));
                 if(!result) {
-                    erm('You must specify a valid user @mention, ID, or target shortcut (^)', bot, {m:m});
+                    bot.util.err('You must specify a valid user @mention, ID, or target shortcut (^)', bot, {m:m});
                 } else 
                 if(result.type === 'notfound') {
-                    let embed = erm('Unable to find a user.', bot)
+                    let embed = bot.util.err('Unable to find a user.', bot)
                     .setDescription(`If that person is no longer in the server, and they have no OptiBot Profile, I can't get any information about them. Sorry!`)
         
-                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
+                    m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
                 } else 
                 if (result.type === 'id') {
                     bot.getProfile(result.target, false).then(profile => {
                         if(!profile) {
-                            let embed = erm('Unable to find a user.', bot)
+                            let embed = bot.util.err('Unable to find a user.', bot)
                             .setDescription(`If that person is no longer in the server, and they have no OptiBot Profile, I can't get any information about them. Sorry!`)
                 
-                            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot))
+                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
                         } else 
                         if(args[1] && args[1] === 'raw') {
-                            m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => msgFinalizer(m.author.id, bm, bot))
+                            m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => bot.util.responder(m.author.id, bm, bot))
                         } else {
-                            let ls = new Date(profile.data.lastSeen);
+                            let ls = new Date(profile.data.essential.lastSeen);
 
                             let embed = new djs.MessageEmbed()
                             .setAuthor(`That is...`, bot.icons.find('ICO_user'))
                             .setColor(bot.cfg.embed.default)
                             .setTitle(`${profile.userid}`)
-                            .setDescription(`Unfortunately, this user is no longer in the server. The following is leftover OptiBot Profile data, which will be deleted ${timeago.format(profile.data.lastSeen + (1000 * 60 * 60 * 24 * bot.cfg.profiles.expiration))}. (approximate)`)
+                            .setDescription(`Unfortunately, this user is no longer in the server. The following is leftover OptiBot Profile data, which will be deleted ${timeago.format(profile.data.essential.lastSeen + (1000 * 60 * 60 * 24 * bot.cfg.profiles.expiration))}. (approximate)`)
                             .addField('Last Seen Date', `${ls.getUTCDate()}/${ls.getUTCMonth()+1}/${ls.getUTCFullYear()}\n(DD/MM/YYYY)`)
 
-                            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot))
+                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
                         }
-                    }).catch(err => erm(err, bot, {m:m}));
+                    }).catch(err => bot.util.err(err, bot, {m:m}));
                 } else 
                 if(result.target.user.id === bot.user.id) {
                     unlockEgg(1, m, bot);
                 } else {
                     bot.getProfile(result.target.user.id, false).then(profile => {
                         if(args[1] && args[1] === 'raw') {
-                            m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => msgFinalizer(m.author.id, bm, bot))
+                            m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => bot.util.responder(m.author.id, bm, bot))
                         } else {
                             let mem = result.target;
                             let embed = new djs.MessageEmbed()
@@ -157,7 +153,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                                 }
                             }
             
-                            embed.setDescription(`${(profile && profile.data.quote) ? `> ***"${profile.data.quote}"***\n\n` : ''}${presence.join('\n')}`);
+                            embed.setDescription(`${(profile && profile.data.quote) ? `> ${profile.data.quote}\n\n` : ''}${presence.join('\n')}`);
             
                             let roles = [];
                             let rolec = [...mem.roles.cache.values()];
@@ -178,31 +174,41 @@ module.exports = (bot, log) => { return new Command(bot, {
                                 `User ID: \`\`\`yaml\n${mem.user.id}\`\`\``
                             ].join('\n');
             
-                            embed.addField('Identification', identity, true)
-                            .addField('Account Creation Date', `${mem.user.createdAt.toUTCString()}\n(${timeago.format(mem.user.createdAt)})`, true)
-            
-                            if(mem.joinedAt !== null) {
-                                embed.addField('Server Join Date', `${mem.joinedAt.toUTCString()}\n(${timeago.format(mem.joinedAt)})`)
-                            }
-            
+                            embed.addField('Identification', identity)
+
                             if(roles.length > 0) {
                                 embed.addField('Server Roles', roles.join(' '))
                             }
+
+                            embed.addField('Account Creation Date', `${mem.user.createdAt.toUTCString()}\n(${timeago.format(mem.user.createdAt)})`, true)
             
-                            if(profile) {
-                                let ls = new Date(profile.data.lastSeen);
-                                embed.addField('OptiBot Profile', 'This user has an OptiBot Profile, which contains the following data:')
-                                .addField('Last Seen Date', `${ls.getUTCDate()}/${ls.getUTCMonth()+1}/${ls.getUTCFullYear()}\n(DD/MM/YYYY)`)
-                            } else 
-                            if(!mem.user.bot) {
-                                embed.addField('OptiBot Profile', 'This user does not have an OptiBot Profile.')
+                            if(mem.joinedAt !== null) {
+                                embed.addField('Server Join Date', `${mem.joinedAt.toUTCString()}\n(${timeago.format(mem.joinedAt)})`, true)
                             }
             
-                            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot))
+                            if(profile) {
+                                let added = 0;
+
+                                if(profile.data.essential.mute) {
+                                    if(typeof profile.data.essential.mute.end === 'null') {
+                                        embed.addField(`Mute Expiration`, `Never. (Permanent Mute)`, true)
+                                        added++;
+                                    } else {
+                                        embed.addField(`Mute Expiration`, `${new Date(profile.data.essential.mute.end).toUTCString()}\n(${timeago.format(profile.data.essential.mute.end)})`, true)
+                                        added++;
+                                    }
+                                }
+
+                                if(added > 0) {
+                                    embed.setFooter(`This user has an OptiBot profile, which contains some additional custom data not normally provided by Discord.`)
+                                }
+                            }
+            
+                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
                         }
-                    }).catch(err => erm(err, bot, {m:m}));
+                    }).catch(err => bot.util.err(err, bot, {m:m}));
                 }
-            }).catch(err => erm(err, bot, {m:m}));
+            }).catch(err => bot.util.err(err, bot, {m:m}));
         }
     }
 })}

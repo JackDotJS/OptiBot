@@ -2,7 +2,6 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const cid = require('caller-id');
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 /**
  * Creates a simple, pre-formatted error message.
@@ -35,7 +34,7 @@ module.exports = (err, bot, data = {}) => {
 
     if(data.m) {
         data.m.channel.send({embed: embed}).then(bm => {
-            msgFinalizer(data.m.author.id, bm, bot)
+            bot.util.responder(data.m.author.id, bm, bot)
         }).catch(e => log(e.stack, 'error'));
     } else {
         return embed;

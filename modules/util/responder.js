@@ -2,7 +2,7 @@
  * Performs various actions after sending a message.
  * This should ONLY be used in the `then()` function of a `channel.send()` promise.
  * 
- * @param author The original input message.
+ * @param author The original message author ID.
  * @param m The message that OptiBot has just sent.
  * @param bot OptiBot
  */
@@ -38,19 +38,24 @@ module.exports = (author, m, bot) => {
                                 if (err) {
                                     log(err.stack, 'error');
                                 } else {
-                                    bot.guilds.cache.get(docs[0].guild).channels.cache.get(docs[0].channel).messages.fetch(docs[0].message).then((msg) => {
-                                        let reaction = msg.reactions.cache.get('click_to_delete:'+bot.cfg.emoji.deleter);
-
-                                        if(reaction && reaction.me) {
-                                            reaction.remove().then(() => {
-                                                log('Time expired for message deletion.', 'trace');
-                                            }).catch(err => {
-                                                log(err.stack, 'error');
-                                            })
-                                        }
-                                    }).catch(err => {
+                                    try {
+                                        bot.guilds.cache.get(docs[0].guild).channels.cache.get(docs[0].channel).messages.fetch(docs[0].message).then((msg) => {
+                                            let reaction = msg.reactions.cache.get('click_to_delete:'+bot.cfg.emoji.deleter);
+    
+                                            if(reaction && reaction.me) {
+                                                reaction.remove().then(() => {
+                                                    log('Time expired for message deletion.', 'trace');
+                                                }).catch(err => {
+                                                    log(err.stack, 'error');
+                                                })
+                                            }
+                                        }).catch(err => {
+                                            log(err.stack, 'error');
+                                        });
+                                    }
+                                    catch(err) {
                                         log(err.stack, 'error');
-                                    });
+                                    }
                                 }
                             });
                         }

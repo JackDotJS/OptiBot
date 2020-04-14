@@ -4,13 +4,13 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
-    authlevel: 3,
-    tags: ['DM_OPTIONAL'],
+    short_desc: `Force update <#659313542540951552> channel.`,
+    long_desc: `Forcefully updates the <#659313542540951552> channel.`,
+    authlvl: 4,
+    tags: ['NO_DM', 'LITE'],
 
     run: (m, args, data) => {
         let md = fs.statSync(path.resolve(`./modules/util/policies.js`))
@@ -32,6 +32,8 @@ module.exports = (bot, log) => { return new Command(bot, {
 
         // todo: add confirmation stuff
 
+        //bot.util.confirm()
+
         let embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
         .setAuthor('Reloading moderation policies...', bot.icons.find('ICO_load'))
@@ -43,7 +45,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                 log(err.stack, 'error');
                 planBthisfucker(msg);
             });
-        }).catch((err) => erm(err, bot));
+        }).catch((err) => bot.util.err(err, bot));
 
         function planBthisfucker(msg) {
             /**
@@ -72,9 +74,9 @@ module.exports = (bot, log) => { return new Command(bot, {
                             im++;
                             delmsg();
                         }
-                    }).catch((err) => erm(err, bot, {m:m}));
+                    }).catch((err) => bot.util.err(err, bot, {m:m}));
                 })();
-            }).catch((err) => erm(err, bot, {m:m}));
+            }).catch((err) => bot.util.err(err, bot, {m:m}));
         }
 
         function finallyPostShit(msg) {
@@ -99,13 +101,13 @@ module.exports = (bot, log) => { return new Command(bot, {
                             .setColor(bot.cfg.embed.okay)
                             .setAuthor(`Policies successfully updated in ${((new Date().getTime() - timeStart) / 1000).toFixed(2)} seconds.`, bot.icons.find('ICO_okay'))
 
-                            msg.edit({embed: embed}).then((msg) => msgFinalizer(m.author.id, msg, bot)).catch((err) => erm(err, bot, {m:m}));
-                        }).catch((err) => erm(err, bot, {m:m}));
+                            msg.edit({embed: embed}).then((msg) => bot.util.responder(m.author.id, msg, bot)).catch((err) => bot.util.err(err, bot, {m:m}));
+                        }).catch((err) => bot.util.err(err, bot, {m:m}));
                     } else {
                         i++;
                         postPol();
                     }
-                }).catch((err) => erm(err, bot, {m:m}));
+                }).catch((err) => bot.util.err(err, bot, {m:m}));
             })();
         }
     }

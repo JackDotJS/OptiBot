@@ -2,14 +2,12 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['latency'],
     short_desc: `Measure bot latency and response lag.`,
-    authlevel: 1,
+    authlvl: 1,
     tags: ['DM_OPTIONAL', 'INSTANT'],
 
     run: (m, args, data) => {
@@ -63,9 +61,9 @@ module.exports = (bot, log) => { return new Command(bot, {
                 embed.author.name = `Pong!`
                 embed.description = desc.join('\n');
                 msg.edit('_ _', {embed:embed}).then(() => {
-                    msgFinalizer(m.author.id, msg, bot);
+                    bot.util.responder(m.author.id, msg, bot);
                 }).catch(err => {
-                    erm(err, bot, {m: m});
+                    bot.util.err(err, bot, {m: m});
                 });
             }, 1000);
         });

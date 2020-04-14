@@ -5,62 +5,57 @@ const Command = require(path.resolve(`./modules/core/command.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
-    short_desc: `Warn a user.`,
-    long_desc: `Gives a warning to a user. All warnings are saved to the users record, but otherwise do nothing.`,
-    usage: `<target:member> [text:reason]`,
+    aliases: ['addrecord', 'addrecords'],
+    short_desc: `Add a note to someone's record.`,
+    long_desc: `Adds a note to someone's record. These notes can be edited with the \`${bot.prefix}editrecord\` command, and removed at any time by using the \`${bot.prefix}rmnote\` command.`,
+    usage: `<target:member> <text:note>`,
     authlvl: 2,
-    tags: ['NO_DM', 'STRICT', 'LITE'],
+    tags: ['NO_DM', 'STRICT', 'INSTANT'],
 
     run: (m, args, data) => {
-        if(!args[0]) {
+        if(!args[1]) {
             data.cmd.noArgs(m);
         } else {
+            let now = new Date().getTime();
             bot.util.target(m, args[0], bot, {type: 0, member:data.member}).then((result) => {
                 if (!result) {
                     bot.util.err('You must specify a valid user.', bot, {m:m})
                 } else
-                if (result.type === 'notfound' || result.type === 'id') {
+                if (result.type === 'notfound') {
                     bot.util.err('Unable to find a user.', bot, {m:m})
                 } else
-                if (result.target.user.id === m.author.id) {
+                if (result.target.user.id === m.author.id || result.target.user.id === bot.user.id) {
                     bot.util.err('Nice try.', bot, {m:m})
                 } else
-                if (result.target.user.id === bot.user.id) {
-                    bot.util.err(':(', bot, {m:m})
-                } else 
                 if (bot.getAuthlvl(result.target) > data.authlvl) {
-                    bot.util.err(`That user is too powerful to be warned.`, bot, {m:m})
+                    bot.util.err(`You are not strong enough to add notes to this user.`, bot, {m:m})
                 } else {
                     bot.getProfile(result.target.user.id, true).then(profile => {
                         if(!profile.data.essential.record) profile.data.essential.record = [];
-                        let reason = m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length )
+                        let reason = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} `.length )
 
                         let entry = new bot.util.RecordEntry()
                         .setMod(m.author.id)
                         .setURL(m.url)
-                        .setAction('warn')
+                        .setAction('note')
                         .setActionType('add')
-                        .setReason((args[1]) ? reason : `No reason provided.`)
+                        .setReason(reason)
 
                         profile.data.essential.record.push(entry.data);
 
                         bot.updateProfile(result.target.user.id, profile).then(() => {
                             let embed = new djs.MessageEmbed()
-                            .setAuthor(`User warned`, bot.icons.find('ICO_warn'))
-                            .setColor(bot.cfg.embed.default)
-                            .setDescription(`${result.target} has been warned.`)
+                            .setAuthor(`Note added.`, bot.icons.find('ICO_okay'))
+                            .setColor(bot.cfg.embed.okay)
+                            .setDescription(`${result.target}'s record has been updated.`)
 
-                            if(args[1]) {
-                                embed.addField('Reason', reason)
-                            } else {
-                                embed.addField(`Reason`, `No reason provided. \n(Please use the \`${bot.prefix}addnote\` command.)`)
-                            }
+                            if(args[1]) embed.addField('Note details', reason)
 
-                            m.channel.send({embed: embed}).then(bm => bot.util.msgFinalizer(m.author.id, bm, bot));
+                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
                         }).catch(err => bot.util.err(err, bot, {m:m}));
                     }).catch(err => bot.util.err(err, bot, {m:m}));
                 }
             }).catch(err => bot.util.err(err, bot, {m:m}));
-        }
+        } 
     }
 })}

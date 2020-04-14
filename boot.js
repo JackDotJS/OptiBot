@@ -284,7 +284,7 @@ function init() {
     env.log.filename = new Date().toUTCString().replace(/[/\\?%*:|"<>]/g, `.`)
     env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);
 
-    log('spawning child process (index.js)');
+    log('spawning child process');
     const bot = child.spawn('node', ['index.js', env.dev], {
         stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     });

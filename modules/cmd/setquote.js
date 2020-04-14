@@ -1,37 +1,42 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `Update or add a quote to your profile.`,
-    usage: `<text>`,
-    authlevel: 0,
+    usage: `<text:quote>`,
+    authlvl: 0,
     tags: ['DM_OPTIONAL', 'INSTANT'],
 
     run: (m, args, data) => {
         if(!args[0]) {
             data.cmd.noArgs(m);
         } else 
-        if(m.content.substring(`${bot.prefix}${path.parse(__filename).name} `.length).length > 256) {
-            erm('Message cannot exceed 256 characters in length.', bot, {m:m})
+        if(m.content.substring(`${bot.prefix}${data.input.cmd} `.length).length > 256) {
+            bot.util.err('Message cannot exceed 256 characters in length.', bot, {m:m})
         } else {
             bot.getProfile(m.author.id, true).then(profile => {
-                profile.data.quote = m.content.substring(`${bot.prefix}${path.parse(__filename).name} `.length);
+                let lines = m.content.substring(`${bot.prefix}${data.input.cmd} `.length).replace(/\>/g, '\\>').split('\n');
+                let quote = [];
+                
+                for(let line of lines) {
+                    quote.push(line.trim());
+                }
+
+                profile.data.quote = quote.join(' ');
 
                 bot.updateProfile(m.author.id, profile).then(() => {
                     let embed = new djs.MessageEmbed()
                     .setAuthor(`Your profile has been updated`, bot.icons.find('ICO_okay'))
                     .setColor(bot.cfg.embed.okay);
 
-                    m.channel.send({embed: embed}).then(msg => { msgFinalizer(m.author.id, msg, bot); });
+                    m.channel.send({embed: embed}).then(msg => { bot.util.responder(m.author.id, msg, bot); });
                 }).catch(err => {
-                    erm(err, bot, {m:m})
+                    bot.util.err(err, bot, {m:m})
                 });
             }).catch(err => {
-                erm(err, bot, {m:m})
+                bot.util.err(err, bot, {m:m})
             });
         }
     }

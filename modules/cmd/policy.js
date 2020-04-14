@@ -3,15 +3,13 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const sim = require('string-similarity');
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['policies', 'policys'],
     short_desc: `Search Moderator policies.`,
-    usage: `<~query>`,
-    authlevel: 1,
+    usage: `<~text:query>`,
+    authlvl: 1,
     tags: ['DM_OPTIONAL'],
 
     run: (m, args, data) => {
@@ -38,12 +36,12 @@ module.exports = (bot, log) => { return new Command(bot, {
                     let embed = policies.index[i].embed
                     .setAuthor('OptiFine Discord Moderation Policies', bot.icons.find('ICO_docs'))
                     .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
-                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
+                    m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
                     break;
                 }
 
                 if(i+1 === policies.index.length) {
-                    erm(new Error('Unable to find a policy.'), bot, {m:m});
+                    bot.util.err(new Error('Unable to find a policy.'), bot, {m:m});
                 }
             }
         }

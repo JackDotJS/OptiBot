@@ -3,32 +3,32 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const sim = require('string-similarity');
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const targetUser = require(path.resolve(`./modules/util/targetUser.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['rank'],
     short_desc: `Add or remove member roles.`,
     long_desc: `Adds or removes roles for the specified member.`,
-    usage: `<discord user> <role?>`,
-    authlevel: 1,
+    usage: `<target:member> <~text:role>`,
+    authlvl: 2,
     tags: ['NO_DM', 'LITE'],
 
     run: (m, args, data) => {
         if(!args[0]) {
             data.cmd.noArgs(m);
         } else {
-            targetUser(m, args[0], bot, data).then((result) => {
+            bot.util.target(m, args[0], bot, {type: 0, member:data.member}).then((result) => {
                 if (!result) {
-                    erm('You must specify a valid user.', bot, {m:m})
+                    bot.util.err('You must specify a valid user.', bot, {m:m})
                 } else
                 if (result.type === 'notfound' || result.type === 'id') {
-                    erm('Unable to find a user.', bot, {m:m})
+                    bot.util.err('Unable to find a user.', bot, {m:m})
                 } else
                 if (result.target.user.id === m.author.id || result.target.user.id === bot.user.id) {
-                    erm('Nice try.', bot, {m:m})
+                    bot.util.err('Nice try.', bot, {m:m})
+                } else 
+                if (bot.getAuthlvl(result.target) > data.authlvl) {
+                    bot.util.err(`You aren't powerful enough to update this user's roles.`, bot, {m:m})
                 } else {
                     let roles = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).roles.cache.filter(role => bot.cfg.roles.grantable.indexOf(role.id) > -1).values()];
                     let match = {
@@ -47,7 +47,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                     log(match);
 
                     if (match.rating < 0.2) {
-                        erm('What kind of role is that?', bot, {m:m})
+                        bot.util.err('What kind of role is that?', bot, {m:m})
                     } else
                     if (!result.target.roles.cache.has(match.role.id)) {
                         result.target.roles.add(match.role.id, `Role granted by ${m.author.tag}`).then(() => {
@@ -56,8 +56,8 @@ module.exports = (bot, log) => { return new Command(bot, {
                             .setAuthor(`Role added`, bot.icons.find('ICO_okay'))
                             .setDescription(`${result.target} has been given the ${match.role} role.`)
 
-                            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot))
-                        }).catch(err => erm(err, bot, {m:m}));
+                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
+                        }).catch(err => bot.util.err(err, bot, {m:m}));
                     } else {
                         result.target.roles.remove(match.role.id, `Role removed by ${m.author.tag}`).then(() => {
                             let embed = new djs.MessageEmbed()
@@ -65,11 +65,11 @@ module.exports = (bot, log) => { return new Command(bot, {
                             .setAuthor(`Role removed`, bot.icons.find('ICO_okay'))
                             .setDescription(`${result.target} no longer has the ${match.role} role.`)
 
-                            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot))
-                        }).catch(err => erm(err, bot, {m:m}));
+                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
+                        }).catch(err => bot.util.err(err, bot, {m:m}));
                     }
                 }
-            }).catch(err => erm(err, bot, {m:m}));
+            }).catch(err => bot.util.err(err, bot, {m:m}));
         }
     }
 })}

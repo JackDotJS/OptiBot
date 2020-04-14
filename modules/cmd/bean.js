@@ -1,17 +1,14 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const targetUser = require(path.resolve(`./modules/util/targetUser.js`))
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['ban'],
     short_desc: `Get beaned.`,
     long_desc: `Beans a user. This is a very serious command and has very serious consequences if used incorrectly. **You have been warned.**`,
-    usage: `[discord user]`,
-    authlevel: 1,
+    usage: `[target:discord user]`,
+    authlvl: 1,
     tags: ['DM_OPTIONAL', 'INSTANT'],
 
     run: (m, args, data) => {
@@ -32,14 +29,14 @@ module.exports = (bot, log) => { return new Command(bot, {
             ]
             embed.setDescription(msgs[Math.floor(Math.random() * msgs.length)])
 
-            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
+            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
         } else {
             let target = args[0];
             let reason = (args[1]) ? m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length ) : null;
             let botTarget = false;
             let selfTarget = false;
 
-            targetUser(m, target, bot, data).then((result) => {
+            bot.util.target(m, target, bot, {type: 0, member: data.member}).then((result) => {
                 if(result && result.type === 'user') {
                     target = result.target.toString();
 
@@ -60,7 +57,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                         embed.addField('Reason', reason);
                     }
 
-                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
+                    m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
                 }
             });
         }

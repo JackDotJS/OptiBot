@@ -1,13 +1,12 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `Restart OptiBot.`,
-    authlevel: 2,
-    tags: ['NO_DM', 'INSTANT'],
+    authlvl: 3,
+    tags: ['NO_DM', 'INSTANT', 'LITE'],
     
     run: (m, args, data) => {
         let embed = new djs.MessageEmbed()

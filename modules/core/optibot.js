@@ -1,8 +1,10 @@
 const fs = require(`fs`);
 const util = require(`util`);
+
 const djs = require(`discord.js`);
 const path = require(`path`);
 const database = require('nedb');
+
 const Command = require(path.resolve(`./modules/core/command.js`));
 
 module.exports = class OptiBot extends djs.Client {
@@ -12,7 +14,7 @@ module.exports = class OptiBot extends djs.Client {
         const keys = require(path.resolve('./cfg/keys.json'));
         const cfg = require(path.resolve('./cfg/config.json'));
         const version = require(path.resolve('./package.json')).version;
-        const prefix = (debug) ? cfg.prefixes.debug : cfg.prefixes.default;
+        const prefix = (debug) ? cfg.prefixes.debug[0] : cfg.prefixes.default[0]; // first in array is always default, but all others will be accepted during real usage.
         const splashtext = require(path.resolve('./cfg/splash.json'));
 
         const memory = {
@@ -121,6 +123,7 @@ module.exports = class OptiBot extends djs.Client {
                 }
             }
         };
+        const util = {}
 
         Object.defineProperty(this, 'memory', {
             get: function() {
@@ -205,6 +208,15 @@ module.exports = class OptiBot extends djs.Client {
                 return log;
             },
         });
+
+        Object.defineProperty(this, 'util', {
+            get: function() {
+                return util;
+            },
+            set: function(value) {
+                util = value;
+            }
+        });
     }
 
     exit(code = 0) {
@@ -284,7 +296,7 @@ module.exports = class OptiBot extends djs.Client {
          * 2 = only images
          */
 
-        let bot = this;
+        const bot = this;
         const log = this.log;
         let timeStart = new Date().getTime();
         return new Promise((success, failure) => {
@@ -364,22 +376,30 @@ module.exports = class OptiBot extends djs.Client {
                 if(bot.commands.index.length > 0) {
                     bot.commands.index = [];
                     clrcache = true;
-                    
-                    stages.push({
-                        name: 'Utility Cache Removal',
-                        load: new Promise((resolve, reject) => {
-                            let utils = fs.readdirSync(path.resolve(`./modules/util`));
-    
-                            for(let file of utils) {
-                                if(file.endsWith('.js')) {
+                }
+
+                stages.push({
+                    name: 'Utility Loader',
+                    load: new Promise((resolve, reject) => {
+                        let utils = fs.readdirSync(path.resolve(`./modules/util`));
+
+                        for(let file of utils) {
+                            if(file.endsWith('.js')) {
+                                if(clrcache) {
                                     log(`cache delete: ${require.resolve(path.resolve(`./modules/util/${file}`))}`)
                                     delete require.cache[require.resolve(path.resolve(`./modules/util/${file}`))];
                                 }
+
+                                let newUtil = require(path.resolve(`./modules/util/${file}`));
+                                let name = file.substring(0, file.lastIndexOf('.'));
+
+                                log(name)
+                                bot.util[name] = newUtil;
                             }
-                            resolve();
-                        })
-                    });
-                }
+                        }
+                        resolve();
+                    })
+                });
 
                 stages.push({
                     name: 'Command Loader',
@@ -390,6 +410,9 @@ module.exports = class OptiBot extends djs.Client {
                         let i1 = 0;
                         (function loadCmd() {
                             let cmd = commands[i1];
+                            if(i1+1 > commands.length) {
+                                resolve();
+                            } else 
                             if(cmd.endsWith('.js')) {
                                 if(clrcache) {
                                     log(`cache delete: ${require.resolve(path.resolve(`./modules/cmd/${cmd}`))}`)
@@ -477,12 +500,8 @@ module.exports = class OptiBot extends djs.Client {
                                                 aliases: newcmd.metadata.aliases
                                             });
     
-                                            if(i1+1 === commands.length) {
-                                                resolve();
-                                            } else {
-                                                i1++;
-                                                loadCmd();
-                                            }
+                                            i1++;
+                                            loadCmd();
                                         }).catch(err => {
                                             log(err.stack, 'error');
                                             i1++;
@@ -580,16 +599,16 @@ module.exports = class OptiBot extends djs.Client {
                                 resolve()
                             } else {
                                 for(let i in docs) {
-                                    if(docs[i].data.mute.cur_end !== null) {
-                                        let exp = new Date(docs[i].data.mute.cur_end);
+                                    if(docs[i].data.mute.end !== null) {
+                                        let exp = new Date(docs[i].data.mute.end);
                                         let now = new Date();
 
                                         if(exp.getUTCDay() <= now.getUTCDay()){
                                             if(exp.getUTCMonth() <= now.getUTCMonth()){
                                                 if(exp.getUTCFullYear() <= now.getUTCFullYear()){
                                                     bot.memory.mutes.push({
-                                                        userid: docs[i].userid,
-                                                        time: docs[i].data.mute.cur_end
+                                                        userid: docs[i].id,
+                                                        time: docs[i].data.mute.end
                                                     });
                                                 }
                                             }
@@ -643,7 +662,7 @@ module.exports = class OptiBot extends djs.Client {
     getProfile(id, create) {
         return new Promise((resolve, reject) => {
             this.log('get profile: '+id);
-            this.db.profiles.find({ userid: id, format: 2 }, (err, docs) => {
+            this.db.profiles.find({ id: id, format: 3 }, (err, docs) => {
                 if(err) {
                     reject(err);
                 } else
@@ -653,20 +672,26 @@ module.exports = class OptiBot extends djs.Client {
                 } else
                 if(create) {
                     let profile = {
-                        userid: id,
-                        format: 2,
+                        id: id,
+                        format: 3,
                         data: {
-                            lastSeen: new Date().getTime()
+                            essential: {
+                                lastSeen: new Date().getTime()
+                            }
                         }
                     }
 
-                    this.db.profiles.insert(profile, (err) => {
+                    resolve(profile);
+
+                    // adding this to the database now really isn't necessary since it's generally expected that the profile will be immediately updated with new data right after creating it.
+
+                    /* this.db.profiles.insert(profile, (err) => {
                         if (err) {
                             reject(err);
                         } else {
                             resolve(profile);
                         }
-                    });
+                    }); */
                 } else {
                     resolve();
                 }
@@ -676,7 +701,7 @@ module.exports = class OptiBot extends djs.Client {
 
     updateProfile(id, data) {
         return new Promise((resolve, reject) => {
-            this.db.profiles.update({ userid: id, format: 2 }, data, (err) => {
+            this.db.profiles.update({ id: id, format: 3 }, data, { upsert: true }, (err) => {
                 if(err) {
                     reject(err);
                 } else {
@@ -689,10 +714,60 @@ module.exports = class OptiBot extends djs.Client {
     parseInput(text) {
         if(typeof text !== 'string') text = new String(text);
         let input = text.trim().split("\n", 1)[0]; // first line of the message
+        let prefixes = `\\${this.prefix}`;
+
+        if(this.debug) {
+            if(this.cfg.prefixes.debug.length > 1) {
+                prefixes = `\\${this.cfg.prefixes.debug.join('|\\')}`;
+            }
+        } else {
+            if(this.cfg.prefixes.default.length > 1) {
+                prefixes = `\\${this.cfg.prefixes.default.join('|\\')}`;
+            }
+        }
+
         return {
-            valid: input.match(new RegExp(`^\\${this.prefix}(?![^a-zA-Z0-9])[a-zA-Z0-9]+(?=\\s|$)`)), // checks if the input starts with the command prefix, immediately followed by valid characters.
+            valid: input.match(new RegExp(`^(${prefixes})(?![^a-zA-Z0-9])[a-zA-Z0-9]+(?=\\s|$)`)), // checks if the input starts with the command prefix, immediately followed by valid characters.
             cmd: input.toLowerCase().split(" ")[0].substr(1),
             args: input.split(" ").slice(1).filter(function (e) { return e.length != 0 })
+        }
+    }
+
+    getAuthlvl(member) {
+        /**
+         * Authorization Level
+         * 
+         * -1 = Muted Member (DM ONLY)
+         * 0 = Normal Member
+         * 1 = Advisor
+         * 2 = Jr. Moderator
+         * 3 = Moderator
+         * 4 = Administrator
+         * 5 = Bot Developer
+         * 6+ = God himself
+         */
+
+        if(typeof member !== 'object') return;
+        
+        if(this.cfg.superusers.indexOf(member.user.id) > -1) {
+            return 5;
+        } else
+        if(member.permissions.has('ADMINISTRATOR')) {
+            return 4;
+        } else 
+        if(member.roles.cache.has(this.cfg.roles.moderator)) {
+            return 3;
+        } else
+        if(member.roles.cache.has(this.cfg.roles.jrmod)) {
+            return 2;
+        } else
+        if(member.roles.cache.has(this.cfg.roles.advisor)) {
+            return 1;
+        } else 
+        if(member.roles.cache.has(this.cfg.roles.muted)) {
+            return -1;
+        } else {
+            return 0;
         }
     }
 }

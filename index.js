@@ -12,8 +12,6 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const msgFinalizer = require(`./modules/util/msgFinalizer.js`)
-const erm = require(`./modules/util/simpleError.js`);
 const OptiBot = require(`./modules/core/optibot.js`);
 
 const log = (message, level, file, line) => {
@@ -163,37 +161,15 @@ bot.on('message', (m) => {
 
         bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({ user: m.author.id, cache: true }).then(member => {
 
-            /**
-             * Authorization Level
-             * 
-             * 0 = Normal Member
-             * 1 = Junior Moderator
-             * 2 = Senior Moderator
-             * 3 = Administrator
-             * 4 = Developer
-             */
-            let authlvl = 0;
-            
-            if(bot.cfg.superusers.indexOf(m.author.id) > -1) {
-                authlvl = 4;
-            } else
-            if(member.permissions.has('ADMINISTRATOR')) {
-                authlvl = 3;
-            } else 
-            if(member.roles.cache.has(bot.cfg.roles.moderator)) {
-                authlvl = 2;
-            } else
-            if(member.roles.cache.has(bot.cfg.roles.jrmod)) {
-                authlvl = 1;
-            }
+            authlvl = bot.getAuthlvl(member);
 
-            if(authlvl < 4) return; // REMOVE ON PUBLIC RELEASE
+            if(authlvl < 4) return; // TODO: REMOVE ON PUBLIC RELEASE
 
             bot.commands.find(input.cmd).then(cmd => {
                 let unknownCMD = () => {
                     let ratings = [];
                                 
-                    bot.commands.index.filter((thisCmd) => thisCmd.metadata.authlevel <= authlvl && !thisCmd.metadata.tags['HIDDEN'])
+                    bot.commands.index.filter((thisCmd) => thisCmd.metadata.authlvl <= authlvl && !thisCmd.metadata.tags['HIDDEN'])
                     .forEach((thisCmd) => {
                         let rating = {
                             command: thisCmd.metadata.name,
@@ -241,7 +217,7 @@ bot.on('message', (m) => {
                         embed.setDescription(`Type \`${bot.prefix}list\` for a list of commands.`);
                     }
 
-                    m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
+                    m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
                 }
 
                 let checkMisuse = (msg) => {
@@ -263,7 +239,7 @@ bot.on('message', (m) => {
                         if(cmd.metadata.tags['DELETE_ON_MISUSE']) {
                             msg.delete(10000);
                         } else {
-                            msgFinalizer(m.author.id, bm, bot)
+                            bot.util.responder(m.author.id, bm, bot)
                         }
                     });
                 }
@@ -275,23 +251,23 @@ bot.on('message', (m) => {
                 if(!cmd) {
                     unknownCMD();
                 } else
-                if(authlvl < cmd.metadata.authlevel) {
+                if(authlvl < cmd.metadata.authlvl) {
                     if(cmd.metadata.tags['HIDDEN']) {
                         unknownCMD();
                     } else {
                         checkMisuse('You do not have permission to use this command.');
                     }
                 } else 
-                if(cmd.metadata.tags['NO_DM'] && m.channel.type === 'dm' && (authlvl < 4 || cmd.metadata.tags['STRICT'])) {
+                if(cmd.metadata.tags['NO_DM'] && m.channel.type === 'dm' && (authlvl < 5 || cmd.metadata.tags['STRICT'])) {
                     checkMisuse('This command cannot be used in DMs.');
                 } else
-                if(cmd.metadata.tags['DM_ONLY'] && m.channel.type !== 'dm' && (authlvl < 4 || cmd.metadata.tags['STRICT'])) {
+                if(cmd.metadata.tags['DM_ONLY'] && m.channel.type !== 'dm' && (authlvl < 5 || cmd.metadata.tags['STRICT'])) {
                     checkMisuse('This command can only be used in DMs.');
                 } else
                 if(cmd.metadata.tags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.bot.indexOf(m.channel.id) === -1 && bot.cfg.channels.bot.indexOf(m.channel.parentID) === -1) && (authlvl === 0 || cmd.metadata.tags['STRICT'])) {
                     checkMisuse('This command can only be used in DMs OR the #optibot channel.');
                 } else
-                if(cmd.metadata.tags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1) && (authlvl < 4 || cmd.metadata.tags['STRICT'])) {
+                if(cmd.metadata.tags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1) && (authlvl < 5 || cmd.metadata.tags['STRICT'])) {
                     checkMisuse('This command can only be used in moderator-only channels.');
                 } else {
                     if(!cmd.metadata.tags['INSTANT']) m.channel.startTyping();
@@ -301,7 +277,7 @@ bot.on('message', (m) => {
                         }
                         catch (err) {
                             if(!cmd.metadata.tags['INSTANT']) m.channel.stopTyping()
-                            erm(err, bot, {m: m})
+                            bot.util.err(err, bot, {m: m})
                         }
                     }, (cmd.metadata.tags['INSTANT']) ? 10 : Math.round(bot.ws.ping)+250)
                 }
@@ -311,7 +287,7 @@ bot.on('message', (m) => {
             })
         }).catch(err => {
             if (err.code === 10007) {
-                erm('Sorry, you must be a member of the OptiFine Discord server to use this bot.', bot, {m: m});
+                bot.util.err('Sorry, you must be a member of the OptiFine Discord server to use this bot.', bot, {m: m});
             } else {
                 throw (err);
             }
@@ -406,7 +382,7 @@ bot.on('message', (m) => {
                                 embed.setImage(image);
                             }
     
-                            m.channel.send({embed: embed}).then(bm => msgFinalizer(m.author.id, bm, bot));
+                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
                         }).catch(err => {
                             if(err.stack.toLowerCase().indexOf('unknown message') === -1) {
                                 log(err.stack, 'error');
@@ -794,34 +770,60 @@ bot.on('guildMemberAdd', member => {
     let count = bot.guilds.cache.get(bot.cfg.guilds.optifine).memberCount;
     if (member.guild.id !== bot.cfg.guilds.optifine) return;
 
-    let embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.okay)
-    .setAuthor('New Member', bot.icons.find('ICO_join'))
-    .setDescription(`${member} | ${member.user.tag} \n\`\`\`yaml\n${member.user.id}\`\`\``)
-    .setThumbnail(member.user.displayAvatarURL)
-    .addField('Account Creation Date', `${member.user.createdAt.toUTCString()} (${timeago.format(member.user.createdAt)})`)
-    .addField('New Member Count', count.toLocaleString())
-    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-    .setTimestamp(timeNow)
-
-    if((member.user.createdAt.getTime() + (1000 * 60 * 60 * 24 * 7)) > timeNow.getTime()) {
-        embed.setTitle('Warning: New Discord Account')
-    }
-
-    bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed}).then(() => {
-        if(count % 1000 === 0) {
-            let embed = new djs.MessageEmbed()
-            .setColor(bot.cfg.embed.okay)
-            .setAuthor('Milestone Achieved', bot.icons.find('ICO_star'))
-            .setTitle(`This server has reached ${count.toLocaleString()} members!`)
-            .setDescription(`User ${member} (${member.user.tag}) was our ${count.toLocaleString()}th member.`)
-            .setThumbnail(member.user.displayAvatarURL)
-            .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-            .setTimestamp(timeNow)
-    
-            bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+    // DO NOT SET THIS TO TRUE UNDER ANY CIRCUMSTANCES
+    bot.getProfile(member.user.id, false).then(profile => {
+        if(profile && profile.data.essential.mute && (profile.data.essential.mute.end-10000 > new Date().getTime())) {
+            member.roles.add(bot.cfg.roles.muted, 'Member attempted to circumvent mute.').then(() => {
+                bot.memory.mutes.push({
+                    userid: member.user.id,
+                    time: profile.data.essential.mute.end
+                });
+                logEvent(true);
+            }).catch(err => {
+                bot.util.err(err, bot);
+                logEvent();
+            });
         }
+    }).catch(err => {
+        bot.util.err(err, bot);
+        logEvent();
     });
+
+    function logEvent(muted) {
+        let embed = new djs.MessageEmbed()
+        .setColor(bot.cfg.embed.okay)
+        .setAuthor('New Member', bot.icons.find('ICO_join'))
+        .setDescription(`${member} | ${member.user.tag} \n\`\`\`yaml\n${member.user.id}\`\`\``)
+        .setThumbnail(member.user.displayAvatarURL)
+
+        if(muted) {
+            embed.addField('Mute Dodger', `This user attempted to circumvent an on-going mute. The role has been automatically re-applied.`)
+        }
+
+        embed.addField('Account Creation Date', `${member.user.createdAt.toUTCString()} (${timeago.format(member.user.createdAt)})`)
+        .addField('New Member Count', count.toLocaleString())
+        .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+        .setTimestamp(timeNow)
+
+        if((member.user.createdAt.getTime() + (1000 * 60 * 60 * 24 * 7)) > timeNow.getTime()) {
+            embed.setTitle('Warning: New Discord Account')
+        }
+
+        bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed}).then(() => {
+            if(count % 1000 === 0) {
+                let embed = new djs.MessageEmbed()
+                .setColor(bot.cfg.embed.okay)
+                .setAuthor('Milestone Achieved', bot.icons.find('ICO_star'))
+                .setTitle(`This server has reached ${count.toLocaleString()} members!`)
+                .setDescription(`User ${member} (${member.user.tag}) was our ${count.toLocaleString()}th member.`)
+                .setThumbnail(member.user.displayAvatarURL)
+                .setFooter(`Event logged on ${timeNow.toUTCString()}`)
+                .setTimestamp(timeNow)
+        
+                bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+            }
+        });
+    }
 });
 
 ////////////////////////////////////////
@@ -831,6 +833,14 @@ bot.on('guildMemberAdd', member => {
 bot.on('guildMemberRemove', member => {
     let timeNow = new Date();
     if (member.guild.id !== bot.cfg.guilds.optifine) return;
+
+    for(let i in bot.memory.mutes) {
+        let mute = bot.memory.mutes[i];
+        if(mute.userid === member.user.id) {
+            bot.memory.mutes.splice(i, 1);
+            break;
+        }
+    }
 
     bot.setTimeout(() => {
         bot.guilds.cache.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10 }).then((audit) => {
@@ -1046,7 +1056,7 @@ bot.on('messageReactionAdd', (mr, user) => {
                         });
                     } else {
                         let nm = `${mr.message.content}\n\n${bot.cfg.messages.confirmDelete}`;
-                        if(nm.length === 2000 /* incredibly unlikely, but better safe than sorry */ || mr.message.content.length === 0) {
+                        if(nm.length === 2000 /* incredibly unlikely, but better safe than sorry */ || mr.message.content.length === 0 || mr.message.content === '_ _') {
                             nm = bot.cfg.messages.confirmDelete;
                         }
 

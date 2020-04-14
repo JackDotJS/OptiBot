@@ -2,15 +2,13 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
-const erm = require(path.resolve(`./modules/util/simpleError.js`));
-const msgFinalizer = require(path.resolve(`./modules/util/msgFinalizer.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['pingmods', 'moderator'],
     short_desc: `Get moderator attention for issues or requests.`,
     long_desc: `Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.** \n\nAdditionally, this command tries to minimize mass pings by only selecting moderators that have sent a message in the past 10 minutes, or those who are simply online. \nThe selection priority works as followed:\n\n**1.** Recent Messages\n**2.** "Online" status\n**3.** All with the <@&467060304145023006> or <@&644668061818945557> roles.`,
-    authlevel: 0,
+    authlvl: 0,
     tags: ['NO_DM', 'INSTANT'],
 
     run: (m, args, data) => {

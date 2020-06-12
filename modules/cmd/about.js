@@ -35,7 +35,7 @@ module.exports = (bot, log) => { return new Command(bot, {
         .setAuthor('About', bot.icons.find('ICO_info'))
         .setThumbnail(bot.user.displayAvatarURL({ format: 'png', size: 64 }))
         .setTitle(`The official OptiFine Discord server bot. \n\n`)
-        .setDescription(`Developed and maintained by <@181214529340833792>, <@251778569397600256> and <@225738946661974017> out of love for a great community.`)
+        .setDescription(`Developed and maintained by <@181214529340833792>, <@251778569397600256>, and <@225738946661974017> out of love for a great community.`)
         .addField('Version', bot.version, true)
         .addField('Session Uptime', uptime(process.uptime() * 1000), true)
         .addField(`Contributors`, contributors.join(' '))

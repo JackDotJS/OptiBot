@@ -31,7 +31,7 @@ module.exports = class Command {
                 aliases: (Array.isArray(aliases)) ? [...new Set(aliases)] : [],
                 short_desc: short_desc,
                 long_desc: (long_desc) ? long_desc : short_desc,
-                args: `${bot.prefix}${name} ${args || ''}`,
+                args: ``, //${bot.prefix}${name} ${args || ''}
 
                 // Image to be shown as a thumbnail when this command is viewed through !help.
                 // Must be a plain string specifying a complete filename from the ../assets/img directory.
@@ -140,6 +140,22 @@ module.exports = class Command {
                 }
             } else {
                 if(authlvl !== 5) metadata.authlvl = 5;
+            }
+
+            if(Array.isArray(args) && args.length > 0) {
+                let examples = [];
+                for(let i = 0; i < args.length; i++) {
+                    examples.push(`\`\`\`ini\n${bot.prefix}${name} ${args[i]}\`\`\``)
+
+                    if(i+1 === args.length) {
+                        metadata.args = examples.join('');
+                    }
+                }
+            } else
+            if(typeof args === 'string') {
+                metadata.args = `\`\`\`ini\n${bot.prefix}${name} ${args}\`\`\``
+            } else {
+                metadata.args = `\`\`\`ini\n${bot.prefix}${name}\`\`\``
             }
 
             Object.defineProperty(this, 'metadata', {

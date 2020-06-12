@@ -3,51 +3,59 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
 
-module.exports = (bot, log) => { return new Command(bot, {
-    name: path.parse(__filename).name,
-    short_desc: `Short description. Shows in \`${bot.prefix}list\``,
-    long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
-    args: `[args]`,
-    authlvl: 5,
-    flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
+const setup = (bot) => { 
+    return new Command(bot, {
+        name: path.parse(__filename).name,
+        short_desc: `Short description. Shows in \`${bot.prefix}list\``,
+        long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
+        args: `[args]`,
+        authlvl: 5,
+        flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
+        run: func
+    });
+}
 
-    run: (m, args, data) => {
-        let channels = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).channels.cache.values()].filter((c) => c.type === 'text').sort((a,b) => a.rawPosition-b.rawPosition);
-        let lines = [];
+const func = (m, args, data) => {
+    const bot = data.bot;
+    const log = data.log;
 
-        for(let i in channels) {
-            let channel = channels[i];
+    let channels = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).channels.cache.values()].filter((c) => c.type === 'text').sort((a,b) => a.rawPosition-b.rawPosition);
+    let lines = [];
 
-            let str = `#${channel.name} (${channel.id})`;
+    for(let i in channels) {
+        let channel = channels[i];
 
-            if(bot.cfg.channels.bot.indexOf(channel.id) > -1 || bot.cfg.channels.bot.indexOf(channel.parentID) > -1) {
-                str += `\n- bot channel`;
-            }
+        let str = `#${channel.name} (${channel.id})`;
 
-            if(bot.cfg.channels.mod.indexOf(channel.id) > -1 || bot.cfg.channels.mod.indexOf(channel.parentID) > -1) {
-                str += `\n- mod channel`;
-            }
+        if(bot.cfg.channels.bot.indexOf(channel.id) > -1 || bot.cfg.channels.bot.indexOf(channel.parentID) > -1) {
+            str += `\n- bot channel`;
+        }
 
-            if(bot.cfg.channels.blacklist.indexOf(channel.id) > -1 || bot.cfg.channels.blacklist.indexOf(channel.parentID) > -1) {
-                str += `\n- blacklisted`;
-            }
+        if(bot.cfg.channels.mod.indexOf(channel.id) > -1 || bot.cfg.channels.mod.indexOf(channel.parentID) > -1) {
+            str += `\n- mod channel`;
+        }
 
-            if(bot.cfg.channels.nomodify.indexOf(channel.id) > -1 || bot.cfg.channels.nomodify.indexOf(channel.parentID) > -1) {
-                str += `\n- no modification`;
-            }
+        if(bot.cfg.channels.blacklist.indexOf(channel.id) > -1 || bot.cfg.channels.blacklist.indexOf(channel.parentID) > -1) {
+            str += `\n- blacklisted`;
+        }
 
-            if(str === `#${channel.name} (${channel.id})`) {
-                str += `\n-`
-            }
+        if(bot.cfg.channels.nomodify.indexOf(channel.id) > -1 || bot.cfg.channels.nomodify.indexOf(channel.parentID) > -1) {
+            str += `\n- no modification`;
+        }
 
-            str += '\n';
+        if(str === `#${channel.name} (${channel.id})`) {
+            str += `\n-`
+        }
 
-            lines.push(str);
+        str += '\n';
 
-            if(parseInt(i)+1 >= channels.length) {
-                log(lines.join('\n'), 'info');
-                m.channel.send('channels perms calculated');
-            }
+        lines.push(str);
+
+        if(parseInt(i)+1 >= channels.length) {
+            log(lines.join('\n'), 'info');
+            m.channel.send('channels perms calculated');
         }
     }
-})}
+}
+
+module.exports = setup;

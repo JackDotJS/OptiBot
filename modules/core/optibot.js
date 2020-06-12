@@ -23,6 +23,7 @@ module.exports = class OptiBot extends djs.Client {
         });
 
         const memory = {
+            _temp: null,
             sm: {},
             bot: {
                 locked: (mode === 0 || mode === 1),

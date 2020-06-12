@@ -48,7 +48,7 @@ module.exports = (bot) => {
             type: 1,
             embed: new djs.MessageEmbed()
             .setColor(bot.cfg.embed.default)
-            .setTitle('Remain Unbiased')
+            .setTitle(`Accept that you're not unbiased`)
             .setDescription(`Thanks to this weird thing called "being human" and having "emotions", it's naturally impossible to remain neutral in every situation. Try to consult with other moderators when at all possible.`)
         },
         {

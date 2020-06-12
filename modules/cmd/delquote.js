@@ -131,4 +131,4 @@ const func = (m, args, data) => {
     });
 }
 
-module.exports = setup
+module.exports = setup;

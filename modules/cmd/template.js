@@ -3,6 +3,19 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
 
+/*
+const setup = (bot) => { 
+    return new Command(bot, {
+        run: func
+    });
+}
+const bot = data.bot;
+    const log = data.log;
+const func = 
+
+module.exports = setup;
+*/
+
 const setup = (bot) => { 
     return new Command(bot, {
         name: path.parse(__filename).name,
@@ -28,4 +41,4 @@ const func = (m, args, data) => {
     m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
 }
 
-module.exports = setup
+module.exports = setup;

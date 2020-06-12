@@ -7,10 +7,10 @@ const Command = require(path.resolve(`./modules/core/command.js`));
 
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
-    short_desc: `Force update <#659313542540951552> channel.`,
-    long_desc: `Forcefully updates the <#659313542540951552> channel.`,
+    short_desc: `Force update <#${bot.cfg.policies.channel}> channel.`,
+    long_desc: `Forcefully updates the <#${bot.cfg.policies.channel}> channel.`,
     authlvl: 4,
-    tags: ['NO_DM', 'LITE'],
+    flags: ['NO_DM', 'LITE'],
 
     run: (m, args, data) => {
         let md = fs.statSync(path.resolve(`./modules/util/policies.js`))
@@ -21,13 +21,8 @@ module.exports = (bot, log) => { return new Command(bot, {
         // in my experience, these two dates would sometimes get fucked up for some reason so idk i think taking whatevers the latest makes the most sense
         let time = (md.mtime > md.birthtime) ? md.mtime : md.birthtime;
 
-        let lastEmbed = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.default)
-        .setTitle('Table of Contents')
-        .setFooter(`Last Modified Date: ${time.toUTCString()}`)
-        .setTimestamp(time);
-
         let itext = []
+        let itext_trimmed = [];
         let hcount = 0;
 
         // todo: add confirmation stuff
@@ -86,29 +81,69 @@ module.exports = (bot, log) => { return new Command(bot, {
                 bot.guilds.cache.get(bot.cfg.policies.guild).channels.cache.get(bot.cfg.policies.channel).send({embed: policies[i].embed, files: policies[i].files}).then((pm) => {
                     if(policies[i].type === 0) {
                         hcount++;
-                        itext.push(`${hcount}. [${policies[i].title}](${pm.url})<:blank:677277454238351380>`)
+                        itext.push(`${hcount}. [${policies[i].title}](${pm.url})<:space:704617016774098967>`) // blank emoji used for spacing
                     } else
                     if(policies[i].title) {
-                        itext.push(`　• ${policies[i].title}`)
+                        // underscores with a zero width character in-between to prevent trimming
+                        itext.push(`_​_　• [${policies[i].title}](${pm.url})<:space:704617016774098967>`) // blank emoji used for spacing
                     }
 
                     if(i+1 === policies.length) {
-                        log(itext.join('\n').length);
-                        lastEmbed.setDescription(itext.join('\n'))
+                        let temp = '';
+                        for(let it = 0; it < itext.length; it++) {
+                            temp += itext[it]+'\n';
+                            
+                            if(itext[it+1]) {
+                                // check if next line is longer than the room we have left
+                                if(itext[it+1].length > (2000-temp.length)) {
+                                    itext_trimmed.push(temp);
+                                    temp = '';
+                                }
+                            } else 
+                            if (temp.length > 0) {
+                                // no more lines left, push whatever we have now
+                                itext_trimmed.push(temp);
+                            }
 
-                        bot.guilds.cache.get(bot.cfg.policies.guild).channels.cache.get(bot.cfg.policies.channel).send({embed: lastEmbed}).then(() => {
-                            embed = new djs.MessageEmbed()
-                            .setColor(bot.cfg.embed.okay)
-                            .setAuthor(`Policies successfully updated in ${((new Date().getTime() - timeStart) / 1000).toFixed(2)} seconds.`, bot.icons.find('ICO_okay'))
-
-                            msg.edit({embed: embed}).then((msg) => bot.util.responder(m.author.id, msg, bot)).catch((err) => bot.util.err(err, bot, {m:m}));
-                        }).catch((err) => bot.util.err(err, bot, {m:m}));
+                            if(it+1 === itext.length) {
+                                postIndex();
+                            }
+                        }
                     } else {
                         i++;
                         postPol();
                     }
                 }).catch((err) => bot.util.err(err, bot, {m:m}));
             })();
+
+            let pi = 0;
+            function postIndex() {
+                let lastEmbed = new djs.MessageEmbed()
+                    .setColor(bot.cfg.embed.default)
+                    .setDescription(itext_trimmed[pi])
+                
+                if(pi === 0) {
+                    lastEmbed.setTitle(`Table of Contents`)
+                }
+
+                if(pi+1 === itext_trimmed.length) {
+                    lastEmbed.setFooter(`Last Modified Date: ${time.toUTCString()}`)
+                    .setTimestamp(time);
+                } 
+
+                bot.guilds.cache.get(bot.cfg.policies.guild).channels.cache.get(bot.cfg.policies.channel).send({embed: lastEmbed}).then(() => {
+                    if(pi+1 === itext_trimmed.length) {
+                        embed = new djs.MessageEmbed()
+                        .setColor(bot.cfg.embed.okay)
+                        .setAuthor(`Policies successfully updated in ${((new Date().getTime() - timeStart) / 1000).toFixed(2)} seconds.`, bot.icons.find('ICO_okay'))
+
+                        msg.edit({embed: embed}).then((msg) => bot.util.responder(m.author.id, msg, bot)).catch((err) => bot.util.err(err, bot, {m:m}));
+                    } else {
+                        pi++;
+                        postIndex();
+                    }
+                }).catch((err) => bot.util.err(err, bot, {m:m}));
+            }
         }
     }
 })}

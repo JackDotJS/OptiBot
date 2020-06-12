@@ -9,12 +9,12 @@ module.exports = (bot, log) => { return new Command(bot, {
     aliases: ['rank'],
     short_desc: `Add or remove member roles.`,
     long_desc: `Adds or removes roles for the specified member.`,
-    usage: `<target:member> <~text:role>`,
+    args: `<discord member> <role>`,
     authlvl: 2,
-    tags: ['NO_DM', 'LITE'],
+    flags: ['NO_DM', 'LITE'],
 
     run: (m, args, data) => {
-        if(!args[0]) {
+        if(!args[1]) {
             data.cmd.noArgs(m);
         } else {
             bot.util.target(m, args[0], bot, {type: 0, member:data.member}).then((result) => {

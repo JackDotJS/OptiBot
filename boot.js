@@ -17,7 +17,7 @@ const zip = require(`adm-zip`);
 const pkg = require(`./package.json`);
 
 const env = {
-    dev: false,
+    mode: 0,
     log: {
         /**
          * 0 = TRACE
@@ -27,14 +27,11 @@ const env = {
          * 4 = ERROR
          * 5 = FATAL
          */
-        level: 0,
+        level: 2,
         stream: null,
         filename: null
     },
-    rl: readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-    }),
+    rl: null,
     autostart: {
         rph: 0,
         hour: 0,
@@ -48,6 +45,12 @@ const env = {
     },
     cr: {
         logfile: null
+    },
+    r: {
+        author: null,
+        guild: null,
+        channel: null,
+        message: null
     }
 }
 
@@ -114,38 +117,16 @@ const log = (m, lvl, file) => {
         entry.message.color = `\x1b[33m`;
         if(m instanceof Error) {
             entry.message.content = m.stack;
-        } else
-        if(typeof m === `null`) {
-            entry.message.content = `null`;
-        } else
-        if(typeof m === `function`) {
-            entry.message.content = m.toString();
-        } else
-        if(typeof m === `undefined`) {
-            entry.message.content = `undefined`;
-        } else 
-        if(Buffer.isBuffer(m)) {
-            entry.message.content = m.toString();
         } else {
             try {
-                // try Map
-                Map.prototype.has.call(m);
-                entry.message.content = JSON.stringify(Object.fromEntries(m), null, 4);
-            } 
-            catch(e2) {
+                entry.message.content = m.toString();
+            }
+            catch(e) {
                 try {
-                    // try Set
-                    Set.prototype.has.call(m);
-                    entry.message.content = JSON.stringify(Array.from(m), null, 4);
+                    entry.message.content = util.inspect(m);
                 }
-                catch(e3) {
-                    try {
-                        // try inspect
-                        entry.message.content = util.inspect(m);
-                    }
-                    catch(e) {
-                        log(`failed interp of log entry`, `error`);
-                    }
+                catch(e) {
+                    log(`failed interp of log entry`, `error`);
                 }
             }
         }
@@ -233,15 +214,16 @@ process.title = `OptiBot ${pkg.version}`;
     process.stdout.write('\033c');
     process.stdout.write(`\u001b[2J\u001b[0;0H`);
     if(process.argv.indexOf(`--skipsetup`) > -1) {
-        if(process.argv.indexOf(`--dev`) > -1) {
-            env.dev = true;
-            env.rl.close();
-        } else {
-            env.log.level = 2;
-        }
+        env.mode = parseInt(process.argv.indexOf(`--skipsetup`) + 1);
+        env.rl.close();
         init();
     } else {
-        env.rl.question(`Start OptiBot [Y/N]\n`, (res) => {
+        env.rl = readline.createInterface({
+            input: process.stdin,
+            output: process.stdout
+        });
+
+        env.rl.question(`START OPTIBOT [Y/N]\n`, (res) => {
             if(res.trim().toLowerCase() === `y`) {
                 q2();
             } else
@@ -257,18 +239,23 @@ process.title = `OptiBot ${pkg.version}`;
 function q2() {
     process.stdout.write('\033c');
     process.stdout.write(`\u001b[2J\u001b[0;0H`);
-    env.rl.question(`Enable Dev Environment [Y/N]\n`, (res) => {
-        if(res.trim().toLowerCase() === `y`) {
-            env.dev = true;
-            env.rl.close();
-            init()
-        } else
-        if(res.trim().toLowerCase() === `n`) {
-            env.log.level = 2;
-            env.rl.close();
-            init()
-        } else {
+    env.rl.question(`SET OPERATING MODE [0-3]\n`, (res) => {
+        let mode = parseInt(res);
+
+        if(isNaN(mode) || mode < 0 || mode > 3) {
             q2();
+        } else {
+            /**
+             * MODE 0 - FULL FEATURE SET, CLOSED ACCESS | CODE MODE
+             * MODE 1 - LIMITED FEATURE SET, CLOSED ACCESS | ULTRALIGHT MODE
+             * MODE 2 - LIMITED FEATURE SET, PUBLIC ACCESS | LITE MODE
+             * MODE 3 - FULL FEATURE SET, PUBLIC ACCESS | NORMAL
+             */
+            env.mode = mode;
+            if(mode === 0) env.log.level = 0;
+
+            env.rl.close();
+            init();
         }
     });
 }
@@ -279,13 +266,13 @@ function init() {
 
     // 🦀
 
-    process.title = `OptiBot | Spawning Process...`;
+    process.title = `OptiBot ${pkg.version} | Spawning Process...`;
     
     env.log.filename = new Date().toUTCString().replace(/[/\\?%*:|"<>]/g, `.`)
     env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);
 
     log('spawning child process');
-    const bot = child.spawn('node', ['index.js', env.dev], {
+    const bot = child.spawn('node', ['index.js', env.mode], {
         stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     });
 
@@ -314,18 +301,42 @@ function init() {
                     }
                 });
             }
+
+            if(env.r.guild !== null) {
+                // send restart data
+                bot.send({ restart: env.r }, (err) => {
+                    if(err) {
+                        log('Failed to send restart data: '+err.stack, 'error');
+                    } else {
+                        env.r.guild = null;
+                        env.r.channel = null;
+                        env.r.message = null;
+                        env.r.author = null;
+                    }
+                });
+            }
         } else
         if(data.type === 'logLvl') {
             env.log.level = parseInt(data.content)
             log('Log level updated.', 'fatal');
+        } else
+        if(data.type === 'restart') {
+            env.r.guild = data.guild;
+            env.r.channel = data.channel;
+            env.r.message = data.message;
+            env.r.author = data.author;
         }
     });
 
     bot.on('exit', (code) => {
         log(`Child process ended with exit code ${code}`, 'info');
 
-        // recently updated to account for node.js's built-in exit codes
-        // needs to be updated in other parts of the bot
+        if([18, 1].indexOf(code) > -1) {
+            env.r.guild = null;
+            env.r.channel = null;
+            env.r.message = null;
+            env.r.author = null;
+        }
 
         if(code === 0) {
             log('OptiBot is now shutting down at user request.', 'info');
@@ -338,7 +349,7 @@ function init() {
             env.cr.logfile = `${env.log.filename}_${logSuffix}.log`;
             setTimeout(() => {
                 end(code, false, logSuffix)
-            }, env.dev ? 5000 : 10);
+            }, (env.mode === 0) ? 5000 : 10);
         } else
         if(code === 2) {
             log('Bash Error. (How the fuck?)', 'fatal');
@@ -398,7 +409,7 @@ function init() {
         
         if(code > 128) {
             log(`Signal exit code ${code - 128}.`, 'fatal');
-            end(code, false);
+            end(code, true);
         }
     });
 
@@ -417,7 +428,7 @@ function init() {
                         } else {
                             setTimeout(() => {
                                 init();
-                            }, (env.debug) ? 5000 : 500);
+                            }, (env.mode === 0) ? 5000 : 500);
                         }
                     }
                 });
@@ -434,7 +445,7 @@ function init() {
     }
 
     function update() {
-        setTimeout(() => {
+        /* setTimeout(() => {
             child.execSync('git fetch --all');
             child.execSync('git reset --hard master');
             child.execSync('npm install');
@@ -444,7 +455,7 @@ function init() {
 
                 setTimeout(() => {
                     // see line 517 for an explanation on this monstrosity
-                    child.spawn(`cmd`, ['/C', 'start', '""', 'cmd', '/C', 'init.bat', '--skip', (env.debug) ? '--dev' : undefined], {
+                    child.spawn(`cmd`, ['/C', 'start', '""', 'cmd', '/C', 'init.bat', '--skipsetup', env.mode], {
                         detached: true,
                         stdio: 'ignore',
                         cwd: __dirname
@@ -453,6 +464,6 @@ function init() {
                     process.exit(3);
                 }, 500);
             }, 500);
-        }, 500);
+        }, 500); */
     }
 }

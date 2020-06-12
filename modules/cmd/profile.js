@@ -8,9 +8,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['whois'],
     short_desc: `Displays detailed information about a specified user.`,
-    usage: `<target:discord user> [opt:raw]`,
+    args: `<discord member> [raw]`,
     authlvl: -1,
-    tags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY'],
+    flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY'],
 
     run: (m, args, data) => {
         if(!args[0]) {
@@ -157,9 +157,9 @@ module.exports = (bot, log) => { return new Command(bot, {
             
                             let roles = [];
                             let rolec = [...mem.roles.cache.values()];
-                            rolec.sort((a, b) => a.calculatedPosition - b.calculatedPosition)
+                            rolec.sort((a, b) => a.rawPosition - b.rawPosition)
                             rolec.reverse().forEach((role) => {
-                                log(role.calculatedPosition);
+                                log(role.rawPosition);
                                 if(role.id !== mem.guild.id) {
                                     if(m.channel.type === 'dm' || m.guild.id !== bot.cfg.guilds.optifine) {
                                         roles.push(`\`@${role.name}\``);

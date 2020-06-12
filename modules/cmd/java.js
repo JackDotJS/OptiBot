@@ -7,7 +7,7 @@ module.exports = (bot, log) => { return new Command(bot, {
     aliases: ['jdk', 'jre'],
     short_desc: `Provides a link to download AdoptOpenJDK.`,
     authlvl: 0,
-    tags: ['DM_OPTIONAL', 'INSTANT'],
+    flags: ['DM_OPTIONAL', 'NO_TYPER'],
 
     run: (m, args, data) => {
         let embed = new djs.MessageEmbed()

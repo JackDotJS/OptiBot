@@ -7,7 +7,7 @@ module.exports = (bot) => {
     return [
         {
             type: 0,
-            title: 'Introduction (Start here!)',
+            title: 'Introduction **(Start here!)**',
             files: [new djs.MessageAttachment(bot.images.find('IMG_head_intro.png'), 'header.png')]
         },
         {
@@ -23,11 +23,11 @@ module.exports = (bot) => {
             embed: new djs.MessageEmbed()
             .setColor(bot.cfg.embed.error)
             .setTitle(`Warning`)
-            .setDescription(`Due to the current state of OptiBot's development, these policies are going to mention some bot commands that **likely do not work. At all.** For details, please contact <@181214529340833792>. Thank you.`)
+            .setDescription(`Before reading, please note the following: Due to the current state of OptiBot's development, these policies are going to mention some bot commands that **likely do not work. At all.** For details, please contact <@181214529340833792>. Thank you.`)
         },
         {
             type: 0,
-            title: 'Moderator Code of Conduct',
+            title: 'Code of Conduct',
             files: [new djs.MessageAttachment(bot.images.find('IMG_head_coc.png'), 'header.png')]
         },
         {
@@ -55,15 +55,22 @@ module.exports = (bot) => {
             type: 1,
             embed: new djs.MessageEmbed()
             .setColor(bot.cfg.embed.default)
+            .setTitle('Be Friendly, Approachable, and Transparent.')
+            .setDescription(`It's easy to become frustrated when you have to deal with 40+ people every day asking the same questions and refusing to do their own research, despite how easy we might make it for them. Unfortunately, we just have to just work with it. Remain calm and friendly when trying to help our members, especially the new ones. Remember, it's not always the same guy asking the same questions over and over. You're likely talking to someone who just joined a couple minutes ago. \n\nThis also goes for people you have to moderate for XYZ reason(s). If someone believes they were wrongfully muted, talk it out in DMs. Be calm and explain your reasoning. If it ever turns out you're wrong, just accept it and move on. Please don't double down on anything you know is false.`)
+        },
+        {
+            type: 1,
+            embed: new djs.MessageEmbed()
+            .setColor(bot.cfg.embed.default)
             .setTitle('Know Your Tools')
-            .setDescription(`As a moderator, you have access to a few tools provided directly by Discord: Kicking and banning. You can also mute and deafen people in voice channels. In addition, we have our own Discord bot. <@468582311370162176> allows us to perform even more moderation actions, such as giving warnings, muting users in text chat, and more. You can view all moderator-only commands by typing \`${bot.prefix}list mod\`, and you can view detailed information on a specific command with \`${bot.prefix}help <command>\``)
+            .setDescription(`As a <@&467060304145023006>, you have access to a few tools provided directly by Discord: Kicking and banning. You can also mute and deafen people in voice channels. In addition, we have our own Discord bot. <@468582311370162176> allows us to perform even more moderation actions, such as giving warnings, muting users in text chat, and more. You can view all moderator-only commands by typing \`${bot.prefix}list mod\`, and you can view detailed information on a specific command with \`${bot.prefix}help <command>\``)
         },
         {
             type: 1,
             embed: new djs.MessageEmbed()
             .setColor(bot.cfg.embed.default)
             .setTitle(`Review Before Acting`)
-            .setDescription(`If at all possible, be sure to review these policies before acting as a moderator. For quick references, you can view and search individual policies with the \`${bot.prefix}policy\` command.`)
+            .setDescription(`If at all possible, try to review these policies before acting as a moderator. For quick references, you can view and search individual policies with the \`${bot.prefix}policy\` command.`)
         },
         {
             type: 1,
@@ -81,8 +88,29 @@ module.exports = (bot) => {
             type: 1,
             embed: new djs.MessageEmbed()
             .setColor(bot.cfg.embed.default)
-            .setTitle(`<@663122057818537995>`)
-            .setDescription(`Administrators`)
+            .setTitle(`Administrators`)
+            .setDescription(`An <@&663122057818537995> is responsible for managing Moderators, the server itself, and moderation disputes.`)
+        },
+        {
+            type: 1,
+            embed: new djs.MessageEmbed()
+            .setColor(bot.cfg.embed.default)
+            .setTitle(`Moderators`)
+            .setDescription(`A <@&467060304145023006> is responsible for day-to-day management of interactions between server members in public text channels.`)
+        },
+        {
+            type: 1,
+            embed: new djs.MessageEmbed()
+            .setColor(bot.cfg.embed.default)
+            .setTitle(`Junior Moderators`)
+            .setDescription(`A <@&644668061818945557> has the same job as Moderators, only with restricted moderation abilities. Jr. Moderators are not able to kick or ban server members, but they have access to MOST bot-based moderation commands, including \`${bot.prefix}mute\` and \`${bot.prefix}warn\``)
+        },
+        {
+            type: 1,
+            embed: new djs.MessageEmbed()
+            .setColor(bot.cfg.embed.default)
+            .setTitle(`Mod Advisors`)
+            .setDescription(`The job of a <@&695553561064505345> is very different from the other staff roles. Simply put, they're responsible for providing educated opinions. Advisors are generally expected to weigh-in on most moderation discussions whenever possible. They have no direct moderation abilities, apart from being able to view information not normally seen by ordinary server members. This includes Audit Logs, OptiBot Logs and Records, and most moderation channels. (Including this one!)`)
         },
         {
             type: 0,
@@ -97,7 +125,7 @@ module.exports = (bot) => {
             .setColor(bot.cfg.embed.default)
             .setTitle('Rule #1 | Be respectful and civilized')
             .setDescription(`The internet is, unfortunately, quite a toxic place when you really look at it. Masked with anonymity, we tend to show our true colors. As moderators, we must attempt to combat this norm and try to create a clean, friendly environment for our members. This especially goes for our new members. As much as we hate having to deal with the new guy, remember that we were all there at one point, starting from the bottom. All our members should aim to be patient and supportive of each other.\n\nThe following is not allowed:\n\n　• Trolling\n　• Insults\n　• Defamation/Slander\n　• Harassment\n　• Degradation\n　• Racial slurs (including "soft n-words")\n　• Flaming/Flame wars\n　• Hate speech\n　• Homophobia, Transphobia, etc`)
-            .addField('Policy', `Depending on the severity, members are to be warned or temporarily muted for up to 48 hours. Repeat offenders (3+ violations) are to be permanently muted.`)
+            .addField('Policy', `todo`)
         },
         {
             type: 2,
@@ -107,7 +135,7 @@ module.exports = (bot) => {
             .setColor(bot.cfg.embed.default)
             .setTitle('Rule #2 | No Prohibited Content')
             .setDescription(`The following content is NOT allowed in the slightest. Items marked with an underline come directly from Discord's Terms of Service. (see rule 3)\n\n　• Bigotry, Nazism, and other offensive content.\n　• Fast, seizure-inducing, flashing animated pictures.\n　• Politics, religion, and other controversial issues.\n　• __Pornographic, questionable, and other NSFW content.__**\\***\n　• __Disturbing or shocking NSFL content.__\n　• __Confidential and personal information__\n　• __Cracks, piracy, and other illegal content.__\n　• __Viruses and malware__\n　• __Hacks, cheats and exploits for video games.__\n\nThese restrictions apply to **all things visible in chat.** This means all discussions, images, links, profile pictures, nicknames, etc.\n\n**\\***NSFW is against TOS when displayed without an age gate. (marked NSFW channel)`)
-            .addField('Policy', `Offending content should be deleted immediately, if at all possible. Users who join the server solely to post this kind of content are to be banned. All others are up to your discretion as a moderator.`)
+            .addField('Policy', `todo`)
         },
         {
             type: 2,
@@ -117,7 +145,7 @@ module.exports = (bot) => {
             .setColor(bot.cfg.embed.default)
             .setTitle('Rule #3 | Discord Terms of Service & Community Guidelines')
             .setDescription(`**THIS IS IMPORTANT.** Discord's own rules are to be strictly enforced AT ALL TIMES. Failure to do so may result in complete removal of our server, and maybe even deletion of our own accounts. Many of our own server rules mimic Discord's rules already, so there's not much else to go over. Regardless, you can read these rules here:\n\n**[Discord Terms of Service](https://discordapp.com/terms) | [Discord Community Guidelines](https://discordapp.com/guidelines)**\n\nIn summary, excluding everything already mentioned so far, the following is strictly forbidden:\n\n　• Users under the age of 13 years old. (Unfortunately, we do not have a way to verify anyone's age. If some guy says they're 9 years old or something, we just have to assume they're serious.)\n　• Organization of community raids.\n　• Evading server bans and user blocks.\n\nDiscord reserves the right to update their terms at any time. It may be in your best interest to read the terms via their own websites linked above, rather than reading this summary. Regardless, we'll try our best to keep this policy as up-to-date as possible for everyone's convenience.`)
-            .addField('Policy', `Any user found to be in direct violation of the Discord TOS or Community Guidelines MUST be banned immediately without exception. These users must also be reported to Discord Trust & Safety, which can be done here: https://dis.gd/request`)
+            .addField('Policy', `todo`)
         },
         {
             type: 2,
@@ -126,8 +154,8 @@ module.exports = (bot) => {
             embed: new djs.MessageEmbed()
             .setColor(bot.cfg.embed.default)
             .setTitle('Rule #4 | No Spamming')
-            .setDescription(`Examples of spam includes, but is not limited to:\n\n　• Messages that only contain random, arbitrary characters.\n　• Posting the same type of message over and over and over and over.\n　• Mass pinging users or roles for no legitimate reason.\n　• Large walls of text that do not contribute to real discussions. (copypastas for example)`)
-            .addField('Policy', `Depending on the severity, members are to be warned or temporarily muted for up to 24 hours upon violation of this rule. Users that join for the sole purpose of mass spam are to be permanently muted.`)
+            .setDescription(`Examples of spam includes, but is not limited to:\n\n　• Messages that only contain random, arbitrary characters.\n　• Posting the same type of message over and over and over and over.\n　• Mass pinging users or roles for no legitimate reason.\n　• Large walls of text that do not contribute to real discussions. (copypastas for example)\n\nNote that this rule is somewhat "relaxed" for the <#584850909725458503> channel.`)
+            .addField('Policy', `todo`)
         },
         {
             type: 2,
@@ -137,7 +165,7 @@ module.exports = (bot) => {
             .setColor(bot.cfg.embed.default)
             .setTitle('Rule #5 | No Advertising')
             .setDescription(`Advertising of any kind is generally forbidden. **The only permanent exceptions to this rule are Resource Packs, Shader Packs, and other Minecraft Mods.** Moderators may grant special permission for a user to advertise, under the following conditions: \n\n1. The advertisement must be approved by at least 3 separate moderators, including yourself.\n2. The advertisement MUST comply with all other server rules. \n\nIf you yourself wish to advertise something, you must also follow these terms. **You do not automatically have permission to advertise something as a moderator!**\n\nExamples of advertising includes, but is not limited to:\n\n　• Unsolicited Discord server invite links\n　• Referral links\n　• Unwanted social media profile/channel links\n\n**Be sure to also consider context.** Generally, most advertisements are posted at random, but if someone posts a link that is relevant to the active conversation, you may consider allowing it.`)
-            .addField('Policy', `Users who join the server solely to advertise are to be permanently muted. If a user is found to be advertising in people’s DMs, this can be escalated to a ban. All others without permission should be given warnings. Repeat offenders (2+ violations) are to be permanently muted. **All unauthorized advertisements should be deleted immediately.**`)
+            .addField('Policy', `todo`)
         },
         {
             type: 2,
@@ -147,7 +175,7 @@ module.exports = (bot) => {
             .setColor(bot.cfg.embed.default)
             .setTitle('Rule #6 | Stay on-topic')
             .setDescription(`This is a fairly simple one. All users should keep discussions to the specified channel at all times. If a topic starts changing from the one specified by the current channel, politely tell the users to move the conversation to the appropriate channel. If the conversation has not moved or returned to the current channel topic within ~10 messages after your request, any remaining active participants of the conversation are in violation of this rule.`)
-            .addField('Policy', `Members are to be warned or temporarily muted for up to 24 hours. Repeat offenders (3+ violations) are to be permanently muted.`)
+            .addField('Policy', `todo`)
         },
         {
             type: 2,
@@ -157,7 +185,7 @@ module.exports = (bot) => {
             .setColor(bot.cfg.embed.default)
             .setTitle('Rule #7 | No begging')
             .setDescription(`This isn't a giveaway server. If someone *wants* to give stuff away on their own, that's fine. However, *asking* people to give stuff away is absolutely *not* fine.\n\nIn the case of Donator capes, these are supposed to be a gift given to users who donate $10 to OptiFine's development. As such, not only is begging for a cape just plain pathetic (come on... it's *$10*), but also somewhat disrespectful to the developer.`)
-            .addField('Policy', `Depending on the severity, users are to be warned or temporarily muted for up to 24 hours upon violation of this rule. Repeat offenders (3+ violations) can be permanently muted.`)
+            .addField('Policy', `todo`)
         },
         {
             type: 2,
@@ -167,17 +195,27 @@ module.exports = (bot) => {
             .setColor(bot.cfg.embed.default)
             .setTitle('Rule #8 | Speak English')
             .setDescription(`This is an English-speaking server (incase you haven't noticed). Most of us moderators fluently speak this language, and for some of us, it's the *only* language we know. As such, when someone starts speaking a different language, it can make moderation difficult or even outright impossible. To help with this issue, we have the \`${bot.prefix}translate\` command. However, this is not a permanent solution, and we must (politely) ask all users to speak English themselves. This can be easily done with an online translator, such as https://www.deepl.com/translator or https://translate.google.com/`)
-            .addField('Policy', `First, users are to be told to speak English, and to use a translator if necessary. Failing to cooporate, users are to be warned or temporarily muted for up to 24 hours upon violation of this rule.`)
+            .addField('Policy', `todo`)
         },
         {
             type: 2,
-            title: `*Rule 9) No reselling of capes*`,
-            kw: ['rule 9', 'cape reselling', 'cape selling', 'selling capes', 'reselling capes', 'cape scam'],
+            title: `Rule 9) Temporary Rules`,
+            kw: ['rule 9', 'temporary rules', 'temporary', 'temp rules', 'temp'],
+            embed: new djs.MessageEmbed()
+            .setColor(bot.cfg.embed.default)
+            .setTitle('Rule #9 | Temporary Rules')
+            .setDescription(`This rule is reserved for temporary restrictions. The current temporary rules are listed as followed:\n\n　• No COVID-19/Coronavirus jokes or memes.`)
+            .addField('Policy', `todo`)
+        },
+        {
+            type: 2,
+            title: `*Rule 10) No reselling of capes*`,
+            kw: ['rule 10', 'cape reselling', 'cape selling', 'selling capes', 'reselling capes', 'cape scam'],
             embed: new djs.MessageEmbed()
             .setColor(bot.cfg.embed.error)
-            .setTitle('Rule #9 | No reselling of capes')
-            .setDescription(`Notice that this rule has a red-colored embed. This is a hidden rule, and should be considered **confidential information** due to the very nature of cape reselling. Explanation further down.\n\nIn a way, this rule is partially an extension of rules #5 and #7. While begging for a cape at least implies donating again to give a new cape for someone, *reselling* a cape guarantees that absolutely NO money to being given to the developer. It's just borderline insulting.\n\nOn the other hand, capes sold via third parties often come from hacked/compromised Minecraft accounts. To quote <@202558206495555585> himself... \n> the biggest problem is that capes very often come from hacked MC accounts. there are bots that constantly try to hack accounts with weak passwords. the hacked accounts are put in a database and the account price depends on name length, has vanilla cape, has OF cape, and so on\n\nTo top it all off, capes can always be transferred back to the original owner simply by logging in to the website at https://optifine.net/login. This makes it insanely easy to make simple scams out of cape reselling. As such, we want to minimize public knowledge of this idea as much as possible. This is for the sake of everyone’s security, and to prevent more people from getting the idea of trying this scam for themselves.`)
-            .addField('Policy', `Users in violation of this rule are to be temporarily muted for up to 7 days, or otherwise banned permanently. If asked for an explanation by any non-moderator, call it advertising. Just like rule #5, **advertisements for cape reselling are to be deleted immediately.**`)
+            .setTitle('Rule #10 | No reselling of capes')
+            .setDescription(`Notice that this rule appears slightly different from the other embeds in this channel. This is a hidden rule, and should be considered **confidential information** due to the very nature of cape reselling. Explanation further down.\n\nIn a way, this rule is partially an extension of rules #5 and #7. While begging for a cape at least implies donating again to give a new cape for someone, *reselling* a cape guarantees that absolutely NO money to being given to the developer. It's just borderline insulting.\n\nOn the other hand, capes sold via third parties often come from hacked/compromised Minecraft accounts. To quote <@202558206495555585> himself... \n> the biggest problem is that capes very often come from hacked MC accounts. there are bots that constantly try to hack accounts with weak passwords. the hacked accounts are put in a database and the account price depends on name length, has vanilla cape, has OF cape, and so on\n\nTo top it all off, capes can always be transferred back to the original owner simply by logging in to the website at https://optifine.net/login. This makes it insanely easy to make simple scams out of cape reselling. As such, we want to minimize public knowledge of this idea as much as possible. This is for the sake of everyone’s security, and to prevent more people from getting the idea of trying this scam for themselves.`)
+            .addField('Policy', `todo`)
         },
         {
             type: 2,
@@ -187,7 +225,7 @@ module.exports = (bot) => {
             .setColor(bot.cfg.embed.default)
             .setTitle('OptiBot (Mis)usage')
             .setDescription(`While we have a channel dedicated solely for bot commands, OptiBot is mainly designed to be used in regular discussions, as a utility for various things. This includes referencing OptiFine documentation, displaying an <#531622141393764352> entry, and much more.`)
-            .addField('Policy', `OptiBot commands are not *strictly* limited to <#626843115650547743>, but generally any bot usage that is not relevant to any active conversation should be kept to this channel. Members who fail to do so may be in violation of rules #4 and/or #6.`)
+            .addField('Policy', `todo`)
         },
         {
             type: 2,
@@ -203,16 +241,6 @@ module.exports = (bot) => {
             type: 0,
             title: 'Other Policies',
             files: [new djs.MessageAttachment(bot.images.find('IMG_head_other.png'), 'header.png')]
-        },
-        {
-            type: 2,
-            title: `Mini-Modding & Member Rewards`,
-            kw: ['mini-modding', 'awards', 'rewards', 'good behaviour', 'following rules'],
-            embed: new djs.MessageEmbed()
-            .setColor(bot.cfg.embed.default)
-            .setTitle('Mini-Modding & Member Rewards')
-            .setDescription(`We have no rules against mini-modding and, in fact, we encourage it (to an extent). Any member who is seen promoting good behaviour should be given a medal.\n\n...No, literally.`)
-            .addField('Policy', `Any user who does a good deed, or consistently encourages positive behaviour can be awarded with medals. This can be done by any moderator by simply adding a 🏅 reaction emoji to the user's message. Alternatively, you can use the \`${bot.prefix}award\` command.`)
         },
         {
             type: 2,
@@ -232,7 +260,7 @@ module.exports = (bot) => {
             .setColor(bot.cfg.embed.default)
             .setTitle('Donator Cape Verification')
             .setDescription(`An excerpt from our own <#531622141393764352>: \n> A verified cape is simply an **optional** cosmetic enhancement for viewing donator capes via the \`${bot.prefix}cape\` command. Having a verified cape makes it possible for anyone to view your cape without having to know your Minecraft username, by using either an @mention or user ID in place of the username. Additionally, upon viewing a verified cape, the owner's Discord username is prominently displayed at the top of the message.`)
-            .addField('Policy', `Any user, including those without the <@&424169541346525194> role, may request cape verification. However, the user in question MUST first verify their identity by linking their Discord account to their Minecraft username via this website: https://namemc.com`)
+            .addField('Policy', `Any user, including those without the <@&424169541346525194> role, may request cape verification. However, the user in question MUST first verify their identity by linking their Discord account to their Minecraft username via [NameMC.](https://namemc.com)`)
         },
         {
             type: 2,
@@ -241,8 +269,18 @@ module.exports = (bot) => {
             embed: new djs.MessageEmbed()
             .setColor(bot.cfg.embed.default)
             .setTitle('Member Ban Appeals')
-            .setDescription(`Ban appeals can be done via this online form: https://forms.gle/kqMKzeBxzm29pWku8\n\nOnce a ban appeal is recieved, it must be approved by no less than 4 different moderators. Ideally, votes should be given at least 2-3 days to be processed, given time zones and moderator activity. Once an appeal is approved, the user in question should be contacted as soon as possible. **Do not unban the user without doing the following:**`)
-            .addField('Policy', `Any user may request to have their ban lifted, granted they have not violated the Discord Terms of Service, Discord Community Guidelines, or rule #9. If you've been privately contacted by a banned user, simply redirect them to the form linked above.`)
+            .setDescription(`Ban appeals can be done via this online form: https://forms.gle/kqMKzeBxzm29pWku8\n\nOnce a ban appeal is received, it must be approved by no less than 5 different moderators. Ideally, votes should be given at least 2-3 days to be processed, given time zones and moderator activity. Once an appeal is approved, the user in question should be contacted as soon as possible. **Do not unban the user without doing the following:** First, the user's identity must be confirmed. It is entirely possible to impersonate a user for a ban appeal, which is where this step comes in. The user must first verify the contents of their ban appeal. Ask them how they answered for various questions on the appeal form. Once they have correctly answered, they can finally be unbanned. Once this is done, ensure you have noted the user's ban removal on their record with \`${bot.prefix}addnote\`. This will primarily be used to note that the user has been unbanned once, and that they cannot qualify for another appeal.`)
+            .addField('Policy', `Any user may request to have their ban lifted, granted they have not violated the Discord Terms of Service, Discord Community Guidelines, rule #10, or been previously banned before. If you've been privately contacted by a banned user, simply redirect them to the form linked above.`)
+        },
+        {
+            type: 2,
+            title: `Moderator Applications`,
+            kw: ['moderator applications', 'applications', 'apps', 'mod apps', 'moderator apps', 'mod applications', 'hire mods', 'hire moderators', 'new mods', 'new moderators'],
+            embed: new djs.MessageEmbed()
+            .setColor(bot.cfg.embed.default)
+            .setTitle('Moderator Applications')
+            .setDescription(`https://forms.gle/eJRZuDMYwYD4cHT4A`)
+            .addField('Policy', `todo`)
         },
         {
             type: 2,
@@ -252,7 +290,7 @@ module.exports = (bot) => {
             .setColor(bot.cfg.embed.default)
             .setTitle('Server Changes & Voting')
             .setDescription(`This server is by no means a dictatorship. Voting is crucial to keeping a balance in our moderation, especially when it comes to making major changes in *how* we moderate.`)
-            .addField('Policy', `If a change is deemed necessary for just about anything (server rules, policies, etc), start a discussion and vote in the <#467073441904984074> channel. Be sure to give these things time, as not all of us are online and available at the same time.`)
+            .addField('Policy', `Major role or server changes must start with a group discussion in the <#689659291686273059> channel (or <#467073441904984074> if it's about sensitive information). After there is a general agreement on a particular idea, start a vote. Be sure to give these things time, as not all of us are online and available at the same time.`)
         }
     ]
 }

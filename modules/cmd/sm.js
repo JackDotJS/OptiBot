@@ -7,9 +7,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     aliases: ['slowmode', 'slow'],
     short_desc: `Set slowmode time.`,
     long_desc: `Manually sets interval for slowmode in the current channel.`,
-    usage: `<time:slowmode>`,
+    args: `<time>`,
     authlvl: 2,
-    tags: ['NO_DM', 'INSTANT'],
+    flags: ['NO_DM', 'NO_TYPER'],
 
     run: (m, args, data) => {
 

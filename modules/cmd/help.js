@@ -6,26 +6,32 @@ const Command = require(path.resolve(`./modules/core/command.js`));
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `Getting started with OptiBot.`,
-    long_desc: `temp`,
-    usage: `[text:command name]`,
+    long_desc: `Gives a brief introduction to OptiBot.`,
+    args: `[command]`,
     authlvl: 0,
-    tags: ['DM_OPTIONAL', 'INSTANT'],
+    flags: ['DM_OPTIONAL', 'NO_TYPER'],
 
     run: (m, args, data) => {
         if (!args[0]) {
             // default help page
+            let desc = [
+                `To use any command, simply type a prefix (\`${bot.prefixes.join(`\`, \``)}\`) immediately followed by the name/alias of the command. Command arguments are separated by spaces, like so: \`${bot.prefix}command <arg1> <arg2> <arg3> ...\` You can find detailed instructions for any command by typing \`${bot.prefix}help <command name>\`.`,
+                ``,
+                `For more information about the OptiBot project, use the \`${bot.prefix}about\` command.`
+            ]
+
             let embed = new djs.MessageEmbed()
             .setColor(bot.cfg.embed.default)
             .setAuthor('Getting Started', bot.icons.find('ICO_info'))
-            .setDescription(`OptiBot is a Discord bot primarily designed for utility. Whether it's moderation tools, or something to help you make a resource pack, you can probably find it here. (see \`${bot.prefix}about\` for more info about OptiBot itself)`)
-            .setThumbnail(bot.user.displayAvatarURL)
+            .setThumbnail(bot.user.displayAvatarURL({format: 'png', size:64}))
+            .setDescription(desc.join('\n'))
             .addField('Commands List', `\`\`\`${bot.prefix}list\`\`\``)
-            .addField('Tidbits & Other Features', `\`\`\`${bot.prefix}tidbits\`\`\``)
+            .addField('Other Features', `\`\`\`${bot.prefix}bits\`\`\``)
 
             m.channel.send({ embed: embed }).then(bm => bot.util.responder(m.author.id, bm, bot));
         } else {
             bot.commands.find(args[0]).then((cmd) => {
-                if (!cmd || (cmd.metadata.tags['HIDDEN'] && data.authlvl < cmd.metadata.authlvl)) {
+                if (!cmd || (cmd.metadata.flags['HIDDEN'] && data.authlvl < cmd.metadata.authlvl)) {
                     bot.util.err(`The "${args[0]}" command does not exist.`, bot, {m:m})
                 } else
                 if (data.authlvl < cmd.metadata.authlvl) {
@@ -33,12 +39,26 @@ module.exports = (bot, log) => { return new Command(bot, {
                 } else {
                     let md = cmd.metadata;
                     let files = [];
+
+                    let argsHelp = [
+                        `The following prefixes can be used: "${bot.prefixes.join(`", "`)}"`,
+                        ``,
+                        `Required arguments are listed in <angle brackets>, while optional arguments are listed in [square brackets].`,
+                        ``,
+                        `Arguments that require a Discord user or message can use shortcuts such as @mentions, user IDs, message URLs, and the classic "arrow" shortcut (^).`,
+                        ``,
+                        `Arguments that require a length of time can be specified as a number followed by a time format. Without the format, this will default to hours. For example, 24 hours could be written as "24" or "1d". Supported formats include (s)econds, (m)inutes, (h)ours, (d)ays, and (w)eeks.`,
+                    ].join('\n');
+
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
                     .setAuthor('OptiBot Commands', bot.icons.find('ICO_info'))
                     .setTitle(`${bot.prefix}${md.name}`)
                     .setDescription(md.long_desc)
-                    .addField('Usage', `\`\`\`${md.usage}\`\`\``)
+                    .addField('Usage (Hover for Details)', `[\`\`\`ini\n${md.args}\`\`\`](${m.url.replace(/\/\d+$/, '')} "${argsHelp}")`)
+                    //.addField('Usage', cmd.getArgs(m))
+
+                    
 
                     if (md.aliases.length > 0) {
                         embed.addField('Alias(es)', `\`\`\`${bot.prefix}${md.aliases.join(`, ${bot.prefix}`)}\`\`\``)
@@ -47,14 +67,14 @@ module.exports = (bot, log) => { return new Command(bot, {
                     if (data.authlvl >= 5 && (bot.cfg.channels.mod.indexOf(m.channel.id) > -1 || bot.cfg.channels.mod.indexOf(m.channel.parentID) > -1)) {
                         let taglist = [];
 
-                        Object.keys(md.tags).forEach((tag) => {
-                            if(md.tags[tag] === true) taglist.push(tag);
+                        Object.keys(md.flags).forEach((tag) => {
+                            if(md.flags[tag] === true) taglist.push(tag);
                         });
 
                         if(taglist.length === 0) taglist = 'This command has no active flags.'
 
-                        embed.addField('(DEV) Permission Level', `\`\`\`javascript\n${md.authlvl}\`\`\``)
-                        .addField('(DEV) Flags', `\`\`\`javascript\n${util.inspect(taglist)}\`\`\``)
+                        embed.addField('(DEV) Permission Level', `\`\`\`javascript\n${md.authlvl}\`\`\``, true)
+                        .addField('(DEV) Flags', `\`\`\`javascript\n${util.inspect(taglist)}\`\`\``, true)
                     }
 
                     if (md.image) {
@@ -64,21 +84,21 @@ module.exports = (bot, log) => { return new Command(bot, {
 
                     let restrictions = [];
 
-                    if (md.tags['NO_DM']) {
-                        if(md.tags['BOT_CHANNEL_ONLY']) {
+                    if (md.flags['NO_DM']) {
+                        if(md.flags['BOT_CHANNEL_ONLY']) {
                             restrictions.push(`<:error:642112426162126873> This command can *only* be used in the <#626843115650547743> channel.`);
                         } else {
                             restrictions.push(`<:warn:642112437218443297> This command can be used in any channel, but *not* in DMs (Direct Messages)`);
                         }
                     } else
-                    if (md.tags['DM_ONLY']) {
+                    if (md.flags['DM_ONLY']) {
                         restrictions.push(`<:error:642112426162126873> This command can *only* be used in DMs (Direct Messages)`);
                     } else
-                    if (md.tags['BOT_CHANNEL_ONLY']) {
+                    if (md.flags['BOT_CHANNEL_ONLY']) {
                         restrictions.push(`<:warn:642112437218443297> This command can *only* be used in DMs (Direct Messages) or the <#626843115650547743> channel.`);
                     } else
-                    if (md.tags['MOD_CHANNEL_ONLY']) {
-                        if(md.tags['NO_DM']) {
+                    if (md.flags['MOD_CHANNEL_ONLY']) {
+                        if(md.flags['NO_DM']) {
                             restrictions.push(`<:error:642112426162126873> This command can *only* be used in moderator-only channels.`);
                         } else {
                             restrictions.push(`<:error:642112426162126873> This command can *only* be used in DMs (Direct Messages) or any moderator-only channel.`);
@@ -87,10 +107,10 @@ module.exports = (bot, log) => { return new Command(bot, {
                         restrictions.push(`<:okay:642112445997121536> This command can be used in any channel, including DMs (Direct Messages)`);
                     }
 
-                    if(md.tags['STRICT']) {
+                    if(md.flags['STRICT']) {
                         restrictions.push('<:locked:642112455333511178> Restrictions apply to ALL members, regardless of roles or permissions.');
                     } else
-                    if(md.tags['BOT_CHANNEL_ONLY']) {
+                    if(md.flags['BOT_CHANNEL_ONLY']) {
                         restrictions.push(`<:unlocked:642112465240588338> Moderators exempt from some restrictions.`);
                     }
 
@@ -113,7 +133,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                         restrictions.push('<:locked:642112455333511178> OptiBot developers only.');
                     }
 
-                    if(md.tags['HIDDEN']) {
+                    if(md.flags['HIDDEN']) {
                         restrictions.push(`<:warn:642112437218443297> This is a hidden command. OptiBot will act as if this command does not exist to any user who does not have required permissions.`);
                     }
 

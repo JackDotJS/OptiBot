@@ -8,16 +8,16 @@ module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['policies', 'policys'],
     short_desc: `Search Moderator policies.`,
-    usage: `<~text:query>`,
+    args: `<query>`,
     authlvl: 1,
-    tags: ['DM_OPTIONAL'],
+    flags: ['DM_OPTIONAL'],
 
     run: (m, args, data) => {
         if(!args[0]) {
             data.cmd.noArgs(m);
         } else {
             const policies = {
-                index: require(path.resolve(`./modules/util/policies.js`))(bot),
+                index: bot.util.policies(bot),
                 kw: []
             }
     
@@ -29,7 +29,7 @@ module.exports = (bot, log) => { return new Command(bot, {
     
             policies.kw = [...new Set(policies.kw)] // ensures there are no duplicates
 
-            let match = sim.findBestMatch((m.content.substring( `${bot.prefix}${path.parse(__filename).name} `.length )), policies.kw)
+            let match = sim.findBestMatch((m.content.substring( `${bot.prefix}${data.input.cmd} `.length )), policies.kw)
 
             for(let i = 0; i<policies.index.length; i++) {
                 if(policies.index[i].type === 2 && policies.index[i].kw.indexOf(match.bestMatch.target) > -1) {

@@ -8,9 +8,9 @@ const Command = require(path.resolve(`./modules/core/command.js`));
 module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `Translate any message into English.`,
-    usage: `<text:message | target:message>`,
+    args: `<text | discord message>`,
     authlvl: 1,
-    tags: ['DM_OPTIONAL'],
+    flags: ['DM_OPTIONAL'],
 
     run: (m, args, data) => {
         if (!args[0]) {

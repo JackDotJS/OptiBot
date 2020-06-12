@@ -8,9 +8,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     aliases: ['vote'],
     short_desc: `Start, view, or end a poll.`,
     long_desc: `Starts, displays, or ends a poll. \n\nTo start a vote, type \`${bot.prefix}${path.parse(__filename).name} start\` and then provide the details of the vote. The details will be displayed in the vote message.\n\n To view or simply end an existing vote, type \`${bot.prefix}${path.parse(__filename).name} view\` or \`${bot.prefix}${path.parse(__filename).name} end\` respectively.`,
-    usage: `<opt:view | opt:end | opt:start <text:message>>`,
+    args: `<option> [text]`,
     authlvl: 2,
-    tags: ['NO_DM', 'INSTANT'],
+    flags: ['NO_DM', 'NO_TYPER'],
 
     run: (m, args, data) => {
         if (!args[0]) {

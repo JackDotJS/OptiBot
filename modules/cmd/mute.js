@@ -9,9 +9,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     aliases: ['silence', 'gag'],
     short_desc: `Mute a user.`,
     long_desc: `Stops a user from being able to talk or send messages in text channels. Time limit is optional, and will default to 1 hour if not specified. You can also specify the time measure in (m)inutes, (h)ours, and (d)ays. The maximum time limit is 7 days, but can be set to infinity by using 0. Additionally, you can adjust time limits for users by simply running this command again with the desired time.\n\n**Note that this is not an end-all punishment for every user. It is still very much possible to get around server mutes with the right resources.**`,
-    usage: `<target:discord user> [number:hours | time:time limit | text:reason] [text:reason]`,
+    args: `<discord member> [time | reason] [reason]`,
     authlvl: 2,
-    tags: ['NO_DM', 'LITE'],
+    flags: ['NO_DM', 'LITE'],
 
     run: (m, args, data) => {
         if(!args[0]) {

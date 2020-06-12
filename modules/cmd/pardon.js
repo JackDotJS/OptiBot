@@ -7,9 +7,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `Pardon a record entry.`,
     long_desc: `Dismisses a given record entry. Note that this will only pardon a single record entry. If needed, any linked entries must also be pardoned separately.`,
-    usage: `<target:discord user> <number:case ID> <text:reason>`,
+    args: `<discord member> <case ID> <reason>`,
     authlvl: 4,
-    tags: ['INSTANT'],
+    flags: ['NO_TYPER'],
 
     run: (m, args, data) => {
         if(!args[2]) {

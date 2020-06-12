@@ -10,7 +10,7 @@ module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `About OptiBot.`,
     authlvl: 0,
-    tags: ['DM_OPTIONAL', 'INSTANT', 'BOT_CHANNEL_ONLY'],
+    flags: ['DM_OPTIONAL', 'NO_TYPER', 'BOT_CHANNEL_ONLY'],
 
     run: (m, args, data) => {
         function uptime(ut) {

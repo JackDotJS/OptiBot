@@ -47,7 +47,7 @@ module.exports = (m, target, bot, data) => {
             });
         }
 
-        if (['self', 'myself', 'me', 'i'].indexOf(target.toLowerCase()) > -1) {
+        if (['self', 'myself', 'me'].indexOf(target.toLowerCase()) > -1) {
             log('self')
             if(data.type === 0) {
                 resolve({ type: "user", target: data.member });

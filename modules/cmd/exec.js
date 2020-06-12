@@ -10,9 +10,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['eval'],
     short_desc: `Evaluate JavaScript code.`,
-    usage: '<text:js>',
+    args: '<code>',
     authlvl: 5,
-    tags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'HIDDEN', 'DELETE_ON_MISUSE'],
+    flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'HIDDEN', 'DELETE_ON_MISUSE'],
     
     run: (m, args, data) => {
         bot.setTimeout(() => {

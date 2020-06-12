@@ -8,9 +8,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     aliases: ['risklvl'],
     short_desc: `Member Threat Advisory System`,
     long_desc: `Measures or sets the risk level of a given member.`,
-    usage: `<target:discord user> [opt:calc | opt:set <number:level>]`,
+    args: `<discord member> [opt:calc | opt:set <number:level>]`,
     authlvl: 1,
-    tags: ['NO_DM', 'MOD_CHANNEL_ONLY'],
+    flags: ['NO_DM', 'MOD_CHANNEL_ONLY'],
 
     run: (m, args, data) => {
         if(!args[0]) {

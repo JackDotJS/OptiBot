@@ -3,6 +3,7 @@ const djs = require(`discord.js`);
 
 module.exports = {
     interval: 1000,
+    lite: true,
     fn: (bot, log) => {
         if(!bot.memory.bot.init) {
             for(let i in bot.memory.mutes) {

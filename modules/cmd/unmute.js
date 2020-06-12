@@ -9,9 +9,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     aliases: ['ungag', 'unsilence'],
     short_desc: `Unmute a user.`,
     long_desc: `Allows a user to speak once again, if they've already been muted.`,
-    usage: `<target:member> [text:reason]`,
+    args: `<discord member> [reason]`,
     authlvl: 2,
-    tags: ['NO_DM', 'LITE'],
+    flags: ['NO_DM', 'LITE'],
 
     run: (m, args, data) => {
         if(!args[0]) {

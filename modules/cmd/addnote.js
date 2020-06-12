@@ -8,9 +8,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     aliases: ['addrecord', 'addrecords'],
     short_desc: `Add a note to someone's record.`,
     long_desc: `Adds a note to someone's record. These notes can be edited with the \`${bot.prefix}editrecord\` command, and removed at any time by using the \`${bot.prefix}rmnote\` command.`,
-    usage: `<target:member> <text:note>`,
+    args: `<discord member> <text>`,
     authlvl: 2,
-    tags: ['NO_DM', 'STRICT', 'INSTANT'],
+    flags: ['NO_DM', 'STRICT', 'NO_TYPER'],
 
     run: (m, args, data) => {
         if(!args[1]) {
@@ -33,6 +33,8 @@ module.exports = (bot, log) => { return new Command(bot, {
                     bot.getProfile(result.target.user.id, true).then(profile => {
                         if(!profile.data.essential.record) profile.data.essential.record = [];
                         let reason = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} `.length )
+
+                        // todo: ensure message length does not exceed 750 characters.
 
                         let entry = new bot.util.RecordEntry()
                         .setMod(m.author.id)

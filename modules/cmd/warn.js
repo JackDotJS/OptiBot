@@ -7,9 +7,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `Warn a user.`,
     long_desc: `Gives a warning to a user. All warnings are saved to the users record, but otherwise do nothing.`,
-    usage: `<target:member> [text:reason]`,
+    args: `<discord member> [reason]`,
     authlvl: 2,
-    tags: ['NO_DM', 'STRICT', 'LITE'],
+    flags: ['NO_DM', 'STRICT', 'LITE'],
 
     run: (m, args, data) => {
         if(!args[0]) {

@@ -7,9 +7,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     short_desc: `Short description. Shows in \`${bot.prefix}list\``,
     long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
-    usage: `[any:args]`,
+    args: `[args]`,
     authlvl: 5,
-    tags: ['DM_OPTIONAL', 'INSTANT', 'HIDDEN'],
+    flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
 
     run: (m, args, data) => {
         let channels = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).channels.cache.values()].filter((c) => c.type === 'text').sort((a,b) => a.rawPosition-b.rawPosition);

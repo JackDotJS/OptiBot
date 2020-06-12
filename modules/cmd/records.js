@@ -9,9 +9,9 @@ module.exports = (bot, log) => { return new Command(bot, {
     aliases: ['record', 'history'],
     short_desc: `View a user's record.`,
     long_desc: `View a user's violation history.`,
-    usage: `<target:member> [num:page | num:case ID]`,
+    args: `<discord member> [page number | case ID]`,
     authlvl: 1,
-    tags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'LITE'],
+    flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'LITE'],
 
     run: (m, args, data) => {
         if(!args[0]) {

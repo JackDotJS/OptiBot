@@ -7,10 +7,20 @@ module.exports = (bot, log) => { return new Command(bot, {
     name: path.parse(__filename).name,
     aliases: ['commands', 'cmds', 'cmdlist'],
     short_desc: `List all OptiBot commands.`,
-    long_desc: `Lists all OptiBot commands. By default, this will show every single command you have access to.`,
-    usage: `[number:page [text:filter] | text:filter [number:page]]`,
+    long_desc: [
+        `Lists all OptiBot commands. By default, this will show every single command you have access to. Alternatively, if you have the roles/permissions, you can use the following filters:`,
+        ``,
+        `**\`advisor\`** - Lists all <@&695553561064505345> commands.`,
+        `**\`jrmod\`** - Lists all <@&644668061818945557> commands.`,
+        `**\`srmod\`** - Lists all <@&467060304145023006> commands.`,
+        `**\`mod\`** - Lists all <@&644668061818945557> **and** <@&467060304145023006> commands.`,
+        `**\`admin\`** - Lists all <@&663122057818537995> commands.`,
+        `**\`dev\`** - (DEV) Lists all commands usable by OptiBot Developers.`,
+        `**\`flag:*\`** - (DEV) Lists all commands with the given flag name.`,
+    ].join('\n'),
+    args: `[page number | filter] [filter | page number]`,
     authlvl: 0,
-    tags: ['DM_OPTIONAL'],
+    flags: ['DM_OPTIONAL'],
 
     run: (m, args, data) => {
         let list = bot.commands.index
@@ -129,7 +139,7 @@ module.exports = (bot, log) => { return new Command(bot, {
                     return;
                 } else {
                     let flag = menu.substring( `flag:`.length ).toUpperCase();
-                    filtered = list.filter((cmd) => (cmd.metadata.tags[`${flag}`] ));
+                    filtered = list.filter((cmd) => (cmd.metadata.flags[`${flag}`] ));
                     stext = `Search Filter: FLAG \`${flag}\``;
                 }
             }
@@ -153,10 +163,12 @@ module.exports = (bot, log) => { return new Command(bot, {
             pageNum = selectPage;
         }
 
+        let tooltip = `[?]`;
+
         let embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
         .setAuthor(`OptiBot Command Index | Page ${pageNum}/${pageLimit}`, bot.icons.find('ICO_docs'))
-        .setDescription(`Hover over the tooltip icons [ℹ️](${m.url.replace(/\/\d+$/, '')} "No easter eggs here... 👀") or use \`${bot.prefix}help <command>\` for detailed information.`)
+        .setDescription(`Hover over the tooltip icons [${tooltip}](${m.url.replace(/\/\d+$/, '')} "No easter eggs here... 👀") or use \`${bot.prefix}help <command>\` for detailed information.`)
 
         if(stext.length > 0) {
             embed.setTitle(stext);
@@ -174,23 +186,23 @@ module.exports = (bot, log) => { return new Command(bot, {
                 hover_text.push(cmd.long_desc);
             }
 
-            hover_text.push(`\nUsage: ${cmd.usage}`);
+            hover_text.push(`\nUsage: ${cmd.args}`);
 
-            if (cmd.tags['NO_DM']) {
-                if(cmd.tags['BOT_CHANNEL_ONLY']) {
+            if (cmd.flags['NO_DM']) {
+                if(cmd.flags['BOT_CHANNEL_ONLY']) {
                     hover_text.push(`❌ This command can *only* be used in the #optibot channel.`);
                 } else {
                     hover_text.push(`⚠ This command can be used in any channel, but *not* in DMs (Direct Messages)`);
                 }
             } else
-            if (cmd.tags['DM_ONLY']) {
+            if (cmd.flags['DM_ONLY']) {
                 hover_text.push(`❌ This command can *only* be used in DMs (Direct Messages)`);
             } else
-            if (cmd.tags['BOT_CHANNEL_ONLY']) {
+            if (cmd.flags['BOT_CHANNEL_ONLY']) {
                 hover_text.push(`⚠ This command can *only* be used in DMs (Direct Messages) or the #optibot channel.`);
             } else
-            if (cmd.tags['MOD_CHANNEL_ONLY']) {
-                if(cmd.tags['NO_DM']) {
+            if (cmd.flags['MOD_CHANNEL_ONLY']) {
+                if(cmd.flags['NO_DM']) {
                     hover_text.push(`❌ This command can *only* be used in moderator-only channels.`);
                 } else {
                     hover_text.push(`❌ This command can *only* be used in DMs (Direct Messages) or any moderator-only channel.`);
@@ -199,10 +211,10 @@ module.exports = (bot, log) => { return new Command(bot, {
                 hover_text.push(`☑ This command can be used in any channel, including DMs (Direct Messages)`);
             }
 
-            if(cmd.tags['STRICT']) {
+            if(cmd.flags['STRICT']) {
                 hover_text.push('🔒 Restrictions apply to ALL members, regardless of roles or permissions.');
             } else
-            if(cmd.tags['BOT_CHANNEL_ONLY']) {
+            if(cmd.flags['BOT_CHANNEL_ONLY']) {
                 hover_text.push(`🔓 Moderators exempt from some restrictions.`);
             }
 
@@ -225,11 +237,11 @@ module.exports = (bot, log) => { return new Command(bot, {
                 hover_text.push('🔒 OptiBot developers only.');
             }
 
-            if(cmd.tags['HIDDEN']) {
+            if(cmd.flags['HIDDEN']) {
                 hover_text.push(`⚠ This is a hidden command. OptiBot will act as if this command does not exist to any user who does not have permission.`);
             }
 
-            embed.addField(bot.prefix+cmd.name, `${cmd.short_desc} [ℹ️](${m.url.replace(/\/\d+$/, '')} "${hover_text.join('\n')}")`);
+            embed.addField(bot.prefix+cmd.name, `${cmd.short_desc} [${tooltip}](${m.url.replace(/\/\d+$/, '')} "${hover_text.join('\n')}")`);
             added++;
             
             if (added >= 10 || i+1 >= filtered.length) {

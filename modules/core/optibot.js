@@ -4,48 +4,53 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const path = require(`path`);
 const database = require('nedb');
+const Pastebin = require(`pastebin-js`);
 
 const Command = require(path.resolve(`./modules/core/command.js`));
 
 module.exports = class OptiBot extends djs.Client {
-    constructor (options, debug, log) {
+    constructor (options, mode, log) {
         super(options);
 
         const keys = require(path.resolve('./cfg/keys.json'));
         const cfg = require(path.resolve('./cfg/config.json'));
         const version = require(path.resolve('./package.json')).version;
-        const prefix = (debug) ? cfg.prefixes.debug[0] : cfg.prefixes.default[0]; // first in array is always default, but all others will be accepted during real usage.
+        const prefix = (mode === 0) ? cfg.prefixes.debug[0] : cfg.prefixes.default[0]; // first in array is always default, but all others will be accepted during real usage.
         const splashtext = require(path.resolve('./cfg/splash.json'));
+
+        const pb = new Pastebin({
+            'api_dev_key': keys.pastebin
+        });
 
         const memory = {
             sm: {},
             bot: {
-                locked: debug,
+                locked: (mode === 0 || mode === 1),
                 init: true,
             },
-            activity: {
-                status: 'online',
-                game: '',
-                type: '',
-                url: ''
+            presence: {
+                status: 'online'
             },
             vote: {
                 issue: null,
                 author: null,
                 message: null
             },
-            users: [],
-            audit: null,
-            confirm: [],
-            mods: [],
-            mutes: []
+            users: [], // ids of every user active today
+            audit: null, // audit log cache
+            mods: [], // all moderators and their current status
+            mutes: [], // all users scheduled to be unmuted today
+            mpc: [], // channel ids where modping is on cooldown,
+            wintitle: null // text used for console title
         };
         const storage = {
             msg: new database({ filename: './data/messages.db', autoload: true }),
             motd: new database({ filename: './data/motd.db', autoload: true }),
             profiles: new database({ filename: './data/profiles.db', autoload: true }),
             stats: new database({ filename: './data/statistics.db', autoload: true }),
-            smr: new database({ filename: './data/smr.db', autoload: true })
+            smr: new database({ filename: './data/smr.db', autoload: true }),
+            bl: new database({ filename: './data/blacklist.db', autoload: true }),
+            faq: new database({ filename: './data/faq.db', autoload: true })
         }
         const commands = {
             index: [],
@@ -140,6 +145,12 @@ module.exports = class OptiBot extends djs.Client {
             }
         });
 
+        Object.defineProperty(this, 'pb', {
+            get: function() {
+                return pb;
+            }
+        });
+
         Object.defineProperty(this, 'exitTime', {
             get: function() {
                 let now = new Date()
@@ -161,6 +172,16 @@ module.exports = class OptiBot extends djs.Client {
             }
         });
 
+        Object.defineProperty(this, 'prefixes', {
+            get: function() {
+                if(this.mode === 0) {
+                    return this.cfg.prefixes.debug;
+                } else {
+                    return this.cfg.prefixes.default;
+                }
+            }
+        });
+
         Object.defineProperty(this, 'keys', {
             get: function() {
                 return keys;
@@ -176,37 +197,43 @@ module.exports = class OptiBot extends djs.Client {
         Object.defineProperty(this, 'commands', {
             get: function() {
                 return commands;
-            },
+            }
         });
 
         Object.defineProperty(this, 'images', {
             get: function() {
                 return images;
-            },
+            }
         });
 
         Object.defineProperty(this, 'icons', {
             get: function() {
                 return icons;
-            },
+            }
         });
 
         Object.defineProperty(this, 'debug', {
             get: function() {
-                return debug;
-            },
+                return (mode === 0);
+            }
+        });
+
+        Object.defineProperty(this, 'mode', {
+            get: function() {
+                return mode;
+            }
         });
 
         Object.defineProperty(this, 'splash', {
             get: function() {
                 return splashtext;
-            },
+            }
         });
 
         Object.defineProperty(this, 'log', {
             get: function() {
                 return log;
-            },
+            }
         });
 
         Object.defineProperty(this, 'util', {
@@ -217,6 +244,12 @@ module.exports = class OptiBot extends djs.Client {
                 util = value;
             }
         });
+
+        Object.defineProperty(this, 'serverAvailable', {
+            get: function() {
+                return this.guilds.cache.get(this.cfg.guilds.optifine).available;
+            }
+        })
     }
 
     exit(code = 0) {
@@ -230,60 +263,35 @@ module.exports = class OptiBot extends djs.Client {
          */
 
         this.destroy()
+        this.setWindowTitle('Shutting down...')
 
         setTimeout(() => {
             process.exit(code);
         }, 500);
     }
 
-    setStatus(type) {
-        let ACT_status = 'online';
-        let ACT_type;
-        let ACT_game;
-        let ACT_url;
+    setWindowTitle(text) {
+        if(text !== undefined) this.memory.wintitle = text;
 
-        if (type === -1) {
-            // shutting down
-            ACT_status = 'invisible';
-        } else
-        if (type === 0) {
-            // booting
-            ACT_status = 'idle';
-            ACT_type = 'WATCHING';
-            ACT_game = 'assets load 🔄';
-        } else
-        if (type === 1) {
-            // default state
-            if (this.memory.bot.locked) {
-                if (this.debug) {
-                    ACT_status = 'dnd';
-                    ACT_type = 'PLAYING';
-                    ACT_game = 'Code Mode 💻';
-                } else {
-                    ACT_status = 'dnd';
-                    ACT_type = 'PLAYING';
-                    ACT_game = 'Mod Mode 🔒';
-                }
-            } else {
-                ACT_status = 'online';
-            }
-        } else
-        if (type === 2) {
-            // cooldown active
-            ACT_status = 'idle';
+        function statusName(code) {
+            if(code === 0) return 'READY';
+            if(code === 1) return 'CONNECTING';
+            if(code === 2) return 'RECONNECTING';
+            if(code === 3) return 'IDLE';
+            if(code === 4) return 'NEARLY';
+            if(code === 5) return 'DISCONNECTED';
         }
 
-        this.memory.activity.status = ACT_status;
-        this.memory.activity.game = ACT_game;
-        this.memory.activity.type = ACT_type;
-        this.memory.activity.url = ACT_url;
-        this.user.setPresence({
-            status: ACT_status, 
-            activity: {
-                name: ACT_game,
-                type: ACT_type
-            }
-        });
+        let wintitle = [
+            `OptiBot ${this.version}`,
+            `OP Mode ${this.mode}`,
+            `${Math.round(this.ws.ping)}ms`,
+            `WS Code ${this.ws.status} (${statusName(this.ws.status)})`
+        ]
+
+        if(typeof this.memory.wintitle === 'string') wintitle.push(this.memory.wintitle);
+
+        process.title = wintitle.join(' | ');
     }
 
     loadAssets(type = 0) {
@@ -305,6 +313,7 @@ module.exports = class OptiBot extends djs.Client {
             let stages = [];
             let assetsAsync = [];
             let totals = 0;
+            let errors = 0;
             let done = 0;
 
             if(type === 0 || type === 1 || type === 2) {
@@ -421,6 +430,12 @@ module.exports = class OptiBot extends djs.Client {
                 
                                 try {
                                     let newcmd = require(path.resolve(`./modules/cmd/${cmd}`))(bot, log);
+
+                                    if((bot.mode === 1 || bot.mode === 2) && !newcmd.metadata.flags['LITE']) {
+                                        log(`Unable to load command "${newcmd.metadata.name}" due to Lite mode.`, 'warn');
+                                        i1++;
+                                        loadCmd();
+                                    }
     
                                     if(newcmd.metadata.aliases.length > 0) {
     
@@ -533,9 +548,13 @@ module.exports = class OptiBot extends djs.Client {
                         (function loadTask() {
                             if(tasks[i].endsWith('.js')) {
                                 let task = require(path.resolve(`./modules/tasks/${tasks[i]}`));
-                                bot.setInterval(() => {
-                                    task.fn(bot, log);
-                                }, (task.interval));
+                                if((bot.mode === 1 || bot.mode === 2) && !task.lite) {
+                                    log(`Unable to load task "${tasks[i]}" due to Lite mode.`, 'warn');
+                                } else {
+                                    bot.setInterval(() => {
+                                        task.fn(bot, log);
+                                    }, (task.interval));
+                                }
     
                                 if(i+1 === tasks.length) {
                                     resolve();
@@ -566,7 +585,16 @@ module.exports = class OptiBot extends djs.Client {
                     load: new Promise((resolve, reject) => {
                         bot.memory.mods = [];
 
-                        bot.guilds.cache.get(bot.cfg.guilds.optifine).roles.cache.get(bot.cfg.roles.moderator).members.each(mod => {
+                        let opti = bot.guilds.cache.get(bot.cfg.guilds.optifine);
+
+                        log(bot.cfg.roles.moderator)
+
+                        let getModRole = opti.roles.cache.get(bot.cfg.roles.moderator);
+
+                        log(getModRole);
+                        log(util.inspect(getModRole));
+
+                        getModRole.members.each(mod => {
                             if(mod.id !== '202558206495555585') {
                                 bot.memory.mods.push({
                                     id: mod.id,
@@ -574,15 +602,15 @@ module.exports = class OptiBot extends djs.Client {
                                     last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
                                 });
                             }
-                        });
+                        })
 
-                        bot.guilds.cache.get(bot.cfg.guilds.optifine).roles.cache.get(bot.cfg.roles.jrmod).members.each(mod => {
+                        opti.roles.cache.get(bot.cfg.roles.jrmod).members.each(mod => {
                             bot.memory.mods.push({
                                 id: mod.id,
                                 status: mod.presence.status,
                                 last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
                             });
-                        });
+                        })
     
                         resolve();
                     })
@@ -637,17 +665,30 @@ module.exports = class OptiBot extends djs.Client {
                     done++;
                     log(`Loading assets... ${Math.round((100 * done) / totals)}%`, 'info');
 
-                    
-
                     if(si+1 === stages.length) {
-                        log('All assets loaded successfully.', 'debug')
-                        success(new Date().getTime() - timeStart);
+                        assetsFinal()
+                    } else {
+                        si++;
+                        loadStage();
+                    }
+                }).catch(err => {
+                    log(err.stack, 'error');
+
+                    done++;
+                    errors++;
+                    if(si+1 === stages.length) {
+                        assetsFinal()
                     } else {
                         si++;
                         loadStage();
                     }
                 });
             })();
+
+            function assetsFinal() {
+                log(`Asset loader finished.\n${done}/${totals} stage(s) processed. \n${errors} failure(s).`, 'debug')
+                success(new Date().getTime() - timeStart);
+            }
 
             for(let stage of assetsAsync) {
                 let stageStart = new Date().getTime();
@@ -714,20 +755,9 @@ module.exports = class OptiBot extends djs.Client {
     parseInput(text) {
         if(typeof text !== 'string') text = new String(text);
         let input = text.trim().split("\n", 1)[0]; // first line of the message
-        let prefixes = `\\${this.prefix}`;
-
-        if(this.debug) {
-            if(this.cfg.prefixes.debug.length > 1) {
-                prefixes = `\\${this.cfg.prefixes.debug.join('|\\')}`;
-            }
-        } else {
-            if(this.cfg.prefixes.default.length > 1) {
-                prefixes = `\\${this.cfg.prefixes.default.join('|\\')}`;
-            }
-        }
 
         return {
-            valid: input.match(new RegExp(`^(${prefixes})(?![^a-zA-Z0-9])[a-zA-Z0-9]+(?=\\s|$)`)), // checks if the input starts with the command prefix, immediately followed by valid characters.
+            valid: input.match(new RegExp(`^(\\${this.prefixes.join('|\\')})(?![^a-zA-Z0-9])[a-zA-Z0-9]+(?=\\s|$)`)), // checks if the input starts with the command prefix, immediately followed by valid characters.
             cmd: input.toLowerCase().split(" ")[0].substr(1),
             args: input.split(" ").slice(1).filter(function (e) { return e.length != 0 })
         }
@@ -746,25 +776,18 @@ module.exports = class OptiBot extends djs.Client {
          * 5 = Bot Developer
          * 6+ = God himself
          */
-
-        if(typeof member !== 'object') return;
         
         if(this.cfg.superusers.indexOf(member.user.id) > -1) {
             return 5;
-        } else
-        if(member.permissions.has('ADMINISTRATOR')) {
+        } else if(member.permissions.has('ADMINISTRATOR')) {
             return 4;
-        } else 
-        if(member.roles.cache.has(this.cfg.roles.moderator)) {
+        } else if(member.roles.cache.has(this.cfg.roles.moderator)) {
             return 3;
-        } else
-        if(member.roles.cache.has(this.cfg.roles.jrmod)) {
+        } else if(member.roles.cache.has(this.cfg.roles.jrmod)) {
             return 2;
-        } else
-        if(member.roles.cache.has(this.cfg.roles.advisor)) {
+        } else if(member.roles.cache.has(this.cfg.roles.advisor)) {
             return 1;
-        } else 
-        if(member.roles.cache.has(this.cfg.roles.muted)) {
+        } else if(member.roles.cache.has(this.cfg.roles.muted)) {
             return -1;
         } else {
             return 0;

@@ -27,12 +27,21 @@ const log = (message, level, file, line) => {
     });
 }
 
-const bot = new OptiBot({}, (process.argv[2] === 'true'), log);
+const bot = new OptiBot({
+    presence: {
+        status: 'idle', 
+        activity: {
+            type: 'WATCHING',
+            name: `assets load 🔄`
+        }
+    },
+    disableMentions: 'everyone'
+}, parseInt(process.argv[2]), log);
 
-process.title = `OptiBot ${bot.version} | Connecting...`;
+bot.setWindowTitle('Connecting...');
 
 bot.login(bot.keys.discord).catch(err => {
-    process.title = `OptiBot ${bot.version} | Connection Failed.`;
+    bot.setWindowTitle(`Connection Failed.`);
     log(err, 'fatal');
     process.exit(1);
 });
@@ -45,62 +54,73 @@ bot.on('ready', () => {
     if(bot.memory.bot.init) {
         log('Successfully connected to Discord API.', 'info');
 
-        bot.setStatus(0);
+        let botLoadAssets = function() {
+            bot.setWindowTitle('Loading Assets...');
+    
+            bot.loadAssets().then((time) => {
+                let width = 64; //inner width of box
+                function centerText(text, totalWidth) {
+                    let leftMargin = Math.floor((totalWidth - (text.length)) / 2);
+                    let rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
 
-        process.title = `OptiBot ${bot.version} | Loading Assets...`;
-        
-        bot.loadAssets().then((time) => {
-            bot.setStatus(1);
+                    return `│` + (` `.repeat(leftMargin)) + text + (` `.repeat(rightMargin)) + `│`;
+                }
 
-            let width = 64; //inner width of box
-            function centerText(text, totalWidth) {
-                let leftMargin = Math.floor((totalWidth - (text.length)) / 2);
-                let rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
+                let splash = bot.splash[~~(Math.random() * bot.splash.length)];
 
-                return `│` + (` `.repeat(leftMargin)) + text + (` `.repeat(rightMargin)) + `│`;
-            }
+                if(splash.indexOf('\n') > -1) {
+                    splash = splash.substring(splash.lastIndexOf('\n')+1).substring(0, width);
+                }
 
-            let splash = bot.splash[~~(Math.random() * bot.splash.length)];
+                log(splash, 'debug');
 
-            if(splash.indexOf('\n') > -1) {
-                splash = splash.substring(splash.lastIndexOf('\n')+1).substring(0, width);
-            }
+                log(`╭${'─'.repeat(width)}╮`, `info`); 
+                log(centerText(`  `, width), `info`);
+                log(centerText(`OptiBot ${bot.version}`, width), `info`);
+                log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2020`, width), `info`);
+                log(centerText(`  `, width), `info`);
+                log(centerText(splash, width), `info`);
+                log(centerText(`  `, width), `info`);
+                log(centerText(`Finished initialization in ${process.uptime().toFixed(3)} seconds.`, width), `info`);
+                log(centerText(`Assets loaded in ${time / 1000} seconds.`, width), `info`);
+                log(centerText(`  `, width), `info`);
+                log(`╰${'─'.repeat(width)}╯`, `info`);
 
-            log(splash, 'debug');
+                let embed = new djs.MessageEmbed()
+                .setColor(bot.cfg.embed.default)
+                .setAuthor('OptiBot Initialized', bot.icons.find('ICO_info'))
+                .setTitle(`Version: ${bot.version}`)
+                .setDescription(`Boot Time: ${process.uptime().toFixed(3)} second(s)`)
+                .addField('The following message was brought to you by Math.random()®️', `\`\`\`${bot.splash[~~(Math.random() * bot.splash.length)]}\`\`\``)
+                .setThumbnail(bot.user.displayAvatarURL)
+                .setFooter(`Event logged on ${new Date().toUTCString()}`)
+                .setTimestamp(new Date())
 
-            log(`╭${'─'.repeat(width)}╮`, `info`); 
-            log(centerText(`  `, width), `info`);
-            log(centerText(`OptiBot ${bot.version}`, width), `info`);
-            log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2020`, width), `info`);
-            log(centerText(`  `, width), `info`);
-            log(centerText(splash, width), `info`);
-            log(centerText(`  `, width), `info`);
-            log(centerText(`Finished initialization in ${process.uptime().toFixed(3)} seconds.`, width), `info`);
-            log(centerText(`Assets loaded in ${time / 1000} seconds.`, width), `info`);
-            log(centerText(`  `, width), `info`);
-            log(`╰${'─'.repeat(width)}╯`, `info`);
+                bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
 
-            let embed = new djs.MessageEmbed()
-            .setColor(bot.cfg.embed.default)
-            .setAuthor('OptiBot Initialized', bot.icons.find('ICO_info'))
-            .setTitle(`Version: ${bot.version}`)
-            .setDescription(`Boot Time: ${process.uptime().toFixed(3)} second(s)`)
-            .addField('The following message was brought to you by Math.random()®️', `\`\`\`${bot.splash[~~(Math.random() * bot.splash.length)]}\`\`\``)
-            .setThumbnail(bot.user.displayAvatarURL)
-            .setFooter(`Event logged on ${new Date().toUTCString()}`)
-            .setTimestamp(new Date())
+                process.send({
+                    type: 'ready'
+                });
 
-            bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+                bot.memory.bot.init = false;
 
-            process.send({
-                type: 'ready'
+                bot.util.status(bot, 1);
+                bot.setWindowTitle(null);
+            }).catch(err => {
+                log(err.stack, 'fatal');
+                bot.exit(1);
             });
+            
+            if(bot.memory._temp) delete bot.memory._temp;
+        }
 
-            bot.memory.bot.init = false;
-        }).catch(err => {
-            log(err.stack, 'fatal');
-            bot.exit(1);
-        });
+        if(!bot.serverAvailable) {
+            bot.setWindowTitle('Waiting for primary guild...');
+            log('Primary guild unavailable.\nAssets will be loaded once the guild is available again.', 'warn')
+            bot.memory._temp = botLoadAssets();
+        } else {
+            botLoadAssets();
+        }
     }
 });
 
@@ -123,7 +143,7 @@ bot.on('message', (m) => {
     }
 
     if(m.channel.type !== 'dm' && m.guild.id === bot.cfg.guilds.optifine) {
-        if(!bot.debug) {
+        if(bot.mode > 0) {
             // dynamic slowmode
             if(bot.cfg.channels.blacklist.indexOf(m.channel.id) === -1 && bot.cfg.channels.blacklist.indexOf(m.channel.parentID) === -1) {
                 if(bot.cfg.channels.nomodify.indexOf(m.channel.id) === -1 && bot.cfg.channels.nomodify.indexOf(m.channel.parentID) === -1) {
@@ -154,29 +174,28 @@ bot.on('message', (m) => {
 
     let input = bot.parseInput(m.content);
 
-    if(input.valid) {
-        /////////////////////////////////////////////////////////////
-        // COMMAND HANDLER
-        /////////////////////////////////////////////////////////////
+    bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({ user: m.author.id, cache: true }).then(member => {
+        let authlvl = bot.getAuthlvl(member);
 
-        bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({ user: m.author.id, cache: true }).then(member => {
+        if(authlvl < 4) return; // TODO: REMOVE ON PUBLIC RELEASE
 
-            authlvl = bot.getAuthlvl(member);
-
-            if(authlvl < 4) return; // TODO: REMOVE ON PUBLIC RELEASE
-
+        if(input.valid) {
+            /////////////////////////////////////////////////////////////
+            // COMMAND HANDLER
+            /////////////////////////////////////////////////////////////
+    
             bot.commands.find(input.cmd).then(cmd => {
                 let unknownCMD = () => {
                     let ratings = [];
                                 
-                    bot.commands.index.filter((thisCmd) => thisCmd.metadata.authlvl <= authlvl && !thisCmd.metadata.tags['HIDDEN'])
+                    bot.commands.index.filter((thisCmd) => thisCmd.metadata.authlvl <= authlvl && !thisCmd.metadata.flags['HIDDEN'])
                     .forEach((thisCmd) => {
                         let rating = {
                             command: thisCmd.metadata.name,
                             alias: null,
                             distance: wink(input.cmd, thisCmd.metadata.name)
                         }
-
+    
                         for(let alias of thisCmd.metadata.aliases) {
                             let adist = wink(input.cmd, alias);
                             if(adist > rating.distance) {
@@ -184,10 +203,10 @@ bot.on('message', (m) => {
                                 rating.alias = alias;
                             }
                         }
-
+    
                         ratings.push(rating);
                     });
-
+    
                     ratings.sort((a, b) => {
                         if (a.distance < b.distance) {
                             return 1;
@@ -198,16 +217,16 @@ bot.on('message', (m) => {
                             return 0;
                         }
                     });
-
+    
                     let closest = ratings[0];
-
+    
                     let embed = new djs.MessageEmbed()
                     .setAuthor('Unknown command.', bot.icons.find('ICO_info'))
                     .setColor(bot.cfg.embed.default)
-
+    
                     if (closest.distance > 0.8) {
                         embed.setFooter(`${(closest.distance * 100).toFixed(1)}% match`);
-
+    
                         if(closest.alias !== null) {
                             embed.setDescription(`Perhaps you meant \`${bot.prefix}${closest.alias}\`? (Alias of \`${bot.prefix}${closest.command}\`)`);
                         } else {
@@ -216,187 +235,202 @@ bot.on('message', (m) => {
                     } else {
                         embed.setDescription(`Type \`${bot.prefix}list\` for a list of commands.`);
                     }
-
+    
                     m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
                 }
-
+    
                 let checkMisuse = (msg) => {
                     let embed = new djs.MessageEmbed()
                     .setAuthor(msg, bot.icons.find('ICO_error'))
                     .setColor(bot.cfg.embed.error)
-
+    
                     let content = '_ _';
-
-                    if(cmd.metadata.tags['DELETE_ON_MISUSE']) {
+    
+                    if(cmd.metadata.flags['DELETE_ON_MISUSE']) {
                         m.delete().catch(err => {
                             log(err.stack, 'error');
                         });
                         content = m.author;
                         embed.setDescription('This message will self-destruct in 10 seconds.');
                     }
-
+    
                     m.channel.send(content, {embed: embed}).then(msg => {
-                        if(cmd.metadata.tags['DELETE_ON_MISUSE']) {
+                        if(cmd.metadata.flags['DELETE_ON_MISUSE']) {
                             msg.delete(10000);
                         } else {
                             bot.util.responder(m.author.id, bm, bot)
                         }
                     });
                 }
+    
+                if(cmd) {
+                    let loc = `#${m.channel.name}`;
+                    let logargs = (cmd.metadata.flags['CONFIDENTIAL']) ? m.content.replace(/\S/gi, '*') : m.content;
 
-                if(cmd && ((m.channel.type === 'text' && m.guild.id === bot.cfg.guilds.optifine) || (m.channel.type === 'dm'))) {
-                    log(`[LVL${authlvl}] [${(m.channel.type === 'dm') ? "DM" : '#'+m.channel.name}] Command issued by ${m.author.tag} (${m.author.id}) : ${(cmd.metadata.tags['CONFIDENTIAL']) ? m.content.replace(/\S/gi, '*') : m.content}`, 'info')
+                    if(m.channel.type === 'dm') {
+                        loc = 'DM';
+                    } else if(m.guild.id === bot.cfg.guilds.optibot) {
+                        loc = `OB:#${m.channel.name}`;
+                    }
+
+
+                    log(`[${loc}] [L${authlvl}] ${m.author.tag} (${m.author.id}) Command issued: ${logargs}`, 'info')
                 }
-
+    
                 if(!cmd) {
                     unknownCMD();
                 } else
                 if(authlvl < cmd.metadata.authlvl) {
-                    if(cmd.metadata.tags['HIDDEN']) {
+                    if(cmd.metadata.flags['HIDDEN']) {
                         unknownCMD();
                     } else {
                         checkMisuse('You do not have permission to use this command.');
                     }
                 } else 
-                if(cmd.metadata.tags['NO_DM'] && m.channel.type === 'dm' && (authlvl < 5 || cmd.metadata.tags['STRICT'])) {
+                if(cmd.metadata.flags['NO_DM'] && m.channel.type === 'dm' && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
                     checkMisuse('This command cannot be used in DMs.');
                 } else
-                if(cmd.metadata.tags['DM_ONLY'] && m.channel.type !== 'dm' && (authlvl < 5 || cmd.metadata.tags['STRICT'])) {
+                if(cmd.metadata.flags['DM_ONLY'] && m.channel.type !== 'dm' && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
                     checkMisuse('This command can only be used in DMs.');
                 } else
-                if(cmd.metadata.tags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.bot.indexOf(m.channel.id) === -1 && bot.cfg.channels.bot.indexOf(m.channel.parentID) === -1) && (authlvl === 0 || cmd.metadata.tags['STRICT'])) {
+                if(cmd.metadata.flags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.bot.indexOf(m.channel.id) === -1 && bot.cfg.channels.bot.indexOf(m.channel.parentID) === -1) && (authlvl === 0 || cmd.metadata.flags['STRICT'])) {
                     checkMisuse('This command can only be used in DMs OR the #optibot channel.');
                 } else
-                if(cmd.metadata.tags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1) && (authlvl < 5 || cmd.metadata.tags['STRICT'])) {
+                if(cmd.metadata.flags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1) && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
                     checkMisuse('This command can only be used in moderator-only channels.');
                 } else {
-                    if(!cmd.metadata.tags['INSTANT']) m.channel.startTyping();
+                    if(!cmd.metadata.flags['NO_TYPER']) m.channel.startTyping();
                     bot.setTimeout(() => {
                         try {
-                            cmd.exec(m, input.args, {member, authlvl, input, cmd});
+                            cmd.exec(m, input.args, {member, authlvl, input, cmd, bot, log});
                         }
                         catch (err) {
-                            if(!cmd.metadata.tags['INSTANT']) m.channel.stopTyping()
+                            if(!cmd.metadata.flags['NO_TYPER']) m.channel.stopTyping()
                             bot.util.err(err, bot, {m: m})
                         }
-                    }, (cmd.metadata.tags['INSTANT']) ? 10 : Math.round(bot.ws.ping)+250)
+                    }, (cmd.metadata.flags['NO_TYPER']) ? 10 : Math.round(bot.ws.ping)+250)
                 }
-
+    
             }).catch(err => {
-                log(err.stack, 'error');
-            })
-        }).catch(err => {
-            if (err.code === 10007) {
-                bot.util.err('Sorry, you must be a member of the OptiFine Discord server to use this bot.', bot, {m: m});
-            } else {
-                throw (err);
-            }
-        });
-    } else {
-        /////////////////////////////////////////////////////////////
-        // TIDBIT HANDLER
-        /////////////////////////////////////////////////////////////
-
-        if (m.channel.type === 'dm') {
-            let embed = new djs.MessageEmbed()
-            .setColor(bot.cfg.embed.default)
-            //.setAuthor(`Hi there!`, bot.icons.find('ICO_info'))
-            .setTitle('Hi there!')
-            .setDescription(`For a list of commands, type \`${bot.prefix}list\`. If you've donated and you'd like to receive your donator role, type \`${bot.prefix}help dr\` for instructions.`)
-
-            m.channel.send({ embed: embed });
-        } else
-        if(m.content.indexOf('discordapp.com') > -1) {
-            let urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
-
-            if(urls !== null) {
-                for(let link of urls) {
-                    let seg = link.split(/(?<!\/)\/(?!\/)|(?<!\\)\\(?!\\)/g).reverse();
-
-                    if(!isNaN(parseInt(seg[0])) && !isNaN(parseInt(seg[1])) && !isNaN(parseInt(seg[2]))) {
-                        foundQuote(seg);
-                        break;
+                bot.util.err(err, bot, {m:m});
+            });
+        } else {
+            /////////////////////////////////////////////////////////////
+            // TIDBIT HANDLER
+            /////////////////////////////////////////////////////////////
+    
+            if (m.channel.type === 'dm') {
+                let embed = new djs.MessageEmbed()
+                .setColor(bot.cfg.embed.default)
+                //.setAuthor(`Hi there!`, bot.icons.find('ICO_info'))
+                .setTitle('Hi there!')
+                .setDescription(`For a list of commands, type \`${bot.prefix}list\`. If you've donated and you'd like to receive your donator role, type \`${bot.prefix}help dr\` for instructions.`)
+    
+                m.channel.send({ embed: embed });
+            } else
+            if(m.content.indexOf('discordapp.com') > -1) {
+                let urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
+    
+                if(urls !== null) {
+                    for(let link of urls) {
+                        // todo: make sure this is a discordapp.com url
+                        // current setup only checks if the given url has 5 segments and nothing more
+                        // need to fix this in message target util as well
+                        let seg = link.split(/(?<!\/)\/(?!\/)|(?<!\\)\\(?!\\)/g).reverse();
+    
+                        if(seg.length === 5 && !isNaN(parseInt(seg[0])) && !isNaN(parseInt(seg[1])) && !isNaN(parseInt(seg[2]))) {
+                            foundQuote(seg);
+                            break;
+                        }
                     }
-                }
-
-                function foundQuote(seg) {
-                    let rg = seg[2];
-                    let rc = seg[1];
-                    let rm = seg[0];
-
-                    let guild = bot.guilds.cache.get(rg);
-                    let channel;
-                    if(guild !== undefined) channel = guild.channels.cache.get(rc);
-
-                    if(channel !== undefined) {
-                        channel.messages.fetch(rm).then(msg => {
-                            let contents = msg.content;
-                            let image = null;
-                            let embed = new djs.MessageEmbed()
-                            .setColor(bot.cfg.embed.default)
-                            .setAuthor(`Message Quote`, bot.icons.find('ICO_quote'))
-                            .setTitle(`Posted by ${msg.author.tag}`)
-                            .setFooter(`Quoted by ${m.author.tag}`)
     
-                            /* if(msg.author.displayAvatarURL.endsWith('.gif')) {
-                                embed.setThumbnail(msg.author.displayAvatarURL.substring(0, msg.author.displayAvatarURL.lastIndexOf('.')))
-                            } else {
-                                embed.setThumbnail(msg.author.displayAvatarURL)
-                            } */
+                    function foundQuote(seg) {
+                        let rg = seg[2];
+                        let rc = seg[1];
+                        let rm = seg[0];
     
-                            if(msg.content.length === 0) {
-                                contents = []
-                                if(msg.embeds.length > 0) {
-                                    contents.push(`\`[${msg.embeds.length} Embed(s)]\``);
-                                }
+                        let guild = bot.guilds.cache.get(rg);
+                        let channel;
+                        if(guild !== undefined) channel = guild.channels.cache.get(rc);
     
+                        if(channel !== undefined) {
+                            channel.messages.fetch(rm).then(msg => {
+                                let contents = msg.content;
+                                let image = null;
+                                let embed = new djs.MessageEmbed()
+                                .setColor(bot.cfg.embed.default)
+                                .setAuthor(`Message Quote`, bot.icons.find('ICO_quote'))
+                                .setTitle(`Posted by ${msg.author.tag}`)
+                                .setFooter(`Quoted by ${m.author.tag}`)
+        
+                                /* if(msg.author.displayAvatarURL.endsWith('.gif')) {
+                                    embed.setThumbnail(msg.author.displayAvatarURL.substring(0, msg.author.displayAvatarURL.lastIndexOf('.')))
+                                } else {
+                                    embed.setThumbnail(msg.author.displayAvatarURL)
+                                } */
+        
+                                if(msg.content.length === 0) {
+                                    contents = []
+                                    if(msg.embeds.length > 0) {
+                                        contents.push(`\`[${msg.embeds.length} Embed(s)]\``);
+                                    }
+        
+                                    if(msg.attachments.size > 0) {
+                                        let attURL = msg.attachments.first().url;
+                                        if(attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
+                                            image = attURL;
+        
+                                            if((msg.attachments.size - 1) > 0) {
+                                                contents.push(`\`[${msg.attachments.size} Attachment(s)]\``);
+                                            }
+                                        } else {
+                                            contents.push(`\`[${msg.attachments.size} Attachment(s)]\``);
+                                        }
+                                    }
+        
+                                    if(contents.length > 0) {
+                                        contents = contents.join('\n');
+                                    }
+                                } else
                                 if(msg.attachments.size > 0) {
                                     let attURL = msg.attachments.first().url;
                                     if(attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
                                         image = attURL;
-    
-                                        if((msg.attachments.size - 1) > 0) {
-                                            contents.push(`\`[${msg.attachments.size} Attachment(s)]\``);
-                                        }
-                                    } else {
-                                        contents.push(`\`[${msg.attachments.size} Attachment(s)]\``);
                                     }
                                 }
-    
-                                if(contents.length > 0) {
-                                    contents = contents.join('\n');
+        
+                                if(contents.length !== 0) {
+                                    embed.setDescription(contents);
                                 }
-                            } else
-                            if(msg.attachments.size > 0) {
-                                let attURL = msg.attachments.first().url;
-                                if(attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
-                                    image = attURL;
+        
+                                if(image !== null) {
+                                    embed.setImage(image);
                                 }
-                            }
-    
-                            if(contents.length !== 0) {
-                                embed.setDescription(contents);
-                            }
-    
-                            if(image !== null) {
-                                embed.setImage(image);
-                            }
-    
-                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
-                        }).catch(err => {
-                            if(err.stack.toLowerCase().indexOf('unknown message') === -1) {
-                                log(err.stack, 'error');
-                            }
-                        });
+        
+                                m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                            }).catch(err => {
+                                if(err.stack.toLowerCase().indexOf('unknown message') === -1) {
+                                    log(err.stack, 'error');
+                                }
+                            });
+                        }
                     }
                 }
             }
-        }
+    
+            if (m.mentions.has(bot.user)) {
+                m.react(bot.guilds.cache.get(bot.cfg.guilds.optifine).emojis.cache.get('663409134644887572'));
+            }
 
-        if (m.mentions.has(bot.user)) {
-            m.react(bot.guilds.cache.get(bot.cfg.guilds.optifine).emojis.cache.get('663409134644887572'));
+
         }
-    }
+    }).catch(err => {
+        if (err.code === 10007 && input.valid) {
+            bot.util.err('Sorry, you must be a member of the OptiFine Discord server to use this bot.', bot, {m: m});
+        } else {
+            bot.util.err(err, bot);
+        }
+    });
 });
 
 ////////////////////////////////////////
@@ -404,10 +438,24 @@ bot.on('message', (m) => {
 ////////////////////////////////////////
 
 process.on('message', (m) => {
-    if(m.crashlog !== null) {
-        log('got crash data', 'trace');
+    if(m.crashlog) {
+        log('got crash data');
         bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({user: '181214529340833792', cache: true}).then(jack => {
             jack.send(`**=== OptiBot Crash Recovery Report ===**`, new djs.MessageAttachment(`./logs/${m.crashlog}`));
+        }).catch(err => {
+            log(err.stack, 'error');
+        });
+    } else
+    if(m.restart) {
+        log('got restart data');
+        bot.guilds.cache.get(m.restart.guild).channels.cache.get(m.restart.channel).messages.fetch(m.restart.message).then(msg => {
+            let embed = new djs.MessageEmbed()
+            .setAuthor(`Restarted in ${((new Date().getTime() - msg.createdTimestamp) / 1000).toFixed(1)} seconds.`, bot.icons.find('ICO_okay'))
+            .setColor(bot.cfg.embed.okay);
+
+            msg.edit({embed: embed}).then(msgF => {
+                bot.util.responder(m.author, msgF, bot)
+            })
         }).catch(err => {
             log(err.stack, 'error');
         });
@@ -446,8 +494,8 @@ bot.on('presenceUpdate', (old, mem) => {
 bot.on('messageDelete', m => {
     let timeNow = new Date();
     if (m.channel.type === 'dm') return;
-    //if (m.guild.id !== bot.cfg.guilds.optifine) return;
     if (m.author.system || m.author.bot) return;
+    if (m.guild.id !== bot.cfg.guilds.optifine) return;
     if (bot.parseInput(m).cmd === 'dr') return;
 
     bot.setTimeout(() => {
@@ -657,11 +705,11 @@ bot.on('messageDeleteBulk', ms => {
 ////////////////////////////////////////
 
 bot.on('messageUpdate', (m, mNew) => {
-    let timeNow = new Date();
     if (m.channel.type === 'dm') return;
-    if (mNew.guild.id !== bot.cfg.guilds.optifine) return;
     if (m.author.system || m.author.bot) return;
-    if (m.content.trim().toLowerCase() == mNew.content.trim().toLowerCase()) return;
+    if (mNew.guild.id !== bot.cfg.guilds.optifine) return;
+    let timeNow = new Date();
+    if (m.content.trim().toLowerCase() == mNew.content.trim().toLowerCase()) return; // ignore embed updates
     if (bot.parseInput(mNew).cmd === 'dr') return;
 
     let zw = "​"; // zero width character, NOT an empty string. only needed to fix emoji-only messages on mobile from being gigantic.
@@ -1087,11 +1135,33 @@ bot.on('rateLimit', rl => {
 });
 
 ////////////////////////////////////////
+// Server Outage
+////////////////////////////////////////
+
+bot.on('guildUnavailable', (guild) => {
+    log(`Guild Unavailable! \nUnable to connect to "${guild.name}" \nGuild ID: ${guild.id}`, 'warn');
+});
+
+////////////////////////////////////////
+// Guild Updated
+////////////////////////////////////////
+
+bot.on('guildUpdate', (oldg, newg) => {
+    if(oldg.available === false && newg.available === true) {
+        log(`Guild available! \n"${newg.name}" has recovered. \nGuild ID: ${guild.id}`, 'warn');
+        if(newg.id === bot.cfg.guilds.optifine) {
+            bot.memory._temp();
+        }
+    }
+});
+
+////////////////////////////////////////
 // Shard Ready
 ////////////////////////////////////////
 
 bot.on('shardReady', (id, guilds) => {
     log(`Shard WebSocket ready. \nShard ID: ${id} \nUnavailable Guilds: ${(guilds) ? '\n'+[...guilds].join('\n') : 'None.'}`, 'info');
+    bot.setWindowTitle()
 });
 
 ////////////////////////////////////////
@@ -1203,6 +1273,7 @@ bot.on('shardDisconnect', (event, id) => {
     }
 
     log(`Shard WebSocket disconnected. \nShard ID: ${id} \nEvent Code: ${event.code} (${getCodeName(event.code)})`, 'warn');
+    bot.setWindowTitle()
 });
 
 ////////////////////////////////////////
@@ -1211,6 +1282,7 @@ bot.on('shardDisconnect', (event, id) => {
 
 bot.on('shardReconnecting', id => {
     log(`Shard WebSocket reconnecting... \nShard ID: ${id}`, 'warn');
+    bot.setWindowTitle()
 });
 
 ////////////////////////////////////////
@@ -1219,6 +1291,7 @@ bot.on('shardReconnecting', id => {
 
 bot.on('shardResume', (id, replayed) => {
     log(`Shard WebSocket resumed. \nShard ID: ${id} \nEvents replayed: ${replayed}`, 'info');
+    bot.setWindowTitle()
 });
 
 ////////////////////////////////////////
@@ -1227,6 +1300,7 @@ bot.on('shardResume', (id, replayed) => {
 
 bot.on('shardError', (err, id) => {
     log(`Shard WebSocket connection error. \nShard ID: ${id} \nStack: ${err.stack || err}`, 'error');
+    bot.setWindowTitle()
 });
 
 ////////////////////////////////////////
@@ -1235,6 +1309,7 @@ bot.on('shardError', (err, id) => {
 
 bot.on('invalidated', () => {
     log('Session Invalidated.', 'fatal');
+    setWindowTitle('Session invalidated.')
     process.exit(1);
 });
 

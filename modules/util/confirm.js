@@ -28,14 +28,16 @@ module.exports = (m, botmsg, bot) => {
         });
 
         df.on('end', (c, reason) => {
-            if(reason !== 'done') {
-                log(reason, 'error');
-            }
-
             if(!botmsg.deleted) {
                 botmsg.reactions.removeAll().then(() => {
-                    bot.util.responder(m.author.id, botmsg, bot);
-                    resolve(-1);
+                    if(reason === 'done') {
+                        return;
+                    } else
+                    if(reason === 'time') {
+                        resolve(-1);
+                    } else {
+                        log(reason, 'error');
+                    }
                 })
             }
         });

@@ -3,21 +3,29 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const Command = require(path.resolve(`./modules/core/command.js`));
 
-module.exports = (bot, log) => { return new Command(bot, {
-    name: path.parse(__filename).name,
-    aliases: ['aliases'],
-    short_desc: `Short description. Shows in \`${bot.prefix}list\``,
-    long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
-    usage: `[any:args]`,
-    image: 'IMG_args.png',
-    authlvl: 1000,
-    tags: ['DM_OPTIONAL', 'INSTANT', 'HIDDEN'],
+const setup = (bot) => { 
+    return new Command(bot, {
+        name: path.parse(__filename).name,
+        aliases: ['aliases'],
+        short_desc: `Short description. Shows in \`${bot.prefix}list\``,
+        long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
+        args: `[args]`,
+        image: 'IMG_args.png',
+        authlvl: 1000,
+        flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
+        run: func
+    });
+}
 
-    run: (m, args, data) => {
-        let embed = new djs.MessageEmbed()
-        .setAuthor(`Example MessageEmbed`, bot.icons.index[~~(Math.random() * bot.icons.index.length)].data)
-        .setColor(bot.cfg.embed.egg)
+const func = (m, args, data) => {
+    const bot = data.bot;
+    const log = data.log;
 
-        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
-    }
-})}
+    let embed = new djs.MessageEmbed()
+    .setAuthor(`Example MessageEmbed`, bot.icons.index[~~(Math.random() * bot.icons.index.length)].data)
+    .setColor(bot.cfg.embed.default)
+
+    m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+}
+
+module.exports = setup

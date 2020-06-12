@@ -8,7 +8,7 @@ module.exports = (bot, log) => { return new Command(bot, {
     aliases: ['poop', 'shit'],
     short_desc: `You know what this does.`,
     authlvl: 4,
-    tags: ['DM_OPTIONAL', 'INSTANT'],
+    flags: ['DM_OPTIONAL', 'NO_TYPER'],
 
     run: (m, args, data) => {
         m.channel.send({

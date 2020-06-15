@@ -1,5 +1,3 @@
-const events = require('events');
-
 /**
  * Allows users to confirm specific requests.
  * This should ONLY be used in the `then()` function of a `channel.send()` promise.

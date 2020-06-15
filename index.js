@@ -58,8 +58,11 @@ bot.on('ready', () => {
             bot.setWindowTitle('Loading Assets...');
     
             bot.loadAssets().then((time) => {
+                let now = new Date();
                 let width = 64; //inner width of box
                 function centerText(text, totalWidth) {
+                    text = text.substring(0, totalWidth-8);
+
                     let leftMargin = Math.floor((totalWidth - (text.length)) / 2);
                     let rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
 
@@ -86,17 +89,18 @@ bot.on('ready', () => {
                 log(centerText(`  `, width), `info`);
                 log(`╰${'─'.repeat(width)}╯`, `info`);
 
-                let embed = new djs.MessageEmbed()
+                let logEntry = new bot.util.LogEntry(bot, {time: now})
                 .setColor(bot.cfg.embed.default)
-                .setAuthor('OptiBot Initialized', bot.icons.find('ICO_info'))
-                .setTitle(`Version: ${bot.version}`)
+                .setIcon(bot.icons.find('ICO_info'))
+                .setThumbnail(bot.user.displayAvatarURL({format: 'png'}))
+                .setTitle(`OptiBot Initialized`, `OptiBot Initalization Time Report`)
+                .setHeader(`Version: ${bot.version}`)
                 .setDescription(`Boot Time: ${process.uptime().toFixed(3)} second(s)`)
-                .addField('The following message was brought to you by Math.random()®️', `\`\`\`${bot.splash[~~(Math.random() * bot.splash.length)]}\`\`\``)
-                .setThumbnail(bot.user.displayAvatarURL)
-                .setFooter(`Event logged on ${new Date().toUTCString()}`)
-                .setTimestamp(new Date())
-
-                bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+                .addSection(`The following message was brought to you by Math.random()®`, {
+                    data: `\`\`\`${splash}\`\`\``,
+                    raw: splash
+                })
+                .submit("misc")
 
                 process.send({
                     type: 'ready'
@@ -114,7 +118,7 @@ bot.on('ready', () => {
             if(bot.memory._temp) delete bot.memory._temp;
         }
 
-        if(!bot.serverAvailable) {
+        if(!bot.mainGuild.available) {
             bot.setWindowTitle('Waiting for primary guild...');
             log('Primary guild unavailable.\nAssets will be loaded once the guild is available again.', 'warn')
             bot.memory._temp = botLoadAssets();
@@ -174,7 +178,7 @@ bot.on('message', (m) => {
 
     let input = bot.parseInput(m.content);
 
-    bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({ user: m.author.id, cache: true }).then(member => {
+    bot.mainGuild.members.fetch({ user: m.author.id, cache: true }).then(member => {
         let authlvl = bot.getAuthlvl(member);
 
         if(authlvl < 4) return; // TODO: REMOVE ON PUBLIC RELEASE
@@ -419,7 +423,7 @@ bot.on('message', (m) => {
             }
     
             if (m.mentions.has(bot.user)) {
-                m.react(bot.guilds.cache.get(bot.cfg.guilds.optifine).emojis.cache.get('663409134644887572'));
+                m.react(bot.mainGuild.emojis.cache.get('663409134644887572'));
             }
 
 
@@ -440,7 +444,7 @@ bot.on('message', (m) => {
 process.on('message', (m) => {
     if(m.crashlog) {
         log('got crash data');
-        bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({user: '181214529340833792', cache: true}).then(jack => {
+        bot.mainGuild.members.fetch({user: '181214529340833792', cache: true}).then(jack => {
             jack.send(`**=== OptiBot Crash Recovery Report ===**`, new djs.MessageAttachment(`./logs/${m.crashlog}`));
         }).catch(err => {
             log(err.stack, 'error');
@@ -492,15 +496,17 @@ bot.on('presenceUpdate', (old, mem) => {
 ////////////////////////////////////////
 
 bot.on('messageDelete', m => {
-    let timeNow = new Date();
+    let now = new Date();
     if (m.channel.type === 'dm') return;
     if (m.author.system || m.author.bot) return;
     if (m.guild.id !== bot.cfg.guilds.optifine) return;
     if (bot.parseInput(m).cmd === 'dr') return;
 
+    bot.memory.rdel.push(m.id);
+
     bot.setTimeout(() => {
         log('begin calculation of executor', 'trace')
-        bot.guilds.cache.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
+        bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
 
             let ad = [...audit.entries.values()];
 
@@ -548,156 +554,108 @@ bot.on('messageDelete', m => {
                 }
             }
 
-            
-
             function finalLog() {
-                let zw = "​"; // zero width character, NOT an empty string. only needed to fix emoji-only messages on mobile from being gigantic.
-                let embed = new djs.MessageEmbed()
-                .setColor(bot.cfg.embed.error)
-                .setDescription(`Original message posted on ${m.createdAt.toUTCString()}\n(${timeago.format(m.createdAt)})`)
-                .addField('Author', `${m.author} | ${m.author.tag} \n\`\`\`yaml\n${m.author.id}\`\`\``)
-                .addField(`Message Location`, `${m.channel}`)
-                .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-                .setTimestamp(timeNow)
+                bot.memory.audit = [...audit.entries.values()];
+                let desc = [
+                    `Message originally posted on ${m.createdAt.toUTCString()}`,
+                    `(${timeago.format(m.createdAt)})`
+                ];
 
-                let files;
-                let contents = [
-                    '////////////////////////////////////////////////////////////////',
-                    'OptiLog Message Deletion Report',
-                    `Date: ${timeNow.toUTCString()}`,
-                    '////////////////////////////////////////////////////////////////',
-                    '',
-                ]
+                let logEntry = new bot.util.LogEntry(bot, {time: now})
+                .setColor(bot.cfg.embed.error)
+                .setIcon(bot.icons.find('ICO_trash'))
+                .setTitle(`Message Deleted`, `Message Deletion Report`)
+                .setDescription(desc.join('\n'), desc.join(' '))
+                .addSection(`Author`, m.author)
 
                 if(dType === 1) {
-                    embed.setAuthor(`Message Deleted by Moderator`, bot.icons.find('ICO_trash'))
-                    .addField('Moderator Responsible', `${dlog.executor} | ${dlog.executor.tag} \n\`\`\`yaml\n${dlog.executor.id}\`\`\``)
-
-                    if(dlog.reason !== null) embed.addField('Reason', dlog.reason)
-
-                    contents.push([
-                        `Executor: Moderator`,
-                        `Moderator Responsible: ${dlog.executor.tag} (${dlog.executor.id})`,
-                        `Reason: ${(dlog.reason === null) ? 'No reason provided.' : dlog.reason}`,
-                        ``,
-                        '////////////////////////////////////////////////////////////////',
-                    ].join('\n'))
-                } else 
-                if(m.member !== null && m.member.deleted) {
-                    embed.setAuthor(`Message Deleted`, bot.icons.find('ICO_trash'))
-                    embed.addField('Note', 'This message *may* have been deleted as part of a user ban.');
-
-                    contents.push([
-                        `Executor: Unknown`,
-                        `Notice: This message was likely deleted during a user ban`,
-                        ``,
-                        '////////////////////////////////////////////////////////////////',
-                    ].join('\n'))
+                    logEntry.addSection(`Deleted By`, dlog.executor)
+                } else
+                if((m.member !== null && m.member.deleted) || (!m.member)) {
+                    logEntry.addSection(`Deleted By`, `Unknown (Possibly deleted during a ban)`)
                 } else {
-                    embed.setAuthor(`Message Deleted by Author`, bot.icons.find('ICO_trash'))
-
-                    contents.push([
-                        `Executor: Author`,
-                        ``,
-                        '////////////////////////////////////////////////////////////////',
-                    ].join('\n'))
-                }
-                if(m.content.length > 1000) {
-                    embed.addField('Deleted Message (Truncated)', `${(typeof m.content === 'string') ? m.content.substring(0, 1000) : 'null'}​...`)
-                    .setTitle('The contents of this message are too long to show in an embed. See the attached file above for details.')
-                } else {
-                    embed.addField('Deleted Message', `${m.content || 'null'}​${zw}`)
+                    logEntry.addSection(`Deleted By`, `Author`)
                 }
 
-                contents.push([
-                    `Author: ${m.author.tag} (${m.author.id})`,
-                    `Post Date: ${m.createdAt.toUTCString()}`,
-                    `Message ID: ${m.id}`,
-                    `Location: #${m.channel.name} (${m.channel.id})`,
-                    '',
-                    `Message Content:`,
-                    m.content,
-                    ``
-                ].join('\n'));
+                logEntry.addSection(`Message Location`, m)
 
-                let attach = [];
+                if(m.content > 0) {
+                    logEntry.addSection(`Message Contents`, m.content);
+                }
+
+                let att = [];
+                let att_raw = [];
                 if (m.attachments.size > 0) {
-                    m.attachments.each(at => {
-                        attach.push(at.url);
+                    m.attachments.each(a => {
+                        att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`)
+                        att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`)
                     });
-
-                    contents.push([
-                        'Attachments:',
-                        attach.join('\n'),
-                        '',
-                    ].join('\n'))
-
-                    embed.addField('Message Attachments', attach.join('\n'));
                 }
 
-                contents.push('////////////////////////////////////////////////////////////////');
+                if(att.length > 0) {
+                    logEntry.addSection(`Message Attachments`, {
+                        data: att.join('\n'),
+                        raw: att_raw.join('\n')
+                    })
+                }
 
-                if(m.content.length > 1000) files = [new djs.MessageAttachment(Buffer.from(contents.join('\n')), 'optilog_deleted_message.txt')];
+                if(m.embeds.length > 0) {
+                    logEntry.addSection(`Message Embeds`, `[${m.embeds.length} Embed${(m.embeds.length > 1) ? "s" : ""}]`)
+                }
 
-                bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed, files: files});
-                
-                bot.memory.audit = [...audit.entries.values()];
+                logEntry.submit("delete")
+
+                bot.memory.rdel.splice(bot.memory.rdel.indexOf(m.id), 1);
             }
         })
-    }, 2000);
+    }, 5000);
 });
 
 bot.on('messageDeleteBulk', ms => {
-    let timeNow = new Date();
+    let now = new Date();
 
-    let contents = [
-        '////////////////////////////////////////////////////////////////',
-        'OptiLog Multiple Message Deletion Report',
-        `Date: ${timeNow.toUTCString()}`,
-        '////////////////////////////////////////////////////////////////',
-        ''
-    ]
-    ms.each(m => {
-        let tm = [
-            `Author: ${m.author.tag} (${m.author.id})`,
-            `Post Date: ${m.createdAt.toUTCString()}`,
-            `Message ID: ${m.id}`,
-            `Location: #${m.channel.name} (${m.channel.id})`,
-            ``,
-            `Message Content:`,
-            m.content
-        ]
+    bot.setTimeout(() => {
+        ms.each(m => {
+            let desc = [
+                `Message originally posted on ${m.createdAt.toUTCString()}`,
+                `(${timeago.format(m.createdAt)})`
+            ];
+    
+            let logEntry = new bot.util.LogEntry(bot, {time: now})
+            .setColor(bot.cfg.embed.error)
+            .setIcon(bot.icons.find('ICO_trash'))
+            .setTitle(`(Bulk) Message Deleted`, `(Bulk) Message Deletion Report`)
+            .setDescription(desc.join('\n'), desc.join(' '))
+            .addSection(`Author`, m.author)
+            .addSection(`Message Location`, m)
 
-        if (m.attachments.size > 0) {
-            tm.push('');
-            tm.push('Attachments:')
-            m.attachments.each(at => {
-                tm.push(at.url);
-            });
-        }
+            if(m.content > 0) {
+                logEntry.addSection(`Message Contents`, m.content);
+            }
 
-        tm.push('\n////////////////////////////////////////////////////////////////\n',)
+            let att = [];
+            let att_raw = [];
+            if (m.attachments.size > 0) {
+                m.attachments.each(a => {
+                    att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`)
+                    att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`)
+                });
+            }
 
-        contents.push(tm.join('\n'));
-    });
+            if(att.length > 0) {
+                logEntry.addSection(`Message Attachments`, {
+                    data: att.join('\n'),
+                    raw: att_raw.join('\n')
+                })
+            }
 
-    // todo: add config for "files" channel in optibot server
-    // need to do something similar for other events that post raw text files
-    bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({
-        files: [new djs.MessageAttachment(Buffer.from(contents.join('\n')), 'optilog_bulk_deleted_messages.txt')]
-    }).then(am => {
-        let embed = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.error)
-        .setAuthor(`Multiple Messages Deleted`, bot.icons.find('ICO_trash'))
-        .setTitle(`See linked file for details.`)
-        .setURL([...am.attachments.values()][0].url)
-        .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-        .setTimestamp(timeNow);
+            if(m.embeds.length > 0) {
+                logEntry.addSection(`Message Embeds`, `[${m.embeds.length} Embed${(m.embeds.length > 1) ? "s" : ""}]`)
+            }
 
-        bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({
-            embed: embed
+            logEntry.submit("delete")
         });
-    });
+    }, 5000);
 });
 
 ////////////////////////////////////////
@@ -762,7 +720,7 @@ bot.on('messageUpdate', (m, mNew) => {
         embed.addField('New Message', `${mNew.content || 'null'}​${zw}`)
     }
 
-    bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed, files: files});
+    //bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed, files: files});
 });
 
 ////////////////////////////////////////
@@ -805,7 +763,7 @@ bot.on('channelUpdate', (oldc, newc) => {
 
         embed.setDescription(`Channel: ${newc.toString()}`)
 
-        bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+        //bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
     }
 });
 
@@ -815,7 +773,7 @@ bot.on('channelUpdate', (oldc, newc) => {
 
 bot.on('guildMemberAdd', member => {
     let timeNow = new Date();
-    let count = bot.guilds.cache.get(bot.cfg.guilds.optifine).memberCount;
+    let count = bot.mainGuild.memberCount;
     if (member.guild.id !== bot.cfg.guilds.optifine) return;
 
     // DO NOT SET THIS TO TRUE UNDER ANY CIRCUMSTANCES
@@ -857,7 +815,7 @@ bot.on('guildMemberAdd', member => {
             embed.setTitle('Warning: New Discord Account')
         }
 
-        bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed}).then(() => {
+        /* bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed}).then(() => {
             if(count % 1000 === 0) {
                 let embed = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.okay)
@@ -870,7 +828,7 @@ bot.on('guildMemberAdd', member => {
         
                 bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
             }
-        });
+        }); */
     }
 });
 
@@ -891,7 +849,7 @@ bot.on('guildMemberRemove', member => {
     }
 
     bot.setTimeout(() => {
-        bot.guilds.cache.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10 }).then((audit) => {
+        bot.mainGuild.fetchAuditLogs({ limit: 10 }).then((audit) => {
             let ad = [...audit.entries.values()];
 
             for(let i = 0; i < ad.length; i++) {
@@ -907,7 +865,7 @@ bot.on('guildMemberRemove', member => {
                         .setFooter(`Event logged on ${timeNow.toUTCString()}`)
                         .setTimestamp(timeNow)
 
-                        bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+                        //bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
                     }
                     break;
                 } else
@@ -917,12 +875,12 @@ bot.on('guildMemberRemove', member => {
                     .setAuthor('Member Left', bot.icons.find('ICO_leave'))
                     .setDescription(`${member} | ${member.user.tag} \n\`\`\`yaml\n${member.user.id}\`\`\``)
                     .addField('Initial Join Date', (member.joinedAt !== null) ? `${member.joinedAt.toUTCString()}\n(${timeago.format(member.joinedAt)})` : 'Unknown.')
-                    .addField('New Member Count', bot.guilds.cache.get(bot.cfg.guilds.optifine).memberCount.toLocaleString())
+                    .addField('New Member Count', bot.mainGuild.memberCount.toLocaleString())
                     .setThumbnail(member.user.displayAvatarURL)
                     .setFooter(`Event logged on ${timeNow.toUTCString()}`)
                     .setTimestamp(timeNow)
 
-                    bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+                    //bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
                 }
             }
         }).catch(err => log(err.stack, 'error'));
@@ -934,43 +892,72 @@ bot.on('guildMemberRemove', member => {
 ////////////////////////////////////////
 
 bot.on('guildBanAdd', (guild, user) => {
-    let timeNow = new Date();
+    let now = new Date();
     if (guild.id !== bot.cfg.guilds.optifine) return;
 
     bot.setTimeout(() => {
-        bot.guilds.cache.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_ADD' }).then((audit) => {
+        bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_ADD' }).then((audit) => {
             let ad = [...audit.entries.values()];
 
+            let mod = null;
+            let reason = null;
             for(let i = 0; i < ad.length; i++) {
                 if (ad[i].target.id === user.id) {
-                    let embed = new djs.MessageEmbed()
-                    .setColor(bot.cfg.embed.error)
-                    .setAuthor('User Banned', bot.icons.find('ICO_ban'))
-                    .setTitle((ad[i].reason) ? "Reason: "+ad[i].reason : "No reason provided.")
-                    .addField('Banned User', `${user} | ${user.tag} \n\`\`\`yaml\n${user.id}\`\`\``)
-                    .addField('Moderator Responsible', `${ad[i].executor} | ${ad[i].executor.tag} \n\`\`\`yaml\n${ad[i].executor.id}\`\`\``)
-                    .setThumbnail(user.displayAvatarURL)
-                    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-                    .setTimestamp(timeNow)
-
-                    bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+                    mod = ad[i].executor;
+                    reason = ad[i].reason;
                     break;
-                } else
-                if (i+1 === ad.length) {
-                    let embed = new djs.MessageEmbed()
-                    .setColor(bot.cfg.embed.error)
-                    .setAuthor('User Banned', bot.icons.find('ICO_ban'))
-                    .setTitle(`Log Error: Unable to determine Moderator responsible. See Audit Logs.`)
-                    .addField('Banned User', `${user} | ${user.tag} \n\`\`\`yaml\n${user.id}\`\`\``)
-                    .setThumbnail(user.displayAvatarURL)
-                    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-                    .setTimestamp(timeNow)
-
-                    bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
                 }
             }
+
+            let logEntry = new bot.util.LogEntry(bot, {time: now})
+            .setColor(bot.cfg.embed.error)
+            .setIcon(bot.icons.find('ICO_ban'))
+            .setThumbnail(user.displayAvatarURL({format:'png'}))
+            .setTitle(`Member Banned`, `Member Ban Report`)
+            .addSection(`Banned Member`, user)
+
+            if(reason) {
+                logEntry.setHeader(`Reason: ${reason}`)
+            } else {
+                logEntry.setHeader(`No reason provided.`)
+            }
+
+            if(mod) {
+                logEntry.addSection(`Moderator Responsible`, mod);
+            } else {
+                logEntry.addSection(`Moderator Responsible`, `Error: Unable to determine.`)
+            }
+            
+            logEntry.submit("moderation")
+
+            bot.getProfile(user.id, true).then(profile => {
+                if(!profile.data.essential.record) profile.data.essential.record = [];
+
+                let recordEntry = new bot.util.RecordEntry()
+                .setDate(now)
+                .setAction('ban')
+                .setActionType('add')
+                
+                if(reason !== null) {
+                    recordEntry.setReason(reason)
+                }
+
+                if(mod !== null) {
+                    recordEntry.setMod(mod.id);
+                }
+
+                profile.data.essential.record.push(recordEntry.data);
+
+                bot.updateProfile(user.id, profile).then(() => {
+                    log(`ban addition record successfully saved`)
+                }).catch(err => {
+                    log(err.stack, 'error');
+                })
+
+            });
+
         }).catch(err => log(err.stack, 'error'));
-    }, 2000);
+    }, 5000);
 });
 
 ////////////////////////////////////////
@@ -978,42 +965,73 @@ bot.on('guildBanAdd', (guild, user) => {
 ////////////////////////////////////////
 
 bot.on('guildBanRemove', (guild, user) => {
-    let timeNow = new Date();
+    let now = new Date();
     if (guild.id !== bot.cfg.guilds.optifine) return;
 
     bot.setTimeout(() => {
-        bot.guilds.cache.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_REMOVE' }).then((audit) => {
+        bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_REMOVE' }).then((audit) => {
             let ad = [...audit.entries.values()];
 
+            let mod = null;
             for(let i = 0; i < ad.length; i++) {
                 if (ad[i].target.id === user.id) {
-                    let embed = new djs.MessageEmbed()
-                    .setColor(bot.cfg.embed.default)
-                    .setAuthor('Ban Revoked', bot.icons.find('ICO_unban'))
-                    .addField('Unbanned User', `${user} | ${user.tag} \n\`\`\`yaml\n${user.id}\`\`\``)
-                    .addField('Moderator Responsible', `${ad[i].executor} | ${ad[i].executor.tag} \n\`\`\`yaml\n${ad[i].executor.id}\`\`\``)
-                    .setThumbnail(user.displayAvatarURL)
-                    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-                    .setTimestamp(timeNow)
-
-                    bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+                    mod = ad[i].executor;
                     break;
-                } else
-                if (i+1 === ad.length) {
-                    let embed = new djs.MessageEmbed()
-                    .setColor(bot.cfg.embed.default)
-                    .setAuthor('Ban Revoked', bot.icons.find('ICO_ban'))
-                    .setTitle(`Log Error: Unable to determine Moderator responsible. See Audit Logs.`)
-                    .addField('Unbanned User', `${user} | ${user.tag} \n\`\`\`yaml\n${user.id}\`\`\``)
-                    .setThumbnail(user.displayAvatarURL)
-                    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-                    .setTimestamp(timeNow)
-
-                    bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
                 }
             }
+
+            let logEntry = new bot.util.LogEntry(bot, {time: now})
+            .setColor(bot.cfg.embed.default)
+            .setIcon(bot.icons.find('ICO_unban'))
+            .setThumbnail(user.displayAvatarURL({format:'png'}))
+            .setTitle(`Member Ban Revoked`, `Member Ban Removal Report`)
+            .addSection(`Unbanned Member`, user)
+
+            if(mod) {
+                logEntry.addSection(`Moderator Responsible`, mod);
+            } else {
+                logEntry.addSection(`Moderator Responsible`, `Error: Unable to determine.`)
+            }
+            
+            logEntry.submit("moderation")
+
+            bot.getProfile(user.id, true).then(profile => {
+                if(!profile.data.essential.record) profile.data.essential.record = [];
+
+                let parent = null;
+                for(let i = 0; i < profile.data.essential.record.length; i++) {
+                    let entry = profile.data.essential.record[i];
+                    if (entry.action === 4 && entry.actionType === 1) {
+                        parent = entry;
+                    }
+                }
+
+                let recordEntry = new bot.util.RecordEntry()
+                .setDate(now)
+                .setAction('ban')
+                .setActionType('remove')
+                .setReason(`No reason provided.`)
+                
+                if(parent !== null) {
+                    recordEntry.setParent(parent.date);
+                }
+
+                if(mod !== null) {
+                    recordEntry.setMod(mod.id);
+                }
+
+                profile.data.essential.record.push(recordEntry.data);
+
+                bot.updateProfile(user.id, profile).then(() => {
+                    log(`ban removal record successfully saved`)
+                }).catch(err => {
+                    log(err.stack, 'error');
+                })
+
+            });
+
         }).catch(err => log(err.stack, 'error'));
-    }, 2000);
+    }, 5000);
 });
 
 ////////////////////////////////////////
@@ -1021,6 +1039,7 @@ bot.on('guildBanRemove', (guild, user) => {
 ////////////////////////////////////////
 
 bot.on('raw', packet => {
+    let now = new Date();
     if(packet.t === 'MESSAGE_REACTION_ADD') {
         let channel = bot.channels.cache.get(packet.d.channel_id);
         if (channel.messages.cache.has(packet.d.message_id)) return; // stops if the message exists in the bot's cache.
@@ -1062,13 +1081,33 @@ bot.on('raw', packet => {
         });
     } else
     if(packet.t === 'MESSAGE_DELETE') {
-        // this packet does not contain the actual message data, unfortunately.
+        bot.setTimeout(() => {
+            if (bot.memory.rdel.includes(packet.d.id)) return; // stops if the message exists in the bot's cache.
+            if (packet.d.guild_id !== bot.cfg.guilds.optifine) return;
 
-        // as of writing, this only contains the message ID, the channel ID, and the guild ID.
+            let mt = djs.SnowflakeUtil.deconstruct(packet.d.id).date;
 
-        // i was planning on using this to extend the message deletion event to be able to log old deleted messages, but this doesn't even contain the contents so it's a little bit useless now.
+            let desc = [
+                `Message originally posted on ${mt.toUTCString()}`,
+                `(${timeago.format(mt)})`
+            ];
 
-        // I might still use this anyway, sometime in the future.
+            let logEntry = new bot.util.LogEntry(bot, {time: now})
+            .setColor(bot.cfg.embed.error)
+            .setIcon(bot.icons.find('ICO_trash'))
+            .setTitle(`(Uncached) Message Deleted`, `Uncached Message Deletion Report`)
+            .setDescription(desc.join('\n'), desc.join(' '))
+            .addSection(`Message Location`, `${bot.channels.cache.get(packet.d.channel_id).toString()} | [Direct URL](https://discordapp.com/channels/${packet.d.guild_id}/${packet.d.channel_id}/${packet.d.id}) (deleted)`)
+            logEntry.submit("delete")
+
+            // this packet does not contain the actual message data, unfortunately.
+
+            // as of writing, this only contains the message ID, the channel ID, and the guild ID.
+
+            // i was planning on using this to extend the message deletion event to be able to log old deleted messages, but this doesn't even contain the contents so it's a little bit useless now.
+
+            // I might still use this anyway, sometime in the future.
+        }, 100);
     }
 });
 
@@ -1325,9 +1364,9 @@ bot.on('warn', info => {
 // Client Debug
 ////////////////////////////////////////
 
-/* bot.on('debug', info => {
+bot.on('debug', info => {
     log(info, 'debug');
-}); */
+});
 
 ////////////////////////////////////////
 // Client Error

@@ -23,7 +23,7 @@ module.exports = class OptiBot extends djs.Client {
         });
 
         const memory = {
-            _temp: null,
+            _temp: null, // used to hold boot function when bot cant connect
             sm: {},
             bot: {
                 locked: (mode === 0 || mode === 1),
@@ -42,7 +42,9 @@ module.exports = class OptiBot extends djs.Client {
             mods: [], // all moderators and their current status
             mutes: [], // all users scheduled to be unmuted today
             mpc: [], // channel ids where modping is on cooldown,
-            wintitle: null // text used for console title
+            wintitle: null, // text used for console title
+            targets: {}, // target memory. lists the previous target used by a given user in commands.
+            rdel: [],
         };
         const storage = {
             msg: new database({ filename: './data/messages.db', autoload: true }),
@@ -246,11 +248,11 @@ module.exports = class OptiBot extends djs.Client {
             }
         });
 
-        Object.defineProperty(this, 'serverAvailable', {
+        Object.defineProperty(this, 'mainGuild', {
             get: function() {
-                return this.guilds.cache.get(this.cfg.guilds.optifine).available;
+                return this.guilds.cache.get(this.cfg.guilds.optifine);
             }
-        })
+        });
     }
 
     exit(code = 0) {
@@ -574,7 +576,7 @@ module.exports = class OptiBot extends djs.Client {
                 stages.push({
                     name: 'Audit Log Pre-cacher',
                     load: new Promise((resolve, reject) => {
-                        bot.guilds.cache.get(bot.cfg.guilds.optifine).fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
+                        bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
                             bot.memory.audit = [...audit.entries.values()];
                             resolve();
                         });
@@ -586,11 +588,9 @@ module.exports = class OptiBot extends djs.Client {
                     load: new Promise((resolve, reject) => {
                         bot.memory.mods = [];
 
-                        let opti = bot.guilds.cache.get(bot.cfg.guilds.optifine);
-
                         log(bot.cfg.roles.moderator)
 
-                        let getModRole = opti.roles.cache.get(bot.cfg.roles.moderator);
+                        let getModRole = bot.mainGuild.roles.cache.get(bot.cfg.roles.moderator);
 
                         log(getModRole);
                         log(util.inspect(getModRole));
@@ -605,7 +605,7 @@ module.exports = class OptiBot extends djs.Client {
                             }
                         })
 
-                        opti.roles.cache.get(bot.cfg.roles.jrmod).members.each(mod => {
+                        bot.mainGuild.roles.cache.get(bot.cfg.roles.jrmod).members.each(mod => {
                             bot.memory.mods.push({
                                 id: mod.id,
                                 status: mod.presence.status,
@@ -756,12 +756,18 @@ module.exports = class OptiBot extends djs.Client {
     parseInput(text) {
         if(typeof text !== 'string') text = new String(text);
         let input = text.trim().split("\n", 1)[0]; // first line of the message
-
-        return {
+        let data = {
             valid: input.match(new RegExp(`^(\\${this.prefixes.join('|\\')})(?![^a-zA-Z0-9])[a-zA-Z0-9]+(?=\\s|$)`)), // checks if the input starts with the command prefix, immediately followed by valid characters.
             cmd: input.toLowerCase().split(" ")[0].substr(1),
             args: input.split(" ").slice(1).filter(function (e) { return e.length != 0 })
         }
+
+        if(input.match(/^(\$)(?![^0-9])[0-9]+(?=\s|$)/)) {
+            // fixes "$[numbers]" resulting in false command inputs
+            data.valid = null;
+        }
+
+        return data;
     }
 
     getAuthlvl(member) {

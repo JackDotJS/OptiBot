@@ -24,7 +24,15 @@ module.exports = class RecordEntry {
     }
 
     setDate(date) {
-        this.data.date = date;
+        if(date.constructor === Date) {
+            this.data.date = date.getTime();
+        } else
+        if(Number.isInteger(date)) {
+            this.data.date = date;
+        } else {
+            throw new Error('Invalid date/case ID.')
+        }
+        
         return this;
     }
 
@@ -63,6 +71,9 @@ module.exports = class RecordEntry {
                 break;
             case 'ban': 
                 this.data.action = 4;
+                break;
+            case 'points': 
+                this.data.action = 5;
                 break;
             default:
                 throw new Error('Unknown action.');

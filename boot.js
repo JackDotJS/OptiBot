@@ -117,13 +117,16 @@ const log = (m, lvl, file) => {
         entry.message.color = `\x1b[33m`;
         if(m instanceof Error) {
             entry.message.content = m.stack;
+        } else 
+        if(Buffer.isBuffer(m)) {
+            entry.message.content = m.toString();
         } else {
             try {
-                entry.message.content = m.toString();
+                entry.message.content = util.inspect(m)
             }
             catch(e) {
                 try {
-                    entry.message.content = util.inspect(m);
+                    entry.message.content = m.toString();
                 }
                 catch(e) {
                     log(`failed interp of log entry`, `error`);

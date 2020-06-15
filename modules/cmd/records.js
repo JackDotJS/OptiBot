@@ -78,7 +78,17 @@ const func = (m, args, data) => {
             if (result.type === 'notfound') {
                 bot.util.err('Unable to find a user.', bot, {m:m})
             } else {
-                let userid = (result.type === "user") ? result.target.user.id : result.target;
+                let userid = result.target; // ID only
+                let username = userid;
+
+                if (result.type === 'user') { // partial user
+                    userid = result.target.id; 
+                    username = result.target.tag; 
+                } else 
+                if (result.type === 'member') { // member
+                    userid = result.target.user.id; 
+                    username = result.target.user.tag; 
+                }
 
                 if (userid === bot.user.id) {
                     bot.util.err('Nice try.', bot, {m:m})
@@ -86,7 +96,7 @@ const func = (m, args, data) => {
                     bot.getProfile(userid, false).then(profile => {
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.default)
-                        .setTitle((result.type === "user") ? result.target.user.tag : `\`${result.target.id}\``)
+                        .setTitle(username)
                         .setFooter(`Note that existing violations before October 30, 2019 will not show here. Additionally, all records before [X], 2020 may be missing additional information.`);
 
                         let title = `Member Records`;
@@ -156,7 +166,7 @@ const func = (m, args, data) => {
                                 embed = new djs.MessageEmbed()
                                 .setColor(bot.cfg.embed.default)
                                 .setAuthor(title+' | Single Entry', bot.icons.find('ICO_docs'))
-                                .setTitle((result.type === "user") ? result.target.user.tag : `\`${result.target.id}\``)
+                                .setTitle(username)
                                 .setDescription(`Case ID: ${entry.date} ${(entry.pardon.state) ? '**(Pardoned)**' : ''}`)
                                 .addField(`Action`, `${def.icon} ${def.action}`)
                                 .addField(`Reason`, (!entry.reason || entry.reason.length === 0) ? `No reason provided.` : entry.reason)

@@ -6,8 +6,8 @@ const setup = (bot) => {
     return new Command(bot, {
         name: path.parse(__filename).name,
         short_desc: `Get beaned.`,
-        long_desc: `Beans a user. This is a very serious command and has very serious consequences if used incorrectly. **You have been warned.**`,
-        args: `[discord member]`,
+        long_desc: `Beans a user. This is a Very Serious(TM) command and has Very Serious(TM) consequences if used incorrectly.`,
+        args: `[discord member] [reason]`,
         authlvl: 1,
         flags: ['DM_OPTIONAL', 'NO_TYPER'],
         run: func

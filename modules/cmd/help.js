@@ -78,7 +78,7 @@ const func = (m, args, data) => {
                 }
 
                 if (md.image) {
-                    embed.attachFile(new djs.MessageAttachment(bot.images.find(md.image), "thumbnail.png"))
+                    embed.attachFiles([new djs.MessageAttachment(bot.images.find(md.image), "thumbnail.png")])
                     .setThumbnail('attachment://thumbnail.png');
                 }
 

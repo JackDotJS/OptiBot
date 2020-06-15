@@ -5,6 +5,7 @@ const Command = require(path.resolve(`./modules/core/command.js`));
 const setup = (bot) => { 
     return new Command(bot, {
         name: path.parse(__filename).name,
+        aliases: [`reload`],
         short_desc: `Reset commands (default), image assets, and/or deletable messages.`,
         args: `[images | del]`,
         authlvl: 5,

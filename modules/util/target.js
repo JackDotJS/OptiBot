@@ -24,53 +24,87 @@ module.exports = (m, target, bot, data) => {
         log(`get target from ${target}`);
         log(`select type ${data.type}`);
 
-        // todo: add string similarity
+        function remember(final) {
+            if(final && final.type !== "notfound") {
+                let slot = bot.memory.targets[m.author.id];
+                if(slot) {
+                    if (data.type === 0) slot.u = target;
+                    if (data.type === 1) slot.m = target;
+                } else {
+                    bot.memory.targets[m.author.id] = {
+                        u: (data.type === 0) ? target : null,
+                        m: (data.type === 1) ? target : null
+                    };
+                }
+            }
+
+            resolve(final);
+        }
 
         function checkServer(id) {
             bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({ user: id, cache: true }).then(mem => {
                 if(data.type === 0) {
-                    resolve({ type: "user", target: mem });
+                    remember({ type: "member", target: mem });
                 } else
                 if(data.type === 1) {
                     if(mem.lastMessage) {
-                        resolve({ type: "message", target: mem.lastMessage });
+                        remember({ type: "message", target: mem.lastMessage });
                     } else {
-                        resolve({ type: "notfound", target: null });
+                        remember({ type: "notfound", target: null });
                     }
                 }
             }).catch(err => {
-                if (err.stack.toLowerCase().indexOf('invalid or uncached') > -1 || err.stack.toLowerCase().indexOf('unknown user') > -1) {
-                    resolve({ type: "id", target: id });
+                if (err.stack.match(/invalid or uncached|unknown member|unknown user/i)) {
+                    if(data.type === 0) {
+                        bot.users.fetch(id).then(user => {
+                            remember({ type: "user", target: user });
+                        }).catch(err => {
+                            reject(err);
+                        })
+                    } else
+                    if(data.type === 1) {
+                        remember({ type: "notfound", target: null });
+                    }
                 } else {
                     reject(err);
                 }
             });
         }
 
-        if (['self', 'myself', 'me'].indexOf(target.toLowerCase()) > -1) {
+        if (['latest', 'previous', 'last', 'recent', 'prev'].includes(target.toLowerCase())) {
+            log('last target')
+            if(data.type === 0) {
+                target = bot.memory.targets[m.author.id].u;
+            } else
+            if(data.type === 1) {
+                target = bot.memory.targets[m.author.id].m;
+            }
+        }
+        
+        if (['self', 'myself', 'me'].includes(target.toLowerCase())) {
             log('self')
             if(data.type === 0) {
-                resolve({ type: "user", target: data.member });
+                remember({ type: "member", target: data.member });
             } else
             if(data.type === 1) {
                 if(data.member.lastMessage) {
-                    resolve({ type: "message", target: data.member.lastMessage });
+                    remember({ type: "message", target: data.member.lastMessage });
                 } else {
-                    resolve({ type: "notfound", target: null });
+                    remember({ type: "notfound", target: null });
                 }
             }
         } else
-        if (['someone', 'somebody', 'random', 'something'].indexOf(target.toLowerCase()) > -1) {
+        if (['someone', 'somebody', 'random', 'something'].includes(target.toLowerCase())) {
             log('random')
             if(m.channel.type === 'dm') {
                 if(data.type === 0) {
-                    resolve({ type: "user", target: data.member });
+                    remember({ type: "member", target: data.member });
                 } else
                 if(data.type === 1) {
                     if(data.member.lastMessage) {
-                        resolve({ type: "message", target: data.member.lastMessage });
+                        remember({ type: "message", target: data.member.lastMessage });
                     } else {
-                        resolve({ type: "notfound", target: null });
+                        remember({ type: "notfound", target: null });
                     }
                 }
             } else
@@ -85,7 +119,7 @@ module.exports = (m, target, bot, data) => {
                 log(users.length)
 
                 let someone = users[~~(Math.random() * users.length)];
-                resolve({ type: "user", target: someone });
+                remember({ type: "member", target: someone });
             } else
             if(data.type === 1) {
                 let channels_unfiltered = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).channels.cache.values()];
@@ -93,26 +127,33 @@ module.exports = (m, target, bot, data) => {
                 let blacklist = bot.cfg.channels.mod.concat(bot.cfg.channels.blacklist);
 
                 channels_unfiltered.forEach((channel) => {
-                    if(blacklist.indexOf(channel.id) === -1 && blacklist.indexOf(channel.parentID) === -1 && channel.type === 'text' && channel.messages.cache.size > 0) {
+                    if(!blacklist.includes(channel.id) && !blacklist.includes(channel.parentID) && channel.type === 'text' && channel.messages.cache.size > 0) {
                         channels.push(channel);
                     }
                 });
 
                 if(channels.length === 0) {
-                    resolve({ type: "notfound", target: null });
+                    remember({ type: "notfound", target: null });
                 } else {
-                    let fc = channels[~~(Math.random() * channels.length)];
+                    let attempts = 0;
+                    (function roll() {
+                        attempts++;
+                        let fc = channels[~~(Math.random() * channels.length)];
 
-                    log(fc);
+                        log(fc);
 
-                    let fm = [...fc.messages.cache.values()];
-                    let final_msg = fm[~~(Math.random() * fm.length)];
+                        let fm = [...fc.messages.cache.values()];
+                        let final_msg = fm[~~(Math.random() * fm.length)];
 
-                    if(final_msg) {
-                        resolve({ type: "message", target: final_msg });
-                    } else {
-                        resolve({ type: "notfound", target: null });
-                    }
+                        if(final_msg.content.length !== 0) {
+                            remember({ type: "message", target: final_msg });
+                        } else 
+                        if (attempts === 3) {
+                            remember({ type: "notfound", target: null });
+                        } else {
+                            roll();
+                        }
+                    })();
                 }
             }
         } else
@@ -121,13 +162,13 @@ module.exports = (m, target, bot, data) => {
             if(m.mentions.members !== null && m.guild.id === bot.cfg.guilds.optifine) {
                 let mem = [...m.mentions.members.values()][0];
                 if(data.type === 0) {
-                    resolve({ type: "user", target: mem });
+                    remember({ type: "member", target: mem });
                 } else
                 if(data.type === 1) {
                     if(mem.lastMessage) {
-                        resolve({ type: "message", target: mem.lastMessage });
+                        remember({ type: "message", target: mem.lastMessage });
                     } else {
-                        resolve({ type: "notfound", target: null });
+                        remember({ type: "notfound", target: null });
                     }
                 }
             } else {
@@ -137,7 +178,7 @@ module.exports = (m, target, bot, data) => {
         if (target.match(/^\^{1,10}$/) !== null) {
             log(`"above" shortcut`)
             if(m.channel.type === 'dm') {
-                resolve({ type: "notfound", target: null });
+                remember({ type: "notfound", target: null });
             } else {
                 m.channel.messages.fetch({ limit: 25 }).then(msgs => {
                     let itr = msgs.values();
@@ -149,9 +190,9 @@ module.exports = (m, target, bot, data) => {
                     (function search() {
                         let thisID = itr.next();
                         if (thisID.done) {
-                            resolve({ type: "notfound", target: null });
+                            remember({ type: "notfound", target: null });
                         } else
-                        if ([m.author.id, bot.user.id].indexOf(thisID.value.author.id) === -1 && !thisID.value.author.bot) {
+                        if (![m.author.id, bot.user.id].includes(thisID.value.author.id) && !thisID.value.author.bot) {
                             // valid msg
                             log(`skip: ${skip_t} === ${skipped} (${skip_t === skipped})`)
                             if(skip_t === skipped) {
@@ -164,10 +205,10 @@ module.exports = (m, target, bot, data) => {
                                     checkServer(thisID.value.member.id);
                                 } else {
                                     if(data.type === 0) {
-                                        resolve({ type: "user", target: thisID.value.member });
+                                        remember({ type: "member", target: thisID.value.member });
                                     } else
                                     if(data.type === 1) {
-                                        resolve({ type: "message", target: thisID.value });
+                                        remember({ type: "message", target: thisID.value });
                                     }
                                 }
                             } else {
@@ -188,10 +229,10 @@ module.exports = (m, target, bot, data) => {
                 checkServer(target);
             } else
             if(data.type === 1) {
-                resolve();
+                remember();
             }
         } else 
-        if(target.indexOf('discordapp.com') > -1) {
+        if(target.match(/discordapp\.com|discord.com/i)) {
             let urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
 
             if(urls !== null) {
@@ -206,22 +247,22 @@ module.exports = (m, target, bot, data) => {
 
                     bot.guilds.cache.get(rg).channels.cache.get(rc).messages.fetch(rm).then(msg => {
                         if(data.type === 0) {
-                            resolve({ type: "user", target: msg.member });
+                            remember({ type: "member", target: msg.member });
                         } else
                         if(data.type === 1) {
-                            resolve({ type: "message", target: msg });
+                            remember({ type: "message", target: msg });
                         }
                     }).catch(err => {
                         reject(err);
                     });
                 } else {
-                    resolve({ type: "notfound", target: null });
+                    remember({ type: "notfound", target: null });
                 }
             } else {
-                resolve();
+                remember();
             }
         } else {
-            resolve();
+            remember();
         }
     });
 }

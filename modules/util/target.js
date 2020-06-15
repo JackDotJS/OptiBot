@@ -71,7 +71,7 @@ module.exports = (m, target, bot, data) => {
             });
         }
 
-        if (['latest', 'previous', 'last', 'recent', 'prev'].includes(target.toLowerCase())) {
+        if (['previous', 'last', 'recent', 'prev'].includes(target.toLowerCase())) {
             log('last target')
             if(data.type === 0) {
                 target = bot.memory.targets[m.author.id].u;

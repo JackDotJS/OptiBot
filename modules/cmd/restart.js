@@ -16,6 +16,12 @@ const func = (m, args, data) => {
     const bot = data.bot;
     const log = data.log;
 
+    let logEntry = new bot.util.LogEntry(bot, {time: new Date()})
+    .setColor(bot.cfg.embed.default)
+    .setIcon(bot.icons.find('ICO_door'))
+    .setTitle(`OptiBot is now restarting...`, `OptiBot Restart Report`)
+    .submit("misc")
+
     let embed = new djs.MessageEmbed()
     .setAuthor('Restarting...', bot.icons.find('ICO_load'))
     .setColor(bot.cfg.embed.default);

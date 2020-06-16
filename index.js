@@ -106,6 +106,8 @@ bot.on('ready', () => {
                     type: 'ready'
                 });
 
+                
+
                 bot.memory.bot.init = false;
 
                 bot.util.status(bot, 1);
@@ -181,7 +183,8 @@ bot.on('message', (m) => {
     bot.mainGuild.members.fetch({ user: m.author.id, cache: true }).then(member => {
         let authlvl = bot.getAuthlvl(member);
 
-        if(authlvl < 4) return; // TODO: REMOVE ON PUBLIC RELEASE
+        if(authlvl < 4 && bot.mode === 0) return;
+        if(authlvl < 1 && bot.mode === 1) return;
 
         if(input.valid) {
             /////////////////////////////////////////////////////////////
@@ -332,17 +335,14 @@ bot.on('message', (m) => {
     
                 m.channel.send({ embed: embed });
             } else
-            if(m.content.indexOf('discordapp.com') > -1) {
+            if(m.content.match(/discordapp\.com|discord.com/i)) {
                 let urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
     
                 if(urls !== null) {
                     for(let link of urls) {
-                        // todo: make sure this is a discordapp.com url
-                        // current setup only checks if the given url has 5 segments and nothing more
-                        // need to fix this in message target util as well
                         let seg = link.split(/(?<!\/)\/(?!\/)|(?<!\\)\\(?!\\)/g).reverse();
     
-                        if(seg.length === 5 && !isNaN(parseInt(seg[0])) && !isNaN(parseInt(seg[1])) && !isNaN(parseInt(seg[2]))) {
+                        if(link.match(/discordapp\.com|discord.com/i) && seg.length === 5 && !isNaN(parseInt(seg[0])) && !isNaN(parseInt(seg[1])) && !isNaN(parseInt(seg[2]))) {
                             foundQuote(seg);
                             break;
                         }
@@ -579,7 +579,7 @@ bot.on('messageDelete', m => {
 
                 logEntry.addSection(`Message Location`, m)
 
-                if(m.content > 0) {
+                if(m.content.length > 0) {
                     logEntry.addSection(`Message Contents`, m.content);
                 }
 
@@ -899,11 +899,11 @@ bot.on('guildBanAdd', (guild, user) => {
         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_ADD' }).then((audit) => {
             let ad = [...audit.entries.values()];
 
-            let mod = null;
+            let mod = bot.memory.rban[user.id];
             let reason = null;
             for(let i = 0; i < ad.length; i++) {
                 if (ad[i].target.id === user.id) {
-                    mod = ad[i].executor;
+                    if(!mod) mod = ad[i].executor;
                     reason = ad[i].reason;
                     break;
                 }
@@ -1062,11 +1062,10 @@ bot.on('raw', packet => {
                 }
             }
 
-            if(!user) {
+            if(!user || user.partial) {
                 if (channel.guild !== null && channel.guild !== undefined && channel.type === 'text') {
-                    // todo: fetch user manually
                     log('fetch manual')
-                    channel.guild.members.fetch({ user: packet.d.user_id, cache: true}).then(mem => {
+                    channel.guild.members.fetch({ user: packet.d.user_id }).then(mem => {
                         user = mem.user;
                         s2()
                     });
@@ -1081,6 +1080,8 @@ bot.on('raw', packet => {
         });
     } else
     if(packet.t === 'MESSAGE_DELETE') {
+        // this packet does not contain the actual message data, unfortunately.
+        // as of writing, this only contains the message ID, the channel ID, and the guild ID.
         bot.setTimeout(() => {
             if (bot.memory.rdel.includes(packet.d.id)) return; // stops if the message exists in the bot's cache.
             if (packet.d.guild_id !== bot.cfg.guilds.optifine) return;
@@ -1099,14 +1100,6 @@ bot.on('raw', packet => {
             .setDescription(desc.join('\n'), desc.join(' '))
             .addSection(`Message Location`, `${bot.channels.cache.get(packet.d.channel_id).toString()} | [Direct URL](https://discordapp.com/channels/${packet.d.guild_id}/${packet.d.channel_id}/${packet.d.id}) (deleted)`)
             logEntry.submit("delete")
-
-            // this packet does not contain the actual message data, unfortunately.
-
-            // as of writing, this only contains the message ID, the channel ID, and the guild ID.
-
-            // i was planning on using this to extend the message deletion event to be able to log old deleted messages, but this doesn't even contain the contents so it's a little bit useless now.
-
-            // I might still use this anyway, sometime in the future.
         }, 100);
     }
 });
@@ -1119,9 +1112,6 @@ bot.on('messageReactionAdd', (mr, user) => {
     if (mr.message.channel.type === 'dm') return;
     if (user.id === bot.user.id) return;
 
-    if (mr.emoji.name === bot.cfg.emoji.medal) {
-        // todo
-    } else 
     if (mr.emoji.id === bot.cfg.emoji.deleter) {
         bot.db.msg.find({message: mr.message.id}, (err, docs) => {
             if(err) {

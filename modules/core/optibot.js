@@ -45,6 +45,7 @@ module.exports = class OptiBot extends djs.Client {
             wintitle: null, // text used for console title
             targets: {}, // target memory. lists the previous target used by a given user in commands.
             rdel: [],
+            rban: {}
         };
         const storage = {
             msg: new database({ filename: './data/messages.db', autoload: true }),
@@ -542,6 +543,43 @@ module.exports = class OptiBot extends djs.Client {
             }
 
             if(type === 0) {
+                log('before msg c')
+                stages.push({
+                    name: 'Message Pre-Cacher',
+                    load: new Promise((resolve, reject) => {
+                        log('wtf');
+                        let channels = [...bot.channels.cache.values()];
+    
+                        let i = 0;
+                        (function loadMsgs() {
+                            let channel = channels[i];
+
+                            function next() {
+                                if(i+1 === channels.length) {
+                                    resolve();
+                                } else {
+                                    i++;
+                                    loadMsgs();
+                                }
+                            }
+
+                            if(channel.type === 'text' && channel.guild.id === bot.mainGuild.id) {
+                                log(`[${i}] fetching from channel: ${channel.id}`);
+
+                                channel.messages.fetch({ limit: bot.cfg.init.cacheLimit }, true).then(() => {
+                                    next();
+                                }).catch(err => {
+                                    log(err.stack, 'error');
+                                    next();
+                                })
+                            } else {
+                                next();
+                            }
+                        })();
+                    })
+                });
+                log('after msg c')
+
                 stages.push({
                     name: 'Scheduled Task Loader',
                     load: new Promise((resolve, reject) => {
@@ -659,6 +697,7 @@ module.exports = class OptiBot extends djs.Client {
             let si = 0;
             (function loadStage() {
                 let stageStart = new Date().getTime();
+                log(`Starting stage "${stages[si].name}"`, 'info')
                 stages[si].load.then(() => {
                     let stageTime = (new Date().getTime() - stageStart) / 333;
                     log(`"${stages[si].name}" cleared in ${stageTime} second(s).`, 'debug');
@@ -783,21 +822,37 @@ module.exports = class OptiBot extends djs.Client {
          * 5 = Bot Developer
          * 6+ = God himself
          */
-        
-        if(this.cfg.superusers.indexOf(member.user.id) > -1) {
-            return 5;
-        } else if(member.permissions.has('ADMINISTRATOR')) {
-            return 4;
-        } else if(member.roles.cache.has(this.cfg.roles.moderator)) {
-            return 3;
-        } else if(member.roles.cache.has(this.cfg.roles.jrmod)) {
-            return 2;
-        } else if(member.roles.cache.has(this.cfg.roles.advisor)) {
-            return 1;
-        } else if(member.roles.cache.has(this.cfg.roles.muted)) {
-            return -1;
-        } else {
-            return 0;
+
+        const bot = this;
+        const log = bot.log;
+
+        let processMember = (mem) => {
+            if(this.cfg.superusers.indexOf(mem.user.id) > -1) {
+                return 5;
+            } else if(mem.permissions.has('ADMINISTRATOR')) {
+                return 4;
+            } else if(mem.roles.cache.has(this.cfg.roles.moderator)) {
+                return 3;
+            } else if(mem.roles.cache.has(this.cfg.roles.jrmod)) {
+                return 2;
+            } else if(mem.roles.cache.has(this.cfg.roles.advisor)) {
+                return 1;
+            } else if(mem.roles.cache.has(this.cfg.roles.muted)) {
+                return -1;
+            } else {
+                return 0;
+            }
         }
+
+        if(!member || member === null || typeof member !== 'object') {
+            return 0;
+        } else
+        if(member.constructor === djs.User) {
+            log('expected object type member, got user instead', 'warn');
+            return 0;
+        } else {
+            return processMember(member);
+        }
+        
     }
 }

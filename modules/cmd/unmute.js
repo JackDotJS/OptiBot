@@ -31,25 +31,31 @@ const func = (m, args, data) => {
             if (result.type === 'notfound' || result.type === 'id') {
                 bot.util.err('Unable to find a user.', bot, {m:m})
             } else
-            if (result.target.user.id === m.author.id) {
+            if (result.id === m.author.id) {
                 bot.util.err(`If you're muted, how are you even using this command?`, bot, {m:m})
             } else
-            if (result.target.user.id === bot.user.id) {
+            if (result.id === bot.user.id) {
                 bot.util.err(`I'm a bot. Why would I even be muted?`, bot, {m:m})
             } else 
             if (bot.getAuthlvl(result.target) > 0) {
                 bot.util.err(`That user is too powerful to be muted in the first place.`, bot, {m:m})
             } else 
-            if (!result.target.roles.cache.has(bot.cfg.roles.muted)) {
+            if (result.type === 'member' && !result.target.roles.cache.has(bot.cfg.roles.muted)) {
                 bot.util.err(`That user has not been muted.`, bot, {m:m})
             } else {
-                s2(result.target);
+                s2(result);
             }
         });
 
-        function s2(target) {
+        function s2(result) {
             let now = new Date().getTime();
-            bot.getProfile(target.user.id, true).then(profile => {
+            bot.getProfile(result.id, true).then(profile => {
+
+                if(!profile.data.essential.mute) {
+                    bot.util.err(`That user has not been muted.`, bot, {m:m});
+                    return;
+                }
+
                 let reason = m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length )
 
                 let remaining = profile.data.essential.mute.end - now;
@@ -92,12 +98,12 @@ const func = (m, args, data) => {
                     }
                 }
 
-                bot.updateProfile(target.user.id, profile).then(() => {
-                    target.roles.remove(bot.cfg.roles.muted, `Member unmuted by ${m.author.tag}`).then(() => {
+                bot.updateProfile(result.id, profile).then(() => {
+                    let logInfo = () => {
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.okay)
                         .setAuthor(`User unmuted.`, bot.icons.find('ICO_okay'))
-                        .setDescription(`${target.user} has been unmuted.`)
+                        .setDescription(`${result.tag} has been unmuted.`)
 
                         if(reason.length > 0) {
                             embed.addField(`Reason`, reason)
@@ -107,18 +113,28 @@ const func = (m, args, data) => {
 
                         m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
 
-                        let embed2 = new djs.MessageEmbed()
+                        let logEntry = new bot.util.LogEntry(bot)
                         .setColor(bot.cfg.embed.default)
-                        .setAuthor('Member Unmuted', bot.icons.find('ICO_unmute'))
-                        .setTitle((reason.length > 0) ? "Reason: "+reason : "No reason provided.")
-                        .setThumbnail(target.user.displayAvatarURL)
-                        .setDescription(`${target.user} | ${target.user.tag} \n\`\`\`yaml\n${target.user.id}\`\`\``)
-                        .addField('Moderator Responsible', `${m.author} | ${m.author.tag} \n\`\`\`yaml\n${m.author.id}\`\`\``)
-                        .setFooter(`Event logged on ${new Date().toUTCString()}`)
-                        .setTimestamp(new Date())
+                        .setIcon(bot.icons.find('ICO_unmute'))
+                        .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
+                        .setHeader((reason.length > 0) ? "Reason: "+reason : "No reason provided.")
+                        .addSection(`Member Unmuted`, result.target)
+                        .addSection(`Moderator Responsible`, m.author);
 
-                        bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed2});
-                    }).catch(err => bot.util.err(err, bot, {m:m}))
+                        if(result.type !== 'id') {
+                            logEntry.setThumbnail(result.target.displayAvatarURL({format:'png'}))
+                        }
+
+                        logEntry.submit("moderation");
+                    }
+
+                    if(result.type === 'member') {
+                        result.roles.remove(bot.cfg.roles.muted, `Member unmuted by ${m.author.tag}`).then(() => {
+                            logInfo();
+                        }).catch(err => bot.util.err(err, bot, {m:m}));
+                    } else {
+                        logInfo();
+                    }
                 }).catch(err => bot.util.err(err, bot, {m:m}))
             });
         }

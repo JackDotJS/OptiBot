@@ -30,7 +30,7 @@ module.exports = (err, bot, data = {}) => {
         embed.setAuthor(err, bot.icons.find('ICO_error'))
     }
 
-    log(util.inspect(data));
+    // log(util.inspect(data));
 
     if(data.m) {
         data.m.channel.send({embed: embed}).then(bm => {

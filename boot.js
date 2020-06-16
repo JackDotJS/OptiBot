@@ -122,7 +122,7 @@ const log = (m, lvl, file) => {
             entry.message.content = m.toString();
         } else {
             try {
-                entry.message.content = util.inspect(m)
+                entry.message.content = util.inspect(m, {getters: true, showHidden: true})
             }
             catch(e) {
                 try {

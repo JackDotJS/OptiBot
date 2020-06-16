@@ -27,21 +27,41 @@ const func = (m, args, data) => {
         bot.util.target(m, args[0], bot, {type: 0, member:data.member}).then((result) => {
             if (!result) {
                 bot.util.err('You must specify a valid user.', bot, {m:m})
-            } else
+            } else 
             if (result.type === 'notfound') {
                 bot.util.err('Unable to find a user.', bot, {m:m})
-            } else
-            if (result.target.user.id === m.author.id || result.target.user.id === bot.user.id) {
-                bot.util.err('Nice try.', bot, {m:m})
             } else
             if (bot.getAuthlvl(result.target) > data.authlvl) {
                 bot.util.err(`You are not strong enough to add notes to this user.`, bot, {m:m})
             } else {
-                bot.getProfile(result.target.user.id, true).then(profile => {
+                let userid = result.target; // ID only
+                let username = userid;
+                let mention = userid;
+
+                if (result.type === 'user') { // partial user
+                    userid = result.target.id; 
+                    username = result.target.tag; 
+                    mention = result.target.toString();
+                } else 
+                if (result.type === 'member') { // member
+                    userid = result.target.user.id; 
+                    username = result.target.user.tag;
+                    mention = result.target.user.toString();
+                }
+
+                if (userid === m.author.id || userid === bot.user.id) {
+                    bot.util.err('Nice try.', bot, {m:m});
+                    return;
+                }
+
+                bot.getProfile(userid, true).then(profile => {
                     if(!profile.data.essential.record) profile.data.essential.record = [];
                     let reason = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} `.length )
 
-                    // todo: ensure message length does not exceed 750 characters.
+                    if(reason.length > 750) {
+                        bot.util.err(`Note cannot exceed 750 characters in length.`, bot, {m:m})
+                        return;
+                    }
 
                     let entry = new bot.util.RecordEntry()
                     .setMod(m.author.id)
@@ -52,13 +72,22 @@ const func = (m, args, data) => {
 
                     profile.data.essential.record.push(entry.data);
 
-                    bot.updateProfile(result.target.user.id, profile).then(() => {
+                    bot.updateProfile(userid, profile).then(() => {
+                        let logEntry = new bot.util.LogEntry(bot)
+                        .setColor(bot.cfg.embed.default)
+                        .setIcon(bot.icons.find('ICO_docs'))
+                        .setTitle(`Member Note Created`, `Moderation Note Report`)
+                        .addSection(`Member`, result.target)
+                        .addSection(`Note Author`, m.author)
+                        .addSection(`Note Contents`, reason)
+                        .submit("moderation")
+
                         let embed = new djs.MessageEmbed()
                         .setAuthor(`Note added.`, bot.icons.find('ICO_okay'))
                         .setColor(bot.cfg.embed.okay)
-                        .setDescription(`${result.target}'s record has been updated.`)
-
-                        if(args[1]) embed.addField('Note details', reason)
+                        .setDescription(`User record has been updated.`)
+                        .addField(`Member`, `${mention} | ${username}\n\`\`\`yaml\nID: ${userid}\`\`\``)
+                        .addField('Note', reason)
 
                         m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
                     }).catch(err => bot.util.err(err, bot, {m:m}));

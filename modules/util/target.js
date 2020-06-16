@@ -38,7 +38,28 @@ module.exports = (m, target, bot, data) => {
                 }
             }
 
-            resolve(final);
+            let final_fixed = final;
+
+            let userid = final.target; // ID only
+            let username = userid;
+            let mention = userid;
+
+            if (final.type === 'user') {
+                userid = final.target.id; 
+                username = final.target.tag; 
+                mention = final.target.toString();
+            } else 
+            if (final.type === 'member') {
+                userid = final.target.user.id; 
+                username = final.target.user.tag;
+                mention = final.target.user.toString();
+            }
+
+            final_fixed.id = userid;
+            final_fixed.tag = username;
+            final_fixed.mention = mention;
+
+            resolve(final_fixed);
         }
 
         function checkServer(id) {

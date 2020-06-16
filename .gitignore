@@ -9,3 +9,4 @@ node_modules
 package-lock.json
 *.zip
 *.rdp
+scan_results.txt

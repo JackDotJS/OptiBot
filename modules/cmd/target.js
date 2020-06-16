@@ -7,9 +7,14 @@ const Command = require(path.resolve(`./modules/core/command.js`));
 const setup = (bot) => { 
     return new Command(bot, {
         name: path.parse(__filename).name,
-        aliases: ['targetuser'],
-        args: `<type> <discord member | discord message>`,
-        authlvl: 5,
+        aliases: ['targetuser', 'targettest'],
+        short_desc: `Test OptiBot's targeting utility.`,
+        long_desc: `Gives the raw output of OptiBot's targeting utility.`,
+        args: [
+            `0 <discord member>`,
+            `1 <discord message>`
+        ],
+        authlvl: 1,
         flags: ['DM_OPTIONAL', 'NO_TYPER'],
         run: func
     });
@@ -21,10 +26,12 @@ const func = (m, args, data) => {
 
     if(!args[1]) {
         data.cmd.noArgs(m);
+    } else 
+    if(!Number.isInteger(parseInt(args[0]))) {
+        data.cmd.noArgs(m);
     } else {
         bot.util.target(m, args[1], bot, {type: parseInt(args[0]), member: data.member}).then((result) => {
-            m.channel.stopTyping(true);
-            m.channel.send(`\`\`\`javascript\n${util.inspect(result)}\`\`\``)
+            m.channel.send(`\`\`\`javascript\n${util.inspect(result)}\`\`\``).then(bm => bot.util.responder(m.author.id, bm, bot))
         }).catch(err => bot.util.err(err, bot, {m:m}));
     }
 }

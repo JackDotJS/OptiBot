@@ -43,27 +43,27 @@ const func = (m, args, data) => {
             if (!result) {
                 bot.util.err('You must specify a valid user.', bot, {m:m})
             } else
-            if (result.type === 'notfound' || result.type === 'id') {
+            if (['notfound', 'id'].includes(result.type)) {
                 bot.util.err('Unable to find a user.', bot, {m:m})
-            } else
-            if (result.target.user.id === m.author.id) {
+            } else 
+            if (result.id === m.author.id) {
                 bot.util.err('Nice try.', bot, {m:m})
             } else
-            if (result.target.user.id === bot.user.id) {
+            if (result.id === bot.user.id) {
                 bot.util.err(`You have no power here.`, bot, {m:m})
             } else 
             if (bot.getAuthlvl(result.target) > 0) {
                 bot.util.err(`That user is too powerful to be muted.`, bot, {m:m})
             } else {
-                s2(result.target);
+                s2(result);
             }
         });
 
-        function s2(target) {
+        function s2(result) {
             log('s2')
             if(!args[1]) {
                 if(rvt.reasonText.length > 0) rvt.reasonAdded = true;
-                s3(target);
+                s3(result);
             } else {
                 let number = parseInt(args[1]);
                 let measure = 'h';
@@ -73,7 +73,7 @@ const func = (m, args, data) => {
                     log(num_split);
                     if (isNaN(num_split[0]) || num_split[0].length === 0) {
                         if(rvt.reasonText.length > 0) rvt.reasonAdded = true;
-                        s3(target); // invalid time limit, assuming rest of input is part of the reason
+                        s3(result); // invalid time limit, assuming rest of input is part of the reason
                         return;
                     } else {
                         number = Math.round(parseInt(num_split[0]));
@@ -92,7 +92,7 @@ const func = (m, args, data) => {
 
                 if (number <= 0) {
                     muteData.end = null;
-                    s3(target);
+                    s3(result);
                 } else {
                     if (measure === 's') {
                         if (number < 5) {
@@ -102,7 +102,7 @@ const func = (m, args, data) => {
                             bot.util.err(`Time limit cannot exceed 7 days.`, bot, {m:m})
                         } else {
                             muteData.end = now + (1000*number);
-                            s3(target);
+                            s3(result);
                         }
                     } else
                     if (measure === 'm') {
@@ -113,7 +113,7 @@ const func = (m, args, data) => {
                             bot.util.err(`Time limit cannot exceed 7 days.`, bot, {m:m})
                         } else {
                             muteData.end = now + (1000*60*number);
-                            s3(target);
+                            s3(result);
                         }
                     } else
                     if (measure === 'h') {
@@ -124,7 +124,7 @@ const func = (m, args, data) => {
                             bot.util.err(`Time limit cannot exceed 7 days.`, bot, {m:m})
                         } else {
                             muteData.end = now + (1000*60*60*number);
-                            s3(target);
+                            s3(result);
                         }
                         
                     } else
@@ -136,7 +136,7 @@ const func = (m, args, data) => {
                             bot.util.err(`Time limit cannot exceed 7 days.`, bot, {m:m})
                         } else {
                             muteData.end = now + (1000*60*60*24*number);
-                            s3(target);
+                            s3(result);
                         }
                     } else {
                         bot.util.err(`Invalid time format. ("${measure}")`, bot, {m:m})
@@ -145,11 +145,11 @@ const func = (m, args, data) => {
             }
         }
 
-        function s3(target) {
+        function s3(result) {
             log('s3')
             let isUpdate = false;
 
-            bot.getProfile(target.user.id, true).then(profile => {
+            bot.getProfile(result.id, true).then(profile => {
                 if(!profile.data.essential.mute) {
                     profile.data.essential.mute = muteData;
                 } else {
@@ -257,25 +257,25 @@ const func = (m, args, data) => {
                     }
                 }
 
-                bot.updateProfile(target.user.id, profile).then(() => {
-                    target.roles.add(bot.cfg.roles.muted, `Member muted for ${time_remaining} by ${m.author.tag}`).then(() => {
+                bot.updateProfile(result.id, profile).then(() => {
+                    let logInfo = () => {
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.okay)
 
                         if (isUpdate) {
                             embed.setAuthor(`Mute updated.`, bot.icons.find('ICO_okay'));
                             if (muteData.end === null) {
-                                embed.setDescription(`${target.user} will now be muted until hell freezes over.`, bot.icons.find('ICO_okay'));
+                                embed.setDescription(`${result.mention} will now be muted until hell freezes over.`, bot.icons.find('ICO_okay'));
                             } else {
-                                embed.setDescription(`${target.user} will now be muted for ${time_remaining}.`, bot.icons.find('ICO_okay'));  
+                                embed.setDescription(`${result.mention} will now be muted for ${time_remaining}.`, bot.icons.find('ICO_okay'));  
                             }
                         } else {
                             embed.setAuthor(`User muted.`, bot.icons.find('ICO_okay'));
 
                             if (muteData.end === null) {
-                                embed.setDescription(`${target.user} has been muted until hell freezes over.`, bot.icons.find('ICO_okay'));
+                                embed.setDescription(`${result.mention} has been muted until hell freezes over.`, bot.icons.find('ICO_okay'));
                             } else {
-                                embed.setDescription(`${target.user} has been muted for ${time_remaining}.`, bot.icons.find('ICO_okay')); 
+                                embed.setDescription(`${result.mention} has been muted for ${time_remaining}.`, bot.icons.find('ICO_okay')); 
                             }
                         }
 
@@ -290,29 +290,40 @@ const func = (m, args, data) => {
                         let embed2 = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.default)
 
-                        if(isUpdate) {
-                            embed2.setAuthor('Member Mute Updated', bot.icons.find('ICO_mute'))
-                            .setTitle(entry.data.reason)
-                            .setThumbnail(target.user.displayAvatarURL) 
-                            .setDescription(`${target.user} | ${target.user.tag} \n\`\`\`yaml\n${target.user.id}\`\`\``)
-                            .addField('Moderator Responsible', `${m.author} | ${m.author.tag} \n\`\`\`yaml\n${m.author.id}\`\`\``)
-                            .addField(`Old Expiration Date`, `${new Date(log_data.org_end).toUTCString()} \n(${timeago.format(log_data.org_end)})`)
-                            .addField(`New Expiration Date`, `${new Date(muteData.end).toUTCString()} \n(${timeago.format(muteData.end)})`)
-                            .setFooter(`Event logged on ${new Date().toUTCString()}`)
-                            .setTimestamp(new Date())
-                        } else {
-                            embed2.setAuthor('Member Muted', bot.icons.find('ICO_mute'))
-                            .setTitle(entry.data.reason)
-                            .setThumbnail(target.user.displayAvatarURL)
-                            .setDescription(`${target.user} | ${target.user.tag} \n\`\`\`yaml\n${target.user.id}\`\`\``)
-                            .addField('Moderator Responsible', `${m.author} | ${m.author.tag} \n\`\`\`yaml\n${m.author.id}\`\`\``)
-                            .addField('Expiration Date', `${new Date(muteData.end).toUTCString()} \n(${timeago.format(muteData.end)})`)
-                            .setFooter(`Event logged on ${new Date().toUTCString()}`)
-                            .setTimestamp(new Date())
+                        let logEntry = new bot.util.LogEntry(bot)
+                        .setColor(bot.cfg.embed.default)
+                        .setIcon(bot.icons.find('ICO_mute'))
+                        .addSection(`Member Muted`, result.target)
+                        .addSection(`Moderator Responsible`, m.author);
+
+                        if(result.type !== 'id') {
+                            logEntry.setThumbnail(result.target.displayAvatarURL({format:'png'}))
                         }
 
-                        bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed2});
-                    }).catch(err => bot.util.err(err, bot, {m:m}))
+                        if(rvt.reasonAdded) {
+                            logEntry.setHeader(`Reason: ${rvt.reasonText}`)
+                        } else {
+                            logEntry.setHeader(`No reason provided.`)
+                        }
+
+                        if(isUpdate) {
+                            logEntry.setTitle(`Member Mute Updated`, `Member Mute Update Report`)
+                            .addSection(`Old Expiration Date`, `${new Date(log_data.org_end).toUTCString()} \n(${timeago.format(log_data.org_end)})`)
+                            .addSection(`New Expiration Date`, `${new Date(muteData.end).toUTCString()} \n(${timeago.format(muteData.end)})`);
+                        } else {
+                            logEntry.setTitle(`Member Muted`, `Member Mute Report`);
+                        }
+
+                        logEntry.submit("moderation");
+                    }
+
+                    if(result.type === 'member') {
+                        result.roles.add(bot.cfg.roles.muted, `Member muted for ${time_remaining} by ${m.author.tag}`).then(() => {
+                            logInfo();
+                        }).catch(err => bot.util.err(err, bot, {m:m}));
+                    } else {
+                        logInfo();
+                    }
                 }).catch(err => bot.util.err(err, bot, {m:m}))
             });
         }

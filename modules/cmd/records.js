@@ -192,8 +192,6 @@ const func = (m, args, data) => {
 
                             // ALL ENTRIES
 
-                            // todo: show risk factor if available
-
                             let pageNum = 1
                             let perPage = 5;
                             let pageLimit = Math.ceil(profile.data.essential.record.length / perPage);

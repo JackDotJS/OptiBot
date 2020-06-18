@@ -853,7 +853,7 @@ bot.on('guildMemberRemove', member => {
             let ad = [...audit.entries.values()];
 
             for(let i = 0; i < ad.length; i++) {
-                if (ad[i].target.id === member.user.id && (ad[i].action === 'MEMBER_KICK' || ad[i].action === 'MEMBER_BAN_ADD')) {
+                if ((ad[i].action === 'MEMBER_KICK' || ad[i].action === 'MEMBER_BAN_ADD') && ad[i].target.id === member.user.id) {
                     if(ad[i].action === 'MEMBER_KICK') {
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.error)

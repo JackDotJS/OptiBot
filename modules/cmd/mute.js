@@ -61,93 +61,38 @@ const func = (m, args, data) => {
 
         function s2(result) {
             log('s2')
+            let time = bot.util.time(args[1]);
+            
+
             if(!args[1]) {
-                if(rvt.reasonText.length > 0) rvt.reasonAdded = true;
-                s3(result);
+                s3(result, time);
+            } else 
+            if (!time.valid) {
+                s3(result, time); // assume rest of input is part of the reason
             } else {
-                let number = parseInt(args[1]);
-                let measure = 'h';
-
-                if (isNaN(args[1])) {
-                    let num_split = args[1].split(/\D/, 1);
-                    log(num_split);
-                    if (isNaN(num_split[0]) || num_split[0].length === 0) {
-                        if(rvt.reasonText.length > 0) rvt.reasonAdded = true;
-                        s3(result); // invalid time limit, assuming rest of input is part of the reason
-                        return;
-                    } else {
-                        number = Math.round(parseInt(num_split[0]));
-                        let new_measure = args[1].substring(num_split[0].length).replace(/\./g, "").toLowerCase();
-
-                        if (new_measure.length === 1) {
-                            measure = new_measure;
-                        }
-                    }
-                }
-
                 rvt.reasonText = m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} ${args[1]} `.length )
-                if(rvt.reasonText.length > 0) rvt.reasonAdded = true;
                 rvt.timeAdded = true;
 
-
-                if (number <= 0) {
+                if (time.ms <= 0) {
                     muteData.end = null;
-                    s3(result);
+                    s3(result, time);
+                } else
+                if (time.ms < 10000) {
+                    bot.util.err(`Be reasonable.`, bot, {m:m});
+                } else
+                if (time.ms > 604800000) {
+                    bot.util.err(`Time limit cannot exceed 7 days.`, bot, {m:m})
                 } else {
-                    if (measure === 's') {
-                        if (number < 5) {
-                            bot.util.err(`Be reasonable.`, bot, {m:m});
-                        } else
-                        if (number > 604800) {
-                            bot.util.err(`Time limit cannot exceed 7 days.`, bot, {m:m})
-                        } else {
-                            muteData.end = now + (1000*number);
-                            s3(result);
-                        }
-                    } else
-                    if (measure === 'm') {
-                        if (number < 1) {
-                            bot.util.err(`Time limit must be greater than 1 minute.`, bot, {m:m});
-                        } else
-                        if (number > 10080) {
-                            bot.util.err(`Time limit cannot exceed 7 days.`, bot, {m:m})
-                        } else {
-                            muteData.end = now + (1000*60*number);
-                            s3(result);
-                        }
-                    } else
-                    if (measure === 'h') {
-                        if (number < 1) {
-                            bot.util.err(`Be reasonable.`, bot, {m:m});
-                        } else
-                        if (number > 168) {
-                            bot.util.err(`Time limit cannot exceed 7 days.`, bot, {m:m})
-                        } else {
-                            muteData.end = now + (1000*60*60*number);
-                            s3(result);
-                        }
-                        
-                    } else
-                    if (measure === 'd') {
-                        if (number < 1) {
-                            bot.util.err(`Be reasonable.`, bot, {m:m});
-                        } else
-                        if (number > 7) {
-                            bot.util.err(`Time limit cannot exceed 7 days.`, bot, {m:m})
-                        } else {
-                            muteData.end = now + (1000*60*60*24*number);
-                            s3(result);
-                        }
-                    } else {
-                        bot.util.err(`Invalid time format. ("${measure}")`, bot, {m:m})
-                    }
+                    muteData.end = now + time.ms;
+                    s3(result, time);
                 }
             }
         }
 
-        function s3(result) {
+        function s3(result, timeData) {
             log('s3')
             let isUpdate = false;
+            if (rvt.reasonText.length > 0) rvt.reasonAdded = true;
 
             bot.getProfile(result.id, true).then(profile => {
                 if(!profile.data.essential.mute) {
@@ -173,20 +118,6 @@ const func = (m, args, data) => {
 
                 if(!profile.data.essential.record) profile.data.essential.record = [];
 
-                let remaining = muteData.end - now;
-                let minutes = Math.round(remaining/1000/60)
-                let hours = Math.round(remaining/(1000*60*60))
-                let days = Math.round(remaining/(1000*60*60*24))
-
-                if (minutes < 60) {
-                    time_remaining = `${minutes} minute${(minutes !== 1) ? "s" : ""}`;
-                } else
-                if (hours < 24) {
-                    time_remaining = `${hours} hour${(hours !== 1) ? "s" : ""}`;
-                } else {
-                    time_remaining = `${days} day${(days !== 1) ? "s" : ""}`;
-                }
-
                 let entry = new bot.util.RecordEntry()
                 .setDate(muteData.caseID)
                 .setMod(m.author.id)
@@ -199,7 +130,7 @@ const func = (m, args, data) => {
                     .setParent(profile.data.essential.mute.caseID)
 
                     if(muteData.end !== null) {
-                        entry.setDetails(`Mute updated to ${time_remaining}.`)
+                        entry.setDetails(`Mute updated to ${timeData.string}.`)
                     } else {
                         entry.setDetails(`Mute updated as permanent.`)
                     }
@@ -207,7 +138,7 @@ const func = (m, args, data) => {
                     entry.setActionType('add')
 
                     if(muteData.end !== null) {
-                        entry.setDetails(`Mute set for ${time_remaining}.`)
+                        entry.setDetails(`Mute set for ${timeData.string}.`)
                     } else {
                         entry.setDetails(`Mute set as permanent.`)
                     }
@@ -215,42 +146,52 @@ const func = (m, args, data) => {
 
                 profile.data.essential.record.push(entry.data);
 
+                log(util.inspect(bot.memory.mutes));
+
                 if(muteData.end !== null) {
                     if(bot.memory.mutes.length === 0) {
                         if(muteData.end < bot.exitTime.getTime()) {
                             bot.memory.mutes.push({
-                                userid: profile.id,
-                                time: muteData.end
+                                id: profile.id,
+                                time: bot.setTimeout(() => {
+                                    bot.util.unmuter(bot, profile.id);
+                                }, muteData.end - now)
                             });
 
-                            log(bot.memory.mutes);
+                            log(util.inspect(bot.memory.mutes));
                         }
                     } else {
                         log('before loop');
-                        for(let i in bot.memory.mutes) {
+                        for(let i = 0; i < bot.memory.mutes.length; i++) {
                             log(`loop ${i}`);
-                            if(bot.memory.mutes[i].userid === profile.id) {
+                            if(bot.memory.mutes[i].id === profile.id) {
+                                bot.clearTimeout(bot.memory.mutes[i].time);
+
                                 if(muteData.end < bot.exitTime.getTime()) {
                                     log('new mute exp')
-                                    bot.memory.mutes[i].time = muteData.end
+                                    bot.memory.mutes[i].time = bot.setTimeout(() => {
+                                        bot.util.unmuter(bot, profile.id);
+                                    }, muteData.end - now)
 
-                                    log(bot.memory.mutes);
+                                    log(util.inspect(bot.memory.mutes));
                                 } else {
                                     log('new mute exp is too far from now, removing from cache')
                                     bot.memory.mutes.splice(i, 1);
 
-                                    log(bot.memory.mutes);
+                                    log(util.inspect(bot.memory.mutes));
                                 }
                                 break;
                             } else
                             if(i+1 >= bot.memory.mutes.length) {
                                 if(muteData.end < bot.exitTime.getTime()) {
                                     bot.memory.mutes.push({
-                                        userid: profile.id,
-                                        time: muteData.end
-                                    })
+                                        id: profile.id,
+                                        time: bot.setTimeout(() => {
+                                            bot.util.unmuter(bot, profile.id);
+                                        }, muteData.end - now)
+                                    });
 
-                                    log(bot.memory.mutes);
+                                    log(util.inspect(bot.memory.mutes));
                                 }
                             }
                         }
@@ -267,7 +208,7 @@ const func = (m, args, data) => {
                             if (muteData.end === null) {
                                 embed.setDescription(`${result.mention} will now be muted until hell freezes over.`, bot.icons.find('ICO_okay'));
                             } else {
-                                embed.setDescription(`${result.mention} will now be muted for ${time_remaining}.`, bot.icons.find('ICO_okay'));  
+                                embed.setDescription(`${result.mention} will now be muted for ${timeData.string}.`, bot.icons.find('ICO_okay'));  
                             }
                         } else {
                             embed.setAuthor(`User muted.`, bot.icons.find('ICO_okay'));
@@ -275,7 +216,7 @@ const func = (m, args, data) => {
                             if (muteData.end === null) {
                                 embed.setDescription(`${result.mention} has been muted until hell freezes over.`, bot.icons.find('ICO_okay'));
                             } else {
-                                embed.setDescription(`${result.mention} has been muted for ${time_remaining}.`, bot.icons.find('ICO_okay')); 
+                                embed.setDescription(`${result.mention} has been muted for ${timeData.string}.`, bot.icons.find('ICO_okay')); 
                             }
                         }
 
@@ -294,10 +235,11 @@ const func = (m, args, data) => {
                         .setColor(bot.cfg.embed.default)
                         .setIcon(bot.icons.find('ICO_mute'))
                         .addSection(`Member Muted`, result.target)
-                        .addSection(`Moderator Responsible`, m.author);
+                        .addSection(`Moderator Responsible`, m.author)
+                        .addSection(`Command Location`, m)
 
                         if(result.type !== 'id') {
-                            logEntry.setThumbnail(result.target.displayAvatarURL({format:'png'}))
+                            logEntry.setThumbnail(((result.type === "user") ? result.target : result.target.user).displayAvatarURL({format:'png'}))
                         }
 
                         if(rvt.reasonAdded) {
@@ -306,19 +248,22 @@ const func = (m, args, data) => {
                             logEntry.setHeader(`No reason provided.`)
                         }
 
+                        // todo: account for infinite mutes
+
                         if(isUpdate) {
                             logEntry.setTitle(`Member Mute Updated`, `Member Mute Update Report`)
                             .addSection(`Old Expiration Date`, `${new Date(log_data.org_end).toUTCString()} \n(${timeago.format(log_data.org_end)})`)
                             .addSection(`New Expiration Date`, `${new Date(muteData.end).toUTCString()} \n(${timeago.format(muteData.end)})`);
                         } else {
-                            logEntry.setTitle(`Member Muted`, `Member Mute Report`);
+                            logEntry.setTitle(`Member Muted`, `Member Mute Report`)
+                            .addSection(`Expiration Date`, `${new Date(muteData.end).toUTCString()} \n(${timeago.format(muteData.end)})`);
                         }
 
                         logEntry.submit("moderation");
                     }
 
                     if(result.type === 'member') {
-                        result.roles.add(bot.cfg.roles.muted, `Member muted for ${time_remaining} by ${m.author.tag}`).then(() => {
+                        result.target.roles.add(bot.cfg.roles.muted, `Member muted for ${timeData.string} by ${m.author.tag}`).then(() => {
                             logInfo();
                         }).catch(err => bot.util.err(err, bot, {m:m}));
                     } else {

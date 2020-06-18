@@ -92,7 +92,8 @@ const func = (m, args, data) => {
                 delete profile.data.essential.mute;
 
                 for(let i in bot.memory.mutes) {
-                    if(bot.memory.mutes[i].userid === profile.id) {
+                    if(bot.memory.mutes[i].id === profile.id) {
+                        bot.clearTimeout(bot.memory.mutes[i].time);
                         bot.memory.mutes.splice(i, 1);
                         break;
                     }
@@ -119,7 +120,8 @@ const func = (m, args, data) => {
                         .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
                         .setHeader((reason.length > 0) ? "Reason: "+reason : "No reason provided.")
                         .addSection(`Member Unmuted`, result.target)
-                        .addSection(`Moderator Responsible`, m.author);
+                        .addSection(`Moderator Responsible`, m.author)
+                        .addSection(`Command Location`, m)
 
                         if(result.type !== 'id') {
                             logEntry.setThumbnail(result.target.displayAvatarURL({format:'png'}))
@@ -129,7 +131,7 @@ const func = (m, args, data) => {
                     }
 
                     if(result.type === 'member') {
-                        result.roles.remove(bot.cfg.roles.muted, `Member unmuted by ${m.author.tag}`).then(() => {
+                        result.target.roles.remove(bot.cfg.roles.muted, `Member unmuted by ${m.author.tag}`).then(() => {
                             logInfo();
                         }).catch(err => bot.util.err(err, bot, {m:m}));
                     } else {

@@ -5,8 +5,8 @@ const Command = require(path.resolve(`./modules/core/command.js`));
 const setup = (bot) => { 
     return new Command(bot, {
         name: path.parse(__filename).name,
-        aliases: ['jdk', 'jre'],
-        short_desc: `Provides a link to download AdoptOpenJDK.`,
+        aliases: ['jdk', 'jre', `ojdk`, `openjdk`],
+        short_desc: `Provides some links to download Java.`,
         authlvl: 0,
         flags: ['DM_OPTIONAL', 'NO_TYPER'],
         run: func

@@ -658,26 +658,32 @@ module.exports = class OptiBot extends djs.Client {
                 stages.push({
                     name: 'Muted Member Pre-cacher',
                     load: new Promise((resolve, reject) => {
-                        this.db.profiles.find({ "data.mute": { $exists: true }, format: 2}, (err, docs) => {
+                        bot.db.profiles.find({ "data.essential.mute": { $exists: true }, format: 3}, (err, docs) => {
                             if(err) {
                                 reject(err);
                             } else
                             if(docs.length === 0) {
                                 resolve()
                             } else {
-                                for(let i in docs) {
-                                    if(docs[i].data.mute.end !== null) {
-                                        let exp = new Date(docs[i].data.mute.end);
-                                        let now = new Date();
+                                for(let i = 0; i < docs.length; i++) {
+                                    let profile = docs[i];
+                                    if(profile.data.essential.mute.end !== null) {
+                                        let exp = profile.data.essential.mute.end;
+                                        let remaining = exp - new Date().getTime();
 
-                                        if(exp.getUTCDay() <= now.getUTCDay()){
-                                            if(exp.getUTCMonth() <= now.getUTCMonth()){
-                                                if(exp.getUTCFullYear() <= now.getUTCFullYear()){
-                                                    bot.memory.mutes.push({
-                                                        userid: docs[i].id,
-                                                        time: docs[i].data.mute.end
-                                                    });
-                                                }
+                                        if(exp <= bot.exitTime.getTime()) {
+                                            log('unmute today')
+                                            if(remaining < (1000 * 60)) {
+                                                log('unmute now')
+                                                bot.util.unmuter(bot, profile.id);
+                                            } else {
+                                                log('unmute later')
+                                                bot.memory.mutes.push({
+                                                    id: profile.id,
+                                                    time: bot.setTimeout(() => {
+                                                        bot.util.unmuter(bot, profile.id);
+                                                    }, remaining)
+                                                });
                                             }
                                         }
                                     }
@@ -763,16 +769,6 @@ module.exports = class OptiBot extends djs.Client {
                     }
 
                     resolve(profile);
-
-                    // adding this to the database now really isn't necessary since it's generally expected that the profile will be immediately updated with new data right after creating it.
-
-                    /* this.db.profiles.insert(profile, (err) => {
-                        if (err) {
-                            reject(err);
-                        } else {
-                            resolve(profile);
-                        }
-                    }); */
                 } else {
                     resolve();
                 }

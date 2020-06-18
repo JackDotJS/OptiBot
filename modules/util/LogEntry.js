@@ -126,12 +126,13 @@ module.exports = class LogEntry {
                 }
             }
     
-            if(final_content.constructor === djs.User) {
-                final_content_raw = `USER: ${final_content.tag} (${final_content.id})`;
+            if(final_content.constructor === djs.User || final_content.constructor === djs.GuildMember) {
+                let mem = (final_content.constructor === djs.GuildMember) ? final_content.user : final_content;
+                final_content_raw = `USER: ${mem.tag} (${mem.id})`;
     
                 final_content = [
-                    `${final_content.toString()} | ${final_content.tag}`,
-                    `\`\`\`yaml\nID: ${final_content.id}\`\`\``
+                    `${mem.toString()} | ${mem.tag}`,
+                    `\`\`\`yaml\nID: ${mem.id}\`\`\``
                 ].join('\n');
             } else
             if(final_content.constructor === djs.Message) {
@@ -140,7 +141,7 @@ module.exports = class LogEntry {
                     `DIRECT URL${(final_content.deleted) ? " (DELETED):" : ":"} ${final_content.url}`
                 ].join('\n');
     
-                final_content = `${final_content.channel.toString()} | [Direct URL](${final_content.url}) ${(final_content.deleted) ? "(deleted)" : ""}`;
+                final_content = `${final_content.channel.toString()} | [Direct URL](${final_content.url} "${final_content.url}") ${(final_content.deleted) ? "(deleted)" : ""}`;
             }
         }
 

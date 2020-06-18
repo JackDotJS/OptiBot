@@ -25,39 +25,41 @@ module.exports = (m, target, bot, data) => {
         log(`select type ${data.type}`);
 
         function remember(final) {
-            if(final && final.type !== "notfound") {
-                let slot = bot.memory.targets[m.author.id];
-                if(slot) {
-                    if (data.type === 0) slot.u = target;
-                    if (data.type === 1) slot.m = target;
-                } else {
-                    bot.memory.targets[m.author.id] = {
-                        u: (data.type === 0) ? target : null,
-                        m: (data.type === 1) ? target : null
-                    };
-                }
-            }
-
             let final_fixed = final;
 
-            let userid = final.target; // ID only
-            let username = userid;
-            let mention = userid;
+            if(final) {
+                if(final.type !== "notfound") {
+                    let slot = bot.memory.targets[m.author.id];
+                    if(slot) {
+                        if (data.type === 0) slot.u = target;
+                        if (data.type === 1) slot.m = target;
+                    } else {
+                        bot.memory.targets[m.author.id] = {
+                            u: (data.type === 0) ? target : null,
+                            m: (data.type === 1) ? target : null
+                        };
+                    }
+                }
 
-            if (final.type === 'user') {
-                userid = final.target.id; 
-                username = final.target.tag; 
-                mention = final.target.toString();
-            } else 
-            if (final.type === 'member') {
-                userid = final.target.user.id; 
-                username = final.target.user.tag;
-                mention = final.target.user.toString();
+                let userid = final.target; // ID only
+                let username = userid;
+                let mention = userid;
+
+                if (final.type === 'user') {
+                    userid = final.target.id; 
+                    username = final.target.tag; 
+                    mention = final.target.toString();
+                } else 
+                if (final.type === 'member') {
+                    userid = final.target.user.id; 
+                    username = final.target.user.tag;
+                    mention = final.target.user.toString();
+                }
+
+                final_fixed.id = userid;
+                final_fixed.tag = username;
+                final_fixed.mention = mention;
             }
-
-            final_fixed.id = userid;
-            final_fixed.tag = username;
-            final_fixed.mention = mention;
 
             resolve(final_fixed);
         }
@@ -94,11 +96,16 @@ module.exports = (m, target, bot, data) => {
 
         if (['previous', 'last', 'recent', 'prev'].includes(target.toLowerCase())) {
             log('last target')
-            if(data.type === 0) {
-                target = bot.memory.targets[m.author.id].u;
-            } else
-            if(data.type === 1) {
-                target = bot.memory.targets[m.author.id].m;
+            if(bot.memory.targets[m.author.id] !== undefined) {
+                log('exists')
+                if(data.type === 0) {
+                    target = bot.memory.targets[m.author.id].u;
+                } else
+                if(data.type === 1) {
+                    target = bot.memory.targets[m.author.id].m;
+                }
+            } else {
+                log('does not exist')
             }
         }
         

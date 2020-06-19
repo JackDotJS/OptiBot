@@ -504,6 +504,9 @@ bot.on('messageDelete', m => {
 
     bot.memory.rdel.push(m.id);
 
+    let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "delete"})
+    .preLoad()
+
     bot.setTimeout(() => {
         log('begin calculation of executor', 'trace')
         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
@@ -556,13 +559,14 @@ bot.on('messageDelete', m => {
 
             function finalLog() {
                 bot.memory.audit = [...audit.entries.values()];
+
+                let doRaw = false;
                 let desc = [
                     `Message originally posted on ${m.createdAt.toUTCString()}`,
                     `(${timeago.format(m.createdAt)})`
                 ];
-
-                let logEntry = new bot.util.LogEntry(bot, {time: now})
-                .setColor(bot.cfg.embed.error)
+                
+                logEntry.setColor(bot.cfg.embed.error)
                 .setIcon(bot.icons.find('ICO_trash'))
                 .setTitle(`Message Deleted`, `Message Deletion Report`)
                 .setDescription(desc.join('\n'), desc.join(' '))
@@ -600,10 +604,25 @@ bot.on('messageDelete', m => {
                 }
 
                 if(m.embeds.length > 0) {
-                    logEntry.addSection(`Message Embeds`, `[${m.embeds.length} Embed${(m.embeds.length > 1) ? "s" : ""}]`)
+                    let rawEmbeds = [];
+                    doRaw = true;
+
+                    for(let i = 0; i < m.embeds.length; i++) {
+                        rawEmbeds.push(util.inspect(m.embeds[i], { showHidden: true, getters: true }));
+                        if(i+1 < m.embeds.length) {
+                            rawEmbeds.push('');
+                        } else {
+                            rawEmbeds = rawEmbeds.join('\n');
+                        }
+                    }
+
+                    logEntry.addSection(`Message Embeds`, {
+                        data: `[${m.embeds.length} Embed${(m.embeds.length > 1) ? "s" : ""}]`,
+                        raw: rawEmbeds
+                    })
                 }
 
-                logEntry.submit("delete")
+                logEntry.submit(doRaw);
 
                 bot.memory.rdel.splice(bot.memory.rdel.indexOf(m.id), 1);
             }
@@ -614,17 +633,22 @@ bot.on('messageDelete', m => {
 bot.on('messageDeleteBulk', ms => {
     let now = new Date();
 
+    let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "delete"})
+    .preLoad()
+
     bot.setTimeout(() => {
-        ms.each(m => {
+        let messages = [...ms.values()];
+
+        let i = 0;
+        (function postNext() {
             let desc = [
                 `Message originally posted on ${m.createdAt.toUTCString()}`,
                 `(${timeago.format(m.createdAt)})`
             ];
-    
-            let logEntry = new bot.util.LogEntry(bot, {time: now})
-            .setColor(bot.cfg.embed.error)
+            
+            logEntry.setColor(bot.cfg.embed.error)
             .setIcon(bot.icons.find('ICO_trash'))
-            .setTitle(`(Bulk) Message Deleted`, `(Bulk) Message Deletion Report`)
+            .setTitle(`(Bulk ${i+1}/${messages.length}) Message Deleted`, `Bulk Message ${i+1}-${messages.length} Deletion Report`)
             .setDescription(desc.join('\n'), desc.join(' '))
             .addSection(`Author`, m.author)
             .addSection(`Message Location`, m)
@@ -650,11 +674,35 @@ bot.on('messageDeleteBulk', ms => {
             }
 
             if(m.embeds.length > 0) {
-                logEntry.addSection(`Message Embeds`, `[${m.embeds.length} Embed${(m.embeds.length > 1) ? "s" : ""}]`)
+                let rawEmbeds = [];
+                doRaw = true;
+
+                for(let i = 0; i < m.embeds.length; i++) {
+                    rawEmbeds.push(util.inspect(m.embeds[i], { showHidden: true, getters: true }));
+                    if(i+1 < m.embeds.length) {
+                        rawEmbeds.push('');
+                    } else {
+                        rawEmbeds = rawEmbeds.join('\n');
+                    }
+                }
+
+                logEntry.addSection(`Message Embeds`, {
+                    data: `[${m.embeds.length} Embed${(m.embeds.length > 1) ? "s" : ""}]`,
+                    raw: rawEmbeds
+                })
             }
 
-            logEntry.submit("delete")
-        });
+            logEntry.submit().then(() => {
+                i++;
+                postNext();
+            })
+            .catch(err => {
+                log(err.stack, 'error');
+
+                i++;
+                postNext();
+            })
+        })();
     }, 5000);
 });
 
@@ -772,23 +820,25 @@ bot.on('channelUpdate', (oldc, newc) => {
 ////////////////////////////////////////
 
 bot.on('guildMemberAdd', member => {
-    let timeNow = new Date();
-    let count = bot.mainGuild.memberCount;
+    let now = new Date();
     if (member.guild.id !== bot.cfg.guilds.optifine) return;
 
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // DO NOT SET THIS TO TRUE UNDER ANY CIRCUMSTANCES
-    bot.getProfile(member.user.id, false).then(profile => {
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    const alwaysFalse = false;
+
+    bot.getProfile(member.user.id, alwaysFalse).then(profile => {
         if(profile && profile.data.essential.mute && (profile.data.essential.mute.end-10000 > new Date().getTime())) {
             member.roles.add(bot.cfg.roles.muted, 'Member attempted to circumvent mute.').then(() => {
-                bot.memory.mutes.push({
-                    userid: member.user.id,
-                    time: profile.data.essential.mute.end
-                });
+                // todo: increase mute time in this case
                 logEvent(true);
             }).catch(err => {
                 bot.util.err(err, bot);
                 logEvent();
             });
+        } else {
+            logEvent();
         }
     }).catch(err => {
         bot.util.err(err, bot);
@@ -796,39 +846,25 @@ bot.on('guildMemberAdd', member => {
     });
 
     function logEvent(muted) {
-        let embed = new djs.MessageEmbed()
+        let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "joinleave"})
         .setColor(bot.cfg.embed.okay)
-        .setAuthor('New Member', bot.icons.find('ICO_join'))
-        .setDescription(`${member} | ${member.user.tag} \n\`\`\`yaml\n${member.user.id}\`\`\``)
-        .setThumbnail(member.user.displayAvatarURL)
+        .setIcon(bot.icons.find('ICO_join'))
+        .setThumbnail(member.user.displayAvatarURL({format:'png'}))
+        .setTitle(`Member Joined`, `New Member Report`)
+        .addSection(`Member`, member)
+        .addSection(`Account Creation Date`, member.user.createdAt)
+        .addSection(`New Server Member Count`, bot.mainGuild.memberCount)
 
         if(muted) {
-            embed.addField('Mute Dodger', `This user attempted to circumvent an on-going mute. The role has been automatically re-applied.`)
+            logEntry.setDescription(`This user attempted to circumvent an on-going mute. The role has been automatically re-applied.`)
         }
 
-        embed.addField('Account Creation Date', `${member.user.createdAt.toUTCString()} (${timeago.format(member.user.createdAt)})`)
-        .addField('New Member Count', count.toLocaleString())
-        .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-        .setTimestamp(timeNow)
-
-        if((member.user.createdAt.getTime() + (1000 * 60 * 60 * 24 * 7)) > timeNow.getTime()) {
-            embed.setTitle('Warning: New Discord Account')
+        if((member.user.createdAt.getTime() + (1000 * 60 * 60 * 24 * 7)) > now.getTime()) {
+            // account is less than 1 week old
+            logEntry.setHeader('Warning: New Discord Account')
         }
 
-        /* bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed}).then(() => {
-            if(count % 1000 === 0) {
-                let embed = new djs.MessageEmbed()
-                .setColor(bot.cfg.embed.okay)
-                .setAuthor('Milestone Achieved', bot.icons.find('ICO_star'))
-                .setTitle(`This server has reached ${count.toLocaleString()} members!`)
-                .setDescription(`User ${member} (${member.user.tag}) was our ${count.toLocaleString()}th member.`)
-                .setThumbnail(member.user.displayAvatarURL)
-                .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-                .setTimestamp(timeNow)
-        
-                bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
-            }
-        }); */
+        logEntry.submit()
     }
 });
 
@@ -837,12 +873,13 @@ bot.on('guildMemberAdd', member => {
 ////////////////////////////////////////
 
 bot.on('guildMemberRemove', member => {
-    let timeNow = new Date();
+    let now = new Date();
     if (member.guild.id !== bot.cfg.guilds.optifine) return;
 
     for(let i in bot.memory.mutes) {
         let mute = bot.memory.mutes[i];
-        if(mute.userid === member.user.id) {
+        if(mute.id === member.user.id) {
+            bot.clearTimeout(mute.time);
             bot.memory.mutes.splice(i, 1);
             break;
         }
@@ -855,36 +892,32 @@ bot.on('guildMemberRemove', member => {
             for(let i = 0; i < ad.length; i++) {
                 if ((ad[i].action === 'MEMBER_KICK' || ad[i].action === 'MEMBER_BAN_ADD') && ad[i].target.id === member.user.id) {
                     if(ad[i].action === 'MEMBER_KICK') {
-                        let embed = new djs.MessageEmbed()
+                        let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "moderation"})
                         .setColor(bot.cfg.embed.error)
-                        .setAuthor('User Kicked', bot.icons.find('ICO_kick'))
-                        .setTitle((ad[i].reason) ? "Reason: "+ad[i].reason : "No reason provided.")
-                        .addField('Kicked User', `${member} | ${member.user.tag} \n\`\`\`yaml\n${member.user.id}\`\`\``)
-                        .addField('Moderator Responsible', `${ad[i].executor} | ${ad[i].executor.tag} \n\`\`\`yaml\n${ad[i].executor.id}\`\`\``)
-                        .setThumbnail(member.user.displayAvatarURL)
-                        .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-                        .setTimestamp(timeNow)
-
-                        //bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+                        .setIcon(bot.icons.find('ICO_leave'))
+                        .setThumbnail(member.user.displayAvatarURL({format:'png'}))
+                        .setTitle(`Member Kicked`, `Member Kick Report`)
+                        .setHeader((ad[i].reason) ? "Reason: "+ad[i].reason : "No reason provided.")
+                        .addSection(`Member`, member)
+                        .addSection(`Moderator Responsible`, ad[i].executor)
+                        .submit()
                     }
                     break;
                 } else
-                if (i+1 === ad.length) {
-                    let embed = new djs.MessageEmbed()
+                if (i+1 >= ad.length) {
+                    let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "joinleave"})
                     .setColor(bot.cfg.embed.error)
-                    .setAuthor('Member Left', bot.icons.find('ICO_leave'))
-                    .setDescription(`${member} | ${member.user.tag} \n\`\`\`yaml\n${member.user.id}\`\`\``)
-                    .addField('Initial Join Date', (member.joinedAt !== null) ? `${member.joinedAt.toUTCString()}\n(${timeago.format(member.joinedAt)})` : 'Unknown.')
-                    .addField('New Member Count', bot.mainGuild.memberCount.toLocaleString())
-                    .setThumbnail(member.user.displayAvatarURL)
-                    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-                    .setTimestamp(timeNow)
-
-                    //bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+                    .setIcon(bot.icons.find('ICO_leave'))
+                    .setThumbnail(member.user.displayAvatarURL({format:'png'}))
+                    .setTitle(`Member Left`, `Member Leave Report`)
+                    .addSection(`Member`, member)
+                    .addSection(`Join Date`, (member.joinedAt !== null) ? member.joinedAt : 'Unknown.')
+                    .addSection(`New Server Member Count`, bot.mainGuild.memberCount)
+                    .submit()
                 }
             }
         }).catch(err => log(err.stack, 'error'));
-    }, 2000);
+    }, 5000);
 });
 
 ////////////////////////////////////////
@@ -894,6 +927,9 @@ bot.on('guildMemberRemove', member => {
 bot.on('guildBanAdd', (guild, user) => {
     let now = new Date();
     if (guild.id !== bot.cfg.guilds.optifine) return;
+
+    let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "moderation"})
+    .preLoad()
 
     bot.setTimeout(() => {
         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_ADD' }).then((audit) => {
@@ -908,9 +944,8 @@ bot.on('guildBanAdd', (guild, user) => {
                     break;
                 }
             }
-
-            let logEntry = new bot.util.LogEntry(bot, {time: now})
-            .setColor(bot.cfg.embed.error)
+            
+            logEntry.setColor(bot.cfg.embed.error)
             .setIcon(bot.icons.find('ICO_ban'))
             .setThumbnail(user.displayAvatarURL({format:'png'}))
             .setTitle(`Member Banned`, `Member Ban Report`)
@@ -928,7 +963,7 @@ bot.on('guildBanAdd', (guild, user) => {
                 logEntry.addSection(`Moderator Responsible`, `Error: Unable to determine.`)
             }
             
-            logEntry.submit("moderation")
+            logEntry.submit()
 
             bot.getProfile(user.id, true).then(profile => {
                 if(!profile.data.essential.record) profile.data.essential.record = [];
@@ -968,6 +1003,9 @@ bot.on('guildBanRemove', (guild, user) => {
     let now = new Date();
     if (guild.id !== bot.cfg.guilds.optifine) return;
 
+    let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "moderation"})
+    .preLoad()
+
     bot.setTimeout(() => {
         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_REMOVE' }).then((audit) => {
             let ad = [...audit.entries.values()];
@@ -979,9 +1017,8 @@ bot.on('guildBanRemove', (guild, user) => {
                     break;
                 }
             }
-
-            let logEntry = new bot.util.LogEntry(bot, {time: now})
-            .setColor(bot.cfg.embed.default)
+            
+            logEntry.setColor(bot.cfg.embed.default)
             .setIcon(bot.icons.find('ICO_unban'))
             .setThumbnail(user.displayAvatarURL({format:'png'}))
             .setTitle(`Member Ban Revoked`, `Member Ban Removal Report`)
@@ -993,7 +1030,7 @@ bot.on('guildBanRemove', (guild, user) => {
                 logEntry.addSection(`Moderator Responsible`, `Error: Unable to determine.`)
             }
             
-            logEntry.submit("moderation")
+            logEntry.submit()
 
             bot.getProfile(user.id, true).then(profile => {
                 if(!profile.data.essential.record) profile.data.essential.record = [];
@@ -1093,13 +1130,13 @@ bot.on('raw', packet => {
                 `(${timeago.format(mt)})`
             ];
 
-            let logEntry = new bot.util.LogEntry(bot, {time: now})
+            let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "delete"})
             .setColor(bot.cfg.embed.error)
             .setIcon(bot.icons.find('ICO_trash'))
             .setTitle(`(Uncached) Message Deleted`, `Uncached Message Deletion Report`)
             .setDescription(desc.join('\n'), desc.join(' '))
             .addSection(`Message Location`, `${bot.channels.cache.get(packet.d.channel_id).toString()} | [Direct URL](https://discordapp.com/channels/${packet.d.guild_id}/${packet.d.channel_id}/${packet.d.id}) (deleted)`)
-            logEntry.submit("delete")
+            logEntry.submit()
         }, 100);
     }
 });

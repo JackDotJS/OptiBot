@@ -20,7 +20,7 @@ const func = (m, args, data) => {
     .setColor(bot.cfg.embed.default)
     .setIcon(bot.icons.find('ICO_door'))
     .setTitle(`OptiBot is now restarting...`, `OptiBot Restart Report`)
-    .submit("misc")
+    .submit()
 
     let embed = new djs.MessageEmbed()
     .setAuthor('Restarting...', bot.icons.find('ICO_load'))

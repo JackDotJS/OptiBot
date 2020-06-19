@@ -30,7 +30,7 @@ const func = (m, args, data) => {
             } else 
             if(result.type === 'notfound') {
                 let embed = bot.util.err('Unable to find a user.', bot)
-                .setDescription(`If that person is no longer in the server, and they have no OptiBot Profile, I can't get any information about them. Sorry!`)
+                .setDescription(`If this user ever existed, it seems any information about them has been lost to time.`)
     
                 m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
             } else 
@@ -38,58 +38,55 @@ const func = (m, args, data) => {
                 bot.getProfile(result.target, false).then(profile => {
                     if(!profile) {
                         let embed = bot.util.err('Unable to find a user.', bot)
-                        .setDescription(`If that person is no longer in the server, and they have no OptiBot Profile, I can't get any information about them. Sorry!`)
+                        .setDescription(`If this user ever existed, it seems any information about them has been lost to time.`)
             
                         m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
-                    } else 
-                    if(args[1] && args[1] === 'raw') {
-                        m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => bot.util.responder(m.author.id, bm, bot))
                     } else {
-                        let ls = new Date(profile.data.essential.lastSeen);
-
-                        let embed = new djs.MessageEmbed()
-                        .setAuthor(`That is...`, bot.icons.find('ICO_user'))
-                        .setColor(bot.cfg.embed.default)
-                        .setTitle(`${profile.userid}`)
-                        .setDescription(`Unfortunately, this user is no longer in the server. The following is leftover OptiBot Profile data, which will be deleted ${timeago.format(profile.data.essential.lastSeen + (1000 * 60 * 60 * 24 * bot.cfg.profiles.expiration))}. (approximate)`)
-                        .addField('Last Seen Date', `${ls.getUTCDate()}/${ls.getUTCMonth()+1}/${ls.getUTCFullYear()}\n(DD/MM/YYYY)`)
-
-                        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
+                        m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => bot.util.responder(m.author.id, bm, bot))
                     }
                 }).catch(err => bot.util.err(err, bot, {m:m}));
-            } else 
-            if(result.target.user.id === bot.user.id) {
-                unlockEgg(1, m, bot);
             } else {
-                bot.getProfile(result.target.user.id, false).then(profile => {
+                bot.getProfile(result.id, false).then(profile => {
                     if(args[1] && args[1] === 'raw') {
                         m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => bot.util.responder(m.author.id, bm, bot))
                     } else {
-                        let mem = result.target;
+                        let mem = null;
+                        let user = null;
+
+                        if(result.type === 'member') {
+                            mem = result.target;
+                            user = result.target.user;
+                        } else
+                        if(result.type === 'user') {
+                            mem = null;
+                            user = result.target;
+                        }
+
+
                         let embed = new djs.MessageEmbed()
-                        .setAuthor((mem.user.id === m.author.id) ? "You are..." : "That is...", bot.icons.find('ICO_user'))
+                        .setAuthor((user.id === m.author.id) ? "You are..." : "That is...", bot.icons.find('ICO_user'))
                         .setColor(bot.cfg.embed.default)
-                        .setTitle(`${mem.user.tag} ${(mem.user.bot) ? "🤖" : ""}`)
-                        .setThumbnail(mem.user.displayAvatarURL({ dynamic: true, size: 64 }))
+                        .setTitle(`${user.tag} ${(profile && profile.data.emoji) ? profile.data.emoji : ""}`)
+                        .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 64 }))
         
                         let presence = []
         
-                        if(mem.user.presence.status === 'online') { 
+                        if(user.presence.status === 'online') { 
                             presence.push(`**Status:** \\🟢 Online`)
                         } else
-                        if(mem.user.presence.status === 'idle') { 
+                        if(user.presence.status === 'idle') { 
                             presence.push(`**Status:** \\🟡 Away`)
                         } else
-                        if(mem.user.presence.status === 'dnd') {
+                        if(user.presence.status === 'dnd') {
                             presence.push(`**Status:** \\🔴 Do Not Disturb`)
                         } else {
                             presence.push(`**Status:** \\⚫ Offline/Invisible`)
                         }
         
-                        if(mem.user.presence.clientStatus !== null) {
+                        if(user.presence.clientStatus !== null) {
                             let msg = [];
                             let emoji = '';
-                            let client = mem.user.presence.clientStatus;
+                            let client = user.presence.clientStatus;
         
                             if(client.desktop) {
                                 emoji = '🖥️';
@@ -117,8 +114,8 @@ const func = (m, args, data) => {
                             }
                         }
         
-                        if(mem.user.presence.activities.length > 0 && mem.user.presence.activities[0].type !== null) {
-                            let status = mem.user.presence.activities[0];
+                        if(user.presence.activities.length > 0 && user.presence.activities[0].type !== null) {
+                            let status = user.presence.activities[0];
 
                             if(status.type === 'CUSTOM_STATUS') {
                                 let emoji = ``;
@@ -162,53 +159,51 @@ const func = (m, args, data) => {
         
                         embed.setDescription(`${(profile && profile.data.quote) ? `> ${profile.data.quote}\n\n` : ''}${presence.join('\n')}`);
         
-                        let roles = [];
-                        let rolec = [...mem.roles.cache.values()];
-                        rolec.sort((a, b) => a.rawPosition - b.rawPosition)
-                        rolec.reverse().forEach((role) => {
-                            log(role.rawPosition);
-                            if(role.id !== mem.guild.id) {
-                                if(m.channel.type === 'dm' || m.guild.id !== bot.cfg.guilds.optifine) {
-                                    roles.push(`\`@${role.name}\``);
-                                } else {
-                                    roles.push(role.toString());
-                                }
-                            }
-                        });
-        
                         let identity = [
-                            `Mention: ${mem.toString()}`,
-                            `User ID: \`\`\`yaml\n${mem.user.id}\`\`\``
+                            `Mention: ${user.toString()}`,
+                            `User ID: \`\`\`yaml\n${user.id}\`\`\``
                         ].join('\n');
         
                         embed.addField('Identification', identity)
 
-                        if(roles.length > 0) {
-                            embed.addField('Server Roles', roles.join(' '))
+                        if(mem !== null) {
+                            let roles = [];
+                            let rolec = [...mem.roles.cache.values()];
+                            rolec.sort((a, b) => a.rawPosition - b.rawPosition)
+                            rolec.reverse().forEach((role) => {
+                                log(role.rawPosition);
+                                if(role.id !== mem.guild.id) {
+                                    if(m.channel.type === 'dm' || m.guild.id !== bot.cfg.guilds.optifine) {
+                                        roles.push(`\`@${role.name}\``);
+                                    } else {
+                                        roles.push(role.toString());
+                                    }
+                                }
+                            });
+
+                            if(roles.length > 0) {
+                                embed.addField('Server Roles', roles.join(' '))
+                            }
+
+                            if(mem.joinedAt !== null) {
+                                embed.addField('Server Join Date', `${mem.joinedAt.toUTCString()}\n(${timeago.format(mem.joinedAt)})`, true)
+                            }
                         }
 
-                        embed.addField('Account Creation Date', `${mem.user.createdAt.toUTCString()}\n(${timeago.format(mem.user.createdAt)})`, true)
-        
-                        if(mem.joinedAt !== null) {
-                            embed.addField('Server Join Date', `${mem.joinedAt.toUTCString()}\n(${timeago.format(mem.joinedAt)})`, true)
-                        }
+                        embed.addField('Account Creation Date', `${user.createdAt.toUTCString()}\n(${timeago.format(user.createdAt)})`, true)
         
                         if(profile) {
-                            let added = 0;
-
                             if(profile.data.essential.mute) {
-                                if(typeof profile.data.essential.mute.end === 'null') {
+                                if(profile.data.essential.mute.end === null) {
                                     embed.addField(`Mute Expiration`, `Never. (Permanent Mute)`, true)
-                                    added++;
                                 } else {
                                     embed.addField(`Mute Expiration`, `${new Date(profile.data.essential.mute.end).toUTCString()}\n(${timeago.format(profile.data.essential.mute.end)})`, true)
-                                    added++;
                                 }
                             }
+                        }
 
-                            if(added > 0) {
-                                embed.setFooter(`This user has an OptiBot profile, which contains some additional custom data not normally provided by Discord.`)
-                            }
+                        if(result.type === 'user') {
+                            embed.setFooter(`This user may not be a member of this server.`)
                         }
         
                         m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))

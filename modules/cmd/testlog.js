@@ -33,9 +33,7 @@ const func = (m, args, data) => {
     const bot = data.bot;
     const log = data.log;
 
-    let now = new Date();
-
-    let logEntry = new bot.util.LogEntry(bot, {time: now})
+    let logEntry = new bot.util.LogEntry(bot)
     .setColor(bot.cfg.embed.default)
     .setIcon(bot.icons.find('ICO_load'))
     .setTitle(`Embed Title`, `Report Title`)
@@ -49,7 +47,7 @@ const func = (m, args, data) => {
         data: `Section 2 Embed Content`,
         raw: `Section 2 Plaintext Content`
     })
-    .submit("misc")
+    .submit()
 }
 
 module.exports = setup;

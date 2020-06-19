@@ -31,7 +31,15 @@ const func = (m, args, data) => {
         data.cmd.noArgs(m);
     } else {
         bot.util.target(m, args[1], bot, {type: parseInt(args[0]), member: data.member}).then((result) => {
-            m.channel.send(`\`\`\`javascript\n${util.inspect(result)}\`\`\``).then(bm => bot.util.responder(m.author.id, bm, bot))
+            let text = util.inspect(result);
+
+            if (text.length > 1950) {
+                m.channel.send(new djs.MessageAttachment(Buffer.from(util.inspect(result)), 'target.txt')).then(bm => bot.util.responder(m.author.id, bm, bot))
+            } else {
+                m.channel.send(`\`\`\`javascript\n${util.inspect(result)}\`\`\``).then(bm => bot.util.responder(m.author.id, bm, bot))
+            }
+
+            
         }).catch(err => bot.util.err(err, bot, {m:m}));
     }
 }

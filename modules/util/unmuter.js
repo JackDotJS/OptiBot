@@ -7,7 +7,7 @@ module.exports = (bot, id) => {
         let type = null;
         if(user) type = (user.constructor === djs.User) ? 'user' : 'member';
 
-        let logEntry = new bot.util.LogEntry(bot)
+        let logEntry = new bot.util.LogEntry(bot, {channel: "moderation"})
         .setColor(bot.cfg.embed.error)
         .setIcon(bot.icons.find('ICO_error'))
         .setTitle(`Member Unmute Failure`, `Member Mute Removal Failure Report`)
@@ -21,7 +21,7 @@ module.exports = (bot, id) => {
             logEntry.addSection(`Member`, `Unknown. (Error occurred before or during fetch operation)`)
         }
 
-        logEntry.submit("moderation");
+        logEntry.submit();
     }
 
     bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch(id).then(mem => {
@@ -86,13 +86,13 @@ module.exports = (bot, id) => {
             }
         }
 
-        let logEntry = new bot.util.LogEntry(bot)
+        let logEntry = new bot.util.LogEntry(bot, {channel: "moderation"})
             .setColor(bot.cfg.embed.default)
             .setIcon(bot.icons.find('ICO_unmute'))
             .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
             .setHeader(`Reason: Mute period expired.`)
             .addSection(`Member Unmuted`, (type === "user") ? user : user.user)
             .setThumbnail(((type === "user") ? user : user.user).displayAvatarURL({format:'png'}))
-            .submit("moderation");
+            .submit();
     }
 }

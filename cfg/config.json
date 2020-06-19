@@ -37,7 +37,8 @@
             "joinleave": "721177469075587122",
             "delete": "721177415941881928",
             "moderation": "721177446845513738"
-        }
+        },
+        "logFiles": "723385591017766945"
     },
     "roles": {
         "advisor": "695553561064505345",
@@ -68,7 +69,33 @@
         "cancel": "672309278605836308"
     },
     "messages": {
-        "confirmDelete": "To remove this message, undo the emoji reaction and press it once more to confirm."
+        "confirmDelete": "To remove this message, undo the emoji reaction and press it once more to confirm.",
+        "error": [
+            "Everything's going to plan. No, really, that was supposed to happen.",
+            "Uh... Did I do that?",
+            "Oops.",
+            "Why did you do that?",
+            "My bad.",
+            "Why is it breaking :(",
+            "I feel sad now :(",
+            "I let you down. Sorry :(",
+            "Ouch. That hurt :(",
+            "Sorry :(",
+            "I just don't know what went wrong :(",
+            "Oh - I know what I did wrong!",
+            "I blame Jack.",
+            "Don't be sad. I'll do better next time, I promise!",
+            "I'm sorry, Dave.",
+            "Quite honestly, I wouldn't worry myself about that.",
+            "Surprise! Haha. Well, this is awkward.",
+            "Would you like a cupcake?",
+            "Hi, I'm OptiBot, and I'm a crashaholic.",
+            "This doesn't make any sense!",
+            "Don't do that.",
+            "There are four lights!",
+            "I bet Cylons wouldn't have this problem.",
+            "Bruh."
+        ]
     },
     "superusers": [
         "181214529340833792",

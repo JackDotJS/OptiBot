@@ -24,8 +24,21 @@ module.exports = (err, bot, data = {}) => {
     if(err instanceof Error) {
         log(err.stack, 'error', file, line);
 
-        embed.setAuthor('Something went wrong while doing that. Oops.', bot.icons.find('ICO_error'))
-        .setDescription(`\`\`\`diff\n-[${file}:${line}] ${err}\`\`\` \nIf this continues, please contact <@181214529340833792> or <@251778569397600256>`);
+        let loc = `${file}:${line}`;
+
+        if(!call.evalFlag) {
+            let match = err.stack.match(new RegExp(`${file.replace('.', '\\.')}:\\d+:\\d+`));
+
+            log(match);
+
+            if(match) {
+                loc = `${match[0]}`;
+            }
+        }
+
+        embed.setAuthor('Something went wrong.', bot.icons.find('ICO_error'))
+        .setTitle(bot.cfg.messages.error[~~(Math.random() * bot.cfg.messages.error.length)])
+        .setDescription(`\`\`\`diff\n-[${loc}] ${err}\`\`\``);
     } else {
         embed.setAuthor(err, bot.icons.find('ICO_error'))
     }

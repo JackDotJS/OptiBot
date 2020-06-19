@@ -114,7 +114,7 @@ const func = (m, args, data) => {
 
                         m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
 
-                        let logEntry = new bot.util.LogEntry(bot)
+                        let logEntry = new bot.util.LogEntry(bot, {channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
                         .setIcon(bot.icons.find('ICO_unmute'))
                         .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
@@ -123,11 +123,14 @@ const func = (m, args, data) => {
                         .addSection(`Moderator Responsible`, m.author)
                         .addSection(`Command Location`, m)
 
-                        if(result.type !== 'id') {
+                        if(result.type === 'user') {
                             logEntry.setThumbnail(result.target.displayAvatarURL({format:'png'}))
+                        } else
+                        if(result.type === 'member') {
+                            logEntry.setThumbnail(result.target.user.displayAvatarURL({format:'png'}))
                         }
 
-                        logEntry.submit("moderation");
+                        logEntry.submit();
                     }
 
                     if(result.type === 'member') {

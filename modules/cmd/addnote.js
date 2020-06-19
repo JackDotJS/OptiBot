@@ -73,14 +73,14 @@ const func = (m, args, data) => {
                     profile.data.essential.record.push(entry.data);
 
                     bot.updateProfile(userid, profile).then(() => {
-                        let logEntry = new bot.util.LogEntry(bot)
+                        let logEntry = new bot.util.LogEntry(bot, {channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
                         .setIcon(bot.icons.find('ICO_docs'))
                         .setTitle(`Member Note Created`, `Moderation Note Report`)
                         .addSection(`Member`, result.target)
                         .addSection(`Note Author`, m.author)
                         .addSection(`Note Contents`, reason)
-                        .submit("moderation")
+                        .submit()
 
                         let embed = new djs.MessageEmbed()
                         .setAuthor(`Note added.`, bot.icons.find('ICO_okay'))

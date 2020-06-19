@@ -231,7 +231,7 @@ const func = (m, args, data) => {
                         let embed2 = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.default)
 
-                        let logEntry = new bot.util.LogEntry(bot)
+                        let logEntry = new bot.util.LogEntry(bot, {channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
                         .setIcon(bot.icons.find('ICO_mute'))
                         .addSection(`Member Muted`, result.target)
@@ -259,7 +259,7 @@ const func = (m, args, data) => {
                             .addSection(`Expiration Date`, `${new Date(muteData.end).toUTCString()} \n(${timeago.format(muteData.end)})`);
                         }
 
-                        logEntry.submit("moderation");
+                        logEntry.submit();
                     }
 
                     if(result.type === 'member') {

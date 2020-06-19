@@ -82,7 +82,11 @@ module.exports = (m, target, bot, data) => {
                         bot.users.fetch(id).then(user => {
                             remember({ type: "user", target: user });
                         }).catch(err => {
-                            reject(err);
+                            if(err.stack.match(/invalid or uncached|unknown member|unknown user/i)) {
+                                remember({ type: "id", target: id });
+                            } else {
+                                reject(err);
+                            }
                         })
                     } else
                     if(data.type === 1) {

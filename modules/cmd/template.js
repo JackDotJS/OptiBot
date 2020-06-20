@@ -19,12 +19,12 @@ module.exports = setup;
 const setup = (bot) => { 
     return new Command(bot, {
         name: path.parse(__filename).name,
-        aliases: ['aliases'],
+        // aliases: ['aliases'],
         short_desc: `Short description. Shows in \`${bot.prefix}list\``,
         long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
         args: `[args]`,
         image: 'IMG_args.png',
-        authlvl: 1000,
+        authlvl: 5,
         flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
         run: func
     });

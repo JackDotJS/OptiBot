@@ -10,7 +10,11 @@ const setup = (bot) => {
         aliases: ['record', 'history'],
         short_desc: `View a user's record.`,
         long_desc: `View a user's violation history.`,
-        args: `<discord member> [page number | case ID]`,
+        args: [
+            `<discord member> [page #] ["full"]`,
+            `<discord member> ["full"] [page #]`,
+            `<discord member> [case ID]`
+        ],
         authlvl: 1,
         flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'LITE'],
         run: func
@@ -60,7 +64,7 @@ const func = (m, args, data) => {
                     type = `Remove`;
                     break;
                 case 0:
-                    type = `Edit`;
+                    type = `Update`;
                     break;
                 case 1:
                     if ([3, 4].indexOf(entry.action) < 0) type = `Add`;
@@ -70,6 +74,20 @@ const func = (m, args, data) => {
             data.action = `${type} ${action}`.trim();
             return data;
         }
+
+        let selectPage = 1;
+        let viewAll = false;
+
+        if ((args[1] && isNaN(args[1]) && args[1].toLowerCase() === 'full') || (args[2] && isNaN(args[2]) && args[2].toLowerCase() === 'full')) {
+            viewAll = true;
+        }
+
+        if(args[1] && !isNaN(args[1])) {
+            selectPage = parseInt(args[1]);
+        } else
+        if(args[2] && !isNaN(args[2])) {
+            selectPage = parseInt(args[2]);
+        }
         
         bot.util.target(m, args[0], bot, {type: 0, member:data.member}).then((result) => {
             if (!result) {
@@ -77,185 +95,205 @@ const func = (m, args, data) => {
             } else
             if (result.type === 'notfound') {
                 bot.util.err('Unable to find a user.', bot, {m:m})
+            } else
+            if (result.id === bot.user.id) {
+                bot.util.err('Nice try.', bot, {m:m})
             } else {
-                let userid = result.target; // ID only
-                let username = userid;
+                bot.getProfile(result.id, false).then(profile => {
+                    let record = profile.data.essential.record;
+                    let embed = new djs.MessageEmbed()
+                    .setColor(bot.cfg.embed.default)
+                    .setTitle(result.tag)
+                    .setFooter(`Note that existing violations before October 30, 2019 will not show here. \nAdditionally, all records before [X], 2020 may be missing information.`);
 
-                if (result.type === 'user') { // partial user
-                    userid = result.target.id; 
-                    username = result.target.tag; 
-                } else 
-                if (result.type === 'member') { // member
-                    userid = result.target.user.id; 
-                    username = result.target.user.tag; 
-                }
+                    let title = `Member Records`;
+                    
+                    if(!profile || !record) {
+                        embed.setAuthor(title, bot.icons.find('ICO_docs'))
+                        .setDescription(`This user has no known record.`)
 
-                if (userid === bot.user.id) {
-                    bot.util.err('Nice try.', bot, {m:m})
-                } else {
-                    bot.getProfile(userid, false).then(profile => {
-                        let embed = new djs.MessageEmbed()
-                        .setColor(bot.cfg.embed.default)
-                        .setTitle(username)
-                        .setFooter(`Note that existing violations before October 30, 2019 will not show here. Additionally, all records before [X], 2020 may be missing additional information.`);
+                        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                    } else
+                    if(selectPage > 1420070400000) {
 
-                        let title = `Member Records`;
-                        
-                        if(!profile || !profile.data.essential.record) {
-                            embed.setAuthor(title, bot.icons.find('ICO_docs'))
-                            .setDescription(`This user has no known record.`)
+                        // INDIVIDUAL ENTRY
 
-                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
-                        } else
-                        if(args[1] && !isNaN(args[1]) && parseInt(args[1]) > 946684800000) {
+                        let children = [];
+                        let foundEntry = null;
 
-                            // INDIVIDUAL ENTRY
+                        for(let i = 0; i < record.length; i++) {
+                            let entry = record[i]
 
-                            let children = [];
-                            let foundEntry = null;
-
-                            for(let i = 0; i < profile.data.essential.record.length; i++) {
-                                let entry = profile.data.essential.record[i]
-
-                                if(entry.parent === parseInt(args[1])) {
-                                    children.push(entry.date);
-                                } else
-                                if(entry.date === parseInt(args[1])) {
-                                    foundEntry = entry;
-                                }
-                                if(i+1 >= profile.data.essential.record.length) {
-                                    if(foundEntry === null) {
-                                        bot.util.err('Unable to find record entry.', bot, {m:m})
-                                    } else {
-                                        bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch(foundEntry.moderator).then(mem => {
-                                            if(foundEntry.pardon.state) {
-                                                bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch(foundEntry.pardon.admin).then(admin => {
-                                                    finalCase(foundEntry, mem, admin);
-                                                }).catch(err => {
-                                                    bot.util.err(err, bot);
-                                                    finalCase(foundEntry, mem);
-                                                });
-                                            } else {
+                            if(entry.parent === selectPage) {
+                                children.push(entry.date);
+                            } else
+                            if(entry.date === selectPage) {
+                                foundEntry = entry;
+                                // not using break here because we still need to find any children of this entry
+                            }
+                            if(i+1 >= record.length) {
+                                if(foundEntry === null) {
+                                    bot.util.err('Unable to find record entry.', bot, {m:m})
+                                } else {
+                                    bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch(foundEntry.moderator).then(mem => {
+                                        if(foundEntry.pardon.state) {
+                                            bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch(foundEntry.pardon.admin).then(admin => {
+                                                finalCase(foundEntry, mem, admin);
+                                            }).catch(err => {
+                                                bot.util.err(err, bot);
                                                 finalCase(foundEntry, mem);
-                                            }
-                                        }).catch(err => {
-                                            bot.util.err(err, bot);
-                                            finalCase(foundEntry);
-                                        });
-                                    }
+                                            });
+                                        } else {
+                                            finalCase(foundEntry, mem);
+                                        }
+                                    }).catch(err => {
+                                        bot.util.err(err, bot);
+                                        finalCase(foundEntry);
+                                    });
                                 }
                             }
+                        }
 
-                            function finalCase(entry, mem, admin) {
-                                let mod = `Unknown (${entry.moderator})`;
-                                let adm = `Unknown`;
+                        function finalCase(entry, mem, admin) {
+                            let mod = `Unknown (${entry.moderator})`;
+                            let adm = `Unknown`;
 
-                                if(mem) {
-                                    mod = `<@${entry.moderator}> | ${mem.user.tag}\n\`\`\`yaml\n${entry.moderator}\`\`\``;
-                                }
-
-                                if(admin) {
-                                    adm = `<@${entry.pardon.admin}> | ${admin.user.tag}\n\`\`\`yaml\n${entry.pardon.admin}\`\`\``;
-                                } else
-                                if(entry.pardon.state) {
-                                    adm = `Unknown (${entry.pardon.admin})`
-                                }
-
-                                let def = entryDef(entry);
-
-                                embed = new djs.MessageEmbed()
-                                .setColor(bot.cfg.embed.default)
-                                .setAuthor(title+' | Single Entry', bot.icons.find('ICO_docs'))
-                                .setTitle(username)
-                                .setDescription(`Case ID: ${entry.date} ${(entry.pardon.state) ? '**(Pardoned)**' : ''}`)
-                                .addField(`Action`, `${def.icon} ${def.action}`)
-                                .addField(`Reason`, (!entry.reason || entry.reason.length === 0) ? `No reason provided.` : entry.reason)
-                                .addField(`Date & Time (UTC)`, `${new Date(entry.date).toUTCString()} \n(${timeago.format(entry.date)})`)
-                                .addField(`Moderator Responsible`, mod)
-                                .addField(`Command Location`, (entry.url !== null) ? `[Direct URL](${entry.url})`: `Unavailable`)
-
-                                if(entry.details !== null) embed.addField(`Additional Information`, entry.details)
-
-                                if(entry.pardon.state) {
-                                    embed.addField('(Pardon) Administrator Responsible', adm)
-                                    .addField(`(Pardon) Date & Time (UTC)`, `${new Date(entry.pardon.date).toUTCString()} \n(${timeago.format(entry.pardon.date)})`)
-                                    .addField(`(Pardon) Reason`, entry.pardon.reason)
-                                }
-
-                                if(entry.parent !== null) embed.addField(`Parent Case ID`, entry.parent)
-
-                                if(children.length > 0) embed.addField(`Linked Case ID(s)`, children.join('\n'))
-                                
-                                m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                            if(mem) {
+                                mod = `<@${entry.moderator}> | ${mem.user.tag}\n\`\`\`yaml\n${entry.moderator}\`\`\``;
                             }
+
+                            if(admin) {
+                                adm = `<@${entry.pardon.admin}> | ${admin.user.tag}\n\`\`\`yaml\n${entry.pardon.admin}\`\`\``;
+                            } else
+                            if(entry.pardon.state) {
+                                adm = `Unknown (${entry.pardon.admin})`
+                            }
+
+                            let def = entryDef(entry);
+
+                            embed = new djs.MessageEmbed()
+                            .setColor(bot.cfg.embed.default)
+                            .setAuthor(title+' | Single Entry', bot.icons.find('ICO_docs'))
+                            .setTitle(result.tag)
+                            .setDescription(`Case ID: ${entry.date} ${(entry.pardon.state) ? '**(Pardoned)**' : ''}`)
+                            .addField(`Action`, `${def.icon} ${def.action}`)
+                            .addField(`Reason`, (!entry.reason || entry.reason.length === 0) ? `No reason provided.` : entry.reason)
+                            .addField(`Date & Time (UTC)`, `${new Date(entry.date).toUTCString()} \n(${timeago.format(entry.date)})`)
+                            .addField(`Moderator Responsible`, mod)
+                            .addField(`Command Location`, (entry.url !== null) ? `[Direct URL](${entry.url})`: `Unavailable`)
+
+                            if(entry.details !== null) embed.addField(`Additional Information`, entry.details)
+
+                            if(entry.pardon.state) {
+                                embed.addField('(Pardon) Administrator Responsible', adm)
+                                .addField(`(Pardon) Date & Time (UTC)`, `${new Date(entry.pardon.date).toUTCString()} \n(${timeago.format(entry.pardon.date)})`)
+                                .addField(`(Pardon) Reason`, entry.pardon.reason)
+                            }
+
+                            if(entry.parent !== null) embed.addField(`Parent Case ID`, entry.parent)
+
+                            if(children.length > 0) embed.addField(`Linked Case ID(s)`, children.join('\n'))
+                            
+                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                        }
+                    } else {
+
+                        // ALL ENTRIES
+
+                        let pageNum = selectPage;
+                        let perPage = 5;
+                        let pageLimit = Math.ceil(record.length / perPage);
+                        if (selectPage < 0 || selectPage > pageLimit) {
+                            pageNum = 1;
+                        }
+
+                        record.reverse();
+
+                        title += ` | Page ${pageNum}/${pageLimit}`;
+
+                        let desc = [
+                            `<@${result.id}> has a total of ${record.length} ${(record.length === 1) ? 'entry' : 'entries'} on record`,
+                        ]
+
+                        let pardonedCount = 0;
+
+                        for(let entry of record) {
+                            if(entry.pardon.state) {
+                                pardonedCount++;
+                            }
+                        }
+
+                        if(pardonedCount > 0) {
+                            desc[0] += `, ${pardonedCount} of which ${(pardonedCount === 1) ? "has" : "have"} been pardoned.`;
                         } else {
+                            desc[0] += `.`;
+                        }
 
-                            // ALL ENTRIES
+                        let i = (pageNum > 1) ? (perPage * (pageNum - 1)) : 0;
+                        let added = 0;
+                        let hidden = 0;
+                        (function addEntry() {
+                            let entry = record[i];
+                            let def = entryDef(entry);
+                            let details;
 
-                            let pageNum = 1
-                            let perPage = 5;
-                            let pageLimit = Math.ceil(profile.data.essential.record.length / perPage);
-                            if (args[1] && parseInt(args[1]) > 0 && parseInt(args[1]) <= pageLimit) {
-                                pageNum = parseInt(args[1]);
-                            }
-
-                            profile.data.essential.record.reverse();
-
-                            title += ` | Page ${pageNum}/${pageLimit}`;
-                            embed.setAuthor(title, bot.icons.find('ICO_docs'))
-                            .setDescription(`<@${userid}> has a total of ${profile.data.essential.record.length} ${(profile.data.essential.record.length === 1) ? 'entry' : 'entries'} on record. \nType \`${bot.prefix}${data.input.cmd} <member> <case ID>\` for more information on a specifc entry.`);
-
-                            let i = (pageNum > 1) ? (perPage * (pageNum - 1)) : 0;
-                            let added = 0;
-                            (function addEntry() {
-                                let entry = profile.data.essential.record[i];
-                                let def = entryDef(entry);
-                                let details;
-
-                                if(entry.pardon.state) {
-                                    let reason = `> ${entry.pardon.reason.split('\n').join('\n> ')}`;
-
-                                    details = [
-                                        `${def.icon} ~~${def.action}~~`,
-                                        `**Pardoned By:** <@${entry.pardon.admin}>`,
-                                        `**When:** ${timeago.format(entry.pardon.date)}`
-                                    ]
-
-                                    if(entry.pardon.reason.length > 128) {
-                                        details.push(reason.substring(0, 128).trim()+'...');
-                                    } else {
-                                        details.push(reason);
-                                    }
-                                } else {
-                                    let reason = `> ${entry.reason.split('\n').join('\n> ')}`;
-
-                                    details = [
-                                        `${def.icon} ${def.action}`,
-                                        `**Moderator:** <@${entry.moderator}>`,
-                                        `**When:** ${timeago.format(entry.date)}`
-                                    ]
-
-                                    if(entry.reason.length > 128) {
-                                        details.push(reason.substring(0, 128).trim()+'...');
-                                    } else {
-                                        details.push(reason);
-                                    }
-                                }
-
-                                embed.addField(`Case ID: ${entry.date}`, details.join('\n'));
-
-                                added++;
-
-                                if(added >= perPage || i+1 >= profile.data.essential.record.length) {
-                                    m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
-                                } else {
+                            if(entry.pardon.state) {
+                                if(!viewAll) {
+                                    hidden++;
                                     i++;
                                     addEntry();
+                                    return;
                                 }
-                            })();
-                        }
-                    }).catch(err => bot.util.err(err, bot, {m:m}));
-                }
+
+                                let reason = `> ${entry.pardon.reason.split('\n').join('\n> ')}`;
+
+                                details = [
+                                    `${def.icon} ~~${def.action}~~`,
+                                    `**Pardoned By:** <@${entry.pardon.admin}>`,
+                                    `**When:** ${timeago.format(entry.pardon.date)}`
+                                ]
+
+                                if(entry.pardon.reason.length > 128) {
+                                    details.push(reason.substring(0, 128).trim()+'...');
+                                } else {
+                                    details.push(reason);
+                                }
+                            } else {
+                                let reason = `> ${entry.reason.split('\n').join('\n> ')}`;
+
+                                details = [
+                                    `${def.icon} ${def.action}`,
+                                    `**Moderator:** <@${entry.moderator}>`,
+                                    `**When:** ${timeago.format(entry.date)}`
+                                ]
+
+                                if(entry.reason.length > 128) {
+                                    details.push(reason.substring(0, 128).trim()+'...');
+                                } else {
+                                    details.push(reason);
+                                }
+                            }
+
+                            embed.addField(`Case ID: ${entry.date}`, details.join('\n'));
+
+                            added++;
+
+                            if(added >= perPage || i+1 >= record.length) {
+                                if(hidden > 0) {
+                                    desc.push(`**${hidden} pardoned ${(hidden === 1) ? "entry on this page has" : "entries on this page have"} been hidden.** (Use the "full" argument to unhide)`)
+                                }
+
+                                embed.setAuthor(title, bot.icons.find('ICO_docs'))
+                                .setDescription(desc.join('\n\n'));
+
+                                m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                            } else {
+                                i++;
+                                addEntry();
+                            }
+                        })();
+                    }
+                }).catch(err => bot.util.err(err, bot, {m:m}));
             }
         }).catch(err => bot.util.err(err, bot, {m:m}));
     } 

@@ -248,15 +248,28 @@ const func = (m, args, data) => {
                             logEntry.setHeader(`No reason provided.`)
                         }
 
-                        // todo: account for infinite mutes
-
                         if(isUpdate) {
                             logEntry.setTitle(`Member Mute Updated`, `Member Mute Update Report`)
-                            .addSection(`Old Expiration Date`, `${new Date(log_data.org_end).toUTCString()} \n(${timeago.format(log_data.org_end)})`)
-                            .addSection(`New Expiration Date`, `${new Date(muteData.end).toUTCString()} \n(${timeago.format(muteData.end)})`);
+
+                            if(log_data.org_end === null) {
+                                logEntry.addSection(`Old Expiration Date`, `Never.`)
+                            } else {
+                                logEntry.addSection(`Old Expiration Date`, new Date(log_data.org_end))
+                            }
+
+                            if(muteData.end === null) {
+                                logEntry.addSection(`New Expiration Date`, `Never.`)
+                            } else {
+                                logEntry.addSection(`New Expiration Date`, new Date(muteData.end))
+                            }
                         } else {
                             logEntry.setTitle(`Member Muted`, `Member Mute Report`)
-                            .addSection(`Expiration Date`, `${new Date(muteData.end).toUTCString()} \n(${timeago.format(muteData.end)})`);
+
+                            if(muteData.end === null) {
+                                logEntry.addSection(`Expiration Date`, `Never.`)
+                            } else {
+                                logEntry.addSection(`Expiration Date`, new Date(muteData.end))
+                            }
                         }
 
                         logEntry.submit();

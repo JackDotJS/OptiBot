@@ -51,6 +51,19 @@ const func = (m, args, data) => {
                                     action: null,
                                     icon: '<:ICO_default:657533390073102363>'
                                 }
+
+                                if(entry.action === 0) {
+                                    bot.util.err(`Notes cannot be pardoned.`, bot, {m:m});
+                                } else
+                                if(entry.action === 3) {
+                                    bot.util.err(`Kicks cannot be pardoned.`, bot, {m:m});
+                                } else
+                                if(entry.action === 4) {
+                                    bot.util.err(`Bans cannot be pardoned.`, bot, {m:m});
+                                } else
+                                if(entry.actionType === -1) {
+                                    bot.util.err(`Removals cannot be pardoned.`, bot, {m:m});
+                                }
                 
                                 switch(entry.action) {
                                     case 0:
@@ -80,10 +93,10 @@ const func = (m, args, data) => {
                                         type = `Remove`;
                                         break;
                                     case 0:
-                                        type = `Edit`;
+                                        type = `Update`;
                                         break;
                                     case 1:
-                                        if ([3, 4].indexOf(entry.action) < 0) type = `Add`;
+                                        if (![3, 4].includes(entry.action)) type = `Add`;
                                         break;
                                 }
                 

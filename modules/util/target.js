@@ -19,8 +19,22 @@ const util = require(`util`);
 
 module.exports = (m, target, bot, data) => {
     const log = bot.log;
-    target = String(target);
     return new Promise((resolve, reject) => {
+        if (['previous', 'last', 'recent', 'prev'].includes(target.toLowerCase())) {
+            log('last target')
+            if(bot.memory.targets[m.author.id] !== undefined) {
+                log('exists')
+                if(data.type === 0) {
+                    target = bot.memory.targets[m.author.id].u;
+                } else
+                if(data.type === 1) {
+                    target = bot.memory.targets[m.author.id].m;
+                }
+            } else {
+                log('does not exist')
+            }
+        }
+
         log(`get target from ${target}`);
         log(`select type ${data.type}`);
 
@@ -61,6 +75,8 @@ module.exports = (m, target, bot, data) => {
                 final_fixed.mention = mention;
             }
 
+            log(util.inspect(final_fixed))
+
             resolve(final_fixed);
         }
 
@@ -96,21 +112,6 @@ module.exports = (m, target, bot, data) => {
                     reject(err);
                 }
             });
-        }
-
-        if (['previous', 'last', 'recent', 'prev'].includes(target.toLowerCase())) {
-            log('last target')
-            if(bot.memory.targets[m.author.id] !== undefined) {
-                log('exists')
-                if(data.type === 0) {
-                    target = bot.memory.targets[m.author.id].u;
-                } else
-                if(data.type === 1) {
-                    target = bot.memory.targets[m.author.id].m;
-                }
-            } else {
-                log('does not exist')
-            }
         }
         
         if (['self', 'myself', 'me'].includes(target.toLowerCase())) {
@@ -189,26 +190,19 @@ module.exports = (m, target, bot, data) => {
                 }
             }
         } else
-        if (target.match(/^(<@).*(>)$/) !== null && m.mentions.users.size > 0) {
+        if (target.match(/<@!?\d{13,}>/) !== null) {
             log('@mention')
-            if(m.mentions.members !== null && m.guild.id === bot.cfg.guilds.optifine) {
-                let mem = [...m.mentions.members.values()][0];
-                if(data.type === 0) {
-                    remember({ type: "member", target: mem });
-                } else
-                if(data.type === 1) {
-                    if(mem.lastMessage) {
-                        remember({ type: "message", target: mem.lastMessage });
-                    } else {
-                        remember({ type: "notfound", target: null });
-                    }
-                }
+
+            let id = target.match(/\d{13,}/)[0];
+
+            if (Number.isInteger(parseInt(id)) && parseInt(id) >= 1420070400000) {
+                checkServer(id);
             } else {
-                checkServer([...m.mentions.users.values()][0].id);
+                remember();
             }
         } else
         if (target.match(/^\^{1,10}$/) !== null) {
-            log(`"above" shortcut`)
+            log(`arrow shortcut`)
             if(m.channel.type === 'dm') {
                 remember({ type: "notfound", target: null });
             } else {
@@ -256,8 +250,8 @@ module.exports = (m, target, bot, data) => {
             }
         } else
         if (!isNaN(target) && parseInt(target) >= 1420070400000) {
+            log('id')
             if(data.type === 0) {
-                log('id')
                 checkServer(target);
             } else
             if(data.type === 1) {
@@ -265,6 +259,7 @@ module.exports = (m, target, bot, data) => {
             }
         } else 
         if(target.match(/discordapp\.com|discord.com/i)) {
+            log('url')
             let urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
 
             if(urls !== null) {
@@ -291,9 +286,11 @@ module.exports = (m, target, bot, data) => {
                     remember({ type: "notfound", target: null });
                 }
             } else {
+                log('invalid target')
                 remember();
             }
         } else {
+            log('invalid target')
             remember();
         }
     });

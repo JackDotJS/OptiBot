@@ -68,10 +68,13 @@ module.exports = class LogEntry {
         if(text.length > limit) {
             str = text.substring(0, limit-3).trim()+'...';
             this.data.truncated = true;
+        } else
+        if(text.length+1 <= limit) {
+            str += "​"; // zero-width character to fix huge emoji on mobile
         }
 
         if(text.trim().length === 0) {
-            text = "undefined";
+            str = "undefined";
         }
 
         return str;
@@ -130,9 +133,6 @@ module.exports = class LogEntry {
     }
 
     addSection(_title, _content) {
-        // todo: add zero-width character to fix giant emoji on mobile
-        let zw = "​";
-
         let title = this._truncate(_title, 256);
         let title_r = title;
 

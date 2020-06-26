@@ -4,7 +4,7 @@ const util = require(`util`);
 const fileType = require('file-type');
 const request = require('request');
 const djs = require(`discord.js`);
-const Command = require(path.resolve(`./modules/core/command.js`));
+const { Command } = require(`../core/OptiBot.js`);
 
 const setup = (bot) => { 
     return new Command(bot, {

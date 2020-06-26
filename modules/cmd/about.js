@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const Command = require(path.resolve(`./modules/core/command.js`));
+const { Command } = require(`../core/OptiBot.js`);
 
 const contributors = require(path.resolve('./cfg/contributors.json'));
 const donators = require(path.resolve('./cfg/donators.json'));

@@ -3,7 +3,7 @@ const fs = require(`fs`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const Command = require(path.resolve(`./modules/core/command.js`));
+const { Command } = require(`../core/OptiBot.js`);
 
 const setup = (bot) => { 
     return new Command(bot, {

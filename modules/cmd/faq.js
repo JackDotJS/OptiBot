@@ -5,7 +5,7 @@ const djs = require(`discord.js`);
 const sim = require('string-similarity');
 const wink = require('jaro-winkler');
 
-const Command = require(path.resolve(`./modules/core/command.js`));
+const { Command } = require(`../core/OptiBot.js`);
 
 const setup = (bot) => { 
     return new Command(bot, {

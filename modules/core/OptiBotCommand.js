@@ -2,7 +2,25 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 
+
+/**
+ * OptiBot Core: Command Class
+ */
 module.exports = class Command {
+
+    /**
+     * @param bot OptiBot
+     * @param {Object} data Command Data
+     * @param {String} data.name Name of this command.
+     * @param {Array[String]} data.aliases Command aliases.
+     * @param {String} [data.short_desc] Short description.
+     * @param {String} [data.long_desc] Full, long description.
+     * @param {(String|Array[String])} [data.args] Arguments/usage example(s).
+     * @param {String} [data.image] Thumbnail image filename.
+     * @param {Number} [data.authlvl] Minimum authlvl.
+     * @param {Array[String]} [data.flags] Restriction and modifier flags.
+     * @param {Function} data.run The actual command function.
+     */
     constructor (bot, {
         name = null,
         aliases = [],

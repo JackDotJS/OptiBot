@@ -199,12 +199,16 @@ if (!fs.existsSync(`./modules/core`)) {
     throw new Error(`Core directory not found.`);
 }
 
-if (!fs.existsSync(`./modules/core/command.js`)) {
-    throw new Error(`Command Class Module not found.`);
+if (!fs.existsSync(`./modules/core/OptiBot.js`)) {
+    throw new Error(`OptiBot Core Module not found.`);
 }
 
-if (!fs.existsSync(`./modules/core/optibot.js`)) {
-    throw new Error(`OptiBot Core Module not found.`);
+if (!fs.existsSync(`./modules/core/OptiBotClient.js`)) {
+    throw new Error(`OptiBot Client Module not found.`);
+}
+
+if (!fs.existsSync(`./modules/core/OptiBotCommand.js`)) {
+    throw new Error(`Command Class Module not found.`);
 }
 
 if (!fs.existsSync(`./modules/util`)) {

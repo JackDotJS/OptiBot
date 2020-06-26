@@ -12,7 +12,7 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const OptiBot = require(`./modules/core/optibot.js`);
+const ob = require(`./modules/core/OptiBot.js`);
 
 const log = (message, level, file, line) => {
     let call = cid.getData();
@@ -27,7 +27,7 @@ const log = (message, level, file, line) => {
     });
 }
 
-const bot = new OptiBot({
+const bot = new ob.Client({
     presence: {
         status: 'idle', 
         activity: {

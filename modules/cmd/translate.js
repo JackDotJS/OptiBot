@@ -3,30 +3,28 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const iso = require('iso-639-1')
 const request = require('request');
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Translate any message into English.`,
-        args: `<text | discord message>`,
-        authlvl: 1,
-        flags: ['DM_OPTIONAL'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Translate any message into English.`,
+    args: `<text | discord message>`,
+    authlvl: 1,
+    flags: ['DM_OPTIONAL'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if (!args[0]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
         let translate = function(message, source) {
             request(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(message)}`, (err, res, data) => {
                 if (err || !res || !data || res.statusCode !== 200) {
-                    bot.util.err(err || new Error('Failed to get a response from the Google Translate API.'), bot, {m:m})
+                    OBUtil.err(err || new Error('Failed to get a response from the Google Translate API.'), {m:m})
                 } else {
                     let d = JSON.parse(data);
                     log(util.inspect(d));
@@ -38,24 +36,24 @@ const func = (m, args, data) => {
                     .addField('Detected Language', iso.getName(d[2]))
                     .addField('Message Source', `[Direct URL](${source})`)
 
-                    m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                    m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                 }
             });
         }
 
-        bot.util.target(m, args[0], bot, {type: 1, member: data.member}).then(result => {
+        OBUtil.parseTarget(m, 1, args[0], data.member).then(result => {
             if(result && result.type === 'message') {
                 translate(result.target.cleanContent, result.target.url);
             } else 
             if(result && result.type === 'notfound') {
-                bot.util.err('Could not find a message to translate.', bot, {m:m});
+                OBUtil.err('Could not find a message to translate.', {m:m});
             } else {
-                translate(m.cleanContent.substring(`${bot.prefix}${data.input.cmd} `.length), m.url);
+                translate(m.cleanContent.substring(`${bot.prefix}${metadata.name} `.length), m.url);
             }
         }).catch(err => {
-            bot.util.err(err, bot, {m:m});
+            OBUtil.err(err, {m:m});
         });
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

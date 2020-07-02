@@ -3,24 +3,22 @@ const fs = require(`fs`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Force update <#${bot.cfg.faq.channel}> channel.`,
-        long_desc: `Forcefully updates the <#${bot.cfg.faq.channel}> channel.`,
-        args: `["reset"]`,
-        authlvl: 4,
-        flags: ['NO_DM', 'LITE'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Force update <#${bot.cfg.faq.channel}> channel.`,
+    long_desc: `Forcefully updates the <#${bot.cfg.faq.channel}> channel.`,
+    args: `["reset"]`,
+    authlvl: 4,
+    flags: ['NO_DM', 'LITE'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     let md = fs.statSync(path.resolve(`./modules/util/faq.js`))
     let faq = bot.util.faq(bot);
     let channel = bot.guilds.cache.get(bot.cfg.faq.guild).channels.cache.get(bot.cfg.faq.channel);
@@ -39,7 +37,7 @@ const func = (m, args, data) => {
     .setDescription(`<#${bot.cfg.faq.channel}> entries will be refreshed. This may take a couple minutes`)
 
     m.channel.send('_ _', {embed: embed}).then(msg => {
-        bot.util.confirm(m, msg, bot).then(res => {
+        OBUtil.confirm(m, msg).then(res => {
             if(res === 1) {
                 let update = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.default)
@@ -50,10 +48,10 @@ const func = (m, args, data) => {
                     channel.bulkDelete(100).then(() => {
                         postPol(msg);
                     }).catch(err => {
-                        log(err.stack, 'error');
+                        OBUtil.err(err);
                         planBthisfucker(msg);
                     });
-                }).catch((err) => bot.util.err(err, bot));
+                }).catch((err) => OBUtil.err(err));
             } else
             if(res === 0) {
                 let update = new djs.MessageEmbed()
@@ -61,17 +59,17 @@ const func = (m, args, data) => {
                 .setColor(bot.cfg.embed.default)
                 .setDescription(`<#${bot.cfg.faq.channel}> has not been updated.`)
 
-                msg.edit({embed: update}).then(msg => { bot.util.responder(m.author.id, msg, bot); });
+                msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
             } else {
                 let update = new djs.MessageEmbed()
                 .setAuthor('Timed out', bot.icons.find('ICO_load'))
                 .setColor(bot.cfg.embed.default)
                 .setDescription(`Sorry, you didn't respond in time. Please try again.`)
 
-                msg.edit({embed: update}).then(msg => { bot.util.responder(m.author.id, msg, bot); });
+                msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
             }
         }).catch(err => {
-            bot.util.err(err, bot, {m:m});
+            OBUtil.err(err, {m:m});
         })
     });
 
@@ -102,9 +100,9 @@ const func = (m, args, data) => {
                         i++;
                         delmsg();
                     }
-                }).catch((err) => bot.util.err(err, bot, {m:m}));
+                }).catch((err) => OBUtil.err(err, {m:m}));
             })();
-        }).catch((err) => bot.util.err(err, bot, {m:m}));
+        }).catch((err) => OBUtil.err(err, {m:m}));
     }
 
     let i = 0;
@@ -137,14 +135,14 @@ const func = (m, args, data) => {
                     .setColor(bot.cfg.embed.okay)
                     .setAuthor(`FAQ entries successfully updated in ${((new Date().getTime() - timeStart) / 1000).toFixed(2)} seconds.`, bot.icons.find('ICO_okay'))
 
-                    msg.edit({embed: embed}).then((msg) => bot.util.responder(m.author.id, msg, bot)).catch((err) => bot.util.err(err, bot, {m:m}));
-                }).catch((err) => bot.util.err(err, bot, {m:m}));
+                    msg.edit({embed: embed}).then((msg) => OBUtil.afterSend(msg, m.author.id)).catch((err) => OBUtil.err(err, {m:m}));
+                }).catch((err) => OBUtil.err(err, {m:m}));
             } else {
                 i++;
                 postPol(msg);
             }
-        }).catch((err) => bot.util.err(err, bot, {m:m}));
+        }).catch((err) => OBUtil.err(err, {m:m}));
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

@@ -3,42 +3,40 @@ const util = require('util');
 const djs = require(`discord.js`);
 const Jimp = require('jimp');
 const request = require('request');
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['cloak', 'elytra'],
-        short_desc: `Show off an OptiFine donator cape.`,
-        long_desc: `Displays a given user's OptiFine cape and elytra, assuming they've donated and have their cape activated.`,
-        args: `<minecraft username | discord member>`,
-        authlvl: 0,
-        flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY', 'LITE'],
-        run: func
-    })
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['cloak', 'elytra'],
+    short_desc: `Show off an OptiFine donator cape.`,
+    long_desc: `Displays a given user's OptiFine cape and elytra, assuming they've donated and have their cape activated.`,
+    args: `<minecraft username | discord member>`,
+    authlvl: 0,
+    flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY', 'LITE'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if(!args[0]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
-        bot.util.target(m, args[0], bot, {type: 0, member:data.member}).then((result) => {
+        OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
             if(!result || result.type === 'notfound') {
                 getMCname();
             } else {
                 let id = (result.type === 'id') ? result.target : result.target.user.id;
 
-                bot.getProfile(id, false).then(profile => {
+                OBUtil.getProfile(id, false).then(profile => {
                     if(!profile) {
                         getMCname();
                     } else
-                    if(profile.data.cape) {
-                        getMCname(profile.data.cape.uuid);
+                    if(profile.ndata.cape) {
+                        getMCname(profile.ndata.cape.uuid);
                     } else {
-                        bot.util.err(`${(result.type === 'id') ? result.target : result.target.user.tag} does not have a verified cape on their profile.`, bot, {m:m})
+                        OBUtil.err(`${(result.type === 'id') ? result.target : result.target.user.tag} does not have a verified cape on their profile.`, {m:m})
                     }
                 });
             }
@@ -48,10 +46,10 @@ const func = (m, args, data) => {
             if(uuid) {
                 request({ url: `https://api.mojang.com/user/profiles/${uuid}/names`, encoding: null }, (err, res, data) => {
                     if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-                        bot.util.err(err || new Error('Failed to get a response from the Mojang API.'), bot, {m:m})
+                        OBUtil.err(err || new Error('Failed to get a response from the Mojang API.'), {m:m})
                     } else
                     if (res.statusCode === 204) {
-                        bot.util.err(new Error('Failed to get Minecraft UUID from the Mojang API.'), bot, {m:m})
+                        OBUtil.err(new Error('Failed to get Minecraft UUID from the Mojang API.'), {m:m})
                     } else {
                         let dp = JSON.parse(data);
                         let dataNormalized = {
@@ -63,20 +61,20 @@ const func = (m, args, data) => {
                 });
             } else
             if (args[0].match(/\W+/) !== null) {
-                bot.util.err(`Minecraft usernames can only contain letters, numbers, and underscores (_)`, bot, {m:m})
+                OBUtil.err(`Minecraft usernames can only contain letters, numbers, and underscores (_)`, {m:m})
             } else
             if (args[0].length > 16) {
-                bot.util.err(`Minecraft usernames cannot exceed 16 characters in length.`, bot, {m:m})
+                OBUtil.err(`Minecraft usernames cannot exceed 16 characters in length.`, {m:m})
             } else {
                 request({ url: 'https://api.mojang.com/users/profiles/minecraft/' + args[0], encoding: null }, (err, res, data) => {
                     if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-                        bot.util.err(err || new Error('Failed to get a response from the Mojang API'), bot, {m:m})
+                        OBUtil.err(err || new Error('Failed to get a response from the Mojang API'), {m:m})
                     } else
                     if (res.statusCode === 204) {
-                        let embed = bot.util.err(`Player "${args[0]}" does not exist.`, bot)
+                        let embed = OBUtil.err(`Player "${args[0]}" does not exist.`)
                         .setDescription('Maybe check your spelling?');
 
-                        m.channel.send({ embed: embed }).then(bm => bot.util.responder(m.author.id, bm, bot));
+                        m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
                     } else {
                         getCape(JSON.parse(data));
                     }
@@ -88,14 +86,14 @@ const func = (m, args, data) => {
             log(util.inspect(player));
 
             if(bot.cfg.uuidFilter.indexOf(player.id) > -1) {
-                bot.util.err(`Sorry, this player's cape has been blacklisted.`, bot, {m:m});
+                OBUtil.err(`Sorry, this player's cape has been blacklisted.`, {m:m});
             } else {
                 request({ url: 'https://optifine.net/capes/' + player.name + '.png', encoding: null }, (err, res, data) => {
                 if (err || !res || !data || [200, 404].indexOf(res.statusCode) === -1) {
-                    bot.util.err(err || new Error('Failed to get a response from the OptiFine API'), bot, {m:m})
+                    OBUtil.err(err || new Error('Failed to get a response from the OptiFine API'), {m:m})
                 } else
                 if (res.statusCode === 404) {
-                    bot.util.err(`Player "${player.name}" does not have an OptiFine cape.`, bot, {m:m})
+                    OBUtil.err(`Player "${player.name}" does not have an OptiFine cape.`, {m:m})
                 } else {
                     processCape(data, player);
                 }
@@ -106,7 +104,7 @@ const func = (m, args, data) => {
         function processCape(capeTex, player) {
             Jimp.read(capeTex, (err, image) => {
                 if (err) {
-                    bot.util.err(err, bot, {m:m})
+                    OBUtil.err(err, {m:m})
                 } else 
                 if(args[1] && args[1].toLowerCase() === 'full') {
                     imageData.type = 'full';
@@ -173,7 +171,7 @@ const func = (m, args, data) => {
 
                     new Jimp((image.bitmap.width / baseW) * 21, (image.bitmap.height / baseH) * 20, (err, full) => {
                         if(err) {
-                            bot.util.err(err, bot, {m:m})
+                            OBUtil.err(err, {m:m})
                         } else {
                             let filterMode = (full.bitmap.width < 256) ? Jimp.RESIZE_NEAREST_NEIGHBOR : Jimp.RESIZE_BEZIER;
                             
@@ -194,7 +192,7 @@ const func = (m, args, data) => {
         function final(image, player) {
             image.jimp.getBuffer(Jimp.AUTO, (err, img) => {
                 if (err) {
-                    bot.util.err(err, bot, {m:m})
+                    OBUtil.err(err, {m:m})
                 } else {
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
@@ -206,7 +204,7 @@ const func = (m, args, data) => {
 
                     bot.db.profiles.find({ "data.cape.uuid": player.id }, (err, docs) => {
                         if (err) {
-                            bot.util.err(err, bot, {m:m})
+                            OBUtil.err(err, {m:m})
                         } else {
                             if (docs.length !== 0) {
                                 desc.push(`<:okay:642112445997121536> Cape owned by <@${docs[0].userid}>`);
@@ -225,7 +223,7 @@ const func = (m, args, data) => {
                                 embed.setDescription(desc.join('\n\n'));
                             }
 
-                            m.channel.send({ embed: embed }).then(bm => bot.util.responder(m.author.id, bm, bot));
+                            m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
                         }
                     });
                 }
@@ -234,4 +232,4 @@ const func = (m, args, data) => {
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

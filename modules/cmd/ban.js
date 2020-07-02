@@ -1,31 +1,29 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Ban a given user.`,
-        long_desc: `Bans a given user... and that's it. This command only really exists to allow moderators to ban users outside of the server. **Note that this will NOT delete any existing messages for the sake of preserving history.**`,
-        args: `<discord member> <reason>`,
-        authlvl: 3,
-        flags: ['NO_DM'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Ban a given user.`,
+    long_desc: `Bans a given user... and that's it. This command only really exists to allow moderators to ban users outside of the server. **Note that this will NOT delete any existing messages for the sake of preserving history.**`,
+    args: `<discord member> <reason>`,
+    authlvl: 3,
+    flags: ['NO_DM'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if(!args[1]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
         let reason = m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length);
 
-        bot.util.target(m, args[0], bot, {type: 0, member: data.member}).then((result) => {
+        OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
             if(result && !['user', 'member', 'id'].includes(result.type)) {
-                bot.util.err(`You must specify a valid user.`, bot, {m:m});
+                OBUtil.err(`You must specify a valid user.`, {m:m});
             } else {
                 let id = null;
                 let username = null;
@@ -43,7 +41,7 @@ const func = (m, args, data) => {
                 }
 
                 bot.mainGuild.fetchBan(id).then(() => {
-                    bot.util.err(`${username} has already been banned.`, bot, {m:m});
+                    OBUtil.err(`${username} has already been banned.`, {m:m});
                 }).catch(err => {
                     if(err.stack.match(/unknown ban/i)) {
                         let embed = new djs.MessageEmbed()
@@ -54,9 +52,9 @@ const func = (m, args, data) => {
 
                         m.channel.stopTyping(true);
                         m.channel.send('_ _', {embed: embed}).then(msg => {
-                            bot.util.confirm(m, msg, bot).then(res => {
+                            OBUtil.confirm(m, msg).then(res => {
                                 if(res === 1) {
-                                    bot.memory.rban[id] = m.author;
+                                    Memory.rban[id] = m.author;
 
                                     bot.mainGuild.members.ban(result.target, { reason: reason}).then(() => {
                                         let update = new djs.MessageEmbed()
@@ -65,8 +63,8 @@ const func = (m, args, data) => {
                                         .setDescription(`${(result.type === 'id') ? `\`${result.target}\`` : result.target.toString()} has been banned.`)
                                         .addField(`Reason`, reason);
                     
-                                        msg.edit({embed: update}).then(msg => bot.util.responder(m.author.id, msg, bot));
-                                    }).catch(err => bot.util.err(err, bot, {m:m}));
+                                        msg.edit({embed: update})//.then(bm => OBUtil.afterSend(bm, m.author.id))
+                                    }).catch(err => OBUtil.err(err, {m:m}));
                                 } else
                                 if(res === 0) {
                                     let update = new djs.MessageEmbed()
@@ -74,21 +72,21 @@ const func = (m, args, data) => {
                                     .setColor(bot.cfg.embed.default)
                                     .setDescription('User has not been banned.')
 
-                                    msg.edit({embed: update}).then(msg => { bot.util.responder(m.author.id, msg, bot); });
+                                    msg.edit({embed: update}).then(bm => OBUtil.afterSend(bm, m.author.id))
                                 } else {
                                     let update = new djs.MessageEmbed()
                                     .setAuthor('Timed out', bot.icons.find('ICO_load'))
                                     .setColor(bot.cfg.embed.default)
                                     .setDescription(`Sorry, you didn't respond in time. Please try again.`)
 
-                                    msg.edit({embed: update}).then(msg => { bot.util.responder(m.author.id, msg, bot); });
+                                    msg.edit({embed: update}).then(bm => OBUtil.afterSend(bm, m.author.id))
                                 }
                             }).catch(err => {
-                                bot.util.err(err, bot, {m:m});
+                                OBUtil.err(err, {m:m});
                             })
                         });
                     } else {
-                        bot.util.err(err, bot, {m:m});
+                        OBUtil.err(err, {m:m});
                     }
                 })
             }
@@ -96,4 +94,4 @@ const func = (m, args, data) => {
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

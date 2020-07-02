@@ -2,9 +2,12 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const cid = require('caller-id');
 const timeago = require("timeago.js");
+const Memory = require(`./OptiBotMemory.js`);
 
 module.exports = class LogEntry {
-    constructor(bot, opts = {time: new Date(), console: true, embed: true, channel: "misc"}) {
+    constructor(opts = {time: new Date(), console: true, embed: true, channel: "misc"}) {
+        const bot = Memory.core.client;
+
         const data = {
             embed: new djs.MessageEmbed(),
             ptd: {
@@ -37,29 +40,9 @@ module.exports = class LogEntry {
         data.embed.setFooter(`Click on embed title for plaintext report.\nEvent logged on ${data.time.toUTCString()}`)
         .setTimestamp(data.time)
 
-        Object.defineProperty(this, 'bot', {
-            get: () => {
-                return bot;
-            }
-        });
-
-        Object.defineProperty(this, 'data', {
-            get: () => {
-                return data;
-            }
-        });
-
-        Object.defineProperty(this, 'embed', {
-            get: () => {
-                return data.embed;
-            }
-        });
-
-        Object.defineProperty(this, 'ptd', {
-            get: () => {
-                return data.ptd;
-            }
-        });
+        this.data = data;
+        this.embed = data.embed;
+        this.ptd = data.ptd;
     }
 
     _truncate(text, limit) {
@@ -81,9 +64,11 @@ module.exports = class LogEntry {
     }
 
     preLoad() {
+        const bot = Memory.core.client;
+
         if(this.data.publishing.embed) {
             let embed = new djs.MessageEmbed()
-            .setColor(this.bot.cfg.embed.default)
+            .setColor(bot.cfg.embed.default)
             .setTitle(`Loading...`)
 
             this.data.channel.send(embed).then(msg => {
@@ -192,8 +177,8 @@ module.exports = class LogEntry {
 
     submit(includeRaw) {
         return new Promise((resolve, reject) => {
-            const bot = this.bot;
-            const log = this.bot.log;
+            const bot = Memory.core.client;
+            const log = bot.log;
 
             let plaintext = [];
             let w = 64;

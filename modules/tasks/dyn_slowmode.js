@@ -1,3 +1,5 @@
+const Memory = require(`../core/OptiBotMemory.js`);
+
 let sm_i = 0;
 let agg = 4;
 let sm_alt = {
@@ -21,10 +23,10 @@ module.exports = {
             }
             */
 
-        let channels = Object.keys(bot.memory.sm);
+        let channels = Object.keys(Memory.sm);
         if(channels.length > 0) {
             channels.forEach((id, i) => {
-                let tc = bot.memory.sm[id];
+                let tc = Memory.sm[id];
                 tc.past.push(tc.now);
                 tc.now = 0;
 

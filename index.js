@@ -38,10 +38,10 @@ const bot = new ob.Client({
     disableMentions: 'everyone'
 }, parseInt(process.argv[2]), log);
 
-bot.setWindowTitle('Connecting...');
+ob.OBUtil.setWindowTitle('Connecting...');
 
 bot.login(bot.keys.discord).catch(err => {
-    bot.setWindowTitle(`Connection Failed.`);
+    ob.OBUtil.setWindowTitle(`Connection Failed.`);
     log(err, 'fatal');
     process.exit(1);
 });
@@ -51,11 +51,12 @@ bot.login(bot.keys.discord).catch(err => {
 ////////////////////////////////////////
 
 bot.on('ready', () => {
-    if(bot.memory.bot.init) {
+    log(ob.Memory)
+    if (ob.Memory.bot.init) {
         log('Successfully connected to Discord API.', 'info');
 
         let botLoadAssets = function() {
-            bot.setWindowTitle('Loading Assets...');
+            ob.OBUtil.setWindowTitle('Loading Assets...');
     
             bot.loadAssets().then((time) => {
                 let now = new Date();
@@ -89,7 +90,7 @@ bot.on('ready', () => {
                 log(centerText(`  `, width), `info`);
                 log(`╰${'─'.repeat(width)}╯`, `info`);
 
-                let logEntry = new bot.util.LogEntry(bot, {time: now})
+                let logEntry = new ob.LogEntry({time: now})
                 .setColor(bot.cfg.embed.default)
                 .setIcon(bot.icons.find('ICO_info'))
                 .setThumbnail(bot.user.displayAvatarURL({format: 'png'}))
@@ -108,22 +109,22 @@ bot.on('ready', () => {
 
                 
 
-                bot.memory.bot.init = false;
+                ob.Memory.bot.init = false;
 
-                bot.util.status(bot, 1);
-                bot.setWindowTitle(null);
+                bot.setBotStatus(1);
+                ob.OBUtil.setWindowTitle(null);
             }).catch(err => {
-                log(err.stack, 'fatal');
+                ob.OBUtil.err(err);
                 bot.exit(1);
             });
             
-            if(bot.memory._temp) delete bot.memory._temp;
+            if(ob.Memory._temp) delete ob.Memory._temp;
         }
 
         if(!bot.mainGuild.available) {
-            bot.setWindowTitle('Waiting for primary guild...');
+            ob.OBUtil.setWindowTitle('Waiting for primary guild...');
             log('Primary guild unavailable.\nAssets will be loaded once the guild is available again.', 'warn')
-            bot.memory._temp = botLoadAssets();
+            ob.Memory._temp = botLoadAssets();
         } else {
             botLoadAssets();
         }
@@ -135,15 +136,16 @@ bot.on('ready', () => {
 ////////////////////////////////////////
 
 bot.on('message', (m) => {
+    if (ob.Memory.bot.init) return;
     if (m.author.bot || m.author.system) return;
     
-    if (bot.memory.users.indexOf(m.author.id) === -1) {
-        bot.memory.users.push(m.author.id);
-        bot.getProfile(m.author.id, false).then(profile => {
+    if (ob.Memory.users.indexOf(m.author.id) === -1) {
+        ob.Memory.users.push(m.author.id);
+        ob.OBUtil.getProfile(m.author.id, false).then(profile => {
             if(profile) {
-                profile.data.lastSeen = new Date().getTime();
+                profile.edata.lastSeen = new Date().getTime();
 
-                bot.updateProfile(m.author.id, profile)
+                ob.OBUtil.updateProfile(profile)
             }
         });
     }
@@ -153,10 +155,10 @@ bot.on('message', (m) => {
             // dynamic slowmode
             if(bot.cfg.channels.blacklist.indexOf(m.channel.id) === -1 && bot.cfg.channels.blacklist.indexOf(m.channel.parentID) === -1) {
                 if(bot.cfg.channels.nomodify.indexOf(m.channel.id) === -1 && bot.cfg.channels.nomodify.indexOf(m.channel.parentID) === -1) {
-                    if(bot.memory.sm[m.channel.id]) {
-                        bot.memory.sm[m.channel.id].now++;
+                    if(ob.Memory.sm[m.channel.id]) {
+                        ob.Memory.sm[m.channel.id].now++;
                     } else {
-                        bot.memory.sm[m.channel.id] = {
+                        ob.Memory.sm[m.channel.id] = {
                             past: [ 0, 0, 0, 0, 0,],
                             now: 1,
                             mps: 0.0,
@@ -170,18 +172,18 @@ bot.on('message', (m) => {
         }
 
         // update moderator's last message for !modping
-        for(let i in bot.memory.mods) {
-            if(bot.memory.mods[i].id === m.author.id) {
-                bot.memory.mods[i].status = m.author.presence.status
-                bot.memory.mods[i].last_message = m.createdTimestamp
+        for(let i in ob.Memory.mods) {
+            if(ob.Memory.mods[i].id === m.author.id) {
+                ob.Memory.mods[i].status = m.author.presence.status
+                ob.Memory.mods[i].last_message = m.createdTimestamp
             }
         }
     }
 
-    let input = bot.parseInput(m.content);
+    let input = ob.OBUtil.parseInput(m.content);
 
     bot.mainGuild.members.fetch({ user: m.author.id, cache: true }).then(member => {
-        let authlvl = bot.getAuthlvl(member);
+        let authlvl = ob.OBUtil.getAuthlvl(member);
 
         if(authlvl < 4 && bot.mode === 0) return;
         if(authlvl < 1 && bot.mode === 1) return;
@@ -243,7 +245,7 @@ bot.on('message', (m) => {
                         embed.setDescription(`Type \`${bot.prefix}list\` for a list of commands.`);
                     }
     
-                    m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                    m.channel.send({embed: embed}).then(bm => ob.OBUtil.afterSend(bm, m.author.id));
                 }
     
                 let checkMisuse = (msg) => {
@@ -255,7 +257,7 @@ bot.on('message', (m) => {
     
                     if(cmd.metadata.flags['DELETE_ON_MISUSE']) {
                         m.delete().catch(err => {
-                            log(err.stack, 'error');
+                            ob.OBUtil.err(err);
                         });
                         content = m.author;
                         embed.setDescription('This message will self-destruct in 10 seconds.');
@@ -265,7 +267,7 @@ bot.on('message', (m) => {
                         if(cmd.metadata.flags['DELETE_ON_MISUSE']) {
                             msg.delete(10000);
                         } else {
-                            bot.util.responder(m.author.id, bm, bot)
+                            ob.OBUtil.afterSend(bm, m.author.id)
                         }
                     });
                 }
@@ -309,17 +311,17 @@ bot.on('message', (m) => {
                     if(!cmd.metadata.flags['NO_TYPER']) m.channel.startTyping();
                     bot.setTimeout(() => {
                         try {
-                            cmd.exec(m, input.args, {member, authlvl, input, cmd, bot, log});
+                            cmd.exec(m, input.args, {member, authlvl});
                         }
                         catch (err) {
                             if(!cmd.metadata.flags['NO_TYPER']) m.channel.stopTyping()
-                            bot.util.err(err, bot, {m: m})
+                            ob.OBUtil.err(err, {m: m})
                         }
                     }, (cmd.metadata.flags['NO_TYPER']) ? 10 : Math.round(bot.ws.ping)+250)
                 }
     
             }).catch(err => {
-                bot.util.err(err, bot, {m:m});
+                ob.OBUtil.err(err, {m:m});
             });
         } else {
             /////////////////////////////////////////////////////////////
@@ -411,10 +413,10 @@ bot.on('message', (m) => {
                                     embed.setImage(image);
                                 }
         
-                                m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                                m.channel.send({embed: embed}).then(bm => ob.OBUtil.afterSend(bm, m.author.id));
                             }).catch(err => {
                                 if(err.stack.toLowerCase().indexOf('unknown message') === -1) {
-                                    log(err.stack, 'error');
+                                    ob.OBUtil.err(err);
                                 }
                             });
                         }
@@ -430,9 +432,9 @@ bot.on('message', (m) => {
         }
     }).catch(err => {
         if (err.code === 10007 && input.valid) {
-            bot.util.err('Sorry, you must be a member of the OptiFine Discord server to use this bot.', bot, {m: m});
+            ob.OBUtil.err('Sorry, you must be a member of the OptiFine Discord server to use this bot.', {m: m});
         } else {
-            bot.util.err(err, bot);
+            ob.OBUtil.err(err);
         }
     });
 });
@@ -447,7 +449,7 @@ process.on('message', (m) => {
         bot.mainGuild.members.fetch({user: '181214529340833792', cache: true}).then(jack => {
             jack.send(`**=== OptiBot Crash Recovery Report ===**`, new djs.MessageAttachment(`./logs/${m.crashlog}`));
         }).catch(err => {
-            log(err.stack, 'error');
+            ob.OBUtil.err(err);
         });
     } else
     if(m.restart) {
@@ -458,10 +460,10 @@ process.on('message', (m) => {
             .setColor(bot.cfg.embed.okay);
 
             msg.edit({embed: embed}).then(msgF => {
-                bot.util.responder(m.author, msgF, bot)
+                ob.OBUtil.afterSend(msgF, m.author)
             })
         }).catch(err => {
-            log(err.stack, 'error');
+            ob.OBUtil.err(err);
         });
     }
 });
@@ -471,11 +473,12 @@ process.on('message', (m) => {
 ////////////////////////////////////////
 
 bot.on('presenceUpdate', (old, mem) => {
+    if (ob.Memory.bot.init) return;
     if (mem.guild.id !== bot.cfg.guilds.optifine) return;
     if (mem.user.bot) return;
 
-    for(let i in bot.memory.mods) {
-        let mod = bot.memory.mods[i];
+    for(let i in ob.Memory.mods) {
+        let mod = ob.Memory.mods[i];
         if(mod.id === mem.id) {
             if(mod.status !== mem.presence.status || (mem.lastMessage && mem.lastMessage.createdTimestamp !== mod.last_message)) {
                 log('moderator updated');
@@ -484,8 +487,8 @@ bot.on('presenceUpdate', (old, mem) => {
                 log('NEW')
                 log(mem.presence.status)
 
-                bot.memory.mods[i].status = mem.presence.status
-                bot.memory.mods[i].last_message = (mem.lastMessage) ? mem.lastMessage.createdTimestamp : mod.last_message
+                ob.Memory.mods[i].status = mem.presence.status
+                ob.Memory.mods[i].last_message = (mem.lastMessage) ? mem.lastMessage.createdTimestamp : mod.last_message
             }
         }
     }
@@ -497,14 +500,15 @@ bot.on('presenceUpdate', (old, mem) => {
 
 bot.on('messageDelete', m => {
     let now = new Date();
+    if (ob.Memory.bot.init) return;
     if (m.channel.type === 'dm') return;
     if (m.author.system || m.author.bot) return;
     if (m.guild.id !== bot.cfg.guilds.optifine) return;
-    if (bot.parseInput(m).cmd === 'dr') return;
+    if (ob.OBUtil.parseInput(m).cmd === 'dr') return;
 
-    bot.memory.rdel.push(m.id);
+    ob.Memory.rdel.push(m.id);
 
-    let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "delete"})
+    let logEntry = new ob.LogEntry({time: now, channel: "delete"})
     .preLoad()
 
     bot.setTimeout(() => {
@@ -523,12 +527,12 @@ bot.on('messageDelete', m => {
                 if (ad[i].target.id === m.author.id) {
                     dlog = ad[i];
 
-                    for(let i = 0; i < bot.memory.audit.length; i++) {
-                        if (bot.memory.audit[i].id === dlog.id && clog === null) {
-                            clog = bot.memory.audit[i];
+                    for(let i = 0; i < ob.Memory.audit.length; i++) {
+                        if (ob.Memory.audit[i].id === dlog.id && clog === null) {
+                            clog = ob.Memory.audit[i];
                         }
                         
-                        if (i+1 === bot.memory.audit.length) {
+                        if (i+1 === ob.Memory.audit.length) {
                             if(dlog !== null && clog === null) {
                                 dType = 1;
                                 finalLog();
@@ -558,7 +562,7 @@ bot.on('messageDelete', m => {
             }
 
             function finalLog() {
-                bot.memory.audit = [...audit.entries.values()];
+                ob.Memory.audit = [...audit.entries.values()];
 
                 let doRaw = false;
                 let desc = [
@@ -624,16 +628,18 @@ bot.on('messageDelete', m => {
 
                 logEntry.submit(doRaw);
 
-                bot.memory.rdel.splice(bot.memory.rdel.indexOf(m.id), 1);
+                ob.Memory.rdel.splice(ob.Memory.rdel.indexOf(m.id), 1);
             }
         })
-    }, 5000);
+    }, 500);
 });
 
 bot.on('messageDeleteBulk', ms => {
     let now = new Date();
 
-    let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "delete"})
+    if (ob.Memory.bot.init) return;
+
+    let logEntry = new ob.LogEntry({time: now, channel: "delete"})
     .preLoad()
 
     bot.setTimeout(() => {
@@ -697,7 +703,7 @@ bot.on('messageDeleteBulk', ms => {
                 postNext();
             })
             .catch(err => {
-                log(err.stack, 'error');
+                ob.OBUtil.err(err);
 
                 i++;
                 postNext();
@@ -711,12 +717,13 @@ bot.on('messageDeleteBulk', ms => {
 ////////////////////////////////////////
 
 bot.on('messageUpdate', (m, mNew) => {
+    if (ob.Memory.bot.init) return;
     if (m.channel.type === 'dm') return;
     if (m.author.system || m.author.bot) return;
     if (mNew.guild.id !== bot.cfg.guilds.optifine) return;
     let timeNow = new Date();
     if (m.content.trim().toLowerCase() == mNew.content.trim().toLowerCase()) return; // ignore embed updates
-    if (bot.parseInput(mNew).cmd === 'dr') return;
+    if (ob.OBUtil.parseInput(mNew).cmd === 'dr') return;
 
     let zw = "​"; // zero width character, NOT an empty string. only needed to fix emoji-only messages on mobile from being gigantic.
 
@@ -777,6 +784,8 @@ bot.on('messageUpdate', (m, mNew) => {
 
 bot.on('channelUpdate', (oldc, newc) => {
     let timeNow = new Date();
+    if (ob.Memory.bot.init) return;
+
     if(oldc.type === 'text') {
         let embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
@@ -805,7 +814,7 @@ bot.on('channelUpdate', (oldc, newc) => {
 
         if(oldc.id === '471762249476734977') {
             oldc.send({embed:embed}).catch(err => {
-                log(err.stack, 'error');
+                ob.OBUtil.err(err);
             });
         }
 
@@ -821,6 +830,7 @@ bot.on('channelUpdate', (oldc, newc) => {
 
 bot.on('guildMemberAdd', member => {
     let now = new Date();
+    if (ob.Memory.bot.init) return;
     if (member.guild.id !== bot.cfg.guilds.optifine) return;
 
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -828,25 +838,25 @@ bot.on('guildMemberAdd', member => {
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     const alwaysFalse = false;
 
-    bot.getProfile(member.user.id, alwaysFalse).then(profile => {
-        if(profile && profile.data.essential.mute && (profile.data.essential.mute.end-10000 > new Date().getTime())) {
+    ob.OBUtil.getProfile(member.user.id, alwaysFalse).then(profile => {
+        if(profile && profile.edata.mute && (profile.edata.mute.end-10000 > new Date().getTime())) {
             member.roles.add(bot.cfg.roles.muted, 'Member attempted to circumvent mute.').then(() => {
                 // todo: increase mute time in this case
                 logEvent(true);
             }).catch(err => {
-                bot.util.err(err, bot);
+                ob.OBUtil.err(err);
                 logEvent();
             });
         } else {
             logEvent();
         }
     }).catch(err => {
-        bot.util.err(err, bot);
+        ob.OBUtil.err(err);
         logEvent();
     });
 
     function logEvent(muted) {
-        let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "joinleave"})
+        let logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
         .setColor(bot.cfg.embed.okay)
         .setIcon(bot.icons.find('ICO_join'))
         .setThumbnail(member.user.displayAvatarURL({format:'png'}))
@@ -874,13 +884,14 @@ bot.on('guildMemberAdd', member => {
 
 bot.on('guildMemberRemove', member => {
     let now = new Date();
+    if (ob.Memory.bot.init) return;
     if (member.guild.id !== bot.cfg.guilds.optifine) return;
 
-    for(let i in bot.memory.mutes) {
-        let mute = bot.memory.mutes[i];
+    for(let i in ob.Memory.mutes) {
+        let mute = ob.Memory.mutes[i];
         if(mute.id === member.user.id) {
             bot.clearTimeout(mute.time);
-            bot.memory.mutes.splice(i, 1);
+            ob.Memory.mutes.splice(i, 1);
             break;
         }
     }
@@ -892,7 +903,7 @@ bot.on('guildMemberRemove', member => {
             for(let i = 0; i < ad.length; i++) {
                 if ((ad[i].action === 'MEMBER_KICK' || ad[i].action === 'MEMBER_BAN_ADD') && ad[i].target.id === member.user.id) {
                     if(ad[i].action === 'MEMBER_KICK') {
-                        let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "moderation"})
+                        let logEntry = new ob.LogEntry({time: now, channel: "moderation"})
                         .setColor(bot.cfg.embed.error)
                         .setIcon(bot.icons.find('ICO_leave'))
                         .setThumbnail(member.user.displayAvatarURL({format:'png'}))
@@ -905,7 +916,7 @@ bot.on('guildMemberRemove', member => {
                     break;
                 } else
                 if (i+1 >= ad.length) {
-                    let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "joinleave"})
+                    let logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
                     .setColor(bot.cfg.embed.error)
                     .setIcon(bot.icons.find('ICO_leave'))
                     .setThumbnail(member.user.displayAvatarURL({format:'png'}))
@@ -916,7 +927,7 @@ bot.on('guildMemberRemove', member => {
                     .submit()
                 }
             }
-        }).catch(err => log(err.stack, 'error'));
+        }).catch(err => ob.OBUtil.err(err));
     }, 5000);
 });
 
@@ -926,16 +937,17 @@ bot.on('guildMemberRemove', member => {
 
 bot.on('guildBanAdd', (guild, user) => {
     let now = new Date();
+    if (ob.Memory.bot.init) return;
     if (guild.id !== bot.cfg.guilds.optifine) return;
 
-    let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "moderation"})
+    let logEntry = new ob.LogEntry({time: now, channel: "moderation"})
     .preLoad()
 
     bot.setTimeout(() => {
         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_ADD' }).then((audit) => {
             let ad = [...audit.entries.values()];
 
-            let mod = bot.memory.rban[user.id];
+            let mod = ob.Memory.rban[user.id];
             let reason = null;
             for(let i = 0; i < ad.length; i++) {
                 if (ad[i].target.id === user.id) {
@@ -965,10 +977,10 @@ bot.on('guildBanAdd', (guild, user) => {
             
             logEntry.submit()
 
-            bot.getProfile(user.id, true).then(profile => {
-                if(!profile.data.essential.record) profile.data.essential.record = [];
+            ob.OBUtil.getProfile(user.id, true).then(profile => {
+                if(!profile.edata.record) profile.edata.record = [];
 
-                let recordEntry = new bot.util.RecordEntry()
+                let recordEntry = new ob.RecordEntry()
                 .setDate(now)
                 .setAction('ban')
                 .setActionType('add')
@@ -981,17 +993,17 @@ bot.on('guildBanAdd', (guild, user) => {
                     recordEntry.setMod(mod.id);
                 }
 
-                profile.data.essential.record.push(recordEntry.data);
+                profile.edata.record.push(recordEntry.data);
 
-                bot.updateProfile(user.id, profile).then(() => {
+                ob.OBUtil.updateProfile(profile).then(() => {
                     log(`ban addition record successfully saved`)
                 }).catch(err => {
-                    log(err.stack, 'error');
+                    ob.OBUtil.err(err);
                 })
 
             });
 
-        }).catch(err => log(err.stack, 'error'));
+        }).catch(err => ob.OBUtil.err(err));
     }, 5000);
 });
 
@@ -1001,9 +1013,10 @@ bot.on('guildBanAdd', (guild, user) => {
 
 bot.on('guildBanRemove', (guild, user) => {
     let now = new Date();
+    if (ob.Memory.bot.init) return;
     if (guild.id !== bot.cfg.guilds.optifine) return;
 
-    let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "moderation"})
+    let logEntry = new ob.LogEntry({time: now, channel: "moderation"})
     .preLoad()
 
     bot.setTimeout(() => {
@@ -1032,18 +1045,18 @@ bot.on('guildBanRemove', (guild, user) => {
             
             logEntry.submit()
 
-            bot.getProfile(user.id, true).then(profile => {
-                if(!profile.data.essential.record) profile.data.essential.record = [];
+            ob.OBUtil.getProfile(user.id, true).then(profile => {
+                if(!profile.edata.record) profile.edata.record = [];
 
                 let parent = null;
-                for(let i = 0; i < profile.data.essential.record.length; i++) {
-                    let entry = profile.data.essential.record[i];
+                for(let i = 0; i < profile.edata.record.length; i++) {
+                    let entry = profile.edata.record[i];
                     if (entry.action === 4 && entry.actionType === 1) {
                         parent = entry;
                     }
                 }
 
-                let recordEntry = new bot.util.RecordEntry()
+                let recordEntry = new ob.RecordEntry()
                 .setDate(now)
                 .setAction('ban')
                 .setActionType('remove')
@@ -1057,17 +1070,17 @@ bot.on('guildBanRemove', (guild, user) => {
                     recordEntry.setMod(mod.id);
                 }
 
-                profile.data.essential.record.push(recordEntry.data);
+                profile.edata.record.push(recordEntry.data);
 
-                bot.updateProfile(user.id, profile).then(() => {
+                ob.OBUtil.updateProfile(profile).then(() => {
                     log(`ban removal record successfully saved`)
                 }).catch(err => {
-                    log(err.stack, 'error');
+                    ob.OBUtil.err(err);
                 })
 
             });
 
-        }).catch(err => log(err.stack, 'error'));
+        }).catch(err => ob.OBUtil.err(err));
     }, 5000);
 });
 
@@ -1077,6 +1090,7 @@ bot.on('guildBanRemove', (guild, user) => {
 
 bot.on('raw', packet => {
     let now = new Date();
+    if (ob.Memory.bot.init) return;
     if(packet.t === 'MESSAGE_REACTION_ADD') {
         let channel = bot.channels.cache.get(packet.d.channel_id);
         if (channel.messages.cache.has(packet.d.message_id)) return; // stops if the message exists in the bot's cache.
@@ -1113,14 +1127,14 @@ bot.on('raw', packet => {
                 s2()
             }
         }).catch(err => {
-            log(err.stack, 'error');
+            ob.OBUtil.err(err);
         });
     } else
     if(packet.t === 'MESSAGE_DELETE') {
         // this packet does not contain the actual message data, unfortunately.
         // as of writing, this only contains the message ID, the channel ID, and the guild ID.
         bot.setTimeout(() => {
-            if (bot.memory.rdel.includes(packet.d.id)) return; // stops if the message exists in the bot's cache.
+            if (ob.Memory.rdel.includes(packet.d.id)) return; // stops if the message exists in the bot's cache.
             if (packet.d.guild_id !== bot.cfg.guilds.optifine) return;
 
             let mt = djs.SnowflakeUtil.deconstruct(packet.d.id).date;
@@ -1130,7 +1144,7 @@ bot.on('raw', packet => {
                 `(${timeago.format(mt)})`
             ];
 
-            let logEntry = new bot.util.LogEntry(bot, {time: now, channel: "delete"})
+            let logEntry = new ob.LogEntry({time: now, channel: "delete"})
             .setColor(bot.cfg.embed.error)
             .setIcon(bot.icons.find('ICO_trash'))
             .setTitle(`(Uncached) Message Deleted`, `Uncached Message Deletion Report`)
@@ -1146,13 +1160,14 @@ bot.on('raw', packet => {
 ////////////////////////////////////////
 
 bot.on('messageReactionAdd', (mr, user) => {
+    if (ob.Memory.bot.init) return;
     if (mr.message.channel.type === 'dm') return;
     if (user.id === bot.user.id) return;
 
     if (mr.emoji.id === bot.cfg.emoji.deleter) {
         bot.db.msg.find({message: mr.message.id}, (err, docs) => {
             if(err) {
-                log(err.stack, 'error');
+                ob.OBUtil.err(err);
             } else
             if(docs.length > 0) {
                 if(docs[0].user === user.id) {
@@ -1160,13 +1175,13 @@ bot.on('messageReactionAdd', (mr, user) => {
                         mr.message.delete().then(() => {
                             bot.db.msg.remove(docs[0], {}, (err) => {
                                 if (err) {
-                                    log(err.stack, 'error');
+                                    ob.OBUtil.err(err);
                                 } else {
                                     log('Bot message deleted at user request.');
                                 }
                             });
                         }).catch(err => {
-                            log(err.stack, 'error');
+                            ob.OBUtil.err(err);
                         });
                     } else {
                         let nm = `${mr.message.content}\n\n${bot.cfg.messages.confirmDelete}`;
@@ -1175,7 +1190,7 @@ bot.on('messageReactionAdd', (mr, user) => {
                         }
 
                         mr.message.edit(nm).catch(err => {
-                            log(err.stack, 'error');
+                            ob.OBUtil.err(err);
                         });
                     }
                 }
@@ -1216,7 +1231,7 @@ bot.on('guildUpdate', (oldg, newg) => {
     if(oldg.available === false && newg.available === true) {
         log(`Guild available! \n"${newg.name}" has recovered. \nGuild ID: ${guild.id}`, 'warn');
         if(newg.id === bot.cfg.guilds.optifine) {
-            bot.memory._temp();
+            ob.Memory._temp();
         }
     }
 });
@@ -1227,7 +1242,7 @@ bot.on('guildUpdate', (oldg, newg) => {
 
 bot.on('shardReady', (id, guilds) => {
     log(`Shard WebSocket ready. \nShard ID: ${id} \nUnavailable Guilds: ${(guilds) ? '\n'+[...guilds].join('\n') : 'None.'}`, 'info');
-    bot.setWindowTitle()
+    ob.OBUtil.setWindowTitle()
 });
 
 ////////////////////////////////////////
@@ -1339,7 +1354,7 @@ bot.on('shardDisconnect', (event, id) => {
     }
 
     log(`Shard WebSocket disconnected. \nShard ID: ${id} \nEvent Code: ${event.code} (${getCodeName(event.code)})`, 'warn');
-    bot.setWindowTitle()
+    ob.OBUtil.setWindowTitle()
 });
 
 ////////////////////////////////////////
@@ -1348,7 +1363,7 @@ bot.on('shardDisconnect', (event, id) => {
 
 bot.on('shardReconnecting', id => {
     log(`Shard WebSocket reconnecting... \nShard ID: ${id}`, 'warn');
-    bot.setWindowTitle()
+    ob.OBUtil.setWindowTitle()
 });
 
 ////////////////////////////////////////
@@ -1357,7 +1372,7 @@ bot.on('shardReconnecting', id => {
 
 bot.on('shardResume', (id, replayed) => {
     log(`Shard WebSocket resumed. \nShard ID: ${id} \nEvents replayed: ${replayed}`, 'info');
-    bot.setWindowTitle()
+    ob.OBUtil.setWindowTitle()
 });
 
 ////////////////////////////////////////
@@ -1366,7 +1381,7 @@ bot.on('shardResume', (id, replayed) => {
 
 bot.on('shardError', (err, id) => {
     log(`Shard WebSocket connection error. \nShard ID: ${id} \nStack: ${err.stack || err}`, 'error');
-    bot.setWindowTitle()
+    ob.OBUtil.setWindowTitle()
 });
 
 ////////////////////////////////////////

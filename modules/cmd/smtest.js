@@ -1,24 +1,22 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Short description. Shows in \`${bot.prefix}list\``,
-        long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
-        args: `[args]`,
-        authlvl: 5,
-        flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Short description. Shows in \`${bot.prefix}list\``,
+    long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
+    args: `[args]`,
+    authlvl: 5,
+    flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     let channels = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).channels.cache.values()].filter((c) => c.type === 'text').sort((a,b) => a.rawPosition-b.rawPosition);
     let lines = [];
 
@@ -58,4 +56,4 @@ const func = (m, args, data) => {
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

@@ -1,38 +1,36 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['commands', 'cmds', 'cmdlist'],
-        short_desc: `List all OptiBot commands.`,
-        long_desc: [
-            `Lists all OptiBot commands. By default, this will show every single command you have access to. Alternatively, if you have the roles/permissions, you can use the following filters:`,
-            ``,
-            `**\`advisor\`** - Lists all <@&695553561064505345> commands.`,
-            `**\`jrmod\`** - Lists all <@&644668061818945557> commands.`,
-            `**\`srmod\`** - Lists all <@&467060304145023006> commands.`,
-            `**\`mod\`** - Lists all <@&644668061818945557> **and** <@&467060304145023006> commands.`,
-            `**\`admin\`** - Lists all <@&663122057818537995> commands.`,
-            `**\`dev\`** - (DEV) Lists all commands usable by OptiBot Developers.`,
-            `**\`flag:*\`** - (DEV) Lists all commands with the given flag name.`,
-        ].join('\n'),
-        args: [
-            `[page number] [filter]`,
-            `[filter] [page number]`
-        ],
-        authlvl: 0,
-        flags: ['DM_OPTIONAL'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['commands', 'cmds', 'cmdlist'],
+    short_desc: `List all OptiBot commands.`,
+    long_desc: [
+        `Lists all OptiBot commands. By default, this will show every single command you have access to. Alternatively, if you have the roles/permissions, you can use the following filters:`,
+        ``,
+        `**\`advisor\`** - Lists all <@&695553561064505345> commands.`,
+        `**\`jrmod\`** - Lists all <@&644668061818945557> commands.`,
+        `**\`srmod\`** - Lists all <@&467060304145023006> commands.`,
+        `**\`mod\`** - Lists all <@&644668061818945557> **and** <@&467060304145023006> commands.`,
+        `**\`admin\`** - Lists all <@&663122057818537995> commands.`,
+        `**\`dev\`** - (DEV) Lists all commands usable by OptiBot Developers.`,
+        `**\`flag:*\`** - (DEV) Lists all commands with the given flag name.`,
+    ].join('\n'),
+    args: [
+        `[page number] [filter]`,
+        `[filter] [page number]`
+    ],
+    authlvl: 0,
+    flags: ['DM_OPTIONAL'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     let list = bot.commands.index
     let filtered;
     let selectPage = 1;
@@ -64,11 +62,11 @@ const func = (m, args, data) => {
 
     if (menu === 'dev') {
         if(data.authlvl < 5) {
-            bot.util.err(`You do not have permission to view these commands.`, bot, {m:m})
+            OBUtil.err(`You do not have permission to view these commands.`, {m:m})
             return;
         } else 
         if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-            bot.util.err(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+            OBUtil.err(`You cannot view these commands outside of moderator-only channels and DMs.`, {m:m})
             return;
         } else {
             filtered = list.filter((cmd) => (cmd.metadata.authlvl >= 5));
@@ -77,11 +75,11 @@ const func = (m, args, data) => {
     } else
     if (menu === 'admin') {
         if(data.authlvl < 4) {
-            bot.util.err(`You do not have permission to view these commands.`, bot, {m:m})
+            OBUtil.err(`You do not have permission to view these commands.`, {m:m})
             return;
         } else 
         if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-            bot.util.err(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+            OBUtil.err(`You cannot view these commands outside of moderator-only channels and DMs.`, {m:m})
             return;
         } else {
             filtered = list.filter((cmd) => (cmd.metadata.authlvl === 4));
@@ -90,11 +88,11 @@ const func = (m, args, data) => {
     } else
     if (menu === 'mod') {
         if(data.authlvl < 2) {
-            bot.util.err(`You do not have permission to view these commands.`, bot, {m:m})
+            OBUtil.err(`You do not have permission to view these commands.`, {m:m})
             return;
         } else 
         if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-            bot.util.err(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+            OBUtil.err(`You cannot view these commands outside of moderator-only channels and DMs.`, {m:m})
             return;
         } else {
             filtered = list.filter((cmd) => (cmd.metadata.authlvl === 2 || cmd.metadata.authlvl === 3));
@@ -103,11 +101,11 @@ const func = (m, args, data) => {
     } else
     if (menu === 'srmod') {
         if(data.authlvl < 3) {
-            bot.util.err(`You do not have permission to view these commands.`, bot, {m:m})
+            OBUtil.err(`You do not have permission to view these commands.`, {m:m})
             return;
         } else 
         if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-            bot.util.err(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+            OBUtil.err(`You cannot view these commands outside of moderator-only channels and DMs.`, {m:m})
             return;
         } else {
             filtered = list.filter((cmd) => (cmd.metadata.authlvl === 3));
@@ -116,11 +114,11 @@ const func = (m, args, data) => {
     } else
     if (menu === 'jrmod') {
         if(data.authlvl < 2) {
-            bot.util.err(`You do not have permission to view these commands.`, bot, {m:m})
+            OBUtil.err(`You do not have permission to view these commands.`, {m:m})
             return;
         } else 
         if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-            bot.util.err(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+            OBUtil.err(`You cannot view these commands outside of moderator-only channels and DMs.`, {m:m})
             return;
         } else {
             filtered = list.filter((cmd) => (cmd.metadata.authlvl === 2));
@@ -129,11 +127,11 @@ const func = (m, args, data) => {
     } else
     if (menu === 'advisor') {
         if(data.authlvl < 1) {
-            bot.util.err(`You do not have permission to view these commands.`, bot, {m:m})
+            OBUtil.err(`You do not have permission to view these commands.`, {m:m})
             return;
         } else 
         if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-            bot.util.err(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+            OBUtil.err(`You cannot view these commands outside of moderator-only channels and DMs.`, {m:m})
             return;
         } else {
             filtered = list.filter((cmd) => (cmd.metadata.authlvl === 1));
@@ -145,7 +143,7 @@ const func = (m, args, data) => {
             defaultFilter();
         } else {
             if(m.channel.type !== 'dm' && bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1 && data.authlvl > 0) {
-                bot.util.err(`You cannot view these commands outside of moderator-only channels and DMs.`, bot, {m:m})
+                OBUtil.err(`You cannot view these commands outside of moderator-only channels and DMs.`, {m:m})
                 return;
             } else {
                 let flag = menu.substring( `flag:`.length ).toUpperCase();
@@ -160,9 +158,9 @@ const func = (m, args, data) => {
     if(filtered.length === 0) {
         if(menu.startsWith('flag:') && data.authlvl >= 3) {
             let flag = menu.substring( `flag:`.length ).toUpperCase();
-            bot.util.err(`Could not find any commands with the "${flag}" flag.`, bot, {m:m})
+            OBUtil.err(`Could not find any commands with the "${flag}" flag.`, {m:m})
         } else {
-            bot.util.err(`Could not find any commands with the "${menu}" filter.`, bot, {m:m})
+            OBUtil.err(`Could not find any commands with the "${menu}" filter.`, {m:m})
         }
         return;
     }
@@ -255,7 +253,7 @@ const func = (m, args, data) => {
         added++;
         
         if (added >= 10 || i+1 >= filtered.length) {
-            m.channel.send({embed: embed}).then(msg => bot.util.responder(m.author.id, msg, bot))
+            m.channel.send({embed: embed}).then(msg => OBUtil.afterSend(msg, m.author.id))
         } else {
             i++;
             addList();
@@ -263,4 +261,4 @@ const func = (m, args, data) => {
     })();
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

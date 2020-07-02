@@ -1,58 +1,56 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Warn a user.`,
-        long_desc: `Gives a warning to a user. All warnings are saved to the users record, but otherwise do nothing.`,
-        args: `<discord member> [reason]`,
-        authlvl: 2,
-        flags: ['NO_DM', 'STRICT', 'LITE'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Warn a user.`,
+    long_desc: `Gives a warning to a user. All warnings are saved to the users record, but otherwise do nothing.`,
+    args: `<discord member> [reason]`,
+    authlvl: 2,
+    flags: ['NO_DM', 'STRICT', 'LITE'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if(!args[0]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
-        bot.util.target(m, args[0], bot, {type: 0, member:data.member}).then((result) => {
+        OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
             if (!result) {
-                bot.util.err('You must specify a valid user.', bot, {m:m})
+                OBUtil.err('You must specify a valid user.', {m:m})
             } else
             if (result.type === 'notfound') {
-                bot.util.err('Unable to find a user.', bot, {m:m})
+                OBUtil.err('Unable to find a user.', {m:m})
             } else
             if (result.id === m.author.id) {
-                bot.util.err('Nice try.', bot, {m:m})
+                OBUtil.err('Nice try.', {m:m})
             } else
             if (result.id === bot.user.id) {
-                bot.util.err(':(', bot, {m:m})
+                OBUtil.err(':(', {m:m})
             } else 
-            if (bot.getAuthlvl(result.target) > data.authlvl) {
-                bot.util.err(`That user is too powerful to be warned.`, bot, {m:m})
+            if (OBUtil.getAuthlvl(result.target) > data.authlvl) {
+                OBUtil.err(`That user is too powerful to be warned.`, {m:m})
             } else {
-                bot.getProfile(result.id, true).then(profile => {
-                    if(!profile.data.essential.record) profile.data.essential.record = [];
+                OBUtil.getProfile(result.id, true).then(profile => {
+                    if(!profile.edata.record) profile.edata.record = [];
                     let reason = m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length )
 
-                    let entry = new bot.util.RecordEntry()
+                    let entry = new RecordEntry()
                     .setMod(m.author.id)
                     .setURL(m.url)
                     .setAction('warn')
                     .setActionType('add')
                     .setReason((args[1]) ? reason : `No reason provided.`)
 
-                    profile.data.essential.record.push(entry.data);
+                    profile.edata.record.push(entry.data);
 
-                    bot.updateProfile(result.id, profile).then(() => {
-                        let logEntry = new bot.util.LogEntry(bot, {channel: "moderation"})
+                    OBUtil.updateProfile(profile).then(() => {
+                        let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
                         .setIcon(bot.icons.find('ICO_warn'))
                         .setTitle(`Member Warned`, `Member Warning Report`)
@@ -77,13 +75,13 @@ const func = (m, args, data) => {
                             logEntry.setHeader(`No reason provided.`)
                         }
                         
-                        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                        m.channel.send({embed: embed})//.then(bm => OBUtil.afterSend(bm, m.author.id));
                         logEntry.submit();
-                    }).catch(err => bot.util.err(err, bot, {m:m}));
-                }).catch(err => bot.util.err(err, bot, {m:m}));
+                    }).catch(err => OBUtil.err(err, {m:m}));
+                }).catch(err => OBUtil.err(err, {m:m}));
             }
-        }).catch(err => bot.util.err(err, bot, {m:m}));
+        }).catch(err => OBUtil.err(err, {m:m}));
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

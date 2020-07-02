@@ -2,46 +2,44 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['ungag', 'unsilence'],
-        short_desc: `Unmute a user.`,
-        long_desc: `Allows a user to speak once again, if they've already been muted.`,
-        args: `<discord member> [reason]`,
-        authlvl: 2,
-        flags: ['NO_DM', 'LITE'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['ungag', 'unsilence'],
+    short_desc: `Unmute a user.`,
+    long_desc: `Allows a user to speak once again, if they've already been muted.`,
+    args: `<discord member> [reason]`,
+    authlvl: 2,
+    flags: ['NO_DM', 'LITE'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if(!args[0]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
-        bot.util.target(m, args[0], bot, {type: 0, member:data.member}).then((result) => {
+        OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
             if (!result) {
-                bot.util.err('You must specify a valid user to unmute.', bot, {m:m})
+                OBUtil.err('You must specify a valid user to unmute.', {m:m})
             } else
             if (result.type === 'notfound' || result.type === 'id') {
-                bot.util.err('Unable to find a user.', bot, {m:m})
+                OBUtil.err('Unable to find a user.', {m:m})
             } else
             if (result.id === m.author.id) {
-                bot.util.err(`If you're muted, how are you even using this command?`, bot, {m:m})
+                OBUtil.err(`If you're muted, how are you even using this command?`, {m:m})
             } else
             if (result.id === bot.user.id) {
-                bot.util.err(`I'm a bot. Why would I even be muted?`, bot, {m:m})
+                OBUtil.err(`I'm a bot. Why would I even be muted?`, {m:m})
             } else 
-            if (bot.getAuthlvl(result.target) > 0) {
-                bot.util.err(`That user is too powerful to be muted in the first place.`, bot, {m:m})
+            if (OBUtil.getAuthlvl(result.target) > 0) {
+                OBUtil.err(`That user is too powerful to be muted in the first place.`, {m:m})
             } else 
             if (result.type === 'member' && !result.target.roles.cache.has(bot.cfg.roles.muted)) {
-                bot.util.err(`That user has not been muted.`, bot, {m:m})
+                OBUtil.err(`That user has not been muted.`, {m:m})
             } else {
                 s2(result);
             }
@@ -49,16 +47,16 @@ const func = (m, args, data) => {
 
         function s2(result) {
             let now = new Date().getTime();
-            bot.getProfile(result.id, true).then(profile => {
+            OBUtil.getProfile(result.id, true).then(profile => {
 
-                if(!profile.data.essential.mute) {
-                    bot.util.err(`That user has not been muted.`, bot, {m:m});
+                if(!profile.edata.mute) {
+                    OBUtil.err(`That user has not been muted.`, {m:m});
                     return;
                 }
 
                 let reason = m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length )
 
-                let remaining = profile.data.essential.mute.end - now;
+                let remaining = profile.edata.mute.end - now;
                 let minutes = Math.round(remaining/1000/60)
                 let hours = Math.round(remaining/(1000*60*60))
                 let days = Math.round(remaining/(1000*60*60*24))
@@ -73,33 +71,33 @@ const func = (m, args, data) => {
                     time_remaining = `${days} day${(days !== 1) ? "s" : ""}`;
                 }
 
-                if(!profile.data.essential.record) profile.data.essential.record = [];
+                if(!profile.edata.record) profile.edata.record = [];
 
-                let entry = new bot.util.RecordEntry()
+                let entry = new RecordEntry()
                 .setMod(m.author.id)
                 .setURL(m.url)
                 .setAction('mute')
                 .setActionType('remove')
                 .setReason((reason.length > 0) ? reason : `No reason provided.`)
-                .setParent(profile.data.essential.mute.caseID)
+                .setParent(profile.edata.mute.caseID)
 
-                if(profile.data.essential.mute.end !== null) {
+                if(profile.edata.mute.end !== null) {
                     entry.setDetails(`Leftover mute time remaining: ${time_remaining}.`)
                 }
 
-                profile.data.essential.record.push(entry.data);
+                profile.edata.record.push(entry.data);
 
-                delete profile.data.essential.mute;
+                delete profile.edata.mute;
 
-                for(let i in bot.memory.mutes) {
-                    if(bot.memory.mutes[i].id === profile.id) {
-                        bot.clearTimeout(bot.memory.mutes[i].time);
-                        bot.memory.mutes.splice(i, 1);
+                for(let i in Memory.mutes) {
+                    if(Memory.mutes[i].id === profile.id) {
+                        bot.clearTimeout(Memory.mutes[i].time);
+                        Memory.mutes.splice(i, 1);
                         break;
                     }
                 }
 
-                bot.updateProfile(result.id, profile).then(() => {
+                OBUtil.updateProfile(profile).then(() => {
                     let logInfo = () => {
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.okay)
@@ -112,9 +110,9 @@ const func = (m, args, data) => {
                             embed.addField(`Reason`, `No reason provided. \n(Please use the \`${bot.prefix}addnote\` command.)`)
                         }
 
-                        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                        m.channel.send({embed: embed})//.then(bm => OBUtil.afterSend(bm, m.author.id));
 
-                        let logEntry = new bot.util.LogEntry(bot, {channel: "moderation"})
+                        let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
                         .setIcon(bot.icons.find('ICO_unmute'))
                         .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
@@ -136,14 +134,14 @@ const func = (m, args, data) => {
                     if(result.type === 'member') {
                         result.target.roles.remove(bot.cfg.roles.muted, `Member unmuted by ${m.author.tag}`).then(() => {
                             logInfo();
-                        }).catch(err => bot.util.err(err, bot, {m:m}));
+                        }).catch(err => OBUtil.err(err, {m:m}));
                     } else {
                         logInfo();
                     }
-                }).catch(err => bot.util.err(err, bot, {m:m}))
+                }).catch(err => OBUtil.err(err, {m:m}))
             });
         }
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

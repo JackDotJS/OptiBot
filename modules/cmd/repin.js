@@ -1,31 +1,29 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Short description. Shows in \`${bot.prefix}list\``,
-        long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
-        args: `<discord message>`,
-        authlvl: 2,
-        flags: ['DM_OPTIONAL'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Short description. Shows in \`${bot.prefix}list\``,
+    long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
+    args: `<discord message>`,
+    authlvl: 2,
+    flags: ['DM_OPTIONAL'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if(!args[0]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
-        bot.util.target(m, args[0], bot, {type: 1, member: data.member}).then(result => {
+        OBUtil.parseTarget(m, 1, args[0], data.member).then(result => {
             if(result && result.type === 'message') {
                 if(!result.target.pinned) {
-                    bot.util.err('That message is not pinned.', bot, {m:m})
+                    OBUtil.err('That message is not pinned.', {m:m})
                 } else {
                     result.target.unpin().then(() => {
                         result.target.pin().then(() => {
@@ -33,21 +31,21 @@ const func = (m, args, data) => {
                             .setAuthor(`Pinned message successfully moved.`, bot.icons.find('ICO_okay'))
                             .setColor(bot.cfg.embed.okay);
     
-                            m.channel.send({embed: embed}).then(msg => { bot.util.responder(m.author.id, msg, bot) });
+                            m.channel.send({embed: embed}).then(msg => { OBUtil.afterSend(msg, m.author.id) });
                         }).catch(err => {
-                            bot.util.err(err, bot, {m:m});
+                            OBUtil.err(err, {m:m});
                         });
                     }).catch(err => {
-                        bot.util.err(err, bot, {m:m});
+                        OBUtil.err(err, {m:m});
                     });
                 }
             } else {
-                bot.util.err('You must specify a valid message.', bot, {m:m})
+                OBUtil.err('You must specify a valid message.', {m:m})
             }
         }).catch(err => {
-            bot.util.err(err, bot, {m:m});
+            OBUtil.err(err, {m:m});
         });
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

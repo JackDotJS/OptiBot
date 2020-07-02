@@ -1,21 +1,19 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Shut down OptiBot.`,
-        authlvl: 4,
-        flags: ['NO_DM', 'NO_TYPER'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Shut down OptiBot.`,
+    authlvl: 4,
+    flags: ['NO_DM', 'NO_TYPER'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-    
+metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
     .setAuthor('Shutting down. Goodbye!', bot.icons.find('ICO_door'))
     .setColor(bot.cfg.embed.default);
@@ -25,4 +23,4 @@ const func = (m, args, data) => {
     });
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

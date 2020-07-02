@@ -1,25 +1,23 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['pingmods', 'moderator', 'moderators'],
-        short_desc: `Ping server moderators.`,
-        long_desc: `Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.** \n\nAdditionally, this command tries to minimize mass pings by only selecting moderators that have sent a message in the past 10 minutes, or those who are simply online. \nThe selection priority works as followed:\n\n**1.** Recent Messages\n**2.** "Online" status\n**3.** All with the <@&467060304145023006> or <@&644668061818945557> roles.`,
-        authlvl: 0,
-        flags: ['NO_DM', 'NO_TYPER', 'STRICT'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['pingmods', 'moderator', 'moderators'],
+    short_desc: `Ping server moderators.`,
+    long_desc: `Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.** \n\nAdditionally, this command tries to minimize mass pings by only selecting moderators that have sent a message in the past 10 minutes, or those who are simply online. \nThe selection priority works as followed:\n\n**1.** Recent Messages\n**2.** "Online" status\n**3.** All with the <@&467060304145023006> or <@&644668061818945557> roles.`,
+    authlvl: 0,
+    flags: ['NO_DM', 'NO_TYPER', 'STRICT'],
+    run: null
 }
 
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     let pinged = [m.author.id];
     
     let pingType = 0;
@@ -36,8 +34,8 @@ const func = (m, args, data) => {
         let pings_status = [];
         let pings_all = [];
         let pings_everyone = [];
-        for(let i = 0; i < bot.memory.mods.length; i++) {
-            let mod = bot.memory.mods[i];
+        for(let i = 0; i < Memory.mods.length; i++) {
+            let mod = Memory.mods[i];
             if(pinged.indexOf(mod.id) === -1) {
                 if(mod.status === 'online') {
                     pings_status.push(mod.id);
@@ -49,7 +47,7 @@ const func = (m, args, data) => {
             }
             pings_everyone.push(mod.id);
 
-            if(i+1 === bot.memory.mods.length) {
+            if(i+1 === Memory.mods.length) {
                 if(attempts === 0) {
                     if(pings_msg.length > 1) pings_msg = [pings_msg[~~(Math.random() * pings_msg.length)]];
                     if(pings_status.length > 1) pings_status = [pings_status[~~(Math.random() * pings_status.length)]];
@@ -65,9 +63,9 @@ const func = (m, args, data) => {
         }
     }
 
-    if(bot.memory.mpc.indexOf(m.channel.id) > -1) {
+    if(Memory.mpc.indexOf(m.channel.id) > -1) {
         m.channel.send(`Sorry ${m.author}, this command is currently on cooldown in this channel. Please wait a few moments before trying this again.`)
-        .then(bm => bot.util.responder(m.author.id, bm, bot));
+        .then(bm => OBUtil.afterSend(bm, m.author.id));
         return
     }
 
@@ -108,7 +106,7 @@ const func = (m, args, data) => {
     if(pingType !== 2) text_ur = `${text}\n\nModerators: If you see this and you're available, please use the reaction button (<:confirm:672309254279135263>) or send a message in this channel to begin resolving this issue.`;
 
     m.channel.send(text_ur).then(msg => {
-        bot.memory.mpc.push(m.channel.id);
+        Memory.mpc.push(m.channel.id);
         attempts++;
 
         const filter = (r, user) => r.emoji.id === bot.cfg.emoji.confirm && result.everyone.indexOf(user.id) > -1;
@@ -190,7 +188,7 @@ const func = (m, args, data) => {
         }
 
         function resolve() {
-            bot.memory.mpc.splice(bot.memory.mpc.indexOf(m.channel.id), 1);
+            Memory.mpc.splice(Memory.mpc.indexOf(m.channel.id), 1);
             if(!msg.deleted) {
 
                 msg.reactions.removeAll();
@@ -200,9 +198,9 @@ const func = (m, args, data) => {
         msg.react(bot.guilds.cache.get(bot.cfg.guilds.optibot).emojis.cache.get(bot.cfg.emoji.confirm)).then(r => {
             tryResolution(r);
         }).catch(err => {
-            bot.util.err(err, bot, {m:m});
+            OBUtil.err(err, {m:m});
         });
     })
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

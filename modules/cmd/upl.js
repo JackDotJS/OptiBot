@@ -3,23 +3,21 @@ const fs = require(`fs`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Force update <#${bot.cfg.policies.channel}> channel.`,
-        long_desc: `Forcefully updates the <#${bot.cfg.policies.channel}> channel.`,
-        authlvl: 4,
-        flags: ['NO_DM', 'LITE'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Force update <#${bot.cfg.policies.channel}> channel.`,
+    long_desc: `Forcefully updates the <#${bot.cfg.policies.channel}> channel.`,
+    authlvl: 4,
+    flags: ['NO_DM', 'LITE'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     let md = fs.statSync(path.resolve(`./modules/util/policies.js`))
     let policies = require(path.resolve(`./modules/util/policies.js`))(bot);
     let channel = bot.guilds.cache.get(bot.cfg.policies.guild).channels.cache.get(bot.cfg.policies.channel);
@@ -34,7 +32,7 @@ const func = (m, args, data) => {
 
     // todo: add confirmation stuff
 
-    //bot.util.confirm()
+    //OBUtil.confirm()
 
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
@@ -44,10 +42,10 @@ const func = (m, args, data) => {
         channel.bulkDelete(100).then(() => {
             finallyPostShit(msg);
         }).catch(err => {
-            log(err.stack, 'error');
+            OBUtil.err(err);
             planBthisfucker(msg);
         });
-    }).catch((err) => bot.util.err(err, bot));
+    }).catch((err) => OBUtil.err(err));
 
     function planBthisfucker(msg) {
         /**
@@ -76,9 +74,9 @@ const func = (m, args, data) => {
                         im++;
                         delmsg();
                     }
-                }).catch((err) => bot.util.err(err, bot, {m:m}));
+                }).catch((err) => OBUtil.err(err, {m:m}));
             })();
-        }).catch((err) => bot.util.err(err, bot, {m:m}));
+        }).catch((err) => OBUtil.err(err, {m:m}));
     }
 
     function finallyPostShit(msg) {
@@ -120,7 +118,7 @@ const func = (m, args, data) => {
                     i++;
                     postPol();
                 }
-            }).catch((err) => bot.util.err(err, bot, {m:m}));
+            }).catch((err) => OBUtil.err(err, {m:m}));
         })();
 
         let pi = 0;
@@ -144,14 +142,14 @@ const func = (m, args, data) => {
                     .setColor(bot.cfg.embed.okay)
                     .setAuthor(`Policies successfully updated in ${((new Date().getTime() - timeStart) / 1000).toFixed(2)} seconds.`, bot.icons.find('ICO_okay'))
 
-                    msg.edit({embed: embed}).then((msg) => bot.util.responder(m.author.id, msg, bot)).catch((err) => bot.util.err(err, bot, {m:m}));
+                    msg.edit({embed: embed}).then((msg) => OBUtil.afterSend(msg, m.author.id)).catch((err) => OBUtil.err(err, {m:m}));
                 } else {
                     pi++;
                     postIndex();
                 }
-            }).catch((err) => bot.util.err(err, bot, {m:m}));
+            }).catch((err) => OBUtil.err(err, {m:m}));
         }
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

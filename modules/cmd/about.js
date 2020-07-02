@@ -1,25 +1,22 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
+const bot = Memory.core.client;
+const log = bot.log;
 const contributors = require(path.resolve('./cfg/contributors.json'));
 const donators = require(path.resolve('./cfg/donators.json'));
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `About OptiBot.`,
-        authlvl: 0,
-        flags: ['DM_OPTIONAL', 'NO_TYPER', 'BOT_CHANNEL_ONLY'],
-        run: func
-    });
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `About OptiBot.`,
+    authlvl: 0,
+    flags: ['DM_OPTIONAL', 'NO_TYPER', 'BOT_CHANNEL_ONLY'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     function uptime(ut) {
         let seconds = (ut / 1000).toFixed(1);
         let minutes = (ut / (1000 * 60)).toFixed(1);
@@ -49,7 +46,7 @@ const func = (m, args, data) => {
     .addField(`Ko-fi Supporters`, donators.join(' '))
 
 
-    m.channel.send('_ _', {embed: embed}).then(msg => bot.util.responder(m.author.id, msg, bot))
+    m.channel.send('_ _', {embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

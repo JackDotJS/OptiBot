@@ -2,53 +2,51 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['whois'],
-        short_desc: `Displays detailed information about a specified user.`,
-        args: `<discord member> [raw]`,
-        authlvl: -1,
-        flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['whois'],
+    short_desc: `Displays detailed information about a specified user.`,
+    args: `<discord member> [raw]`,
+    authlvl: -1,
+    flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if(!args[0]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
-        bot.util.target(m, args[0], bot, {type:0, member:data.member}).then((result) => {
+        OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
             log(util.inspect(result));
             if(!result) {
-                bot.util.err('You must specify a valid user @mention, ID, or target shortcut (^)', bot, {m:m});
+                OBUtil.err('You must specify a valid user @mention, ID, or target shortcut (^)', {m:m});
             } else 
             if(result.type === 'notfound') {
-                let embed = bot.util.err('Unable to find a user.', bot)
+                let embed = OBUtil.err('Unable to find a user.')
                 .setDescription(`If this user ever existed, it seems any information about them has been lost to time.`)
     
-                m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
             } else 
             if (result.type === 'id') {
-                bot.getProfile(result.target, false).then(profile => {
+                OBUtil.getProfile(result.target, false).then(profile => {
                     if(!profile) {
-                        let embed = bot.util.err('Unable to find a user.', bot)
+                        let embed = OBUtil.err('Unable to find a user.')
                         .setDescription(`If this user ever existed, it seems any information about them has been lost to time.`)
             
-                        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
+                        m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
                     } else {
-                        m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => bot.util.responder(m.author.id, bm, bot))
+                        m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => OBUtil.afterSend(bm, m.author.id))
                     }
-                }).catch(err => bot.util.err(err, bot, {m:m}));
+                }).catch(err => OBUtil.err(err, {m:m}));
             } else {
-                bot.getProfile(result.id, false).then(profile => {
+                OBUtil.getProfile(result.id, false).then(profile => {
                     if(args[1] && args[1] === 'raw') {
-                        m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => bot.util.responder(m.author.id, bm, bot))
+                        m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => OBUtil.afterSend(bm, m.author.id))
                     } else {
                         let mem = null;
                         let user = null;
@@ -66,7 +64,8 @@ const func = (m, args, data) => {
                         let embed = new djs.MessageEmbed()
                         .setAuthor((user.id === m.author.id) ? "You are..." : "That is...", bot.icons.find('ICO_user'))
                         .setColor(bot.cfg.embed.default)
-                        .setTitle(`${user.tag} ${(profile && profile.data.emoji) ? profile.data.emoji : ""}`)
+                        // todo: add profile emoji command
+                        .setTitle(`${user.tag} ${(profile && profile.ndata.emoji) ? profile.ndata.emoji : ""}`)
                         .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 64 }))
         
                         let presence = []
@@ -157,7 +156,7 @@ const func = (m, args, data) => {
                             }
                         }
         
-                        embed.setDescription(`${(profile && profile.data.quote) ? `> ${profile.data.quote}\n\n` : ''}${presence.join('\n')}`);
+                        embed.setDescription(`${(profile && profile.ndata.quote) ? `> ${profile.ndata.quote}\n\n` : ''}${presence.join('\n')}`);
         
                         let identity = [
                             `Mention: ${user.toString()}`,
@@ -193,11 +192,11 @@ const func = (m, args, data) => {
                         embed.addField('Account Creation Date', `${user.createdAt.toUTCString()}\n(${timeago.format(user.createdAt)})`, true)
         
                         if(profile) {
-                            if(profile.data.essential.mute) {
-                                if(profile.data.essential.mute.end === null) {
+                            if(profile.edata.mute) {
+                                if(profile.edata.mute.end === null) {
                                     embed.addField(`Mute Expiration`, `Never. (Permanent Mute)`, true)
                                 } else {
-                                    embed.addField(`Mute Expiration`, `${new Date(profile.data.essential.mute.end).toUTCString()}\n(${timeago.format(profile.data.essential.mute.end)})`, true)
+                                    embed.addField(`Mute Expiration`, `${new Date(profile.edata.mute.end).toUTCString()}\n(${timeago.format(profile.edata.mute.end)})`, true)
                                 }
                             }
                         }
@@ -206,12 +205,12 @@ const func = (m, args, data) => {
                             embed.setFooter(`This user may not be a member of this server.`)
                         }
         
-                        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
+                        m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
                     }
-                }).catch(err => bot.util.err(err, bot, {m:m}));
+                }).catch(err => OBUtil.err(err, {m:m}));
             }
-        }).catch(err => bot.util.err(err, bot, {m:m}));
+        }).catch(err => OBUtil.err(err, {m:m}));
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

@@ -1,4 +1,5 @@
 const util = require(`util`);
+const djs = require(`discord.js`);
 
 module.exports = class RecordEntry {
     constructor(raw) {
@@ -11,6 +12,11 @@ module.exports = class RecordEntry {
             reason: null,
             details: null,
             parent: null,
+            children: [],
+            display: {
+                icon: null,
+                action: null,
+            },
             pardon: null,
             edits: null
         }
@@ -25,24 +31,113 @@ module.exports = class RecordEntry {
             if(raw.details) data.details = raw.details;
             if(raw.parent) data.parent = raw.parent;
             if(raw.pardon) data.pardon = raw.pardon;
+            if(raw.edits) data.edits = raw.edits;
         }
 
-        Object.defineProperty(this, 'data', {
-            get: () => {
-                return data;
+        this.raw = data;
+        this.date = data.date;
+        this.moderator = data.moderator;
+        this.url = data.url;
+        this.action = data.action;
+        this.actionType = data.actionType;
+        this.reason = data.reason;
+        this.details = data.details;
+        this.parent = data.parent;
+        this.children = data.children;
+        this.display = data.display;
+        this.pardon = data.pardon;
+        this.edits = data.edits;
+        
+
+        this._def();
+    }
+
+    _def() {
+        let action = null;
+        let type = null;
+
+        switch(this.action) {
+            case 0:
+                this.display.icon = `<:ICO_docs:657535756746620948>`;
+                action = `Note`;
+                break;
+            case 1:
+                this.display.icon = `<:ICO_warn:672291115369627678>`;
+                action = `Warning`;
+                break;
+            case 2:
+                this.display.icon = `<:ICO_mute:671593152221544450>`;
+                action = `Mute`;
+                break;
+            case 3:
+                this.display.icon = `<:ICO_kick:671964834988032001>`;
+                action = `Kick`;
+                break;
+            case 4:
+                this.display.icon = `<:ICO_ban:671964834887106562>`;
+                action = `Ban`;
+                break;
+        }
+
+        switch(this.actionType) {
+            case -1:
+                type = `Remove`;
+                break;
+            case 0:
+                type = `Update`;
+                break;
+            case 1:
+                if ([3, 4].indexOf(entry.action) < 0) type = `Add`;
+                break;
+        }
+
+        if(action !== null && type !== null) {
+            this.display.action = `${type} ${action}`;
+        }
+
+        return this;
+    }
+
+    _addUpdate(key, value, m) {
+        if(this.edits === null) this.edits = {
+            original: {},
+            history: []
+        }
+
+        
+        if(this.edits.original[key] === undefined) {
+            if(key === 'pardon') {
+                this.edits.original.pardon = this.pardon.reason;
+            } else {
+                this.edits.original[key] = this.raw[key];
             }
+        }
+
+        this.edits.history.push({
+            date: new Date().getTime(),
+            author: m.author.id,
+            property: key,
+            change: value
         });
+
+        if(key === 'pardon') {
+            this.pardon.reason = value;
+        } else {
+            this.raw[key] = value;
+        }
+
+        return this;
     }
 
     setDate(date) {
-        if(this.data.date) {
+        if(this.date) {
             throw new Error(`Cannot update entry date.`)
         } else
         if(date.constructor === Date) {
-            this.data.date = date.getTime();
+            this.date = date.getTime();
         } else
         if(Number.isInteger(date)) {
-            this.data.date = date;
+            this.date = date;
         } else {
             throw new Error('Invalid date.')
         }
@@ -51,7 +146,7 @@ module.exports = class RecordEntry {
     }
 
     setMod(id) {
-        if(this.data.moderator) {
+        if(this.moderator) {
             throw new Error(`Cannot update entry moderator.`)
         } else
         if(!Number.isInteger(Number(id))) {
@@ -60,88 +155,89 @@ module.exports = class RecordEntry {
         if (parseInt(id) <= 1420070400000) {
             throw new Error('Invalid moderator ID.')
         } else {
-            this.data.moderator = String(id);
+            this.moderator = String(id);
             return this;
         }
     }
 
     setURL(url) {
-        if(this.data.moderator) {
+        if(this.moderator) {
             throw new Error(`Cannot update entry URL.`)
         }
 
         new URL(url);
 
-        this.data.url = url;
+        this.url = url;
         return this;
     }
 
     setAction(type) {
-        if(this.data.action) {
+        if(this.action) {
             throw new Error(`Cannot update entry action.`)
         }
 
         switch(type.toLowerCase()) {
             case 'note': 
-                this.data.action = 0;
+                this.action = 0;
                 break;
             case 'warn': 
-                this.data.action = 1;
+                this.action = 1;
                 break;
             case 'mute': 
-                this.data.action = 2;
+                this.action = 2;
                 break;
             case 'kick': 
-                this.data.action = 3;
+                this.action = 3;
                 break;
             case 'ban': 
-                this.data.action = 4;
+                this.action = 4;
                 break;
             case 'points': 
-                this.data.action = 5;
+                this.action = 5;
                 break;
             default:
                 throw new Error('Unknown action.');
         }
-        return this;
+
+        return this._def();
     }
 
     setActionType(type) {
-        if(this.data.actionType) {
+        if(this.actionType) {
             throw new Error(`Cannot update entry actionType.`)
         }
 
         switch(type.toLowerCase()) {
             case 'remove': 
-                this.data.actionType = -1;
+                this.actionType = -1;
                 break;
             case 'update': 
-                this.data.actionType = 0;
+                this.actionType = 0;
                 break;
             case 'add': 
-                this.data.actionType = 1;
+                this.actionType = 1;
                 break;
             default:
                 throw new Error('Unknown action type.');
         }
-        return this;
+        return this._def();
     }
 
     setReason(m, text) {
-        if(this.data.reason) {
-            this.addUpdate('reason', String(text), m)
+        if(this.reason) {
+            this._addUpdate('reason', String(text), m)
         } else {
-            this.data.reason = String(text);
+            this.reason = String(text);
         }
         
         return this;
     }
 
     setDetails(m, text) {
-        if(this.data.reason) {
-            this.addUpdate('details', String(text), m)
+        if(this.details) {
+            this._addUpdate('details', String(text), m)
         } else {
-            this.data.details = String(text);
+            this.details = String(text);
         }
 
         return this;
@@ -151,10 +247,10 @@ module.exports = class RecordEntry {
         if(!Number.isInteger(Number(caseID))) {
             throw new Error('Case ID must be a complete integer.')
         } else
-        if(this.data.reason) {
-            this.addUpdate('parent', parseInt(caseID), m)
+        if(this.parent) {
+            this._addUpdate('parent', parseInt(caseID), m)
         } else {
-            this.data.parent = parseInt(caseID);
+            this.parent = parseInt(caseID);
         }
 
         return this;
@@ -164,10 +260,10 @@ module.exports = class RecordEntry {
         if(!reason) {
             throw new Error(`Missing reason for pardon.`)
         } else
-        if(this.data.reason) {
-            this.addUpdate('pardon', String(reason), m)
+        if(this.reason) {
+            this._addUpdate('pardon', String(reason), m)
         } else {
-            this.data.pardon = {
+            this.pardon = {
                 date: new Date().getTime(),
                 admin: m.author.id,
                 url: m.url,
@@ -178,7 +274,18 @@ module.exports = class RecordEntry {
         return this;
     }
 
-    addUpdate(key, value, m) {
-        // todo
+    getRaw() {
+        if(this.moderator instanceof djs.User) {
+            this.moderator = this.moderator.id;
+        }
+
+        if(this.pardon && this.pardon.admin instanceof djs.User) {
+            this.pardon.admin = this.pardon.admin.id;
+        }
+
+        delete this.children;
+        delete this.display;
+
+        return this.raw;
     }
 }

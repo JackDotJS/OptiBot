@@ -1,24 +1,22 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const Command = require(path.resolve(`./modules/core/command.js`));
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Getting started with OptiBot.`,
-        long_desc: `Gives a brief introduction to OptiBot.`,
-        args: `[command]`,
-        authlvl: 0,
-        flags: ['DM_OPTIONAL', 'NO_TYPER'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Getting started with OptiBot.`,
+    long_desc: `Gives a brief introduction to OptiBot.`,
+    args: `[command]`,
+    authlvl: 0,
+    flags: ['DM_OPTIONAL', 'NO_TYPER'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if (!args[0]) {
         // default help page
         let desc = [
@@ -38,14 +36,14 @@ const func = (m, args, data) => {
         .addField('Commands List', `\`\`\`${bot.prefix}list\`\`\``)
         .addField('Other Features', `\`\`\`${bot.prefix}bits\`\`\``)
 
-        m.channel.send({ embed: embed }).then(bm => bot.util.responder(m.author.id, bm, bot));
+        m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
     } else {
         bot.commands.find(args[0]).then((cmd) => {
             if (!cmd || (cmd.metadata.flags['HIDDEN'] && data.authlvl < cmd.metadata.authlvl)) {
-                bot.util.err(`The "${args[0]}" command does not exist.`, bot, {m:m})
+                OBUtil.err(`The "${args[0]}" command does not exist.`, {m:m})
             } else
             if (data.authlvl < cmd.metadata.authlvl) {
-                bot.util.err(`You do not have permission to view the "${args[0]}" command.`, bot, {m:m})
+                OBUtil.err(`You do not have permission to view the "${args[0]}" command.`, bot, {m:m})
             } else {
                 let md = cmd.metadata;
                 let files = [];
@@ -56,7 +54,6 @@ const func = (m, args, data) => {
                 .setTitle(`${bot.prefix}${md.name}`)
                 .setDescription(md.long_desc)
                 .addField('Usage', md.args)
-                //.addField('Usage', cmd.getArgs(m))
 
                 
 
@@ -139,10 +136,10 @@ const func = (m, args, data) => {
 
                 embed.addField('Restrictions', restrictions.join('\n'));
 
-                m.channel.send({ embed: embed }).then(bm => bot.util.responder(m.author.id, bm, bot));
+                m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
             }
         });
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

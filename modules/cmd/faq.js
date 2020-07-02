@@ -1,41 +1,38 @@
 const path = require(`path`);
 const util = require(`util`);
-
 const djs = require(`discord.js`);
 const sim = require('string-similarity');
 const wink = require('jaro-winkler');
 
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Search for answered questions from <#531622141393764352>.`,
-        long_desc: `Searches for answered questions in the <#531622141393764352> channel.`,
-        args: `<query | discord message>`,
-        authlvl: 0,
-        flags: ['DM_OPTIONAL'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Search for answered questions from <#531622141393764352>.`,
+    long_desc: `Searches for answered questions in the <#531622141393764352> channel.`,
+    args: `<query | discord message>`,
+    authlvl: 0,
+    flags: ['DM_OPTIONAL'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if(!args[0]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
-        let query = m.cleanContent.substring(`${bot.prefix}${data.input.cmd} `.length);
+        let query = m.cleanContent.substring(`${bot.prefix}${metadata.name} `.length);
 
-        bot.util.target(m, args[0], bot, {type: 1, member: data.member}).then(result => {
+        OBUtil.parseTarget(m, 1, args[0], data.member).then(result => {
             if(result && result.type === 'message') {
                 query = result.target.cleanContent;
             }
 
             getMessages();
         }).catch(err => {
-            bot.util.err(err, bot, {m:m});
+            OBUtil.err(err, {m:m});
         });
 
 
@@ -108,7 +105,7 @@ const func = (m, args, data) => {
                 ratings.sort((a,b) => a.r - b.r);
                 log(ratings);
                 if (best.r < 0.05 || best.message === undefined || best.message === null) {
-                    bot.util.err('Could not find an answer to that question', bot, {m:m});
+                    OBUtil.err('Could not find an answer to that question', {m:m});
                 } else {
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
@@ -151,7 +148,7 @@ const func = (m, args, data) => {
 
                     embed.addField('Additional Information', `[${infotext}Click here to go to the original message link.](${best.message.url})\n\n Check out the <#531622141393764352> channel to find more frequent questions.`);
 
-                    m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                    m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                 }
             } else {
                 i++
@@ -161,4 +158,4 @@ const func = (m, args, data) => {
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

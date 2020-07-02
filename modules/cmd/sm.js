@@ -1,48 +1,47 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['slowmode', 'slow'],
-        short_desc: `Set slowmode time.`,
-        long_desc: `Manually sets interval for slowmode in the current channel.`,
-        args: `<time>`,
-        authlvl: 2,
-        flags: ['NO_DM', 'NO_TYPER'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['slowmode', 'slow'],
+    short_desc: `Set slowmode time.`,
+    long_desc: `Manually sets interval for slowmode in the current channel.`,
+    args: `<time>`,
+    authlvl: 2,
+    flags: ['NO_DM', 'NO_TYPER'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
-    // todo: add time parser
-
+metadata.run = (m, args, data) => {
     if(!args[0]) {
-        data.cmd.noArgs(m);
-    } else
-    if(bot.cfg.channels.nomodify.indexOf(m.channel.id) > -1 || bot.cfg.channels.nomodify.indexOf(m.channel.parentID) > -1) {
-        bot.util.err('This channel is not allowed to be modified.', bot, {m:m});
-    } else
-    if(parseInt(args[0]) > 600) {
-        bot.util.err('Slowmode cannot exceed 10 minutes.', bot, {m:m});
+        OBUtil.missingArgs(m, metadata);
     } else 
-    if(parseInt(args[0]) < 0) {
-        bot.util.err('Slowmode cannot use negative values.', bot, {m:m});
+    if(bot.cfg.channels.nomodify.indexOf(m.channel.id) > -1 || bot.cfg.channels.nomodify.indexOf(m.channel.parentID) > -1) {
+        OBUtil.err('This channel is not allowed to be modified.', {m:m});
     } else {
-        m.channel.setRateLimitPerUser(parseInt(args[0]), `Slowmode set by ${m.author.tag} (${m.author.id})`).then(() => {
-            let embed = new djs.MessageEmbed()
-            .setAuthor(`Slowmode ${(parseInt(args[0]) === 0) ? `disabled.` : `set to ${parseInt(args[0]).toLocaleString()} second(s).`}`, bot.icons.find('ICO_okay'))
-            .setColor(bot.cfg.embed.okay)
+        let time = OBUtil.parseTime(args[0]);
 
-            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
-        }).catch(err => {
-            bot.util.err(err, bot, {m:m})
-        })
+        if((time.ms / 1000) > 600) {
+            OBUtil.err('Slowmode cannot exceed 10 minutes.', {m:m});
+        } else 
+        if((time.ms / 1000) < 0) {
+            OBUtil.err('Slowmode cannot use negative values.', {m:m});
+        } else {
+            m.channel.setRateLimitPerUser((time.ms / 1000), `Slowmode set by ${m.author.tag} (${m.author.id})`).then(() => {
+                let embed = new djs.MessageEmbed()
+                .setAuthor(`Slowmode ${(time.ms === 0) ? `disabled.` : `set to ${time.string}.`}`, bot.icons.find('ICO_okay'))
+                .setColor(bot.cfg.embed.okay)
+    
+                m.channel.send({embed: embed})//.then(bm => OBUtil.afterSend(bm, m.author.id));
+            }).catch(err => {
+                OBUtil.err(err, {m:m})
+            })
+        }
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

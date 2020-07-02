@@ -1,23 +1,21 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Get beaned.`,
-        long_desc: `Beans a user. This is a Very Serious(TM) command and has Very Serious(TM) consequences if used incorrectly.`,
-        args: `[discord member] [reason]`,
-        authlvl: 1,
-        flags: ['DM_OPTIONAL', 'NO_TYPER'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Get beaned.`,
+    long_desc: `Beans a user. This is a Very Serious(TM) command and has Very Serious(TM) consequences if used incorrectly.`,
+    args: `[discord member] [reason]`,
+    authlvl: 1,
+    flags: ['DM_OPTIONAL', 'NO_TYPER'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
     .setAuthor(`Successfully beaned user`, bot.icons.find('ICO_okay'))
     .setColor(bot.cfg.embed.okay);
@@ -36,14 +34,14 @@ const func = (m, args, data) => {
         ]
         embed.setDescription(msgs[Math.floor(Math.random() * msgs.length)])
 
-        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+        m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(m.author.id, bm, bot));
     } else {
         let target = args[0];
         let reason = (args[1]) ? m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length ) : null;
         let botTarget = false;
         let selfTarget = false;
 
-        bot.util.target(m, target, bot, {type: 0, member: data.member}).then((result) => {
+        OBUtil.parseTarget(m, 0, target, data.member).then((result) => {
             if(result && result.type === 'user') {
                 target = result.target.toString();
 
@@ -64,10 +62,10 @@ const func = (m, args, data) => {
                     embed.addField('Reason', reason);
                 }
 
-                m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(m.author.id, bm, bot));
             }
         });
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

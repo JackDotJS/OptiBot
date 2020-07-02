@@ -4,24 +4,22 @@ const util = require(`util`);
 const fileType = require('file-type');
 const request = require('request');
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const ob = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['eval'],
-        short_desc: `Evaluate JavaScript code.`,
-        args: '<code>',
-        authlvl: 5,
-        flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'HIDDEN', 'DELETE_ON_MISUSE'],
-        run: func
-    });
+const bot = ob.Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['eval'],
+    short_desc: `Evaluate JavaScript code.`,
+    args: '<code>',
+    authlvl: 5,
+    flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'HIDDEN', 'DELETE_ON_MISUSE'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     bot.setTimeout(() => {
         try {
             let code = m.content.substring( `${bot.prefix}${path.parse(__filename).name} `.length );
@@ -129,4 +127,4 @@ const func = (m, args, data) => {
     }, 250);
 }
 
-module.exports = setup;
+module.exports = new ob.Command(metadata);

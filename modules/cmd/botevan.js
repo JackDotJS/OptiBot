@@ -1,25 +1,23 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        short_desc: `Start a vote to ban a user. (very real command\\™️)`,
-        long_desc: `Starts a vote to ban a given user. \n\n__**THIS IS A JOKE COMMAND. THIS WILL NOT ACTUALLY BAN ANYONE.**__`,
-        args: `<discord user> [reason]`,
-        image: 'IMG_banhammer.png',
-        authlvl: 1,
-        flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    short_desc: `Start a vote to ban a user. (very real command\\™️)`,
+    long_desc: `Starts a vote to ban a given user. \n\n__**THIS IS A JOKE COMMAND. THIS WILL NOT ACTUALLY BAN ANYONE.**__`,
+    args: `<discord user> [reason]`,
+    image: 'IMG_banhammer.png',
+    authlvl: 1,
+    flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     let target = (args[0] || `*Someone(TM)*`);
     let reason = (args[1]) ? m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length ) : null;
 
@@ -36,7 +34,7 @@ const func = (m, args, data) => {
         reason = someReason[Math.floor(Math.random() * someReason.length)];
     }
 
-    bot.util.target(m, target, bot, {type: 0, member: data.member}).then((result) => {
+    OBUtil.parseTarget(m, 0, target, bot, data.member).then((result) => {
         if(result && result.type === 'user') {
             if(result.target.id === bot.user.id) {
                 m.channel.send('fuck you');
@@ -84,7 +82,7 @@ const func = (m, args, data) => {
 
                     bm.edit(`_ _`, {embed:embed}).then(bm2 => {
                         bm2.reactions.removeAll().then(() => {
-                            bot.util.responder(m.author.id, bm2, bot);
+                            OBUtil.afterSend(bm2, m.author.id);
                         })
                     })
 
@@ -94,4 +92,4 @@ const func = (m, args, data) => {
     });
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

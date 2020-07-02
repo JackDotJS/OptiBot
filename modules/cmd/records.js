@@ -2,79 +2,30 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['record', 'history'],
-        short_desc: `View a user's record.`,
-        long_desc: `View a user's violation history.`,
-        args: [
-            `<discord member> [page #] ["full"]`,
-            `<discord member> ["full"] [page #]`,
-            `<discord member> [case ID]`
-        ],
-        authlvl: 1,
-        flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'LITE'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['record', 'history'],
+    short_desc: `View a user's record.`,
+    long_desc: `View a user's violation history.`,
+    args: [
+        `<discord member> [page #] ["full"]`,
+        `<discord member> ["full"] [page #]`,
+        `<discord member> [case ID]`
+    ],
+    authlvl: 1,
+    flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'LITE'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if(!args[0]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
-        function entryDef(entry) {
-            let action = '';
-            let type = '';
-            let data = {
-                action: null,
-                icon: '<:ICO_default:657533390073102363>'
-            }
-
-            switch(entry.action) {
-                case 0:
-                    data.icon = `<:ICO_docs:657535756746620948>`;
-                    action = `Note`;
-                    break;
-                case 1:
-                    data.icon = `<:ICO_warn:672291115369627678>`;
-                    action = `Warning`;
-                    break;
-                case 2:
-                    data.icon = `<:ICO_mute:671593152221544450>`;
-                    action = `Mute`;
-                    break;
-                case 3:
-                    data.icon = `<:ICO_kick:671964834988032001>`;
-                    action = `Kick`;
-                    break;
-                case 4:
-                    data.icon = `<:ICO_ban:671964834887106562>`;
-                    action = `Ban`;
-                    break;
-            }
-
-            switch(entry.actionType) {
-                case -1:
-                    type = `Remove`;
-                    break;
-                case 0:
-                    type = `Update`;
-                    break;
-                case 1:
-                    if ([3, 4].indexOf(entry.action) < 0) type = `Add`;
-                    break;
-            }
-
-            data.action = `${type} ${action}`.trim();
-            return data;
-        }
-
         let selectPage = 1;
         let viewAll = false;
 
@@ -89,18 +40,17 @@ const func = (m, args, data) => {
             selectPage = parseInt(args[2]);
         }
         
-        bot.util.target(m, args[0], bot, {type: 0, member:data.member}).then((result) => {
+        OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
             if (!result) {
-                bot.util.err('You must specify a valid user.', bot, {m:m})
+                OBUtil.err('You must specify a valid user.', {m:m})
             } else
             if (result.type === 'notfound') {
-                bot.util.err('Unable to find a user.', bot, {m:m})
+                OBUtil.err('Unable to find a user.', {m:m})
             } else
             if (result.id === bot.user.id) {
-                bot.util.err('Nice try.', bot, {m:m})
+                OBUtil.err('Nice try.', {m:m})
             } else {
-                bot.getProfile(result.id, false).then(profile => {
-                    let record = profile.data.essential.record;
+                OBUtil.getProfile(result.id, false).then(profile => {
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
                     .setTitle(result.tag)
@@ -108,98 +58,67 @@ const func = (m, args, data) => {
 
                     let title = `Member Records`;
                     
-                    if(!profile || !record) {
+                    if(!profile || !profile.edata.record) {
                         embed.setAuthor(title, bot.icons.find('ICO_docs'))
                         .setDescription(`This user has no known record.`)
 
-                        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                        m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                     } else
                     if(selectPage > 1420070400000) {
-
                         // INDIVIDUAL ENTRY
 
-                        let children = [];
-                        let foundEntry = null;
+                        profile.getRecord(selectPage).then(entry => {
+                            if(!entry) {
+                                OBUtil.err(`Unable to find case ID ${selectPage}.`, {m:m})
+                            } else {
+                                let mod = `${entry.moderator} | ${entry.moderator.tag}\n\`\`\`yaml\nID: ${entry.moderator.id}\`\`\``;
 
-                        for(let i = 0; i < record.length; i++) {
-                            let entry = record[i]
-
-                            if(entry.parent === selectPage) {
-                                children.push(entry.date);
-                            } else
-                            if(entry.date === selectPage) {
-                                foundEntry = entry;
-                                // not using break here because we still need to find any children of this entry
-                            }
-                            if(i+1 >= record.length) {
-                                if(foundEntry === null) {
-                                    bot.util.err('Unable to find record entry.', bot, {m:m})
-                                } else {
-                                    bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch(foundEntry.moderator).then(mem => {
-                                        if(foundEntry.pardon.state) {
-                                            bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch(foundEntry.pardon.admin).then(admin => {
-                                                finalCase(foundEntry, mem, admin);
-                                            }).catch(err => {
-                                                bot.util.err(err, bot);
-                                                finalCase(foundEntry, mem);
-                                            });
-                                        } else {
-                                            finalCase(foundEntry, mem);
-                                        }
-                                    }).catch(err => {
-                                        bot.util.err(err, bot);
-                                        finalCase(foundEntry);
-                                    });
+                                function isEdited(key) {
+                                    if(entry.edits && entry.edits.original[key]) {
+                                        return '*';
+                                    } else {
+                                        return '';
+                                    }
                                 }
+
+                                embed = new djs.MessageEmbed()
+                                .setColor(bot.cfg.embed.default)
+                                .setAuthor(title+' | Single Entry', bot.icons.find('ICO_docs'))
+                                .setTitle(result.tag)
+                                .setDescription(`Case ID: ${entry.date} ${(entry.pardon !== null) ? '**(Pardoned)**' : ''}`)
+                                .addField(`Action`, `${entry.display.icon} ${entry.display.action}`)
+                                .addField(`${isEdited('reason')}Reason`, (!entry.reason) ? `No reason provided.` : entry.reason)
+                                .addField(`Date & Time (UTC)`, `${new Date(entry.date).toUTCString()} \n(${timeago.format(entry.date)})`)
+                                .addField(`Moderator Responsible`, mod)
+                                .addField(`Command Location`, (entry.url !== null) ? `[Direct URL](${entry.url})`: `Unavailable`)
+
+                                if(entry.edits) {
+                                    let lastEdit = entry.edits.history[entry.edits.history.length-1];
+                                    embed.setFooter(`Edited sections prefixed with an asterisk (*)\nLast updated on ${new Date(lastEdit.date)} \n(${timeago.format(lastEdit.date)})`)
+                                }
+
+                                if(entry.details) embed.addField(`${isEdited('details')}Additional Information`, entry.details)
+
+                                if(entry.pardon) {
+                                    let adm = `${entry.pardon.admin} | ${entry.pardon.admin.tag}\n\`\`\`yaml\nID: ${entry.pardon.admin.id}\`\`\``;
+
+                                    embed.addField('(Pardon) Administrator Responsible', adm)
+                                    .addField(`(Pardon) Date & Time (UTC)`, `${new Date(entry.pardon.date).toUTCString()} \n(${timeago.format(entry.pardon.date)})`)
+                                    .addField(`(Pardon) ${isEdited('pardon')}Reason`, entry.pardon.reason)
+                                }
+
+                                if(entry.parent) embed.addField(`${isEdited('parent')}Parent Case ID`, entry.parent)
+
+                                if(entry.children.length > 0) embed.addField(`Linked Case ID(s)`, entry.children.join('\n'))
+                                
+                                m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                             }
-                        }
-
-                        function finalCase(entry, mem, admin) {
-                            let mod = `Unknown (${entry.moderator})`;
-                            let adm = `Unknown`;
-
-                            if(mem) {
-                                mod = `<@${entry.moderator}> | ${mem.user.tag}\n\`\`\`yaml\n${entry.moderator}\`\`\``;
-                            }
-
-                            if(admin) {
-                                adm = `<@${entry.pardon.admin}> | ${admin.user.tag}\n\`\`\`yaml\n${entry.pardon.admin}\`\`\``;
-                            } else
-                            if(entry.pardon.state) {
-                                adm = `Unknown (${entry.pardon.admin})`
-                            }
-
-                            let def = entryDef(entry);
-
-                            embed = new djs.MessageEmbed()
-                            .setColor(bot.cfg.embed.default)
-                            .setAuthor(title+' | Single Entry', bot.icons.find('ICO_docs'))
-                            .setTitle(result.tag)
-                            .setDescription(`Case ID: ${entry.date} ${(entry.pardon.state) ? '**(Pardoned)**' : ''}`)
-                            .addField(`Action`, `${def.icon} ${def.action}`)
-                            .addField(`Reason`, (!entry.reason || entry.reason.length === 0) ? `No reason provided.` : entry.reason)
-                            .addField(`Date & Time (UTC)`, `${new Date(entry.date).toUTCString()} \n(${timeago.format(entry.date)})`)
-                            .addField(`Moderator Responsible`, mod)
-                            .addField(`Command Location`, (entry.url !== null) ? `[Direct URL](${entry.url})`: `Unavailable`)
-
-                            if(entry.details !== null) embed.addField(`Additional Information`, entry.details)
-
-                            if(entry.pardon.state) {
-                                embed.addField('(Pardon) Administrator Responsible', adm)
-                                .addField(`(Pardon) Date & Time (UTC)`, `${new Date(entry.pardon.date).toUTCString()} \n(${timeago.format(entry.pardon.date)})`)
-                                .addField(`(Pardon) Reason`, entry.pardon.reason)
-                            }
-
-                            if(entry.parent !== null) embed.addField(`Parent Case ID`, entry.parent)
-
-                            if(children.length > 0) embed.addField(`Linked Case ID(s)`, children.join('\n'))
-                            
-                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
-                        }
+                        });
                     } else {
 
                         // ALL ENTRIES
 
+                        let record = profile.edata.record;
                         let pageNum = selectPage;
                         let perPage = 5;
                         let pageLimit = Math.ceil(record.length / perPage);
@@ -234,7 +153,6 @@ const func = (m, args, data) => {
                         let hidden = 0;
                         (function addEntry() {
                             let entry = record[i];
-                            let def = entryDef(entry);
                             let details;
 
                             if(entry.pardon.state) {
@@ -248,7 +166,7 @@ const func = (m, args, data) => {
                                 let reason = `> ${entry.pardon.reason.split('\n').join('\n> ')}`;
 
                                 details = [
-                                    `${def.icon} ~~${def.action}~~`,
+                                    `${entry.display.icon} ~~${entry.display.action}~~`,
                                     `**Pardoned By:** <@${entry.pardon.admin}>`,
                                     `**When:** ${timeago.format(entry.pardon.date)}`
                                 ]
@@ -262,7 +180,7 @@ const func = (m, args, data) => {
                                 let reason = `> ${entry.reason.split('\n').join('\n> ')}`;
 
                                 details = [
-                                    `${def.icon} ${def.action}`,
+                                    `${entry.display.icon} ~~${entry.display.action}~~`,
                                     `**Moderator:** <@${entry.moderator}>`,
                                     `**When:** ${timeago.format(entry.date)}`
                                 ]
@@ -286,17 +204,17 @@ const func = (m, args, data) => {
                                 embed.setAuthor(title, bot.icons.find('ICO_docs'))
                                 .setDescription(desc.join('\n\n'));
 
-                                m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                                m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                             } else {
                                 i++;
                                 addEntry();
                             }
                         })();
                     }
-                }).catch(err => bot.util.err(err, bot, {m:m}));
+                }).catch(err => OBUtil.err(err, {m:m}));
             }
-        }).catch(err => bot.util.err(err, bot, {m:m}));
+        }).catch(err => OBUtil.err(err, {m:m}));
     } 
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

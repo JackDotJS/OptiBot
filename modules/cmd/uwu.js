@@ -1,41 +1,39 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['owo'],
-        short_desc: `UwU`,
-        long_desc: `UwU OwO UwU`,
-        args: `<text | discord message>`,
-        authlvl: 1,
-        flags: ['DM_OPTIONAL', 'NO_TYPER'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['owo'],
+    short_desc: `UwU`,
+    long_desc: `UwU OwO UwU`,
+    args: `<text | discord message>`,
+    authlvl: 1,
+    flags: ['DM_OPTIONAL', 'NO_TYPER'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if (!args[0]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
         function translate(message) {
-            m.channel.send(bot.util.uwu(message)).then(bm => bot.util.responder(m.author.id, bm, bot));
+            m.channel.send(OBUtil.uwu(message)).then(bm => OBUtil.afterSend(bm, m.author.id));
         }
 
-        bot.util.target(m, args[0], bot, {type: 1, member: data.member}).then(result => {
+        OBUtil.parseTarget(m, 1, args[0], data.member).then(result => {
             if(result && result.type === 'message') {
                 translate(result.target.cleanContent);
             } else {
-                translate(m.cleanContent.substring(`${bot.prefix}${data.input.cmd} `.length));
+                translate(m.cleanContent.substring(`${bot.prefix}${metadata.name} `.length));
             }
         }).catch(err => {
-            bot.util.err(err, bot, {m:m});
+            OBUtil.err(err, {m:m});
         });
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

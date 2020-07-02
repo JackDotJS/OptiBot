@@ -1,60 +1,58 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['risklvl'],
-        short_desc: `Member Threat Advisory System`,
-        long_desc: `Measures or sets the risk level of a given member.`,
-        args: `<discord member> [opt:calc | opt:set <number:level>]`,
-        authlvl: 5,
-        flags: ['NO_DM', 'MOD_CHANNEL_ONLY'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['risklvl'],
+    short_desc: `Member Threat Advisory System`,
+    long_desc: `Measures or sets the risk level of a given member.`,
+    args: `<discord member> [opt:calc | opt:set <number:level>]`,
+    authlvl: 5,
+    flags: ['NO_DM', 'MOD_CHANNEL_ONLY'],
+    run: null
 }
 
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if(!args[0]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
-        bot.util.target(m, args[0], bot, {type: 0, member: data.member}).then((result) => {
+        OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
             if(!result) {
-                bot.util.err('You must specify a valid user.', bot, {m:m});
+                OBUtil.err('You must specify a valid user.', {m:m});
             } else
             if(result.type === 'notfound') {
-                bot.util.err('Unable to find a valid user.', bot, {m:m});
+                OBUtil.err('Unable to find a valid user.', {m:m});
             } else {
                 let id = (result.type === 'id') ? result.target : result.target.id;
                 let name = (result.type === 'id') ? id : result.target.user.tag;
                 let create = ((args[1] && args[1].toLowerCase() === 'set') || (args[1] && args[1].toLowerCase() === 'calc'));
 
-                bot.getProfile(id, create).then(profile => {
+                OBUtil.getProfile(id, create).then(profile => {
                     if(args[1] && args[1].toLowerCase() === 'set') {
                         let num = parseFloat(args[2]);
                         
                         if(data.authlvl < 2) {
-                            bot.util.err(`You're not strong enough to access this part of the command.`, bot, {m:m})
+                            OBUtil.err(`You're not strong enough to access this part of the command.`, {m:m})
                         } else
-                        if(result.type !== 'id' && bot.getAuthlvl(result.target.id) > data.authlvl) {
-                            bot.util.err(`You're not strong enough to modify this user.`, bot, {m:m})
+                        if(result.type !== 'id' && OBUtil.getAuthlvl(result.target.id) > data.authlvl) {
+                            OBUtil.err(`You're not strong enough to modify this user.`, {m:m})
                         } else
                         if(isNaN(num)) {
-                            bot.util.err(`You must specify a valid number.`, bot, {m:m})
+                            OBUtil.err(`You must specify a valid number.`, {m:m})
                         } else 
                         if(num > 10) {
-                            bot.util.err('Risk level cannot be greater than 10.', bot, {m:m});
+                            OBUtil.err('Risk level cannot be greater than 10.', {m:m});
                         } else
                         if(num < 0) {
-                            bot.util.err('Risk level cannot be less than 0.', bot, {m:m});
+                            OBUtil.err('Risk level cannot be less than 0.', {m:m});
                         } else {
-                            profile.data.essential.risk = {
+                            profile.edata.risk = {
                                 level: num.toFixed(2),
                                 date: new Date().getTime(),
                                 accurate: null,
@@ -62,25 +60,25 @@ const func = (m, args, data) => {
                                 author: m.author.id
                             };
 
-                            bot.updateProfile(profile.id, profile).then(() => {
+                            OBUtil.updateProfile(profile).then(() => {
                                 let embed = new djs.MessageEmbed()
                                 .setAuthor(`Profile updated.`, bot.icons.find('ICO_okay'))
                                 .setColor(bot.cfg.embed.okay)
                                 .setDescription(`The risk factor of ${name} is now ${num.toFixed(2)}.`);
 
-                                m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
+                                m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
                             }).catch(err => {
-                                bot.util.err(err, bot, {m:m});
+                                OBUtil.err(err, {m:m});
                             });
                         }
                     } else 
                     if (args[1] && args[1].toLowerCase() === 'calc') {
                         if(!profile) {
                             if(result.type === 'id') {
-                                let embed = bot.util.err('This user does not exist, or is no longer in the server.', bot)
+                                let embed = OBUtil.err('This user does not exist, or is no longer in the server.')
                                 .setDescription('There is not enough data to calculate a risk level for this user. To manually set a risk level for this user, please specify.')
 
-                                m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                                m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                             } else {
                                 calculate();
                             }
@@ -88,8 +86,8 @@ const func = (m, args, data) => {
                             calculate(profile);
                         }
                     } else
-                    if (profile && profile.data.essential.risk) {
-                        let risk = profile.data.essential.risk;
+                    if (profile && profile.edata.risk) {
+                        let risk = profile.edata.risk;
 
                         let msg = [
                             `The risk factor of <@${id}> is **${risk.level}** as of ${new Date(risk.date).toUTCString()} (${timeago.format(risk.date)}).`
@@ -106,15 +104,15 @@ const func = (m, args, data) => {
                         .setColor(bot.cfg.embed.default)
                         .setDescription(msg.join('\n'));
 
-                        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
+                        m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
                     } else {
-                        let embed = bot.util.err(`${name} has not yet been evaluated.`, bot)
-                        .setDescription(`See \`${bot.prefix}help ${data.input.cmd}\` for more information.`)
+                        let embed = OBUtil.err(`${name} has not yet been evaluated.`)
+                        .setDescription(`See \`${bot.prefix}help ${metadata.name}\` for more information.`)
 
-                        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                        m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                     }
                 }).catch(err => {
-                    bot.util.err(err, bot, {m:m});
+                    OBUtil.err(err, {m:m});
                 });
 
                 function calculate(profile) {
@@ -129,9 +127,9 @@ const func = (m, args, data) => {
                     }
 
                     if(profile) {
-                        if(profile.data.essential.record) {
-                            for(let i = 0; i<profile.data.essential.record.length; i++) {
-                                let entry = profile.data.essential.record[i];
+                        if(profile.edata.record) {
+                            for(let i = 0; i<profile.edata.record.length; i++) {
+                                let entry = profile.edata.record[i];
                                 let thisScore = 0;
 
                                 if(entry.actionType !== -1) {
@@ -158,7 +156,7 @@ const func = (m, args, data) => {
                                     addScore(Math.max((thisScore * 0.25), Math.min((thisScore / daysSince), thisScore)))
                                 }
 
-                                if(i+1 >= profile.data.essential.record.length) {
+                                if(i+1 >= profile.edata.record.length) {
                                     calc2();
                                 }
                             }
@@ -219,7 +217,7 @@ const func = (m, args, data) => {
                     }
 
                     function final() {
-                        profile.data.essential.risk = {
+                        profile.edata.risk = {
                             level: score.toFixed(2),
                             date: new Date().getTime(),
                             accurate: !reducedAccuracy,
@@ -227,7 +225,7 @@ const func = (m, args, data) => {
                             author: null
                         }
 
-                        bot.updateProfile(profile.id, profile).then(() => {
+                        OBUtil.updateProfile(profile).then(() => {
                             let embed = new djs.MessageEmbed()
                             .setAuthor(`Member Threat Advisory System`, bot.icons.find('ICO_warn'))
                             .setTitle(`The risk factor of ${name} is ${score.toFixed(2)}.`)
@@ -237,21 +235,21 @@ const func = (m, args, data) => {
                                 embed.setDescription(`**Warning:** This number may NOT be accurate due to missing significant information.`)
                             }
 
-                            m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot))
+                            m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
                         }).catch(err => {
-                            bot.util.err(err, bot, {m:m});
+                            OBUtil.err(err, {m:m});
                         });
 
                         
 
-                        //m.channel.send(`Risk Level: ${score.toFixed(2)}\nReduced Accuracy: ${reducedAccuracy}\nFactors: ${factors.join(', ')}`).then(bm => bot.util.responder(m.author.id, bm, bot))
+                        //m.channel.send(`Risk Level: ${score.toFixed(2)}\nReduced Accuracy: ${reducedAccuracy}\nFactors: ${factors.join(', ')}`).then(bm => OBUtil.afterSend(bm, m.author.id))
                     }
                 }
             }
         }).catch(err => {
-            bot.util.err(err, bot, {m:m});
+            OBUtil.err(err, {m:m});
         });
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

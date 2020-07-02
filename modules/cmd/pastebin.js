@@ -2,25 +2,23 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        authlvl: 5,
-        flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    authlvl: 5,
+    flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
+    run: null
 }
 
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     bot.pb.createPaste(m.cleanContent, 'API test', null, 1, '10M').then((data) => {
         m.channel.send(data)
     });
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

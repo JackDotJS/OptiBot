@@ -2,28 +2,26 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['silence', 'gag'],
-        short_desc: `Mute a user.`,
-        long_desc: `Stops a user from being able to talk or send messages in text channels. Time limit is optional, and will default to 1 hour if not specified. You can also specify the time measure in (m)inutes, (h)ours, and (d)ays. The maximum time limit is 7 days, but can be set to infinity by using 0. Additionally, you can adjust time limits for users by simply running this command again with the desired time.\n\n**Note that this is not an end-all punishment for every user. It is still very much possible to get around server mutes with the right resources.**`,
-        args: `<discord member> [time | reason] [reason]`,
-        authlvl: 2,
-        flags: ['NO_DM', 'LITE'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['silence', 'gag'],
+    short_desc: `Mute a user.`,
+    long_desc: `Stops a user from being able to talk or send messages in text channels. Time limit is optional, and will default to 1 hour if not specified. You can also specify the time measure in (m)inutes, (h)ours, and (d)ays. The maximum time limit is 7 days, but can be set to infinity by using 0. Additionally, you can adjust time limits for users by simply running this command again with the desired time.\n\n**Note that this is not an end-all punishment for every user. It is still very much possible to get around server mutes with the right resources.**`,
+    args: `<discord member> [time | reason] [reason]`,
+    authlvl: 2,
+    flags: ['NO_DM', 'LITE'],
+    run: null
 }
 
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     if(!args[0]) {
-        data.cmd.noArgs(m);
+        OBUtil.missingArgs(m, metadata);
     } else {
         let now = new Date().getTime();
         let muteData = {
@@ -39,21 +37,21 @@ const func = (m, args, data) => {
             reasonAdded: false,
         }
 
-        bot.util.target(m, args[0], bot, {type: 0, member:data.member}).then((result) => {
+        OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
             if (!result) {
-                bot.util.err('You must specify a valid user.', bot, {m:m})
+                OBUtil.err('You must specify a valid user.', {m:m})
             } else
             if (['notfound', 'id'].includes(result.type)) {
-                bot.util.err('Unable to find a user.', bot, {m:m})
+                OBUtil.err('Unable to find a user.', {m:m})
             } else 
             if (result.id === m.author.id) {
-                bot.util.err('Nice try.', bot, {m:m})
+                OBUtil.err('Nice try.', {m:m})
             } else
             if (result.id === bot.user.id) {
-                bot.util.err(`You have no power here.`, bot, {m:m})
+                OBUtil.err(`You have no power here.`, {m:m})
             } else 
-            if (bot.getAuthlvl(result.target) > 0) {
-                bot.util.err(`That user is too powerful to be muted.`, bot, {m:m})
+            if (OBUtil.getAuthlvl(result.target) > 0) {
+                OBUtil.err(`That user is too powerful to be muted.`, {m:m})
             } else {
                 s2(result);
             }
@@ -61,7 +59,7 @@ const func = (m, args, data) => {
 
         function s2(result) {
             log('s2')
-            let time = bot.util.time(args[1]);
+            let time = OBUtil.parseTime(args[1]);
             
 
             if(!args[1]) {
@@ -78,10 +76,10 @@ const func = (m, args, data) => {
                     s3(result, time);
                 } else
                 if (time.ms < 10000) {
-                    bot.util.err(`Be reasonable.`, bot, {m:m});
+                    OBUtil.err(`Be reasonable.`, {m:m});
                 } else
                 if (time.ms > 604800000) {
-                    bot.util.err(`Time limit cannot exceed 7 days.`, bot, {m:m})
+                    OBUtil.err(`Time limit cannot exceed 7 days.`, {m:m})
                 } else {
                     muteData.end = now + time.ms;
                     s3(result, time);
@@ -94,31 +92,31 @@ const func = (m, args, data) => {
             let isUpdate = false;
             if (rvt.reasonText.length > 0) rvt.reasonAdded = true;
 
-            bot.getProfile(result.id, true).then(profile => {
-                if(!profile.data.essential.mute) {
-                    profile.data.essential.mute = muteData;
+            OBUtil.getProfile(result.id, true).then(profile => {
+                if(!profile.edata.mute) {
+                    profile.edata.mute = muteData;
                 } else {
-                    log_data.org_end = profile.data.essential.mute.end;
+                    log_data.org_end = profile.edata.mute.end;
 
                     if(!rvt.timeAdded) {
-                        let embed = bot.util.err('That user has already been muted.', bot)
+                        let embed = OBUtil.err('That user has already been muted.', bot)
                         .setDescription(`If you'd like to change the time limit, please specify.`)
     
-                        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                        m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                         return;
                     } else
-                    if(muteData.end === profile.data.essential.mute.end) {
-                        bot.util.err('New time limit is no different to the existing time limit.', bot, {m:m});
+                    if(muteData.end === profile.edata.mute.end) {
+                        OBUtil.err('New time limit is no different to the existing time limit.', bot, {m:m});
                         return;
                     } else {
-                        profile.data.essential.mute.end = muteData.end;
+                        profile.edata.mute.end = muteData.end;
                         isUpdate = true;
                     }
                 }
 
-                if(!profile.data.essential.record) profile.data.essential.record = [];
+                if(!profile.edata.record) profile.edata.record = [];
 
-                let entry = new bot.util.RecordEntry()
+                let entry = new RecordEntry()
                 .setDate(muteData.caseID)
                 .setMod(m.author.id)
                 .setURL(m.url)
@@ -127,7 +125,7 @@ const func = (m, args, data) => {
 
                 if(isUpdate) {
                     entry.setActionType('edit')
-                    .setParent(profile.data.essential.mute.caseID)
+                    .setParent(profile.edata.mute.caseID)
 
                     if(muteData.end !== null) {
                         entry.setDetails(`Mute updated to ${timeData.string}.`)
@@ -144,61 +142,61 @@ const func = (m, args, data) => {
                     }
                 }
 
-                profile.data.essential.record.push(entry.data);
+                profile.edata.record.push(entry.data);
 
-                log(util.inspect(bot.memory.mutes));
+                log(util.inspect(Memory.mutes));
 
                 if(muteData.end !== null) {
-                    if(bot.memory.mutes.length === 0) {
+                    if(Memory.mutes.length === 0) {
                         if(muteData.end < bot.exitTime.getTime()) {
-                            bot.memory.mutes.push({
+                            Memory.mutes.push({
                                 id: profile.id,
                                 time: bot.setTimeout(() => {
-                                    bot.util.unmuter(bot, profile.id);
+                                    OBUtil.unmuter(profile.id);
                                 }, muteData.end - now)
                             });
 
-                            log(util.inspect(bot.memory.mutes));
+                            log(util.inspect(Memory.mutes));
                         }
                     } else {
                         log('before loop');
-                        for(let i = 0; i < bot.memory.mutes.length; i++) {
+                        for(let i = 0; i < Memory.mutes.length; i++) {
                             log(`loop ${i}`);
-                            if(bot.memory.mutes[i].id === profile.id) {
-                                bot.clearTimeout(bot.memory.mutes[i].time);
+                            if(Memory.mutes[i].id === profile.id) {
+                                bot.clearTimeout(Memory.mutes[i].time);
 
                                 if(muteData.end < bot.exitTime.getTime()) {
                                     log('new mute exp')
-                                    bot.memory.mutes[i].time = bot.setTimeout(() => {
-                                        bot.util.unmuter(bot, profile.id);
+                                    Memory.mutes[i].time = bot.setTimeout(() => {
+                                        OBUtil.unmuter(profile.id);
                                     }, muteData.end - now)
 
-                                    log(util.inspect(bot.memory.mutes));
+                                    log(util.inspect(Memory.mutes));
                                 } else {
                                     log('new mute exp is too far from now, removing from cache')
-                                    bot.memory.mutes.splice(i, 1);
+                                    Memory.mutes.splice(i, 1);
 
-                                    log(util.inspect(bot.memory.mutes));
+                                    log(util.inspect(Memory.mutes));
                                 }
                                 break;
                             } else
-                            if(i+1 >= bot.memory.mutes.length) {
+                            if(i+1 >= Memory.mutes.length) {
                                 if(muteData.end < bot.exitTime.getTime()) {
-                                    bot.memory.mutes.push({
+                                    Memory.mutes.push({
                                         id: profile.id,
                                         time: bot.setTimeout(() => {
-                                            bot.util.unmuter(bot, profile.id);
+                                            OBUtil.unmuter(profile.id);
                                         }, muteData.end - now)
                                     });
 
-                                    log(util.inspect(bot.memory.mutes));
+                                    log(util.inspect(Memory.mutes));
                                 }
                             }
                         }
                     }
                 }
 
-                bot.updateProfile(result.id, profile).then(() => {
+                OBUtil.updateProfile(profile).then(() => {
                     let logInfo = () => {
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.okay)
@@ -226,12 +224,12 @@ const func = (m, args, data) => {
                             embed.addField(`Reason`, `No reason provided. \n(Please use the \`${bot.prefix}addnote\` command.)`)
                         }
 
-                        m.channel.send({embed: embed}).then(bm => bot.util.responder(m.author.id, bm, bot));
+                        m.channel.send({embed: embed})//.then(bm => OBUtil.afterSend(bm, m.author.id));
 
                         let embed2 = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.default)
 
-                        let logEntry = new bot.util.LogEntry(bot, {channel: "moderation"})
+                        let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
                         .setIcon(bot.icons.find('ICO_mute'))
                         .addSection(`Member Muted`, result.target)
@@ -278,14 +276,14 @@ const func = (m, args, data) => {
                     if(result.type === 'member') {
                         result.target.roles.add(bot.cfg.roles.muted, `Member muted for ${timeData.string} by ${m.author.tag}`).then(() => {
                             logInfo();
-                        }).catch(err => bot.util.err(err, bot, {m:m}));
+                        }).catch(err => OBUtil.err(err, {m:m}));
                     } else {
                         logInfo();
                     }
-                }).catch(err => bot.util.err(err, bot, {m:m}))
+                }).catch(err => OBUtil.err(err, {m:m}))
             });
         }
     }
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

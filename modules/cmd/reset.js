@@ -1,23 +1,21 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => { 
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: [`reload`],
-        short_desc: `Reset commands (default), image assets, and/or deletable messages.`,
-        args: `[images | del]`,
-        authlvl: 5,
-        flags: ['DM_OPTIONAL', 'NO_TYPER'],
-        run: func
-    })
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: [`reload`],
+    short_desc: `Reset commands (default), image assets, and/or deletable messages.`,
+    args: `[images | del]`,
+    authlvl: 5,
+    flags: ['DM_OPTIONAL', 'NO_TYPER'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
 
@@ -44,7 +42,7 @@ const func = (m, args, data) => {
             let timeStart = new Date().getTime();
             bot.db.msg.remove({}, {multi:true}, (err, rm) => {
                 if(err) {
-                    bot.util.err(err, bot, {m:m});
+                    OBUtil.err(err, {m:m});
                 } else {
                     let time = new Date().getTime() - timeStart;
                     embed2.setAuthor(`Message cache reset in ${time / 1000} seconds.`, bot.icons.find('ICO_okay'))
@@ -52,9 +50,9 @@ const func = (m, args, data) => {
 
                     bot.setTimeout(() => {
                         bm.edit({embed: embed2})
-                        .then(bm => bot.util.responder(m.author.id, bm, bot))
+                        .then(bm => OBUtil.afterSend(bm, m.author.id))
                         .catch(err => {
-                            bot.util.err(err, bot, {m:m});
+                            OBUtil.err(err, {m:m});
                         });
                     }, 1000);
                 }
@@ -73,16 +71,16 @@ const func = (m, args, data) => {
 
                 bot.setTimeout(() => {
                     bm.edit({embed: embed2})
-                    .then(bm => bot.util.responder(m.author.id, bm, bot))
+                    .then(bm => OBUtil.afterSend(bm, m.author.id))
                     .catch(err => {
-                        bot.util.err(err, bot, {m:m});
+                        OBUtil.err(err, {m:m});
                     });
                 }, 1000);
             }).catch(err => {
-                bot.util.err(err, bot, {m:m});
+                OBUtil.err(err, {m:m});
             });
         }
     })
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

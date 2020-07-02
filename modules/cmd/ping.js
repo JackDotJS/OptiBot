@@ -1,23 +1,21 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
 
-const setup = (bot) => {
-    return new Command(bot, {
-        name: path.parse(__filename).name,
-        aliases: ['latency'],
-        short_desc: `Measure bot latency and response lag.`,
-        authlvl: 1,
-        flags: ['DM_OPTIONAL', 'NO_TYPER'],
-        run: func
-    });
+const bot = Memory.core.client;
+const log = bot.log;
+
+const metadata = {
+    name: path.parse(__filename).name,
+    aliases: ['latency'],
+    short_desc: `Measure bot latency and response lag.`,
+    authlvl: 1,
+    flags: ['DM_OPTIONAL', 'NO_TYPER'],
+    run: null
 }
 
-const func = (m, args, data) => {
-    const bot = data.bot;
-    const log = data.log;
-
+metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
     .setAuthor(`Ping...`, bot.icons.find('ICO_wifi'))
     .setColor(bot.cfg.embed.default)
@@ -67,12 +65,12 @@ const func = (m, args, data) => {
             embed.author.name = `Pong!`
             embed.description = desc.join('\n');
             msg.edit('_ _', {embed:embed}).then(() => {
-                bot.util.responder(m.author.id, msg, bot);
+                OBUtil.afterSend(msg, m.author.id);
             }).catch(err => {
-                bot.util.err(err, bot, {m: m});
+                OBUtil.err(err, {m: m});
             });
         }, 1000);
     });
 }
 
-module.exports = setup;
+module.exports = new Command(metadata);

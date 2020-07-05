@@ -77,7 +77,7 @@ module.exports = class OptiBotProfile {
         return new Promise((resolve, reject) => {
             if(!this.edata.record) reject(new Error('This user does not have a record.'));
 
-            let newEntry = (data instanceof RecordEntry) ? data.getRaw() : data;
+            let newEntry = (data instanceof RecordEntry) ? data.raw : data;
             let record = this.edata.record;
 
             for(let i = 0; i < record.length; i++) {
@@ -92,5 +92,38 @@ module.exports = class OptiBotProfile {
                 }
             }
         });
+    }
+
+    getPoints() {
+        const bot = Memory.core.client;
+        const log = bot.log;
+        const now = new Date().getTime();
+
+        let final = {
+            maximum: 0,
+            current: 0,
+            minimum: 0
+        }
+
+        let record = this.edata.record;
+        if (!record) return final;
+
+        for(let i = 0; i < record.length; i++) {
+            let entry = record[i]
+
+            if(entry.action === 5 && !entry.pardon) {
+                let points = parseInt(entry.details.match(/(?<=points assigned: \[)\d+(?=\])/i)[0]);
+
+                final.maximum += points;
+                final.current += points; // temp
+                final.minimum += points; // temp
+
+                // todo: calculate point degradation
+            }
+
+            if(i+1 >= record.length) {
+                return final;
+            }
+        }
     }
 }

@@ -151,7 +151,7 @@ module.exports = class OptiBotUtilities {
                     resolve(new Profile(docs[0]));
                 } else
                 if(create) {
-                    resolve(new Profile());
+                    resolve(new Profile({ id: id }));
                 } else {
                     resolve();
                 }
@@ -166,7 +166,7 @@ module.exports = class OptiBotUtilities {
         return new Promise((resolve, reject) => {
             let raw = data;
 
-            if(data instanceof Profile) raw = data.pd;
+            if(data instanceof Profile) raw = data.raw;
 
             bot.db.profiles.update({ id: raw.id }, raw, { upsert: true }, (err) => {
                 if(err) {
@@ -749,11 +749,11 @@ module.exports = class OptiBotUtilities {
                     .setMod(bot.user.id)
                     .setAction('mute')
                     .setActionType('remove')
-                    .setReason(`Mute period expired.`)
-                    .setParent(profile.edata.mute.caseID)
+                    .setReason(bot.user, `Mute period expired.`)
+                    .setParent(bot.user, profile.edata.mute.caseID)
     
                     if(!profile.edata.record) profile.edata.record = [];
-                    profile.edata.record.push(entry.data);
+                    profile.edata.record.push(entry.raw);
     
                     delete profile.edata.mute
     

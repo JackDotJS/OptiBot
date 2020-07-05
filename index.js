@@ -137,7 +137,7 @@ bot.on('ready', () => {
 
 bot.on('message', (m) => {
     if (ob.Memory.bot.init) return;
-    if (m.author.bot || m.author.system) return;
+    if (m.author.bot || m.author.system || m.type !== 'DEFAULT' || m.system) return;
     
     if (ob.Memory.users.indexOf(m.author.id) === -1) {
         ob.Memory.users.push(m.author.id);
@@ -311,7 +311,7 @@ bot.on('message', (m) => {
                     if(!cmd.metadata.flags['NO_TYPER']) m.channel.startTyping();
                     bot.setTimeout(() => {
                         try {
-                            cmd.exec(m, input.args, {member, authlvl});
+                            cmd.exec(m, input.args, {member, authlvl, input});
                         }
                         catch (err) {
                             if(!cmd.metadata.flags['NO_TYPER']) m.channel.stopTyping()
@@ -502,6 +502,7 @@ bot.on('messageDelete', m => {
     let now = new Date();
     if (ob.Memory.bot.init) return;
     if (m.channel.type === 'dm') return;
+    if (m.type !== 'DEFAULT' || m.system || m.author.system) return;
     if (m.author.system || m.author.bot) return;
     if (m.guild.id !== bot.cfg.guilds.optifine) return;
     if (ob.OBUtil.parseInput(m).cmd === 'dr') return;
@@ -527,12 +528,12 @@ bot.on('messageDelete', m => {
                 if (ad[i].target.id === m.author.id) {
                     dlog = ad[i];
 
-                    for(let i = 0; i < ob.Memory.audit.length; i++) {
-                        if (ob.Memory.audit[i].id === dlog.id && clog === null) {
-                            clog = ob.Memory.audit[i];
+                    for(let i = 0; i < ob.Memory.audit.log.length; i++) {
+                        if (ob.Memory.audit.log[i].id === dlog.id && clog === null) {
+                            clog = ob.Memory.audit.log[i];
                         }
                         
-                        if (i+1 === ob.Memory.audit.length) {
+                        if (i+1 === ob.Memory.audit.log.length) {
                             if(dlog !== null && clog === null) {
                                 dType = 1;
                                 finalLog();
@@ -562,9 +563,9 @@ bot.on('messageDelete', m => {
             }
 
             function finalLog() {
-                ob.Memory.audit = [...audit.entries.values()];
+                ob.Memory.audit.log = [...audit.entries.values()];
+                ob.Memory.audit.time = new Date();
 
-                let doRaw = false;
                 let desc = [
                     `Message originally posted on ${m.createdAt.toUTCString()}`,
                     `(${timeago.format(m.createdAt)})`
@@ -609,7 +610,6 @@ bot.on('messageDelete', m => {
 
                 if(m.embeds.length > 0) {
                     let rawEmbeds = [];
-                    doRaw = true;
 
                     for(let i = 0; i < m.embeds.length; i++) {
                         rawEmbeds.push(util.inspect(m.embeds[i], { showHidden: true, getters: true }));
@@ -626,7 +626,7 @@ bot.on('messageDelete', m => {
                     })
                 }
 
-                logEntry.submit(doRaw);
+                logEntry.submit();
 
                 ob.Memory.rdel.splice(ob.Memory.rdel.indexOf(m.id), 1);
             }
@@ -647,6 +647,14 @@ bot.on('messageDeleteBulk', ms => {
 
         let i = 0;
         (function postNext() {
+            let m = messages[i];
+
+            if (m.type !== 'DEFAULT' || m.system || m.author.system) {
+                i++;
+                postNext();
+                return;
+            }
+
             let desc = [
                 `Message originally posted on ${m.createdAt.toUTCString()}`,
                 `(${timeago.format(m.createdAt)})`
@@ -717,65 +725,121 @@ bot.on('messageDeleteBulk', ms => {
 ////////////////////////////////////////
 
 bot.on('messageUpdate', (m, mNew) => {
+    let now = new Date();
+
     if (ob.Memory.bot.init) return;
     if (m.channel.type === 'dm') return;
-    if (m.author.system || m.author.bot) return;
-    if (mNew.guild.id !== bot.cfg.guilds.optifine) return;
-    let timeNow = new Date();
-    if (m.content.trim().toLowerCase() == mNew.content.trim().toLowerCase()) return; // ignore embed updates
+    if (m.type !== 'DEFAULT' || m.system || m.author.system || m.author.bot) return;
+    if (m.guild.id !== bot.cfg.guilds.optifine) return;
     if (ob.OBUtil.parseInput(mNew).cmd === 'dr') return;
 
-    let zw = "​"; // zero width character, NOT an empty string. only needed to fix emoji-only messages on mobile from being gigantic.
+    let logEntry = new ob.LogEntry({time: now, channel: "edit"})
 
-    let contents = [
-        '////////////////////////////////////////////////////////////////',
-        'OptiLog Message Edit Report',
-        `Date: ${timeNow.toUTCString()}`,
-        '////////////////////////////////////////////////////////////////',
-        '',
-        `Author: ${m.author.tag} (${m.author.id})`,
-        `Original Post Date: ${m.createdAt.toUTCString()}`,
-        `Message ID: ${m.id}`,
-        `Location: #${m.channel.name} (${m.channel.id})`,
-        '',
-        `Old Message Content:`,
-        m.content,
-        ``,
-        `New Message Content:`,
-        mNew.content,
-        ``,
-        '////////////////////////////////////////////////////////////////',
-    ]
+    let desc = [
+        `Message originally posted on ${m.createdAt.toUTCString()}`,
+        `(${timeago.format(m.createdAt)})`
+    ];
+    
+    logEntry.setColor(bot.cfg.embed.default)
+    .setIcon(bot.icons.find('ICO_edit'))
+    .setTitle(`Message Updated`, `Message Update Report`)
+    .setDescription(desc.join('\n'), desc.join(' '))
+    .addSection(`Author`, m.author)
+    .addSection(`Message Location`, m)
 
-    let files;
+    /////////////////////////////
+    // text content
+    /////////////////////////////
 
-    let embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
-    .setAuthor('Message Edited', bot.icons.find('ICO_edit'))
-    .setDescription(`Original message posted on ${m.createdAt.toUTCString()}\n(${timeago.format(m.createdAt)})`)
-    .addField('Author', `${m.author} | ${m.author.tag} \n\`\`\`yaml\n${m.author.id}\`\`\``)
-    .addField('Message Location', `${m.channel} | [Direct URL](${m.url})`)
-    .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-    .setTimestamp(timeNow)
+    if(m.content !== mNew.content) {
+        if(m.content.length !== 0) {
+            logEntry.addSection(`Old Message Contents`, m.content);
+        } else {
+            logEntry.addSection(`Old Message Contents`, {
+                data: `\u200B`,
+                raw: ''
+            });
+        }
 
-    if(m.content.length > 1000 || mNew.content.length > 1000) {
-        files = [new djs.MessageAttachment(Buffer.from(contents.join('\n')), 'optilog_edited_message.txt')]
-        embed.setTitle('The contents of this message are too long to show in an embed. See the attached file above for details.')
+        if(mNew.content.length !== 0) {
+            logEntry.addSection(`New Message Contents`, mNew.content);
+        } else {
+            logEntry.addSection(`New Message Contents`, {
+                data: `\u200B`,
+                raw: ''
+            });
+        }  
+    } else
+    if(m.content.length !== 0) {
+        logEntry.addSection(`Message Contents`, m.content);
     }
 
-    if(m.content.length > 1000) {
-        embed.addField('Original Message (Truncated)', `${(typeof m.content === 'string') ? m.content.substring(0, 1000) : 'null'}...`)
-    } else {
-        embed.addField('Original Message', `${m.content || 'null'}​${zw}`)
+    /////////////////////////////
+    // attachments
+    /////////////////////////////
+
+    let att = [];
+    let att_raw = [];
+    if (m.attachments.size > 0) {
+        m.attachments.each(a => {
+            att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`)
+            att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`)
+        });
     }
 
-    if(mNew.content.length > 1000) {
-        embed.addField('New Message (Truncated)', `${(typeof mNew.content === 'string') ? mNew.content.substring(0, 1000) : 'null'}​...`)
-    } else {
-        embed.addField('New Message', `${mNew.content || 'null'}​${zw}`)
+    if(att.length > 0) {
+        logEntry.addSection(`Message Attachments`, {
+            data: att.join('\n'),
+            raw: att_raw.join('\n')
+        })
     }
 
-    //bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed, files: files});
+    /////////////////////////////
+    // embeds
+    /////////////////////////////
+
+    let rawEmbeds = [];
+
+    for(let i = 0; i < m.embeds.length; i++) {
+        rawEmbeds.push(util.inspect(m.embeds[i], { showHidden: true, getters: true }));
+        if(i+1 < m.embeds.length) {
+            rawEmbeds.push('');
+        } else {
+            rawEmbeds = rawEmbeds.join('\n');
+        }
+    }
+
+    let embedsUpdated = JSON.stringify(m.embeds) !== JSON.stringify(mNew.embeds);
+
+    if(embedsUpdated) {
+        let rawEmbedsNew = [];
+
+        for(let i = 0; i < mNew.embeds.length; i++) {
+            rawEmbedsNew.push(util.inspect(mNew.embeds[i], { showHidden: true, getters: true }));
+            if(i+1 < mNew.embeds.length) {
+                rawEmbedsNew.push('');
+            } else {
+                rawEmbedsNew = rawEmbedsNew.join('\n');
+            }
+        }
+
+        logEntry.addSection(`Old Message Embeds`, {
+            data: `[${m.embeds.length} Embed${(m.embeds.length !== 1) ? "s" : ""}]`,
+            raw: rawEmbeds
+        })
+        .addSection(`New Message Embeds`, {
+            data: `[${mNew.embeds.length} Embed${(mNew.embeds.length !== 1) ? "s" : ""}]`,
+            raw: rawEmbedsNew
+        });
+    } else
+    if(m.embeds.length > 0) {
+        logEntry.addSection(`Message Embeds`, {
+            data: `[${m.embeds.length} Embed${(m.embeds.length !== 1) ? "s" : ""}]`,
+            raw: rawEmbeds
+        });
+    }
+
+    logEntry.submit();
 });
 
 ////////////////////////////////////////
@@ -783,45 +847,52 @@ bot.on('messageUpdate', (m, mNew) => {
 ////////////////////////////////////////
 
 bot.on('channelUpdate', (oldc, newc) => {
-    let timeNow = new Date();
+    let now = new Date();
     if (ob.Memory.bot.init) return;
+    if (oldc.type !== 'text') return;
+    if (oldc.guild.id !== bot.cfg.guilds.optifine) return;
 
-    if(oldc.type === 'text') {
-        let embed = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.default)
-        .setFooter(`Event logged on ${timeNow.toUTCString()}`)
-        .setTimestamp(timeNow)
+    if(oldc.topic === newc.topic && oldc.name === newc.name) return;
 
-        if(oldc.topic === newc.topic) return;
+    let logEntry = new ob.LogEntry({time: now, channel: "other"})
+    .setColor(bot.cfg.embed.default)
+    .setIcon(bot.icons.find('ICO_edit'))
+    .setTitle(`Channel Updated`, `Channel Update Report`)
+    .addSection(`Channel`, newc)
 
-        if(oldc.topic) {
-            if(newc.topic) {
-                // both topics exist
-                embed.setAuthor('Channel Topic Updated', bot.icons.find('ICO_info'))
-                .addField('Original Topic', oldc.topic)
-                .addField('New Topic', newc.topic)
-            } else {
-                // old topic exists, new one does not
-                embed.setAuthor('Channel Topic Removed', bot.icons.find('ICO_info'))
-                .addField('Original Topic', oldc.topic)
-            }
-        } else
-        if(newc.topic) {
-            // old topic does not exist, new topic does
-            embed.setAuthor('Channel Topic Added', bot.icons.find('ICO_info'))
-                .addField('New Topic', newc.topic)
-        }
+    let embed = new djs.MessageEmbed()
+    .setColor(bot.cfg.embed.default)
+    .setAuthor(`Channel Updated`, bot.icons.find('ICO_edit'))
 
-        if(oldc.id === '471762249476734977') {
-            oldc.send({embed:embed}).catch(err => {
-                ob.OBUtil.err(err);
-            });
-        }
+    if(oldc.topic !== newc.topic) {
+        logEntry.addSection('Old Topic', {
+            data: (oldc.topic) ? oldc.topic : `\u200B`,
+            raw: (oldc.topic) ? oldc.topic : ``
+        });
 
-        embed.setDescription(`Channel: ${newc.toString()}`)
+        logEntry.addSection('New Topic', {
+            data: (newc.topic) ? newc.topic : `\u200B`,
+            raw: (newc.topic) ? newc.topic : ``
+        });
 
-        //bot.guilds.cache.get(bot.cfg.logging.guild).channels.cache.get(bot.cfg.logging.channel).send({embed: embed});
+        embed.addField(`Old Topic`, (oldc.topic) ? oldc.topic : `\u200B`)
+        embed.addField(`New Topic`, (newc.topic) ? newc.topic : `\u200B`)
     }
+
+    if(oldc.name !== newc.name) {
+        logEntry.addSection('Old Channel Name', `\`\`\`#${oldc.name}\`\`\``)
+        logEntry.addSection('New Channel Name', `\`\`\`#${newc.name}\`\`\``)
+
+        embed.addField(`Old Channel Name`, `\`\`\`#${oldc.name}\`\`\``)
+        embed.addField(`New Channel Name`, `\`\`\`#${newc.name}\`\`\``)
+    }
+
+    logEntry.submit()
+
+    if(!([newc.id, newc.parentID].some(e => bot.cfg.channels.blacklist.includes(e)))) {
+        newc.send(embed)
+    }
+    
 });
 
 ////////////////////////////////////////
@@ -928,7 +999,7 @@ bot.on('guildMemberRemove', member => {
                 }
             }
         }).catch(err => ob.OBUtil.err(err));
-    }, 5000);
+    }, 500);
 });
 
 ////////////////////////////////////////
@@ -986,14 +1057,14 @@ bot.on('guildBanAdd', (guild, user) => {
                 .setActionType('add')
                 
                 if(reason !== null) {
-                    recordEntry.setReason(reason)
+                    recordEntry.setReason(bot.user, reason)
                 }
 
                 if(mod !== null) {
                     recordEntry.setMod(mod.id);
                 }
 
-                profile.edata.record.push(recordEntry.data);
+                profile.edata.record.push(recordEntry.raw);
 
                 ob.OBUtil.updateProfile(profile).then(() => {
                     log(`ban addition record successfully saved`)
@@ -1060,17 +1131,17 @@ bot.on('guildBanRemove', (guild, user) => {
                 .setDate(now)
                 .setAction('ban')
                 .setActionType('remove')
-                .setReason(`No reason provided.`)
+                .setReason(mod, `No reason provided.`)
                 
                 if(parent !== null) {
-                    recordEntry.setParent(parent.date);
+                    recordEntry.setParent(mod, parent.date);
                 }
 
                 if(mod !== null) {
                     recordEntry.setMod(mod.id);
                 }
 
-                profile.edata.record.push(recordEntry.data);
+                profile.edata.record.push(recordEntry.raw);
 
                 ob.OBUtil.updateProfile(profile).then(() => {
                     log(`ban removal record successfully saved`)

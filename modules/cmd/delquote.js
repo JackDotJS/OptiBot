@@ -74,9 +74,7 @@ metadata.run = (m, args, data) => {
         if(result.type === 'notfound') {
             OBUtil.err(`Unable to find a user.`, {m:m});
         } else {
-            let id = (result.type === 'id') ? result.target : result.target.user.id;
-
-            OBUtil.getProfile(id, false).then(profile => {
+            OBUtil.getProfile(result.id, false).then(profile => {
                 if(!profile) {
                     OBUtil.err('This user does not have a profile.', {m:m})
                 } else 
@@ -86,7 +84,7 @@ metadata.run = (m, args, data) => {
                     let embed = new djs.MessageEmbed()
                     .setAuthor('Are you sure?', bot.icons.find('ICO_warn'))
                     .setColor(bot.cfg.embed.default)
-                    .setDescription(`The following quote will be permanently removed from <@${id}>'s OptiBot profile: \n> ${profile.ndata.quote}`)
+                    .setDescription(`The following quote will be permanently removed from ${result.mention}'s OptiBot profile: \n> ${profile.ndata.quote}`)
     
                     m.channel.send('_ _', {embed: embed}).then(msg => {
                         OBUtil.confirm(m, msg).then(res => {
@@ -99,7 +97,9 @@ metadata.run = (m, args, data) => {
                                     let update = new djs.MessageEmbed()
                                     .setAuthor(`Success`, bot.icons.find('ICO_okay'))
                                     .setColor(bot.cfg.embed.okay)
-                                    .setDescription(`<@${id}>'s profile has been updated.`)
+                                    .setDescription(`${result.mention}'s profile has been updated.`)
+
+                                    msg.channel.stopTyping(true);
                 
                                     msg.edit({embed: update})//.then(msg => { OBUtil.afterSend(msg, m.author.id); });
                                 });
@@ -108,7 +108,7 @@ metadata.run = (m, args, data) => {
                                 let update = new djs.MessageEmbed()
                                 .setAuthor('Cancelled', bot.icons.find('ICO_load'))
                                 .setColor(bot.cfg.embed.default)
-                                .setDescription(`<@${id}>'s profile has not been changed.`)
+                                .setDescription(`${result.mention}'s profile has not been changed.`)
     
                                 msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
                             } else {

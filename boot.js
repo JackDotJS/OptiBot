@@ -211,10 +211,6 @@ if (!fs.existsSync(`./modules/core/OptiBotCommand.js`)) {
     throw new Error(`Command Class Module not found.`);
 }
 
-if (!fs.existsSync(`./modules/util`)) {
-    throw new Error(`Utilities directory not found.`);
-}
-
 process.title = `OptiBot ${pkg.version}`;
 
 (function q1() {

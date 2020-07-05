@@ -68,7 +68,7 @@ metadata.run = (m, args, data) => {
                             m.channel.send('_ _', {embed: embed}).then(msg => {
                                 OBUtil.confirm(m, msg).then(res => {
                                     if(res === 1) {
-                                        entry.pardon(m, reason)
+                                        entry.pardon(m.author, reason)
 
                                         profile.updateRecord(entry).then(() => {
                                             OBUtil.updateProfile(profile).then(() => {

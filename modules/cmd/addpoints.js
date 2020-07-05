@@ -8,17 +8,21 @@ const log = bot.log;
 
 const metadata = {
     name: path.parse(__filename).name,
-    short_desc: `Warn a user.`,
-    long_desc: `Gives a warning to a user. All warnings are saved to the users record, but otherwise do nothing.`,
-    args: `<discord member> [reason]`,
+    aliases: ['addpoint', 'addp', 'ap', 'points'],
+    short_desc: `Add points to a user.`,
+    long_desc: `Gives a number of points to a given user. [todo]`,
+    args: `<discord member> <points> [reason]`,
     authlvl: 2,
     flags: ['NO_DM', 'STRICT', 'LITE'],
     run: null
 }
 
 metadata.run = (m, args, data) => {
-    if(!args[0]) {
+    if(!args[1]) {
         OBUtil.missingArgs(m, metadata);
+    } else 
+    if(!Number.isInteger(parseInt(args[1]))) {
+        OBUtil.err('You must specify a valid number of points.', {m:m})
     } else {
         OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
             if (!result) {
@@ -27,45 +31,46 @@ metadata.run = (m, args, data) => {
             if (result.type === 'notfound') {
                 OBUtil.err('Unable to find a user.', {m:m})
             } else
-            if (result.id === m.author.id) {
+            if (result.id === m.author.id || result.id === bot.user.id) {
                 OBUtil.err('Nice try.', {m:m})
             } else
-            if (result.id === bot.user.id) {
-                OBUtil.err(':(', {m:m})
-            } else 
             if (OBUtil.getAuthlvl(result.target) > data.authlvl) {
-                OBUtil.err(`That user is too powerful to be warned.`, {m:m})
+                OBUtil.err(`That user is too powerful to be given points.`, {m:m})
             } else {
                 OBUtil.getProfile(result.id, true).then(profile => {
                     if(!profile.edata.record) profile.edata.record = [];
-                    let reason = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} `.length )
+                    let reason = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} ${args[1]} `.length )
+                    let points = Math.abs(parseInt(args[1]));
 
                     let entry = new RecordEntry()
                     .setMod(m.author.id)
                     .setURL(m.url)
-                    .setAction('warn')
+                    .setAction('points')
                     .setActionType('add')
                     .setReason(m.author, (args[1]) ? reason : `No reason provided.`)
+                    .setDetails(m.author, `Points assigned: [${points}]`)
 
                     profile.edata.record.push(entry.raw);
 
                     OBUtil.updateProfile(profile).then(() => {
                         let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
-                        .setIcon(bot.icons.find('ICO_warn'))
-                        .setTitle(`Member Warned`, `Member Warning Report`)
+                        .setIcon(bot.icons.find('ICO_points'))
+                        .setTitle(`Member Points Added`, `Member Point Addition Report`)
                         .addSection(`Member`, result.target)
                         .addSection(`Moderator Responsible`, m.author)
                         .addSection(`Command Location`, m)
+                        .addSection(`Points Added`, points)
+                        .addSection(`Total Points`, profile.getPoints().current)
 
                         if(result.type !== 'id') {
                             logEntry.setThumbnail(((result.type === "user") ? result.target : result.target.user).displayAvatarURL({format:'png'}))
                         }
 
                         let embed = new djs.MessageEmbed()
-                        .setAuthor(`User warned`, bot.icons.find('ICO_warn'))
+                        .setAuthor(`Points added`, bot.icons.find('ICO_points'))
                         .setColor(bot.cfg.embed.default)
-                        .setDescription(`${result.mention} has been warned.`)
+                        .setDescription(`${result.mention} has been given ${Math.abs(parseInt(args[1])).toLocaleString()} points.`)
 
                         if(args[1]) {
                             embed.addField('Reason', reason)

@@ -2,7 +2,7 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -137,7 +137,7 @@ metadata.run = (m, args, data) => {
                         let pardonedCount = 0;
 
                         for(let entry of record) {
-                            if(entry.pardon.state) {
+                            if(entry.pardon) {
                                 pardonedCount++;
                             }
                         }
@@ -152,10 +152,10 @@ metadata.run = (m, args, data) => {
                         let added = 0;
                         let hidden = 0;
                         (function addEntry() {
-                            let entry = record[i];
+                            let entry = new RecordEntry(record[i]);
                             let details;
 
-                            if(entry.pardon.state) {
+                            if(entry.pardon) {
                                 if(!viewAll) {
                                     hidden++;
                                     i++;
@@ -180,10 +180,12 @@ metadata.run = (m, args, data) => {
                                 let reason = `> ${entry.reason.split('\n').join('\n> ')}`;
 
                                 details = [
-                                    `${entry.display.icon} ~~${entry.display.action}~~`,
+                                    `${entry.display.icon} ${entry.display.action}`,
                                     `**Moderator:** <@${entry.moderator}>`,
                                     `**When:** ${timeago.format(entry.date)}`
                                 ]
+
+                                // todo: show points amount
 
                                 if(entry.reason.length > 128) {
                                     details.push(reason.substring(0, 128).trim()+'...');

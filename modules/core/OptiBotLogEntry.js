@@ -37,7 +37,7 @@ module.exports = class LogEntry {
 
         data.channel = bot.guilds.cache.get(bot.cfg.guilds.log).channels.cache.get(data.channel);
 
-        data.embed.setFooter(`Click on embed title for plaintext report.\nEvent logged on ${data.time.toUTCString()}`)
+        data.embed.setFooter(`Click on embed title to download plaintext report.\nEvent logged on ${data.time.toUTCString()}`)
         .setTimestamp(data.time)
 
         this.data = data;
@@ -152,6 +152,14 @@ module.exports = class LogEntry {
     
                 final_content = `${final_content.channel.toString()} | [Direct URL](${final_content.url} "${final_content.url}") ${(final_content.deleted) ? "(deleted)" : ""}`;
             } else
+            if(final_content.constructor === djs.TextChannel) {
+                if (!_content.raw) final_content_raw = `CHANNEL${(final_content.deleted) ? " (DELETED):" : ":"} #${final_content.name} (${final_content.id})`
+    
+                final_content = [
+                    `${final_content.toString()} ${(final_content.deleted) ? "(deleted)" : ""}`,
+                    `\`\`\`yaml\nID: ${final_content.id}\`\`\``
+                ].join('\n');
+            } else
             if(final_content.constructor === Date) {
                 final_content = `${final_content.toUTCString()} \n(${timeago.format(final_content)})`;
 
@@ -175,7 +183,7 @@ module.exports = class LogEntry {
         return this;
     }
 
-    submit(includeRaw) {
+    submit() {
         return new Promise((resolve, reject) => {
             const bot = Memory.core.client;
             const log = bot.log;

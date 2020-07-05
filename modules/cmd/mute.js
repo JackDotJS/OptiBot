@@ -33,7 +33,7 @@ metadata.run = (m, args, data) => {
         }
         let rvt = {
             timeAdded: false,
-            reasonText: m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length ),
+            reasonText: m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} `.length ),
             reasonAdded: false,
         }
 
@@ -68,7 +68,7 @@ metadata.run = (m, args, data) => {
             if (!time.valid) {
                 s3(result, time); // assume rest of input is part of the reason
             } else {
-                rvt.reasonText = m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} ${args[1]} `.length )
+                rvt.reasonText = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} ${args[1]} `.length )
                 rvt.timeAdded = true;
 
                 if (time.ms <= 0) {
@@ -117,32 +117,31 @@ metadata.run = (m, args, data) => {
                 if(!profile.edata.record) profile.edata.record = [];
 
                 let entry = new RecordEntry()
-                .setDate(muteData.caseID)
                 .setMod(m.author.id)
                 .setURL(m.url)
                 .setAction('mute')
-                .setReason((rvt.reasonAdded) ? rvt.reasonText : `No reason provided.`)
+                .setReason(m.author, (rvt.reasonAdded) ? rvt.reasonText : `No reason provided.`)
 
                 if(isUpdate) {
                     entry.setActionType('edit')
-                    .setParent(profile.edata.mute.caseID)
+                    .setParent(m.author, profile.edata.mute.caseID)
 
                     if(muteData.end !== null) {
-                        entry.setDetails(`Mute updated to ${timeData.string}.`)
+                        entry.setDetails(m.author, `Mute updated to ${timeData.string}.`)
                     } else {
-                        entry.setDetails(`Mute updated as permanent.`)
+                        entry.setDetails(m.author, `Mute updated as permanent.`)
                     }
                 } else {
                     entry.setActionType('add')
 
                     if(muteData.end !== null) {
-                        entry.setDetails(`Mute set for ${timeData.string}.`)
+                        entry.setDetails(m.author, `Mute set for ${timeData.string}.`)
                     } else {
-                        entry.setDetails(`Mute set as permanent.`)
+                        entry.setDetails(m.author, `Mute set as permanent.`)
                     }
                 }
 
-                profile.edata.record.push(entry.data);
+                profile.edata.record.push(entry.raw);
 
                 log(util.inspect(Memory.mutes));
 
@@ -223,6 +222,8 @@ metadata.run = (m, args, data) => {
                         } else {
                             embed.addField(`Reason`, `No reason provided. \n(Please use the \`${bot.prefix}addnote\` command.)`)
                         }
+
+                        m.channel.stopTyping(true);
 
                         m.channel.send({embed: embed})//.then(bm => OBUtil.afterSend(bm, m.author.id));
 

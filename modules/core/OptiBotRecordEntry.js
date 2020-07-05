@@ -2,52 +2,47 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 
 module.exports = class RecordEntry {
-    constructor(raw) {
-        const data = {
-            date: null,
-            moderator: null,
-            url: null,
+    constructor(raw = {}) {
+        this.date = (raw.date) ? raw.date : new Date().getTime();
+        this.moderator = (raw.moderator) ? raw.moderator : null;
+        this.url = (raw.url) ? raw.url : null;
+        this.action = (raw.action) ? raw.action : null;
+        this.actionType = (raw.actionType) ? raw.actionType : null;
+        this.reason = (raw.reason) ? raw.reason : null;
+        this.details = (raw.details) ? raw.details : null;
+        this.parent = (raw.parent) ? raw.parent : null;
+        this.children = [];
+        this.display = {
+            icon: null,
             action: null,
-            actionType: null,
-            reason: null,
-            details: null,
-            parent: null,
-            children: [],
-            display: {
-                icon: null,
-                action: null,
-            },
-            pardon: null,
-            edits: null
-        }
+        };
+        this.pardon = (raw.pardon) ? raw.pardon : null;
+        this.edits = (raw.edits) ? raw.edits : null;
 
-        if(raw) {
-            if(raw.date) data.date = raw.date;
-            if(raw.moderator) data.moderator = raw.moderator;
-            if(raw.url) data.url = raw.url;
-            if(raw.action) data.action = raw.action;
-            if(raw.actionType) data.actionType = raw.actionType;
-            if(raw.reason) data.reason = raw.reason;
-            if(raw.details) data.details = raw.details;
-            if(raw.parent) data.parent = raw.parent;
-            if(raw.pardon) data.pardon = raw.pardon;
-            if(raw.edits) data.edits = raw.edits;
-        }
-
-        this.raw = data;
-        this.date = data.date;
-        this.moderator = data.moderator;
-        this.url = data.url;
-        this.action = data.action;
-        this.actionType = data.actionType;
-        this.reason = data.reason;
-        this.details = data.details;
-        this.parent = data.parent;
-        this.children = data.children;
-        this.display = data.display;
-        this.pardon = data.pardon;
-        this.edits = data.edits;
+        Object.defineProperty(this, 'raw', {
+            get: () => {
+                if(this.moderator instanceof djs.User) {
+                    this.moderator = this.moderator.id;
+                }
         
+                if(this.pardon && this.pardon.admin instanceof djs.User) {
+                    this.pardon.admin = this.pardon.admin.id;
+                }
+        
+                return {
+                    date: this.date,
+                    moderator: this.moderator,
+                    url: this.url,
+                    action: this.action,
+                    actionType: this.actionType,
+                    reason: this.reason,
+                    details: this.details,
+                    parent: this.parent,
+                    pardon: this.pardon,
+                    edits: this.edits
+                };
+            }
+        })
 
         this._def();
     }
@@ -77,6 +72,10 @@ module.exports = class RecordEntry {
                 this.display.icon = `<:ICO_ban:671964834887106562>`;
                 action = `Ban`;
                 break;
+            case 5:
+                this.display.icon = `<:ICO_default:657533390073102363>`; // todo: make points icon
+                action = `Points`;
+                break;
         }
 
         switch(this.actionType) {
@@ -87,7 +86,7 @@ module.exports = class RecordEntry {
                 type = `Update`;
                 break;
             case 1:
-                if ([3, 4].indexOf(entry.action) < 0) type = `Add`;
+                if (![3, 4].includes(this.action)) type = `Add`;
                 break;
         }
 
@@ -98,7 +97,7 @@ module.exports = class RecordEntry {
         return this;
     }
 
-    _addUpdate(key, value, m) {
+    _addUpdate(key, value, author) {
         if(this.edits === null) this.edits = {
             original: {},
             history: []
@@ -109,13 +108,13 @@ module.exports = class RecordEntry {
             if(key === 'pardon') {
                 this.edits.original.pardon = this.pardon.reason;
             } else {
-                this.edits.original[key] = this.raw[key];
+                this.edits.original[key] = this[key];
             }
         }
 
         this.edits.history.push({
             date: new Date().getTime(),
-            author: m.author.id,
+            author: author.id,
             property: key,
             change: value
         });
@@ -123,25 +122,9 @@ module.exports = class RecordEntry {
         if(key === 'pardon') {
             this.pardon.reason = value;
         } else {
-            this.raw[key] = value;
+            this[key] = value;
         }
 
-        return this;
-    }
-
-    setDate(date) {
-        if(this.date) {
-            throw new Error(`Cannot update entry date.`)
-        } else
-        if(date.constructor === Date) {
-            this.date = date.getTime();
-        } else
-        if(Number.isInteger(date)) {
-            this.date = date;
-        } else {
-            throw new Error('Invalid date.')
-        }
-        
         return this;
     }
 
@@ -161,7 +144,7 @@ module.exports = class RecordEntry {
     }
 
     setURL(url) {
-        if(this.moderator) {
+        if(this.url) {
             throw new Error(`Cannot update entry URL.`)
         }
 
@@ -223,9 +206,9 @@ module.exports = class RecordEntry {
         return this._def();
     }
 
-    setReason(m, text) {
+    setReason(author, text) {
         if(this.reason) {
-            this._addUpdate('reason', String(text), m)
+            this._addUpdate('reason', String(text), author)
         } else {
             this.reason = String(text);
         }
@@ -233,9 +216,9 @@ module.exports = class RecordEntry {
         return this;
     }
 
-    setDetails(m, text) {
+    setDetails(author, text) {
         if(this.details) {
-            this._addUpdate('details', String(text), m)
+            this._addUpdate('details', String(text), author)
         } else {
             this.details = String(text);
         }
@@ -243,12 +226,12 @@ module.exports = class RecordEntry {
         return this;
     }
 
-    setParent(m, caseID) {
+    setParent(author, caseID) {
         if(!Number.isInteger(Number(caseID))) {
             throw new Error('Case ID must be a complete integer.')
         } else
         if(this.parent) {
-            this._addUpdate('parent', parseInt(caseID), m)
+            this._addUpdate('parent', parseInt(caseID), author)
         } else {
             this.parent = parseInt(caseID);
         }
@@ -256,36 +239,21 @@ module.exports = class RecordEntry {
         return this;
     }
 
-    pardon(m, reason) {
+    pardon(author, reason) {
         if(!reason) {
             throw new Error(`Missing reason for pardon.`)
         } else
         if(this.reason) {
-            this._addUpdate('pardon', String(reason), m)
+            this._addUpdate('pardon', String(reason), author)
         } else {
             this.pardon = {
                 date: new Date().getTime(),
-                admin: m.author.id,
+                admin: author.id,
                 url: m.url,
                 reason: String(reason)
             }
         }
 
         return this;
-    }
-
-    getRaw() {
-        if(this.moderator instanceof djs.User) {
-            this.moderator = this.moderator.id;
-        }
-
-        if(this.pardon && this.pardon.admin instanceof djs.User) {
-            this.pardon.admin = this.pardon.admin.id;
-        }
-
-        delete this.children;
-        delete this.display;
-
-        return this.raw;
     }
 }

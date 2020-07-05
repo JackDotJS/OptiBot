@@ -54,7 +54,7 @@ metadata.run = (m, args, data) => {
                     return;
                 }
 
-                let reason = m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length )
+                let reason = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} `.length )
 
                 let remaining = profile.edata.mute.end - now;
                 let minutes = Math.round(remaining/1000/60)
@@ -78,14 +78,14 @@ metadata.run = (m, args, data) => {
                 .setURL(m.url)
                 .setAction('mute')
                 .setActionType('remove')
-                .setReason((reason.length > 0) ? reason : `No reason provided.`)
-                .setParent(profile.edata.mute.caseID)
+                .setReason(m.author, (reason.length > 0) ? reason : `No reason provided.`)
+                .setParent(m.author, profile.edata.mute.caseID)
 
                 if(profile.edata.mute.end !== null) {
-                    entry.setDetails(`Leftover mute time remaining: ${time_remaining}.`)
+                    entry.setDetails(m.author, `Leftover mute time remaining: ${time_remaining}.`)
                 }
 
-                profile.edata.record.push(entry.data);
+                profile.edata.record.push(entry.raw);
 
                 delete profile.edata.mute;
 
@@ -102,13 +102,15 @@ metadata.run = (m, args, data) => {
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.okay)
                         .setAuthor(`User unmuted.`, bot.icons.find('ICO_okay'))
-                        .setDescription(`${result.tag} has been unmuted.`)
+                        .setDescription(`${result.mention} has been unmuted.`)
 
                         if(reason.length > 0) {
                             embed.addField(`Reason`, reason)
                         } else {
                             embed.addField(`Reason`, `No reason provided. \n(Please use the \`${bot.prefix}addnote\` command.)`)
                         }
+
+                        m.channel.stopTyping(true);
 
                         m.channel.send({embed: embed})//.then(bm => OBUtil.afterSend(bm, m.author.id));
 

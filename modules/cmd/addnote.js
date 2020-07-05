@@ -66,7 +66,7 @@ metadata.run = (m, args, data) => {
                     .setURL(m.url)
                     .setAction('note')
                     .setActionType('add')
-                    .setReason(reason)
+                    .setReason(m.author, reason)
 
                     profile.edata.record.push(entry.data);
 
@@ -86,6 +86,8 @@ metadata.run = (m, args, data) => {
                         .setDescription(`User record has been updated.`)
                         .addField(`Member`, `${mention} | ${username}\n\`\`\`yaml\nID: ${userid}\`\`\``)
                         .addField('Note', reason)
+
+                        m.channel.stopTyping(true);
 
                         m.channel.send({embed: embed})//.then(bm => OBUtil.afterSend(bm, m.author.id));
                     }).catch(err => OBUtil.err(err, {m:m}));

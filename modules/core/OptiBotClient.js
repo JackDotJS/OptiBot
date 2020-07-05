@@ -95,6 +95,8 @@ module.exports = class OptiBot extends djs.Client {
                 }
             }
         };
+
+        // todo: maybe replace this with just bot.emojis.cache, also move to OBUtil
         const icons = {
             index: [],
             default: null,
@@ -457,7 +459,8 @@ module.exports = class OptiBot extends djs.Client {
                     name: 'Audit Log Pre-cacher',
                     load: new Promise((resolve, reject) => {
                         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
-                            Memory.audit = [...audit.entries.values()];
+                            Memory.audit.log = [...audit.entries.values()];
+                            Memory.audit.time = new Date();
                             resolve();
                         });
                     })

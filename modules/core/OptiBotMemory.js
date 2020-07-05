@@ -19,7 +19,10 @@ const memory = {
         message: null
     },
     users: [], // ids of every user active today
-    audit: null, // audit log cache
+    audit: {
+        log: null, // audit log cache
+        time: null,
+    },
     mods: [], // all moderators and their current status
     mutes: [], // all users scheduled to be unmuted today
     mpc: [], // channel ids where modping is on cooldown,

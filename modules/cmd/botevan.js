@@ -45,7 +45,7 @@ metadata.run = (m, args, data) => {
 
         let embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
-        .setAuthor(`Vote Ban`, bot.icons.find('ICO_unban'))
+        .setAuthor(`Vote Ban`, OBUtil.getEmoji('ICO_unban').url)
         .setTitle(`Vote started.`)
         .setDescription(`Banning: ${target} \nWaiting for ${bot.mainGuild.memberCount.toLocaleString()} votes...`)
         .addField(`Reason`, reason)
@@ -56,7 +56,7 @@ metadata.run = (m, args, data) => {
                     let total = bm.reactions.cache.get(bot.cfg.emoji.confirm);
                     embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.error)
-                    .setAuthor(`Vote Ban`, bot.icons.find('ICO_ban'))
+                    .setAuthor(`Vote Ban`, OBUtil.getEmoji('ICO_ban').url)
                     .setTitle(`Vote ended.`)
                     .addField(`Reason`, reason)
 

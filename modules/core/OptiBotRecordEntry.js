@@ -1,6 +1,8 @@
 const util = require(`util`);
 const djs = require(`discord.js`);
 
+const Memory = require(`./OptiBotMemory.js`);
+
 module.exports = class RecordEntry {
     constructor(raw = {}) {
         this.date = (raw.date) ? raw.date : new Date().getTime();
@@ -48,32 +50,34 @@ module.exports = class RecordEntry {
     }
 
     _def() {
+        const OBUtil = require(`./OptiBotUtil.js`);
+
         let action = null;
         let type = null;
 
         switch(this.action) {
             case 0:
-                this.display.icon = `<:ICO_docs:657535756746620948>`;
+                this.display.icon = `${OBUtil.getEmoji('ICO_docs')}`;
                 action = `Note`;
                 break;
             case 1:
-                this.display.icon = `<:ICO_warn:672291115369627678>`;
+                this.display.icon = `${OBUtil.getEmoji('ICO_warn')}`;
                 action = `Warning`;
                 break;
             case 2:
-                this.display.icon = `<:ICO_mute:671593152221544450>`;
+                this.display.icon = `${OBUtil.getEmoji('ICO_mute')}`;
                 action = `Mute`;
                 break;
             case 3:
-                this.display.icon = `<:ICO_kick:671964834988032001>`;
+                this.display.icon = `${OBUtil.getEmoji('ICO_kick')}`;
                 action = `Kick`;
                 break;
             case 4:
-                this.display.icon = `<:ICO_ban:671964834887106562>`;
+                this.display.icon = `${OBUtil.getEmoji('ICO_ban')}`;
                 action = `Ban`;
                 break;
             case 5:
-                this.display.icon = `<:ICO_default:657533390073102363>`; // todo: make points icon
+                this.display.icon = `${OBUtil.getEmoji('ICO_points')}`;
                 action = `Points`;
                 break;
         }
@@ -207,6 +211,10 @@ module.exports = class RecordEntry {
     }
 
     setReason(author, text) {
+        if(text.length === 0) {
+            throw new Error('Invalid reason string.')
+        }
+
         if(this.reason) {
             this._addUpdate('reason', String(text), author)
         } else {
@@ -217,6 +225,10 @@ module.exports = class RecordEntry {
     }
 
     setDetails(author, text) {
+        if(text.length === 0) {
+            throw new Error('Invalid details string.')
+        }
+
         if(this.details) {
             this._addUpdate('details', String(text), author)
         } else {
@@ -242,7 +254,12 @@ module.exports = class RecordEntry {
     pardon(author, reason) {
         if(!reason) {
             throw new Error(`Missing reason for pardon.`)
-        } else
+        }
+
+        if(text.length === 0) {
+            throw new Error('Invalid pardon reason string.')
+        }
+
         if(this.reason) {
             this._addUpdate('pardon', String(reason), author)
         } else {

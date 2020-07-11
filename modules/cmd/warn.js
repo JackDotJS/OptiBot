@@ -52,7 +52,7 @@ metadata.run = (m, args, data) => {
                     OBUtil.updateProfile(profile).then(() => {
                         let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
-                        .setIcon(bot.icons.find('ICO_warn'))
+                        .setIcon(OBUtil.getEmoji('ICO_warn').url)
                         .setTitle(`Member Warned`, `Member Warning Report`)
                         .addSection(`Member`, result.target)
                         .addSection(`Moderator Responsible`, m.author)
@@ -63,7 +63,7 @@ metadata.run = (m, args, data) => {
                         }
 
                         let embed = new djs.MessageEmbed()
-                        .setAuthor(`User warned`, bot.icons.find('ICO_warn'))
+                        .setAuthor(`User warned`, OBUtil.getEmoji('ICO_warn').url)
                         .setColor(bot.cfg.embed.default)
                         .setDescription(`${result.mention} has been warned.`)
 

@@ -36,7 +36,7 @@ metadata.run = (m, args, data) => {
 
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor('Reloading moderation policies...', bot.icons.find('ICO_load'))
+    .setAuthor('Reloading moderation policies...', OBUtil.getEmoji('ICO_load').url)
 
     m.channel.send({embed: embed}).then((msg) => {
         channel.bulkDelete(100).then(() => {
@@ -140,7 +140,7 @@ metadata.run = (m, args, data) => {
                 if(pi+1 === itext_trimmed.length) {
                     embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.okay)
-                    .setAuthor(`Policies successfully updated in ${((new Date().getTime() - timeStart) / 1000).toFixed(2)} seconds.`, bot.icons.find('ICO_okay'))
+                    .setAuthor(`Policies successfully updated in ${((new Date().getTime() - timeStart) / 1000).toFixed(2)} seconds.`, OBUtil.getEmoji('ICO_okay').url)
 
                     msg.edit({embed: embed}).then((msg) => OBUtil.afterSend(msg, m.author.id)).catch((err) => OBUtil.err(err, {m:m}));
                 } else {

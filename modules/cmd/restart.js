@@ -16,11 +16,11 @@ const metadata = {
 metadata.run = (m, args, data) => {
     let logEntry = new LogEntry({time: new Date()})
     .setColor(bot.cfg.embed.default)
-    .setIcon(bot.icons.find('ICO_door'))
+    .setIcon(OBUtil.getEmoji('ICO_door').url)
     .setTitle(`OptiBot is now restarting...`, `OptiBot Restart Report`)
     .submit().then(() => {
         let embed = new djs.MessageEmbed()
-        .setAuthor('Restarting...', bot.icons.find('ICO_load'))
+        .setAuthor('Restarting...', OBUtil.getEmoji('ICO_load').url)
         .setColor(bot.cfg.embed.default);
 
         m.channel.send('_ _', {embed: embed}).then((msg) => {

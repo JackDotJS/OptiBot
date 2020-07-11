@@ -17,7 +17,7 @@ const metadata = {
 metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor('AdoptOpenJDK', bot.icons.find('ICO_jdk'))
+    .setAuthor('AdoptOpenJDK', OBUtil.getEmoji('ICO_jdk').url)
     .setTitle('https://adoptopenjdk.net/')
 
     m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id))

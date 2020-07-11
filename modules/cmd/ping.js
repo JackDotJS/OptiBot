@@ -17,7 +17,7 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
-    .setAuthor(`Ping...`, bot.icons.find('ICO_wifi'))
+    .setAuthor(`Ping...`, OBUtil.getEmoji('ICO_wifi').url)
     .setColor(bot.cfg.embed.default)
     .setDescription(`API Latency: ... \nMessage Latency: ...`)
 

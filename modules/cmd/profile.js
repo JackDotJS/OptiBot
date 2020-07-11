@@ -62,7 +62,7 @@ metadata.run = (m, args, data) => {
 
 
                         let embed = new djs.MessageEmbed()
-                        .setAuthor((user.id === m.author.id) ? "You are..." : "That is...", bot.icons.find('ICO_user'))
+                        .setAuthor((user.id === m.author.id) ? "You are..." : "That is...", OBUtil.getEmoji('ICO_user').url)
                         .setColor(bot.cfg.embed.default)
                         // todo: add profile emoji command
                         .setTitle(`${user.tag} ${(profile && profile.ndata.emoji) ? profile.ndata.emoji : ""}`)

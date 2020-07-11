@@ -28,7 +28,7 @@ metadata.run = (m, args, data) => {
                     result.target.unpin().then(() => {
                         result.target.pin().then(() => {
                             let embed = new djs.MessageEmbed()
-                            .setAuthor(`Pinned message successfully moved.`, bot.icons.find('ICO_okay'))
+                            .setAuthor(`Pinned message successfully moved.`, OBUtil.getEmoji('ICO_okay').url)
                             .setColor(bot.cfg.embed.okay);
     
                             m.channel.send({embed: embed}).then(msg => { OBUtil.afterSend(msg, m.author.id) });

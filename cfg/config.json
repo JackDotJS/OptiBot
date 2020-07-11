@@ -113,7 +113,11 @@
     "db": {
         "limit": 16
     },
-    "uuidFilter": [
-        "f84c6a790a4e45e0879bcd49ebd4c4e2"
-    ]
+    "points": {
+        "userMax": 1000,
+        "assignMax": 1000,
+        "assignMin": 50,
+        "dailyDecay": 10,
+        "minPercentDecay": 20
+    }
 }

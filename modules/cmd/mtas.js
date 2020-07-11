@@ -62,7 +62,7 @@ metadata.run = (m, args, data) => {
 
                             OBUtil.updateProfile(profile).then(() => {
                                 let embed = new djs.MessageEmbed()
-                                .setAuthor(`Profile updated.`, bot.icons.find('ICO_okay'))
+                                .setAuthor(`Profile updated.`, OBUtil.getEmoji('ICO_okay').url)
                                 .setColor(bot.cfg.embed.okay)
                                 .setDescription(`The risk factor of ${name} is now ${num.toFixed(2)}.`);
 
@@ -100,7 +100,7 @@ metadata.run = (m, args, data) => {
                         }
 
                         let embed = new djs.MessageEmbed()
-                        .setAuthor(`Member Threat Advisory System`, bot.icons.find('ICO_warn'))
+                        .setAuthor(`Member Threat Advisory System`, OBUtil.getEmoji('ICO_warn').url)
                         .setColor(bot.cfg.embed.default)
                         .setDescription(msg.join('\n'));
 
@@ -227,7 +227,7 @@ metadata.run = (m, args, data) => {
 
                         OBUtil.updateProfile(profile).then(() => {
                             let embed = new djs.MessageEmbed()
-                            .setAuthor(`Member Threat Advisory System`, bot.icons.find('ICO_warn'))
+                            .setAuthor(`Member Threat Advisory System`, OBUtil.getEmoji('ICO_warn').url)
                             .setTitle(`The risk factor of ${name} is ${score.toFixed(2)}.`)
                             .setColor(bot.cfg.embed.default)
 

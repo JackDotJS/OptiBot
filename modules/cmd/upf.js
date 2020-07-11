@@ -32,7 +32,7 @@ metadata.run = (m, args, data) => {
     // todo: add confirmation stuff
 
     let embed = new djs.MessageEmbed()
-    .setAuthor('Are you sure?', bot.icons.find('ICO_warn'))
+    .setAuthor('Are you sure?', OBUtil.getEmoji('ICO_warn').url)
     .setColor(bot.cfg.embed.default)
     .setDescription(`<#${bot.cfg.faq.channel}> entries will be refreshed. This may take a couple minutes`)
 
@@ -41,7 +41,7 @@ metadata.run = (m, args, data) => {
             if(res === 1) {
                 let update = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.default)
-                .setAuthor('Reloading FAQ entries...', bot.icons.find('ICO_load'))
+                .setAuthor('Reloading FAQ entries...', OBUtil.getEmoji('ICO_load').url)
 
                 msg.edit({embed: update}).then((msg) => {
                     timeStart = new Date().getTime();
@@ -55,14 +55,14 @@ metadata.run = (m, args, data) => {
             } else
             if(res === 0) {
                 let update = new djs.MessageEmbed()
-                .setAuthor('Cancelled', bot.icons.find('ICO_load'))
+                .setAuthor('Cancelled', OBUtil.getEmoji('ICO_load').url)
                 .setColor(bot.cfg.embed.default)
                 .setDescription(`<#${bot.cfg.faq.channel}> has not been updated.`)
 
                 msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
             } else {
                 let update = new djs.MessageEmbed()
-                .setAuthor('Timed out', bot.icons.find('ICO_load'))
+                .setAuthor('Timed out', OBUtil.getEmoji('ICO_load').url)
                 .setColor(bot.cfg.embed.default)
                 .setDescription(`Sorry, you didn't respond in time. Please try again.`)
 
@@ -133,7 +133,7 @@ metadata.run = (m, args, data) => {
                 channel.send({embed: lastEmbed}).then(() => {
                     embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.okay)
-                    .setAuthor(`FAQ entries successfully updated in ${((new Date().getTime() - timeStart) / 1000).toFixed(2)} seconds.`, bot.icons.find('ICO_okay'))
+                    .setAuthor(`FAQ entries successfully updated in ${((new Date().getTime() - timeStart) / 1000).toFixed(2)} seconds.`, OBUtil.getEmoji('ICO_okay').url)
 
                     msg.edit({embed: embed}).then((msg) => OBUtil.afterSend(msg, m.author.id)).catch((err) => OBUtil.err(err, {m:m}));
                 }).catch((err) => OBUtil.err(err, {m:m}));

@@ -101,7 +101,7 @@ metadata.run = (m, args, data) => {
                     let logInfo = () => {
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.okay)
-                        .setAuthor(`User unmuted.`, bot.icons.find('ICO_okay'))
+                        .setAuthor(`User unmuted.`, OBUtil.getEmoji('ICO_okay').url)
                         .setDescription(`${result.mention} has been unmuted.`)
 
                         if(reason.length > 0) {
@@ -116,7 +116,7 @@ metadata.run = (m, args, data) => {
 
                         let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
-                        .setIcon(bot.icons.find('ICO_unmute'))
+                        .setIcon(OBUtil.getEmoji('ICO_unmute').url)
                         .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
                         .setHeader((reason.length > 0) ? "Reason: "+reason : "No reason provided.")
                         .addSection(`Member Unmuted`, result.target)

@@ -175,7 +175,7 @@ metadata.run = (m, args, data) => {
 
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor(`OptiBot Command Index | Page ${pageNum}/${pageLimit}`, bot.icons.find('ICO_docs'))
+    .setAuthor(`OptiBot Command Index | Page ${pageNum}/${pageLimit}`, OBUtil.getEmoji('ICO_docs').url)
     .setDescription(`Hover over the tooltip icons [${tooltip}](${m.url.replace(/\/\d+$/, '')} "No easter eggs here... 👀") or use \`${bot.prefix}help <command>\` for detailed information.`)
 
     if(stext.length > 0) {

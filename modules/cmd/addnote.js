@@ -73,7 +73,7 @@ metadata.run = (m, args, data) => {
                     OBUtil.updateProfile(profile).then(() => {
                         let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
-                        .setIcon(bot.icons.find('ICO_docs'))
+                        .setIcon(OBUtil.getEmoji('ICO_docs').url)
                         .setTitle(`Member Note Created`, `Moderation Note Report`)
                         .addSection(`Member`, result.target)
                         .addSection(`Note Author`, m.author)
@@ -81,7 +81,7 @@ metadata.run = (m, args, data) => {
                         .submit()
 
                         let embed = new djs.MessageEmbed()
-                        .setAuthor(`Note added.`, bot.icons.find('ICO_okay'))
+                        .setAuthor(`Note added.`, OBUtil.getEmoji('ICO_okay').url)
                         .setColor(bot.cfg.embed.okay)
                         .setDescription(`User record has been updated.`)
                         .addField(`Member`, `${mention} | ${username}\n\`\`\`yaml\nID: ${userid}\`\`\``)

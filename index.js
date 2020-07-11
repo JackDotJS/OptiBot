@@ -92,7 +92,7 @@ bot.on('ready', () => {
 
                 let logEntry = new ob.LogEntry({time: now})
                 .setColor(bot.cfg.embed.default)
-                .setIcon(bot.icons.find('ICO_info'))
+                .setIcon(ob.OBUtil.getEmoji('ICO_info').url)
                 .setThumbnail(bot.user.displayAvatarURL({format: 'png'}))
                 .setTitle(`OptiBot Initialized`, `OptiBot Initalization Time Report`)
                 .setHeader(`Version: ${bot.version}`)
@@ -230,7 +230,7 @@ bot.on('message', (m) => {
                     let closest = ratings[0];
     
                     let embed = new djs.MessageEmbed()
-                    .setAuthor('Unknown command.', bot.icons.find('ICO_info'))
+                    .setAuthor('Unknown command.', ob.OBUtil.getEmoji('ICO_info').url)
                     .setColor(bot.cfg.embed.default)
     
                     if (closest.distance > 0.8) {
@@ -248,27 +248,29 @@ bot.on('message', (m) => {
                     m.channel.send({embed: embed}).then(bm => ob.OBUtil.afterSend(bm, m.author.id));
                 }
     
-                let checkMisuse = (msg) => {
+                let checkMisuse = (msg, image) => {
                     let embed = new djs.MessageEmbed()
-                    .setAuthor(msg, bot.icons.find('ICO_error'))
+                    .setAuthor(msg, ob.OBUtil.getEmoji('ICO_error').url)
                     .setColor(bot.cfg.embed.error)
     
                     let content = '_ _';
+
+                    if(image) {
+                        embed.attachFiles([
+                            new djs.MessageAttachment(image, 'image.png')
+                        ])
+                        .setImage('attachment://image.png')
+                    }
     
                     if(cmd.metadata.flags['DELETE_ON_MISUSE']) {
-                        m.delete().catch(err => {
+                        m.delete({reason: `User issued "${bot.prefix}dr" command in server channel.`}).catch(err => {
                             ob.OBUtil.err(err);
                         });
                         content = m.author;
-                        embed.setDescription('This message will self-destruct in 10 seconds.');
                     }
-    
-                    m.channel.send(content, {embed: embed}).then(msg => {
-                        if(cmd.metadata.flags['DELETE_ON_MISUSE']) {
-                            msg.delete(10000);
-                        } else {
-                            ob.OBUtil.afterSend(bm, m.author.id)
-                        }
+
+                    m.channel.send(content, {embed: embed}).then(bm => {
+                        ob.OBUtil.afterSend(bm, m.author.id)
                     });
                 }
     
@@ -297,13 +299,13 @@ bot.on('message', (m) => {
                     }
                 } else 
                 if(cmd.metadata.flags['NO_DM'] && m.channel.type === 'dm' && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
-                    checkMisuse('This command cannot be used in DMs.');
+                    checkMisuse('This command cannot be used in DMs (Direct Messages).');
                 } else
                 if(cmd.metadata.flags['DM_ONLY'] && m.channel.type !== 'dm' && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
-                    checkMisuse('This command can only be used in DMs.');
+                    checkMisuse('This command can only be used in DMs (Direct Messages).', bot.images.find('IMG_dm.png'));
                 } else
                 if(cmd.metadata.flags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.bot.indexOf(m.channel.id) === -1 && bot.cfg.channels.bot.indexOf(m.channel.parentID) === -1) && (authlvl === 0 || cmd.metadata.flags['STRICT'])) {
-                    checkMisuse('This command can only be used in DMs OR the #optibot channel.');
+                    checkMisuse('This command can only be used in DMs (Direct Messages) OR the #optibot channel.');
                 } else
                 if(cmd.metadata.flags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.mod.indexOf(m.channel.id) === -1 && bot.cfg.channels.mod.indexOf(m.channel.parentID) === -1) && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
                     checkMisuse('This command can only be used in moderator-only channels.');
@@ -331,7 +333,7 @@ bot.on('message', (m) => {
             if (m.channel.type === 'dm') {
                 let embed = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.default)
-                //.setAuthor(`Hi there!`, bot.icons.find('ICO_info'))
+                //.setAuthor(`Hi there!`, ob.OBUtil.getEmoji('ICO_info').url)
                 .setTitle('Hi there!')
                 .setDescription(`For a list of commands, type \`${bot.prefix}list\`. If you've donated and you'd like to receive your donator role, type \`${bot.prefix}help dr\` for instructions.`)
     
@@ -365,7 +367,7 @@ bot.on('message', (m) => {
                                 let image = null;
                                 let embed = new djs.MessageEmbed()
                                 .setColor(bot.cfg.embed.default)
-                                .setAuthor(`Message Quote`, bot.icons.find('ICO_quote'))
+                                .setAuthor(`Message Quote`, ob.OBUtil.getEmoji('ICO_quote').url)
                                 .setTitle(`Posted by ${msg.author.tag}`)
                                 .setFooter(`Quoted by ${m.author.tag}`)
         
@@ -456,7 +458,7 @@ process.on('message', (m) => {
         log('got restart data');
         bot.guilds.cache.get(m.restart.guild).channels.cache.get(m.restart.channel).messages.fetch(m.restart.message).then(msg => {
             let embed = new djs.MessageEmbed()
-            .setAuthor(`Restarted in ${((new Date().getTime() - msg.createdTimestamp) / 1000).toFixed(1)} seconds.`, bot.icons.find('ICO_okay'))
+            .setAuthor(`Restarted in ${((new Date().getTime() - msg.createdTimestamp) / 1000).toFixed(1)} seconds.`, ob.OBUtil.getEmoji('ICO_okay').url)
             .setColor(bot.cfg.embed.okay);
 
             msg.edit({embed: embed}).then(msgF => {
@@ -572,18 +574,18 @@ bot.on('messageDelete', m => {
                 ];
                 
                 logEntry.setColor(bot.cfg.embed.error)
-                .setIcon(bot.icons.find('ICO_trash'))
+                .setIcon(ob.OBUtil.getEmoji('ICO_trash').url)
                 .setTitle(`Message Deleted`, `Message Deletion Report`)
                 .setDescription(desc.join('\n'), desc.join(' '))
                 .addSection(`Author`, m.author)
 
                 if(dType === 1) {
-                    logEntry.addSection(`Deleted By`, dlog.executor)
+                    logEntry.addSection(`(Likely) Deleted By`, dlog.executor)
                 } else
                 if((m.member !== null && m.member.deleted) || (!m.member)) {
-                    logEntry.addSection(`Deleted By`, `Unknown (Possibly deleted during a ban)`)
+                    logEntry.addSection(`(Likely) Deleted By`, `Unknown (Possibly deleted during a ban)`)
                 } else {
-                    logEntry.addSection(`Deleted By`, `Author`)
+                    logEntry.addSection(`(Likely) Deleted By`, `Author`)
                 }
 
                 logEntry.addSection(`Message Location`, m)
@@ -661,7 +663,7 @@ bot.on('messageDeleteBulk', ms => {
             ];
             
             logEntry.setColor(bot.cfg.embed.error)
-            .setIcon(bot.icons.find('ICO_trash'))
+            .setIcon(ob.OBUtil.getEmoji('ICO_trash').url)
             .setTitle(`(Bulk ${i+1}/${messages.length}) Message Deleted`, `Bulk Message ${i+1}-${messages.length} Deletion Report`)
             .setDescription(desc.join('\n'), desc.join(' '))
             .addSection(`Author`, m.author)
@@ -741,7 +743,7 @@ bot.on('messageUpdate', (m, mNew) => {
     ];
     
     logEntry.setColor(bot.cfg.embed.default)
-    .setIcon(bot.icons.find('ICO_edit'))
+    .setIcon(ob.OBUtil.getEmoji('ICO_edit').url)
     .setTitle(`Message Updated`, `Message Update Report`)
     .setDescription(desc.join('\n'), desc.join(' '))
     .addSection(`Author`, m.author)
@@ -856,13 +858,13 @@ bot.on('channelUpdate', (oldc, newc) => {
 
     let logEntry = new ob.LogEntry({time: now, channel: "other"})
     .setColor(bot.cfg.embed.default)
-    .setIcon(bot.icons.find('ICO_edit'))
+    .setIcon(ob.OBUtil.getEmoji('ICO_edit').url)
     .setTitle(`Channel Updated`, `Channel Update Report`)
     .addSection(`Channel`, newc)
 
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor(`Channel Updated`, bot.icons.find('ICO_edit'))
+    .setAuthor(`Channel Updated`, ob.OBUtil.getEmoji('ICO_edit').url)
 
     if(oldc.topic !== newc.topic) {
         logEntry.addSection('Old Topic', {
@@ -929,7 +931,7 @@ bot.on('guildMemberAdd', member => {
     function logEvent(muted) {
         let logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
         .setColor(bot.cfg.embed.okay)
-        .setIcon(bot.icons.find('ICO_join'))
+        .setIcon(ob.OBUtil.getEmoji('ICO_join').url)
         .setThumbnail(member.user.displayAvatarURL({format:'png'}))
         .setTitle(`Member Joined`, `New Member Report`)
         .addSection(`Member`, member)
@@ -976,7 +978,7 @@ bot.on('guildMemberRemove', member => {
                     if(ad[i].action === 'MEMBER_KICK') {
                         let logEntry = new ob.LogEntry({time: now, channel: "moderation"})
                         .setColor(bot.cfg.embed.error)
-                        .setIcon(bot.icons.find('ICO_leave'))
+                        .setIcon(ob.OBUtil.getEmoji('ICO_leave').url)
                         .setThumbnail(member.user.displayAvatarURL({format:'png'}))
                         .setTitle(`Member Kicked`, `Member Kick Report`)
                         .setHeader((ad[i].reason) ? "Reason: "+ad[i].reason : "No reason provided.")
@@ -989,7 +991,7 @@ bot.on('guildMemberRemove', member => {
                 if (i+1 >= ad.length) {
                     let logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
                     .setColor(bot.cfg.embed.error)
-                    .setIcon(bot.icons.find('ICO_leave'))
+                    .setIcon(ob.OBUtil.getEmoji('ICO_leave').url)
                     .setThumbnail(member.user.displayAvatarURL({format:'png'}))
                     .setTitle(`Member Left`, `Member Leave Report`)
                     .addSection(`Member`, member)
@@ -1029,7 +1031,7 @@ bot.on('guildBanAdd', (guild, user) => {
             }
             
             logEntry.setColor(bot.cfg.embed.error)
-            .setIcon(bot.icons.find('ICO_ban'))
+            .setIcon(ob.OBUtil.getEmoji('ICO_ban').url)
             .setThumbnail(user.displayAvatarURL({format:'png'}))
             .setTitle(`Member Banned`, `Member Ban Report`)
             .addSection(`Banned Member`, user)
@@ -1103,7 +1105,7 @@ bot.on('guildBanRemove', (guild, user) => {
             }
             
             logEntry.setColor(bot.cfg.embed.default)
-            .setIcon(bot.icons.find('ICO_unban'))
+            .setIcon(ob.OBUtil.getEmoji('ICO_unban').url)
             .setThumbnail(user.displayAvatarURL({format:'png'}))
             .setTitle(`Member Ban Revoked`, `Member Ban Removal Report`)
             .addSection(`Unbanned Member`, user)
@@ -1217,7 +1219,7 @@ bot.on('raw', packet => {
 
             let logEntry = new ob.LogEntry({time: now, channel: "delete"})
             .setColor(bot.cfg.embed.error)
-            .setIcon(bot.icons.find('ICO_trash'))
+            .setIcon(ob.OBUtil.getEmoji('ICO_trash').url)
             .setTitle(`(Uncached) Message Deleted`, `Uncached Message Deletion Report`)
             .setDescription(desc.join('\n'), desc.join(' '))
             .addSection(`Message Location`, `${bot.channels.cache.get(packet.d.channel_id).toString()} | [Direct URL](https://discordapp.com/channels/${packet.d.guild_id}/${packet.d.channel_id}/${packet.d.id}) (deleted)`)

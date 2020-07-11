@@ -40,7 +40,7 @@ metadata.run = (m, args, data) => {
         for(let i = 0; i<policies.index.length; i++) {
             if(policies.index[i].type === 2 && policies.index[i].kw.indexOf(match.bestMatch.target) > -1) {
                 let embed = policies.index[i].embed
-                .setAuthor('OptiFine Discord Moderation Policies', bot.icons.find('ICO_docs'))
+                .setAuthor('OptiFine Discord Moderation Policies', OBUtil.getEmoji('ICO_docs').url)
                 .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
                 m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                 break;

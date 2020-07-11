@@ -132,6 +132,20 @@ module.exports = class OptiBot extends djs.Client {
         this.splash = splashtext;
         this.log = log;
         this.util = util;
+        this.getEmoji = (query) => {
+            // comment 1: hopefully only a temporary solution
+            // comment 2: i forgot if i already fixed this, will check with a lil global search later
+            let result;
+
+            if(Number.isInteger(parseInt(query))) {
+                result = this.emojis.cache.get(query)
+            } else {
+                result = this.emojis.cache.find(emoji => emoji.name.toLowerCase() === query.toLowerCase() && (emoji.guild.id === this.cfg.guilds.optibot || this.cfg.guilds.emoji.includes(emoji.guild.id)))
+            }
+
+            if(result) return result;
+            return this.emojis.cache.find(emoji => emoji.name.toLowerCase() === 'ICO_default'.toLowerCase() && (emoji.guild.id === this.cfg.guilds.optibot || this.cfg.guilds.emoji.includes(emoji.guild.id)))
+        }
 
         Object.defineProperty(this, 'mainGuild', {
             get: () => {

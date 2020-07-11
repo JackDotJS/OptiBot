@@ -42,12 +42,15 @@ metadata.run = (m, args, data) => {
                     let reason = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} ${args[1]} `.length )
                     let points = Math.abs(parseInt(args[1]));
 
+                    if(points > bot.cfg.points.assignMax) return OBUtil.err('You cannot assign more than 1,000 points at a time.', {m:m});
+                    if(points < bot.cfg.points.assignMin) return OBUtil.err('You must assign at least 25 points.', {m:m});
+
                     let entry = new RecordEntry()
                     .setMod(m.author.id)
                     .setURL(m.url)
                     .setAction('points')
                     .setActionType('add')
-                    .setReason(m.author, (args[1]) ? reason : `No reason provided.`)
+                    .setReason(m.author, (args[2]) ? reason : `No reason provided.`)
                     .setDetails(m.author, `Points assigned: [${points}]`)
 
                     profile.edata.record.push(entry.raw);
@@ -55,7 +58,7 @@ metadata.run = (m, args, data) => {
                     OBUtil.updateProfile(profile).then(() => {
                         let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
-                        .setIcon(bot.icons.find('ICO_points'))
+                        .setIcon(OBUtil.getEmoji('ICO_points').url)
                         .setTitle(`Member Points Added`, `Member Point Addition Report`)
                         .addSection(`Member`, result.target)
                         .addSection(`Moderator Responsible`, m.author)
@@ -68,11 +71,11 @@ metadata.run = (m, args, data) => {
                         }
 
                         let embed = new djs.MessageEmbed()
-                        .setAuthor(`Points added`, bot.icons.find('ICO_points'))
+                        .setAuthor(`Points added`, OBUtil.getEmoji('ICO_points').url)
                         .setColor(bot.cfg.embed.default)
                         .setDescription(`${result.mention} has been given ${Math.abs(parseInt(args[1])).toLocaleString()} points.`)
 
-                        if(args[1]) {
+                        if(args[2]) {
                             embed.addField('Reason', reason)
                             logEntry.setHeader(`Reason: ${reason}`)
                         } else {

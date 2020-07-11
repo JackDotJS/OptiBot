@@ -109,7 +109,7 @@ metadata.run = (m, args, data) => {
                 } else {
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
-                    .setAuthor('Frequently Asked Questions', bot.icons.find('ICO_faq'))
+                    .setAuthor('Frequently Asked Questions', OBUtil.getEmoji('ICO_faq').url)
                     .setTitle(best.q)
                     .setFooter(`${(best.r * 100).toFixed(1)}% match during search.`);
 

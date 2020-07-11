@@ -17,7 +17,7 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
-    .setAuthor(`Successfully beaned user`, bot.icons.find('ICO_okay'))
+    .setAuthor(`Successfully beaned user`, OBUtil.getEmoji('ICO_okay').url)
     .setColor(bot.cfg.embed.okay);
 
     if(!args[0]) {

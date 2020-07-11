@@ -33,7 +33,7 @@ metadata.run = (m, args, data) => {
 
             OBUtil.updateProfile(profile).then(() => {
                 let embed = new djs.MessageEmbed()
-                .setAuthor(`Your profile has been updated`, bot.icons.find('ICO_okay'))
+                .setAuthor(`Your profile has been updated`, OBUtil.getEmoji('ICO_okay').url)
                 .setColor(bot.cfg.embed.okay);
 
                 m.channel.send({embed: embed}).then(msg => { OBUtil.afterSend(msg, m.author.id); });

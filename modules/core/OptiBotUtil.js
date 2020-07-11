@@ -5,7 +5,6 @@ const OptiBot = require(`./OptiBotClient.js`);
 const Profile = require(`./OptiBotProfile.js`);
 const Command = require(`./OptiBotCommand.js`);
 const LogEntry = require(`./OptiBotLogEntry.js`);
-const RecordEntry = require(`./OptiBotRecordEntry.js`);
 const Memory = require(`./OptiBotMemory.js`);
 
 module.exports = class OptiBotUtilities {
@@ -31,8 +30,6 @@ module.exports = class OptiBotUtilities {
         let wintitle = [
             `OptiBot ${bot.version}`,
             `OP Mode ${bot.mode}`,
-            
-            
         ]
 
         if(bot.ws) {
@@ -42,7 +39,7 @@ module.exports = class OptiBotUtilities {
             )
         } else {
             wintitle.push(
-                `-1ms`,
+                `-0ms`,
                 `WS Code 3 (${statusName(3)})`
             )
         }
@@ -124,7 +121,7 @@ module.exports = class OptiBotUtilities {
         const log = bot.log;
 
         let embed = new djs.MessageEmbed()
-        .setAuthor(`Missing Arguments`, bot.icons.find('ICO_warn'))
+        .setAuthor(`Missing Arguments`, this.getEmoji('ICO_warn').url)
         .setColor(bot.cfg.embed.default)
         .addField('Usage', Command.parseMetadata(metadata).args)
 
@@ -550,11 +547,11 @@ module.exports = class OptiBotUtilities {
                 }
             }
     
-            embed.setAuthor('Something went wrong.', bot.icons.find('ICO_error'))
+            embed.setAuthor('Something went wrong.', this.getEmoji('ICO_error').url)
             .setTitle(bot.cfg.messages.error[~~(Math.random() * bot.cfg.messages.error.length)])
             .setDescription(`\`\`\`diff\n-[${loc}] ${err}\`\`\``);
         } else {
-            embed.setAuthor(err, bot.icons.find('ICO_error'))
+            embed.setAuthor(err, this.getEmoji('ICO_error').url)
         }
     
         // log(util.inspect(data));
@@ -701,7 +698,7 @@ module.exports = class OptiBotUtilities {
     
             let logEntry = new LogEntry({channel: "moderation"})
             .setColor(bot.cfg.embed.error)
-            .setIcon(bot.icons.find('ICO_error'))
+            .setIcon(this.getEmoji('ICO_error').url)
             .setTitle(`Member Unmute Failure`, `Member Mute Removal Failure Report`)
             .setHeader(`An error occurred while trying to unmute a user.`)
             .setDescription(`\`\`\`diff\n-${err}\`\`\``)
@@ -743,9 +740,9 @@ module.exports = class OptiBotUtilities {
         }
     
         function removeProfileData(user, type) {
-            OBUtil.getProfile(id, false).then(profile => {
+            this.getProfile(id, false).then(profile => {
                 if(profile) {
-                    let entry = new RecordEntry()
+                    /* let entry = new RecordEntry()
                     .setMod(bot.user.id)
                     .setAction('mute')
                     .setActionType('remove')
@@ -753,11 +750,11 @@ module.exports = class OptiBotUtilities {
                     .setParent(bot.user, profile.edata.mute.caseID)
     
                     if(!profile.edata.record) profile.edata.record = [];
-                    profile.edata.record.push(entry.raw);
+                    profile.edata.record.push(entry.raw); */
     
                     delete profile.edata.mute
     
-                    OBUtil.updateProfile(profile).then(() => {
+                    this.updateProfile(profile).then(() => {
                         finish(user, type);
                     }).catch(err => {
                         errHandler(err, user);
@@ -780,7 +777,7 @@ module.exports = class OptiBotUtilities {
     
             let logEntry = new LogEntry({channel: "moderation"})
                 .setColor(bot.cfg.embed.default)
-                .setIcon(bot.icons.find('ICO_unmute'))
+                .setIcon(this.getEmoji('ICO_unmute').url)
                 .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
                 .setHeader(`Reason: Mute period expired.`)
                 .addSection(`Member Unmuted`, (type === "user") ? user : user.user)
@@ -905,5 +902,21 @@ module.exports = class OptiBotUtilities {
         let face = ['OwO', 'UwU', '', ''];
     
         return `${newStr}${face[~~(Math.random() * face.length)]}`;
+    }
+
+    static getEmoji(target) {
+        const bot = Memory.core.client;
+        const log = bot.log;
+
+        let result;
+
+        if(Number.isInteger(parseInt(target))) {
+            result = bot.emojis.cache.get(target)
+        } else {
+            result = bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === target.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)))
+        }
+
+        if(result) return result;
+        return bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === 'ICO_default'.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)))
     }
 }

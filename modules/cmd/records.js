@@ -54,13 +54,24 @@ metadata.run = (m, args, data) => {
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
                     .setTitle(result.tag)
-                    .setFooter(`Note that existing violations before October 30, 2019 will not show here. \nAdditionally, all records before [X], 2020 may be missing information.`);
+                    .setFooter(`Note that existing violations before October 30, 2019 will not show here. \nAdditionally, all records before [TODO], 2020 may be missing information.`);
+
+                    if(result.type !== 'id') {
+                        embed.setDescription([
+                            `Mention: ${result.mention}`,
+                            `\`\`\`yaml\nID: ${result.id}\`\`\``
+                        ].join('\n'))
+                    }
+
+                    if(result.type !== 'id') {
+                        embed.setThumbnail(((result.type === "user") ? result.target : result.target.user).displayAvatarURL({format:'png'}))
+                    }
 
                     let title = `Member Records`;
                     
                     if(!profile || !profile.edata.record) {
-                        embed.setAuthor(title, bot.icons.find('ICO_docs'))
-                        .setDescription(`This user has no known record.`)
+                        embed.setAuthor(title, OBUtil.getEmoji('ICO_docs').url)
+                        .addField(`Record Statistics`, `This user has no known record.`)
 
                         m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                     } else
@@ -81,20 +92,34 @@ metadata.run = (m, args, data) => {
                                     }
                                 }
 
+                                let footer = [
+                                    `All records before [TODO], 2020 may be missing information.`
+                                ]
+
                                 embed = new djs.MessageEmbed()
                                 .setColor(bot.cfg.embed.default)
-                                .setAuthor(title+' | Single Entry', bot.icons.find('ICO_docs'))
-                                .setTitle(result.tag)
-                                .setDescription(`Case ID: ${entry.date} ${(entry.pardon !== null) ? '**(Pardoned)**' : ''}`)
+                                .setAuthor(title+' | Single Entry', OBUtil.getEmoji('ICO_docs').url)
+                                .setTitle(`Case ID: \`${entry.date}\` ${(entry.pardon) ? '(PARDONED)' : ''}`)
+                                .setDescription(`${new Date(entry.date).toUTCString()} \n(${timeago.format(entry.date)})`)
+                                .addField(`Member`, [
+                                    `${result.mention} | ${result.tag}`,
+                                    `\`\`\`yaml\nID: ${result.id}\`\`\``
+                                ].join('\n'))
+                                .addField(`Moderator Responsible`, mod)
+                                .addField(`Command Location`, (entry.url !== null) ? `[Direct URL](${entry.url})`: `Unavailable.`)
                                 .addField(`Action`, `${entry.display.icon} ${entry.display.action}`)
                                 .addField(`${isEdited('reason')}Reason`, (!entry.reason) ? `No reason provided.` : entry.reason)
-                                .addField(`Date & Time (UTC)`, `${new Date(entry.date).toUTCString()} \n(${timeago.format(entry.date)})`)
-                                .addField(`Moderator Responsible`, mod)
-                                .addField(`Command Location`, (entry.url !== null) ? `[Direct URL](${entry.url})`: `Unavailable`)
+
+                                if(result.type !== 'id') {
+                                    embed.setThumbnail(((result.type === "user") ? result.target : result.target.user).displayAvatarURL({format:'png'}))
+                                }
 
                                 if(entry.edits) {
                                     let lastEdit = entry.edits.history[entry.edits.history.length-1];
-                                    embed.setFooter(`Edited sections prefixed with an asterisk (*)\nLast updated on ${new Date(lastEdit.date)} \n(${timeago.format(lastEdit.date)})`)
+                                    footer.push(
+                                        `Edited sections prefixed with an asterisk (*)`,
+                                        `Last updated on ${new Date(lastEdit.date)} \n(${timeago.format(lastEdit.date)})`
+                                    );
                                 }
 
                                 if(entry.details) embed.addField(`${isEdited('details')}Additional Information`, entry.details)
@@ -110,6 +135,8 @@ metadata.run = (m, args, data) => {
                                 if(entry.parent) embed.addField(`${isEdited('parent')}Parent Case ID`, entry.parent)
 
                                 if(entry.children.length > 0) embed.addField(`Linked Case ID(s)`, entry.children.join('\n'))
+
+                                embed.setFooter(footer.join(`\n`));
                                 
                                 m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                             }
@@ -120,7 +147,7 @@ metadata.run = (m, args, data) => {
 
                         let record = profile.edata.record;
                         let pageNum = selectPage;
-                        let perPage = 5;
+                        let perPage = 4;
                         let pageLimit = Math.ceil(record.length / perPage);
                         if (selectPage < 0 || selectPage > pageLimit) {
                             pageNum = 1;
@@ -130,23 +157,26 @@ metadata.run = (m, args, data) => {
 
                         title += ` | Page ${pageNum}/${pageLimit}`;
 
-                        let desc = [
-                            `<@${result.id}> has a total of ${record.length} ${(record.length === 1) ? 'entry' : 'entries'} on record`,
-                        ]
+                        let stats = [
+                            `**Total Record Size**: ${record.length.toLocaleString()}`
+                        ];
 
                         let pardonedCount = 0;
+                        let points = 0;
 
                         for(let entry of record) {
                             if(entry.pardon) {
                                 pardonedCount++;
+                            } else
+                            if(entry.action === 5) {
+                                points += parseInt(entry.details.match(/(?<=\[)\d+(?=\])/));
                             }
                         }
 
-                        if(pardonedCount > 0) {
-                            desc[0] += `, ${pardonedCount} of which ${(pardonedCount === 1) ? "has" : "have"} been pardoned.`;
-                        } else {
-                            desc[0] += `.`;
-                        }
+                        stats.push(
+                            `**Pardoned Entries**: ${pardonedCount.toLocaleString()}`,
+                            `**Violation Points**: ${points.toLocaleString()}/${bot.cfg.points.userMax.toLocaleString()} ${(points > bot.cfg.points.userMax) ? OBUtil.getEmoji('ICO_warn').toString() : ""}`
+                        );
 
                         let i = (pageNum > 1) ? (perPage * (pageNum - 1)) : 0;
                         let added = 0;
@@ -157,7 +187,9 @@ metadata.run = (m, args, data) => {
 
                             if(entry.pardon) {
                                 if(!viewAll) {
-                                    hidden++;
+                                    if((added + hidden) < perPage) {
+                                        hidden++;
+                                    }
                                     i++;
                                     addEntry();
                                     return;
@@ -185,7 +217,10 @@ metadata.run = (m, args, data) => {
                                     `**When:** ${timeago.format(entry.date)}`
                                 ]
 
-                                // todo: show points amount
+                                if(entry.action === 5) {
+                                    // todo: calculate point decay
+                                    details.push(`**Amount:** ${parseInt(entry.details.match(/(?<=\[)\d+(?=\])/)).toLocaleString()}`)
+                                }
 
                                 if(entry.reason.length > 128) {
                                     details.push(reason.substring(0, 128).trim()+'...');
@@ -194,17 +229,20 @@ metadata.run = (m, args, data) => {
                                 }
                             }
 
-                            embed.addField(`Case ID: ${entry.date}`, details.join('\n'));
+                            embed.addField(`Case ID: \`${entry.date}\``, details.join('\n'));
 
                             added++;
 
                             if(added >= perPage || i+1 >= record.length) {
                                 if(hidden > 0) {
-                                    desc.push(`**${hidden} pardoned ${(hidden === 1) ? "entry on this page has" : "entries on this page have"} been hidden.** (Use the "full" argument to unhide)`)
+                                    stats[1] += ` (${hidden} on this page)`
                                 }
 
-                                embed.setAuthor(title, bot.icons.find('ICO_docs'))
-                                .setDescription(desc.join('\n\n'));
+                                embed.setAuthor(title, OBUtil.getEmoji('ICO_docs').url)
+                                .fields.unshift({
+                                    name: `Record Statistics`,
+                                    value: stats.join('\n')
+                                });
 
                                 m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                             } else {

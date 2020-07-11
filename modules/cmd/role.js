@@ -58,7 +58,7 @@ metadata.run = (m, args, data) => {
                     result.target.roles.add(match.role.id, `Role granted by ${m.author.tag}`).then(() => {
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.okay)
-                        .setAuthor(`Role added`, bot.icons.find('ICO_okay'))
+                        .setAuthor(`Role added`, OBUtil.getEmoji('ICO_okay').url)
                         .setDescription(`${result.target} has been given the ${match.role} role.`)
 
                         m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
@@ -67,7 +67,7 @@ metadata.run = (m, args, data) => {
                     result.target.roles.remove(match.role.id, `Role removed by ${m.author.tag}`).then(() => {
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.okay)
-                        .setAuthor(`Role removed`, bot.icons.find('ICO_okay'))
+                        .setAuthor(`Role removed`, OBUtil.getEmoji('ICO_okay').url)
                         .setDescription(`${result.target} no longer has the ${match.role} role.`)
 
                         m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))

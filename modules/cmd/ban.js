@@ -45,7 +45,7 @@ metadata.run = (m, args, data) => {
                 }).catch(err => {
                     if(err.stack.match(/unknown ban/i)) {
                         let embed = new djs.MessageEmbed()
-                        .setAuthor('Are you sure?', bot.icons.find('ICO_warn'))
+                        .setAuthor('Are you sure?', OBUtil.getEmoji('ICO_warn').url)
                         .setColor(bot.cfg.embed.default)
                         .setDescription(`The following user will be banned from the server: \n> ${username} (${id})`)
                         .addField(`Reason`, reason);
@@ -59,7 +59,7 @@ metadata.run = (m, args, data) => {
                                     bot.mainGuild.members.ban(result.target, { reason: reason}).then(() => {
                                         let update = new djs.MessageEmbed()
                                         .setColor(bot.cfg.embed.okay)
-                                        .setAuthor(`Successfully banned user`, bot.icons.find('ICO_okay'))
+                                        .setAuthor(`Successfully banned user`, OBUtil.getEmoji('ICO_okay').url)
                                         .setDescription(`${(result.type === 'id') ? `\`${result.target}\`` : result.target.toString()} has been banned.`)
                                         .addField(`Reason`, reason);
                     
@@ -68,14 +68,14 @@ metadata.run = (m, args, data) => {
                                 } else
                                 if(res === 0) {
                                     let update = new djs.MessageEmbed()
-                                    .setAuthor('Cancelled', bot.icons.find('ICO_load'))
+                                    .setAuthor('Cancelled', OBUtil.getEmoji('ICO_load').url)
                                     .setColor(bot.cfg.embed.default)
                                     .setDescription('User has not been banned.')
 
                                     msg.edit({embed: update}).then(bm => OBUtil.afterSend(bm, m.author.id))
                                 } else {
                                     let update = new djs.MessageEmbed()
-                                    .setAuthor('Timed out', bot.icons.find('ICO_load'))
+                                    .setAuthor('Timed out', OBUtil.getEmoji('ICO_load').url)
                                     .setColor(bot.cfg.embed.default)
                                     .setDescription(`Sorry, you didn't respond in time. Please try again.`)
 

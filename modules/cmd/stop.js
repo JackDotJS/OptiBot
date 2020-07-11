@@ -15,7 +15,7 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
-    .setAuthor('Shutting down. Goodbye!', bot.icons.find('ICO_door'))
+    .setAuthor('Shutting down. Goodbye!', OBUtil.getEmoji('ICO_door').url)
     .setColor(bot.cfg.embed.default);
 
     m.channel.send({embed: embed}).then(() => {

@@ -44,7 +44,7 @@ metadata.run = (m, args, data) => {
             }
 
             let embed = new djs.MessageEmbed()
-            .setAuthor(`Poll started by ${vote.author}`, bot.icons.find('ICO_docs'))
+            .setAuthor(`Poll started by ${vote.author}`, OBUtil.getEmoji('ICO_docs').url)
             .setColor(bot.cfg.embed.default)
             .setDescription(`> ${vote.issue}`)
 
@@ -80,7 +80,7 @@ metadata.run = (m, args, data) => {
                 let embed = new djs.MessageEmbed();
 
                 if (args[0].toLowerCase() === 'end') {
-                    embed.setAuthor(`Poll ended`, bot.icons.find('ICO_okay'))
+                    embed.setAuthor(`Poll ended`, OBUtil.getEmoji('ICO_okay').url)
                     .setColor(bot.cfg.embed.okay)
                     .setDescription(`**[Click here to go to the original poll.](${bm.url})**`)
                     .addField('Final Results', counts.join('\n\n'))
@@ -91,7 +91,7 @@ metadata.run = (m, args, data) => {
                         message: null
                     }
                 } else {
-                    embed.setAuthor(`Poll started by ${Memory.vote.author}`, bot.icons.find('ICO_docs'))
+                    embed.setAuthor(`Poll started by ${Memory.vote.author}`, OBUtil.getEmoji('ICO_docs').url)
                     .setColor(bot.cfg.embed.default)
                     .setDescription(`> ${Memory.vote.issue}\n**[Click here to vote!](${bm.url})**`)
                     .addField('Current Count', counts.join('\n\n'))

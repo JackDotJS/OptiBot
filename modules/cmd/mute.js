@@ -201,19 +201,19 @@ metadata.run = (m, args, data) => {
                         .setColor(bot.cfg.embed.okay)
 
                         if (isUpdate) {
-                            embed.setAuthor(`Mute updated.`, bot.icons.find('ICO_okay'));
+                            embed.setAuthor(`Mute updated.`, OBUtil.getEmoji('ICO_okay').url);
                             if (muteData.end === null) {
-                                embed.setDescription(`${result.mention} will now be muted until hell freezes over.`, bot.icons.find('ICO_okay'));
+                                embed.setDescription(`${result.mention} will now be muted until hell freezes over.`, OBUtil.getEmoji('ICO_okay').url);
                             } else {
-                                embed.setDescription(`${result.mention} will now be muted for ${timeData.string}.`, bot.icons.find('ICO_okay'));  
+                                embed.setDescription(`${result.mention} will now be muted for ${timeData.string}.`, OBUtil.getEmoji('ICO_okay').url);  
                             }
                         } else {
-                            embed.setAuthor(`User muted.`, bot.icons.find('ICO_okay'));
+                            embed.setAuthor(`User muted.`, OBUtil.getEmoji('ICO_okay').url);
 
                             if (muteData.end === null) {
-                                embed.setDescription(`${result.mention} has been muted until hell freezes over.`, bot.icons.find('ICO_okay'));
+                                embed.setDescription(`${result.mention} has been muted until hell freezes over.`, OBUtil.getEmoji('ICO_okay').url);
                             } else {
-                                embed.setDescription(`${result.mention} has been muted for ${timeData.string}.`, bot.icons.find('ICO_okay')); 
+                                embed.setDescription(`${result.mention} has been muted for ${timeData.string}.`, OBUtil.getEmoji('ICO_okay').url); 
                             }
                         }
 
@@ -232,7 +232,7 @@ metadata.run = (m, args, data) => {
 
                         let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
-                        .setIcon(bot.icons.find('ICO_mute'))
+                        .setIcon(OBUtil.getEmoji('ICO_mute').url)
                         .addSection(`Member Muted`, result.target)
                         .addSection(`Moderator Responsible`, m.author)
                         .addSection(`Command Location`, m)

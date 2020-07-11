@@ -30,7 +30,7 @@ metadata.run = (m, args, data) => {
 
         let embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
-        .setAuthor('Getting Started', bot.icons.find('ICO_info'))
+        .setAuthor('Getting Started', OBUtil.getEmoji('ICO_info').url)
         .setThumbnail(bot.user.displayAvatarURL({format: 'png', size:64}))
         .setDescription(desc.join('\n'))
         .addField('Commands List', `\`\`\`${bot.prefix}list\`\`\``)
@@ -50,7 +50,7 @@ metadata.run = (m, args, data) => {
 
                 let embed = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.default)
-                .setAuthor('OptiBot Commands', bot.icons.find('ICO_info'))
+                .setAuthor('OptiBot Commands', OBUtil.getEmoji('ICO_info').url)
                 .setTitle(`${bot.prefix}${md.name}`)
                 .setDescription(md.long_desc)
                 .addField('Usage', md.args)

@@ -23,13 +23,13 @@ metadata.run = (m, args, data) => {
 
     if(args[0] === 'images' || args[0] === 'img' || args[0] === 'image' || args[0] === 'icons' || args[0] === 'ico' || args[0] === 'icon') {
         type = 2;
-        embed.setAuthor('Resetting images and icons...', bot.icons.find('ICO_load'))
+        embed.setAuthor('Resetting images and icons...', OBUtil.getEmoji('ICO_load').url)
     } else 
     if(args[0] === 'del' || args[0] === 'messages' || args[0] === 'msg' || args[0] === 'message') {
         type = 3;
-        embed.setAuthor('Resetting deletable messages...', bot.icons.find('ICO_load'))
+        embed.setAuthor('Resetting deletable messages...', OBUtil.getEmoji('ICO_load').url)
     } else {
-        embed.setAuthor('Resetting commands...', bot.icons.find('ICO_load'))
+        embed.setAuthor('Resetting commands...', OBUtil.getEmoji('ICO_load').url)
     }
 
     log(`${m.author.tag} (${m.author.id}) requested asset update.`, 'info')
@@ -45,7 +45,7 @@ metadata.run = (m, args, data) => {
                     OBUtil.err(err, {m:m});
                 } else {
                     let time = new Date().getTime() - timeStart;
-                    embed2.setAuthor(`Message cache reset in ${time / 1000} seconds.`, bot.icons.find('ICO_okay'))
+                    embed2.setAuthor(`Message cache reset in ${time / 1000} seconds.`, OBUtil.getEmoji('ICO_okay').url)
                     log(`Message cache reset in ${time / 1000} seconds.`, 'info')
 
                     bot.setTimeout(() => {
@@ -60,12 +60,12 @@ metadata.run = (m, args, data) => {
         } else {
             bot.loadAssets(type).then((time) => {
                 if(type === 1) {
-                    embed2.setAuthor(`Commands successfully reset in ${time / 1000} seconds.`, bot.icons.find('ICO_okay'))
+                    embed2.setAuthor(`Commands successfully reset in ${time / 1000} seconds.`, OBUtil.getEmoji('ICO_okay').url)
                     log(`Commands successfully reset in ${time / 1000} seconds.`, 'info')
                     
                 } else
                 if(type === 2) {
-                    embed2.setAuthor(`Images successfully reset in ${time / 1000} seconds.`, bot.icons.find('ICO_okay'))
+                    embed2.setAuthor(`Images successfully reset in ${time / 1000} seconds.`, OBUtil.getEmoji('ICO_okay').url)
                     log(`All images successfully reset in ${time / 1000} seconds.`, 'info')
                 }
 

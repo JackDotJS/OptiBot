@@ -38,14 +38,14 @@ metadata.run = (m, args, data) => {
                 data.member.roles.add(bot.cfg.roles.donator, 'Donator status verified.').then(() => {
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.okay)
-                    .setAuthor('Thank you for your contribution! Your donator role has been granted.', bot.icons.find('ICO_okay'))
+                    .setAuthor('Thank you for your contribution! Your donator role has been granted.', OBUtil.getEmoji('ICO_okay').url)
                     .setDescription('Please note, your token has been reset.');
 
                     m.channel.send({ embed: embed })
 
                     /* let embed2 = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.donator)
-                    .setAuthor('Donator Role Granted', bot.icons.find('ICO_donator'))
+                    .setAuthor('Donator Role Granted', OBUtil.getEmoji('ICO_donator').url)
                     .setDescription(`${m.author} | ${m.author.tag} \n\`\`\`yaml\n${m.author.id}\`\`\``)
                     .setThumbnail(m.author.displayAvatarURL)
                     .setFooter(`Event logged on ${new Date().toUTCString()}`)

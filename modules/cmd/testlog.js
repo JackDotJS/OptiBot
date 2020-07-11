@@ -20,7 +20,7 @@ const metadata = {
 metadata.run = (m, args, data) => {
     let logEntry = new LogEntry()
     .setColor(bot.cfg.embed.default)
-    .setIcon(bot.icons.find('ICO_load'))
+    .setIcon(OBUtil.getEmoji('ICO_load').url)
     .setTitle(`Embed Title`, `Report Title`)
     .setHeader(`Embed Header`, `Plaintext Header`)
     .setDescription(`Embed Description`, `Plaintext Description`)

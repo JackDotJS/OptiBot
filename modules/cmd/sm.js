@@ -33,7 +33,7 @@ metadata.run = (m, args, data) => {
         } else {
             m.channel.setRateLimitPerUser((time.ms / 1000), `Slowmode set by ${m.author.tag} (${m.author.id})`).then(() => {
                 let embed = new djs.MessageEmbed()
-                .setAuthor(`Slowmode ${(time.ms === 0) ? `disabled.` : `set to ${time.string}.`}`, bot.icons.find('ICO_okay'))
+                .setAuthor(`Slowmode ${(time.ms === 0) ? `disabled.` : `set to ${time.string}.`}`, OBUtil.getEmoji('ICO_okay').url)
                 .setColor(bot.cfg.embed.okay)
     
                 m.channel.send({embed: embed})//.then(bm => OBUtil.afterSend(bm, m.author.id));

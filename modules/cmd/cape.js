@@ -85,10 +85,7 @@ metadata.run = (m, args, data) => {
         function getCape(player) {
             log(util.inspect(player));
 
-            if(bot.cfg.uuidFilter.indexOf(player.id) > -1) {
-                OBUtil.err(`Sorry, this player's cape has been blacklisted.`, {m:m});
-            } else {
-                request({ url: 'https://optifine.net/capes/' + player.name + '.png', encoding: null }, (err, res, data) => {
+            request({ url: 'https://optifine.net/capes/' + player.name + '.png', encoding: null }, (err, res, data) => {
                 if (err || !res || !data || [200, 404].indexOf(res.statusCode) === -1) {
                     OBUtil.err(err || new Error('Failed to get a response from the OptiFine API'), {m:m})
                 } else
@@ -98,7 +95,13 @@ metadata.run = (m, args, data) => {
                     processCape(data, player);
                 }
             });
-            }
+
+            // todo: create filters system (#111)
+            /* if(bot.cfg.uuidFilter.indexOf(player.id) > -1) {
+                OBUtil.err(`Sorry, this player's cape has been blacklisted.`, {m:m});
+            } else {
+                
+            } */
         }
 
         function processCape(capeTex, player) {
@@ -214,9 +217,9 @@ metadata.run = (m, args, data) => {
                             }
 
                             if (image.type !== 'cropped') {
-                                embed.setAuthor('Donator Cape (Full Texture)', bot.icons.find('ICO_cape'));
+                                embed.setAuthor('Donator Cape (Full Texture)', OBUtil.getEmoji('ICO_cape').url);
                             } else {
-                                embed.setAuthor('Donator Cape', bot.icons.find('ICO_cape'));
+                                embed.setAuthor('Donator Cape', OBUtil.getEmoji('ICO_cape').url);
                             }
 
                             if (desc.length > 0) {

@@ -30,7 +30,7 @@ metadata.run = (m, args, data) => {
                     log(util.inspect(d));
 
                     let embed = new djs.MessageEmbed()
-                    .setAuthor(`Translated Message`, bot.icons.find('ICO_globe'))
+                    .setAuthor(`Translated Message`, OBUtil.getEmoji('ICO_globe').url)
                     .setDescription(d[0][0][0])
                     .setColor(bot.cfg.embed.default)
                     .addField('Detected Language', iso.getName(d[2]))

@@ -34,7 +34,7 @@ metadata.run = (m, args, data) => {
 
                 let embed2 = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.default)
-                .setAuthor('blah', bot.icons.find('ICO_jarfix'), attachment.url)
+                .setAuthor('blah', OBUtil.getEmoji('ICO_jarfix').url, attachment.url)
                 .setTitle(`Something Cool`)
 
                 entry.edit(embed2);

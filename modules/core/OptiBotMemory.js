@@ -3,9 +3,11 @@ const memory = {
         client: {
             log: console.log
         },
+        logfile: null, // filename of running console log
     },
     _temp: null, // used to hold boot function when bot cant connect
     sm: {},
+    li: 0, // date of last interaction
     bot: {
         locked: null,
         init: true,
@@ -29,7 +31,8 @@ const memory = {
     wintitle: null, // text used for console title
     targets: {}, // target memory. lists the previous target used by a given user in commands.
     rdel: [], // recent deletions
-    rban: {} // recent bans
+    rban: {}, // recent bans
+    
 }
 
 /**

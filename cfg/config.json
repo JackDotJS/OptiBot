@@ -45,6 +45,7 @@
         "jrmod": "644668061818945557",
         "moderator": "467060304145023006",
         "donator": "424169541346525194",
+        "donatorColor": "729735553389690882",
         "muted": "551089007078015025",
         "grantable": [
             "423834274601369601",
@@ -118,6 +119,7 @@
         "assignMax": 1000,
         "assignMin": 50,
         "dailyDecay": 10,
+        "decayDelay": 14,
         "minPercentDecay": 20
     }
 }

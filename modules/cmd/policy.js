@@ -10,10 +10,10 @@ const log = bot.log;
 const metadata = {
     name: path.parse(__filename).name,
     aliases: ['policies', 'policys'],
-    short_desc: `Search Moderator policies.`,
+    short_desc: `Search staff policies.`,
     args: `<query>`,
     authlvl: 1,
-    flags: ['DM_OPTIONAL'],
+    flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'DELETE_ON_MISUSE'],
     run: null
 }
 
@@ -22,34 +22,36 @@ metadata.run = (m, args, data) => {
     if(!args[0]) {
         OBUtil.missingArgs(m, metadata);
     } else {
-        const policies = {
-            index: bot.util.policies(bot),
-            kw: []
-        }
+        bot.db.pol.find({}, (err, docs) => {
+            if(err) {
+                OBUtil.err(err, {m:m});
+            } else {
+                let allkw = [];
 
-        for(let policy of policies.index) {
-            if(policy.type === 2) {
-                policies.kw = policies.kw.concat(policy.kw);
-            }
-        }
+                for(let doc of docs) {
+                    allkw = allkw.concat(doc.kw);
+                }
 
-        policies.kw = [...new Set(policies.kw)] // ensures there are no duplicates
+                allkw = [...new Set(allkw)] // ensures there are no duplicates
 
-        let match = sim.findBestMatch((m.content.substring( `${bot.prefix}${metadata.name} `.length )), policies.kw)
+                let match = sim.findBestMatch((m.content.substring( `${bot.prefix}${metadata.name} `.length )), allkw)
 
-        for(let i = 0; i<policies.index.length; i++) {
-            if(policies.index[i].type === 2 && policies.index[i].kw.indexOf(match.bestMatch.target) > -1) {
-                let embed = policies.index[i].embed
-                .setAuthor('OptiFine Discord Moderation Policies', OBUtil.getEmoji('ICO_docs').url)
-                .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
-                m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
-                break;
-            }
+                for(let i = 0; i < docs.length; i++) {
+                    if(docs[i].kw.includes(match.bestMatch.target)) {
+                        return bot.guilds.cache.get(bot.cfg.policies.guild).channels.cache.get(bot.cfg.policies.channel).messages.fetch(docs[i].id).then(pm => {
+                            let embed = pm.embeds[0]
+                            .setAuthor('OptiFine Discord Moderation Policies', OBUtil.getEmoji('ICO_docs').url)
+                            .setColor(bot.cfg.embed.default)
+                            .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
 
-            if(i+1 === policies.index.length) {
+                            m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
+                        });
+                    }
+                }
+
                 OBUtil.err('Unable to find a policy.', {m:m});
             }
-        }
+        });
     }
 }
 

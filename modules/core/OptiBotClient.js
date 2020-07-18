@@ -9,6 +9,7 @@ const Pastebin = require(`pastebin-js`);
 const Command = require(`./OptiBotCommand.js`);
 const OBUtil = require(`./OptiBotUtil.js`);
 const Memory = require(`./OptiBotMemory.js`);
+const LogEntry = require(`./OptiBotLogEntry.js`);
 
 module.exports = class OptiBot extends djs.Client {
     constructor (options, mode, log) {
@@ -31,7 +32,8 @@ module.exports = class OptiBot extends djs.Client {
             stats: new database({ filename: './data/statistics.db', autoload: true }),
             smr: new database({ filename: './data/smr.db', autoload: true }),
             bl: new database({ filename: './data/blacklist.db', autoload: true }),
-            faq: new database({ filename: './data/faq.db', autoload: true })
+            faq: new database({ filename: './data/faq.db', autoload: true }),
+            pol: new database({ filename: './data/policies.db', autoload: true })
         }
         const commands = {
             index: [],
@@ -155,6 +157,33 @@ module.exports = class OptiBot extends djs.Client {
 
         Memory.bot.locked = (mode === 0 || mode === 1);
         Memory.core.client = this;
+
+        this.setTimeout(() => {
+            Memory.bot.init = true;
+            this.setBotStatus(-1)
+
+            let logEntry = new LogEntry({time: new Date()})
+            .setColor(bot.cfg.embed.default)
+            .setIcon(OBUtil.getEmoji('ICO_door').url)
+            .setTitle(`OptiBot is now restarting...`, `OptiBot Restart Report`)
+            .submit().then(() => {
+                let maxPauseTime = 30000;
+                let minPauseTime = 5000;
+                let pauseTime = minPauseTime;
+
+                let li = new Date().getTime() - Memory.li;
+
+                if(li > maxPauseTime) pauseTime = minPauseTime;
+                if(li < minPauseTime) pauseTime = maxPauseTime;
+                if(li < maxPauseTime && li > minPauseTime) pauseTime = li/(1000);
+
+                log(`Restarting in ${(pauseTime/(1000)).toFixed(1)} seconds...`, 'warn');
+
+                this.setTimeout(() => {
+                    this.exit(18)
+                }, pauseTime);
+            });
+        }, exit.getTime() - new Date().getTime())
     }
 
     exit(code = 0) {

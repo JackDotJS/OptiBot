@@ -275,7 +275,7 @@ function init() {
     env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);
 
     log('spawning child process');
-    const bot = child.spawn('node', ['index.js', env.mode], {
+    const bot = child.spawn('node', ['index.js', env.mode, env.log.filename], {
         stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     });
 

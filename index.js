@@ -28,6 +28,7 @@ const log = (message, level, file, line) => {
 }
 
 const bot = new ob.Client({
+    fetchAllMembers: true, // end my life
     presence: {
         status: 'idle', 
         activity: {
@@ -37,6 +38,8 @@ const bot = new ob.Client({
     },
     disableMentions: 'everyone'
 }, parseInt(process.argv[2]), log);
+
+ob.Memory.core.logfile = process.argv[3];
 
 ob.OBUtil.setWindowTitle('Connecting...');
 
@@ -97,6 +100,7 @@ bot.on('ready', () => {
                 .setTitle(`OptiBot Initialized`, `OptiBot Initalization Time Report`)
                 .setHeader(`Version: ${bot.version}`)
                 .setDescription(`Boot Time: ${process.uptime().toFixed(3)} second(s)`)
+                .addSection(`Next Scheduled Restart`, bot.exitTime)
                 .addSection(`The following message was brought to you by Math.random()®`, {
                     data: `\`\`\`${splash}\`\`\``,
                     raw: splash
@@ -151,26 +155,6 @@ bot.on('message', (m) => {
     }
 
     if(m.channel.type !== 'dm' && m.guild.id === bot.cfg.guilds.optifine) {
-        if(bot.mode > 0) {
-            // dynamic slowmode
-            if(bot.cfg.channels.blacklist.indexOf(m.channel.id) === -1 && bot.cfg.channels.blacklist.indexOf(m.channel.parentID) === -1) {
-                if(bot.cfg.channels.nomodify.indexOf(m.channel.id) === -1 && bot.cfg.channels.nomodify.indexOf(m.channel.parentID) === -1) {
-                    if(ob.Memory.sm[m.channel.id]) {
-                        ob.Memory.sm[m.channel.id].now++;
-                    } else {
-                        ob.Memory.sm[m.channel.id] = {
-                            past: [ 0, 0, 0, 0, 0,],
-                            now: 1,
-                            mps: 0.0,
-                            manual: false,
-                            i: 0,
-                            until: null,
-                        }
-                    }
-                }
-            }
-        }
-
         // update moderator's last message for !modping
         for(let i in ob.Memory.mods) {
             if(ob.Memory.mods[i].id === m.author.id) {
@@ -313,6 +297,7 @@ bot.on('message', (m) => {
                     if(!cmd.metadata.flags['NO_TYPER']) m.channel.startTyping();
                     bot.setTimeout(() => {
                         try {
+                            ob.Memory.li = new Date().getTime()
                             cmd.exec(m, input.args, {member, authlvl, input});
                         }
                         catch (err) {
@@ -340,6 +325,7 @@ bot.on('message', (m) => {
                 m.channel.send({ embed: embed });
             } else
             if(m.content.match(/discordapp\.com|discord.com/i)) {
+                ob.Memory.li = new Date().getTime()
                 let urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
     
                 if(urls !== null) {
@@ -429,8 +415,6 @@ bot.on('message', (m) => {
             if (m.mentions.has(bot.user)) {
                 m.react(bot.mainGuild.emojis.cache.get('663409134644887572'));
             }
-
-
         }
     }).catch(err => {
         if (err.code === 10007 && input.valid) {
@@ -1207,6 +1191,15 @@ bot.on('raw', packet => {
         // this packet does not contain the actual message data, unfortunately.
         // as of writing, this only contains the message ID, the channel ID, and the guild ID.
         bot.setTimeout(() => {
+            bot.db.msg.remove({message: packet.d.id}, {}, (err, num) => {
+                if (err) {
+                    ob.OBUtil.err(err);
+                } else 
+                if (num > 0) {
+                    log(`Bot message deleted natively.`);
+                }
+            });
+
             if (ob.Memory.rdel.includes(packet.d.id)) return; // stops if the message exists in the bot's cache.
             if (packet.d.guild_id !== bot.cfg.guilds.optifine) return;
 
@@ -1238,34 +1231,41 @@ bot.on('messageReactionAdd', (mr, user) => {
     if (user.id === bot.user.id) return;
 
     if (mr.emoji.id === bot.cfg.emoji.deleter) {
+        let del = (docs, mod) => {
+            if(mr.message.content.indexOf(bot.cfg.messages.confirmDelete) > -1) {
+                mr.message.delete().then(() => {
+                    bot.db.msg.remove(docs[0], {}, (err) => {
+                        if (err) {
+                            ob.OBUtil.err(err);
+                        } else {
+                            log(`Bot message deleted at ${(mod) ? 'moderator' : 'user'} request.`);
+                        }
+                    });
+                }).catch(err => {
+                    ob.OBUtil.err(err);
+                });
+            } else {
+                let nm = `${mr.message.content}\n\n${bot.cfg.messages.confirmDelete}`;
+                if(nm.length === 2000 /* incredibly unlikely, but better safe than sorry */ || mr.message.content.length === 0 || mr.message.content === '_ _') {
+                    nm = bot.cfg.messages.confirmDelete;
+                }
+
+                mr.message.edit(nm).catch(err => {
+                    ob.OBUtil.err(err);
+                });
+            }
+        }
+
         bot.db.msg.find({message: mr.message.id}, (err, docs) => {
             if(err) {
                 ob.OBUtil.err(err);
             } else
-            if(docs.length > 0) {
-                if(docs[0].user === user.id) {
-                    if(mr.message.content.indexOf(bot.cfg.messages.confirmDelete) > -1) {
-                        mr.message.delete().then(() => {
-                            bot.db.msg.remove(docs[0], {}, (err) => {
-                                if (err) {
-                                    ob.OBUtil.err(err);
-                                } else {
-                                    log('Bot message deleted at user request.');
-                                }
-                            });
-                        }).catch(err => {
-                            ob.OBUtil.err(err);
-                        });
-                    } else {
-                        let nm = `${mr.message.content}\n\n${bot.cfg.messages.confirmDelete}`;
-                        if(nm.length === 2000 /* incredibly unlikely, but better safe than sorry */ || mr.message.content.length === 0 || mr.message.content === '_ _') {
-                            nm = bot.cfg.messages.confirmDelete;
-                        }
-
-                        mr.message.edit(nm).catch(err => {
-                            ob.OBUtil.err(err);
-                        });
-                    }
+            if(docs.length > 0 && docs[0].user === user.id) {
+                del(docs);
+            } else {
+                let mem = bot.mainGuild.members.cache.get(user.id);
+                if(mem && mem.roles.cache.has(bot.cfg.roles.moderator)) {
+                    del(docs, true);
                 }
             }
         });

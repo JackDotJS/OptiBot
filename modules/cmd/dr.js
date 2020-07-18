@@ -8,8 +8,9 @@ const log = bot.log;
 
 const metadata = {
     name: path.parse(__filename).name,
-    short_desc: `Verify donator role.`,
-    long_desc: `Verifies your donator status. If successful, this will grant you the donator role, and reset your donator token in the process. \n\nYou can find your donator token by logging in through the website, at https://optifine.net/login. Look at the bottom of the page for a string of random characters (see picture for example). \n**Remember that your "Donation ID" is NOT your token!**\n\nPlease note that this will NOT automatically verify you for the \`${bot.prefix}cape\` command. Use this command for details: \`${bot.prefix}faq verify cape\``,
+    aliases: ['verify', 'donator'],
+    short_desc: `Verify donator status.`,
+    long_desc: `Verifies your donator status. If successful, this will grant you the donator access role, and reset your donator token in the process. \n\nYou can find your donator token by logging in through the website, at https://optifine.net/login. Look at the bottom of the page for a string of random characters (see picture for example). \n**Remember that your "Donation ID" is NOT your token!**\n\nPlease note that this will NOT automatically verify you for the \`${bot.prefix}cape\` command. Use this command for details: \`${bot.prefix}faq verify cape\``,
     args: `<e-mail> <token>`,
     authlvl: 0,
     image: 'IMG_token.png',

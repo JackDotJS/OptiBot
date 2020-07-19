@@ -26,11 +26,10 @@ module.exports = class OptiBot extends djs.Client {
         });
 
         const storage = {
-            msg: new database({ filename: './data/messages.db', autoload: true }),
-            motd: new database({ filename: './data/motd.db', autoload: true }),
-            profiles: new database({ filename: './data/profiles.db', autoload: true }),
-            stats: new database({ filename: './data/statistics.db', autoload: true }),
-            smr: new database({ filename: './data/smr.db', autoload: true }),
+            msg: new database({ filename: './data/messages.db', autoload: true }), // react-deletion cache
+            profiles: new database({ filename: './data/profiles.db', autoload: true }), // optibot profiles
+            stats: new database({ filename: './data/statistics.db', autoload: true }), // server statistics
+            smr: new database({ filename: './data/smr.db', autoload: true }), 
             bl: new database({ filename: './data/blacklist.db', autoload: true }),
             faq: new database({ filename: './data/faq.db', autoload: true }),
             pol: new database({ filename: './data/policies.db', autoload: true })

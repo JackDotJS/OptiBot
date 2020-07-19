@@ -14,10 +14,11 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-    let logEntry = new LogEntry({time: new Date()})
+    let logEntry = new LogEntry()
     .setColor(bot.cfg.embed.default)
     .setIcon(OBUtil.getEmoji('ICO_door').url)
     .setTitle(`OptiBot is now restarting...`, `OptiBot Restart Report`)
+    .addSection(`Command Issuer`, m.author)
     .submit().then(() => {
         let embed = new djs.MessageEmbed()
         .setAuthor('Restarting...', OBUtil.getEmoji('ICO_load').url)

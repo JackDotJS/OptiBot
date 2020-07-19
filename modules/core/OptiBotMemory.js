@@ -15,6 +15,8 @@ const memory = {
     presence: {
         status: 'online'
     },
+    presenceRetry: 0,
+    presenceHour: new Date().getHours(),
     vote: {
         issue: null,
         author: null,

@@ -33,9 +33,13 @@ module.exports = class OptiBotUtilities {
         ]
 
         if(bot.ws) {
+            let code = bot.ws.status;
+
+            if(bot.ws.shards.size > 0) code = bot.ws.shards.first().status;
+
             wintitle.push(
                 `${Math.round(bot.ws.ping)}ms`,
-                `WS Code ${bot.ws.status} (${statusName(bot.ws.status)})`
+                `WS Code ${code} (${statusName(code)})`
             )
         } else {
             wintitle.push(

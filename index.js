@@ -111,8 +111,6 @@ bot.on('ready', () => {
                     type: 'ready'
                 });
 
-                
-
                 ob.Memory.bot.init = false;
 
                 bot.setBotStatus(1);
@@ -132,6 +130,9 @@ bot.on('ready', () => {
         } else {
             botLoadAssets();
         }
+    } else {
+        bot.setBotStatus(1);
+        ob.OBUtil.setWindowTitle(null);
     }
 });
 
@@ -1315,7 +1316,9 @@ bot.on('guildUpdate', (oldg, newg) => {
 
 bot.on('shardReady', (id, guilds) => {
     log(`Shard WebSocket ready. \nShard ID: ${id} \nUnavailable Guilds: ${(guilds) ? '\n'+[...guilds].join('\n') : 'None.'}`, 'info');
+    log(util.inspect(bot.ws));
     ob.OBUtil.setWindowTitle()
+    ob.Memory.presenceRetry = 0;
 });
 
 ////////////////////////////////////////
@@ -1436,6 +1439,7 @@ bot.on('shardDisconnect', (event, id) => {
 
 bot.on('shardReconnecting', id => {
     log(`Shard WebSocket reconnecting... \nShard ID: ${id}`, 'warn');
+    log(util.inspect(bot.ws));
     ob.OBUtil.setWindowTitle()
 });
 
@@ -1445,7 +1449,9 @@ bot.on('shardReconnecting', id => {
 
 bot.on('shardResume', (id, replayed) => {
     log(`Shard WebSocket resumed. \nShard ID: ${id} \nEvents replayed: ${replayed}`, 'info');
+    log(util.inspect(bot.ws));
     ob.OBUtil.setWindowTitle()
+    ob.Memory.presenceRetry = 0;
 });
 
 ////////////////////////////////////////
@@ -1454,6 +1460,7 @@ bot.on('shardResume', (id, replayed) => {
 
 bot.on('shardError', (err, id) => {
     log(`Shard WebSocket connection error. \nShard ID: ${id} \nStack: ${err.stack || err}`, 'error');
+    log(util.inspect(bot.ws));
     ob.OBUtil.setWindowTitle()
 });
 

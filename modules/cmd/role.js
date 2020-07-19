@@ -2,7 +2,7 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const sim = require('string-similarity');
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, LogEntry } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -26,7 +26,7 @@ metadata.run = (m, args, data) => {
             if (!result) {
                 OBUtil.err('You must specify a valid user.', {m:m})
             } else
-            if (result.type === 'notfound' || result.type === 'id') {
+            if (result.type === 'notfound' || result.type === 'id' || result.type === "user") {
                 OBUtil.err('Unable to find a user.', {m:m})
             } else
             if (result.target.user.id === m.author.id || result.target.user.id === bot.user.id) {
@@ -43,7 +43,7 @@ metadata.run = (m, args, data) => {
                 let reqrole = m.content.substring((`${bot.prefix}${path.parse(__filename).name} ${args[0]} `).length);
                 for(let role of roles) {
                     let newrating = sim.compareTwoStrings(reqrole, role.name)
-                    if( newrating > match.rating ) {
+                    if (newrating > match.rating) {
                         match.role = role;
                         match.rating = newrating;
                     }
@@ -56,21 +56,44 @@ metadata.run = (m, args, data) => {
                 } else
                 if (!result.target.roles.cache.has(match.role.id)) {
                     result.target.roles.add(match.role.id, `Role granted by ${m.author.tag}`).then(() => {
-                        let embed = new djs.MessageEmbed()
+                        let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.okay)
-                        .setAuthor(`Role added`, OBUtil.getEmoji('ICO_okay').url)
-                        .setDescription(`${result.target} has been given the ${match.role} role.`)
+                        .setIcon(OBUtil.getEmoji('ICO_join').url)
+                        .setTitle(`Member Role Granted`, `Member Role Grant Report`)
+                        .setThumbnail(result.target.user.displayAvatarURL({format:'png'}))
+                        .addSection(`Member`, result.target)
+                        .addSection(`Moderator Responsible`, m.author)
+                        .addSection(`Command Location`, m)
+                        .addSection(`Role`, `${match.role}`)
+                        .submit().then(() => {
+                            let embed = new djs.MessageEmbed()
+                            .setColor(bot.cfg.embed.okay)
+                            .setAuthor(`Role added`, OBUtil.getEmoji('ICO_okay').url)
+                            .setDescription(`${result.target} has been given the ${match.role} role.`)
 
-                        m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
+                            m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
+                        });
                     }).catch(err => OBUtil.err(err, {m:m}));
                 } else {
                     result.target.roles.remove(match.role.id, `Role removed by ${m.author.tag}`).then(() => {
-                        let embed = new djs.MessageEmbed()
-                        .setColor(bot.cfg.embed.okay)
-                        .setAuthor(`Role removed`, OBUtil.getEmoji('ICO_okay').url)
-                        .setDescription(`${result.target} no longer has the ${match.role} role.`)
+                        let logEntry = new LogEntry({channel: "moderation"})
+                        .setColor(bot.cfg.embed.error)
+                        .setIcon(OBUtil.getEmoji('ICO_leave').url)
+                        .setTitle(`Member Role Removed`, `Member Role Removal Report`)
+                        .setThumbnail(result.target.user.displayAvatarURL({format:'png'}))
+                        .addSection(`Member`, result.target)
+                        .addSection(`Moderator Responsible`, m.author)
+                        .addSection(`Command Location`, m)
+                        .addSection(`Role`, `${match.role}`)
+                        .submit().then(() => {
+                            let embed = new djs.MessageEmbed()
+                            .setColor(bot.cfg.embed.okay)
+                            .setAuthor(`Role removed`, OBUtil.getEmoji('ICO_okay').url)
+                            .setDescription(`${result.target} no longer has the ${match.role} role.`)
 
-                        m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
+                            m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
+                        });
+                        
                     }).catch(err => OBUtil.err(err, {m:m}));
                 }
             }

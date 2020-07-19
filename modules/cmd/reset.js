@@ -1,6 +1,6 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, LogEntry } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -34,53 +34,61 @@ metadata.run = (m, args, data) => {
 
     log(`${m.author.tag} (${m.author.id}) requested asset update.`, 'info')
 
-    m.channel.send('_ _', {embed: embed}).then(bm => {
-        let embed2 = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.okay);
-
-        if(type === 3) {
-            let timeStart = new Date().getTime();
-            bot.db.msg.remove({}, {multi:true}, (err, rm) => {
-                if(err) {
-                    OBUtil.err(err, {m:m});
-                } else {
-                    let time = new Date().getTime() - timeStart;
-                    embed2.setAuthor(`Message cache reset in ${time / 1000} seconds.`, OBUtil.getEmoji('ICO_okay').url)
-                    log(`Message cache reset in ${time / 1000} seconds.`, 'info')
-
+    let logEntry = new LogEntry()
+    .setColor(bot.cfg.embed.default)
+    .setIcon(OBUtil.getEmoji('ICO_info').url)
+    .setTitle(`OptiBot Assets Reloaded (T${type})`, `OptiBot T${type} Assets Reset Report`)
+    .addSection(`Moderator Responsible`, m.author)
+    .addSection(`Command Location`, m)
+    .submit().then(() => {
+        m.channel.send('_ _', {embed: embed}).then(bm => {
+            let embed2 = new djs.MessageEmbed()
+            .setColor(bot.cfg.embed.okay);
+    
+            if(type === 3) {
+                let timeStart = new Date().getTime();
+                bot.db.msg.remove({}, {multi:true}, (err, rm) => {
+                    if (err) {
+                        OBUtil.err(err, {m:m});
+                    } else {
+                        let time = new Date().getTime() - timeStart;
+                        embed2.setAuthor(`Message cache reset in ${time / 1000} seconds.`, OBUtil.getEmoji('ICO_okay').url)
+                        log(`Message cache reset in ${time / 1000} seconds.`, 'info')
+    
+                        bot.setTimeout(() => {
+                            bm.edit({embed: embed2})
+                            .then(bm => OBUtil.afterSend(bm, m.author.id))
+                            .catch(err => {
+                                OBUtil.err(err, {m:m});
+                            });
+                        }, 250);
+                    }
+                });
+            } else {
+                bot.loadAssets(type).then((time) => {
+                    if(type === 1) {
+                        embed2.setAuthor(`Commands successfully reset in ${time / 1000} seconds.`, OBUtil.getEmoji('ICO_okay').url)
+                        log(`Commands successfully reset in ${time / 1000} seconds.`, 'info')
+                        
+                    } else
+                    if(type === 2) {
+                        embed2.setAuthor(`Images successfully reset in ${time / 1000} seconds.`, OBUtil.getEmoji('ICO_okay').url)
+                        log(`All images successfully reset in ${time / 1000} seconds.`, 'info')
+                    }
+    
                     bot.setTimeout(() => {
                         bm.edit({embed: embed2})
                         .then(bm => OBUtil.afterSend(bm, m.author.id))
                         .catch(err => {
                             OBUtil.err(err, {m:m});
                         });
-                    }, 1000);
-                }
-            });
-        } else {
-            bot.loadAssets(type).then((time) => {
-                if(type === 1) {
-                    embed2.setAuthor(`Commands successfully reset in ${time / 1000} seconds.`, OBUtil.getEmoji('ICO_okay').url)
-                    log(`Commands successfully reset in ${time / 1000} seconds.`, 'info')
-                    
-                } else
-                if(type === 2) {
-                    embed2.setAuthor(`Images successfully reset in ${time / 1000} seconds.`, OBUtil.getEmoji('ICO_okay').url)
-                    log(`All images successfully reset in ${time / 1000} seconds.`, 'info')
-                }
-
-                bot.setTimeout(() => {
-                    bm.edit({embed: embed2})
-                    .then(bm => OBUtil.afterSend(bm, m.author.id))
-                    .catch(err => {
-                        OBUtil.err(err, {m:m});
-                    });
-                }, 1000);
-            }).catch(err => {
-                OBUtil.err(err, {m:m});
-            });
-        }
-    })
+                    }, 250);
+                }).catch(err => {
+                    OBUtil.err(err, {m:m});
+                });
+            }
+        });
+    });
 }
 
 module.exports = new Command(metadata);

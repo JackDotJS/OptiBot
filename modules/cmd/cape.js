@@ -201,30 +201,21 @@ metadata.run = (m, args, data) => {
                     .setColor(bot.cfg.embed.default)
                     .attachFiles([new djs.MessageAttachment(img, "cape.png")])
                     .setImage('attachment://cape.png')
-                    .setFooter('IGN: ' + player.name);
-
-                    let desc = [];
+                    .setTitle(djs.Util.escapeMarkdown(player.name))
+                    .setURL(`https://namemc.com/profile/${player.name}`)
 
                     bot.db.profiles.find({ "data.cape.uuid": player.id }, (err, docs) => {
                         if (err) {
                             OBUtil.err(err, {m:m})
                         } else {
-                            if (docs.length !== 0) {
-                                desc.push(`<:okay:642112445997121536> Cape owned by <@${docs[0].userid}>`);
-                            }
-                            if (image.type === 'default') {
-                                desc.push(`This image could not be cropped because the cape texture has an unusual resolution.`);
-                            }
-
                             if (image.type !== 'cropped') {
-                                embed.setAuthor('Donator Cape (Full Texture)', OBUtil.getEmoji('ICO_cape').url);
+                                embed.setAuthor('OptiFine Donator Cape (Full Texture)', OBUtil.getEmoji('ICO_cape').url);
                             } else {
-                                embed.setAuthor('Donator Cape', OBUtil.getEmoji('ICO_cape').url);
+                                embed.setAuthor('OptiFine Donator Cape', OBUtil.getEmoji('ICO_cape').url);
                             }
 
-                            if (desc.length > 0) {
-                                embed.setDescription(desc.join('\n\n'));
-                            }
+                            if (docs.length !== 0) embed.setDescription(`<:okay:642112445997121536> Cape owned by <@${docs[0].userid}>`);
+                            if (image.type === 'default') embed.setFooter(`This image could not be cropped because the cape texture has an unusual resolution.`);
 
                             m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
                         }

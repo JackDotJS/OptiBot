@@ -3,6 +3,7 @@ const djs = require(`discord.js`);
 const cid = require('caller-id');
 const timeago = require("timeago.js");
 const Memory = require(`./OptiBotMemory.js`);
+const RecordEntry = require(`./OptiBotRecordEntry.js`);
 
 module.exports = class LogEntry {
     constructor(opts = {time: new Date(), console: true, embed: true, channel: "misc"}) {
@@ -118,6 +119,9 @@ module.exports = class LogEntry {
     }
 
     addSection(_title, _content) {
+        const bot = Memory.core.client;
+        const log = bot.log;
+
         let title = this._truncate(_title, 256);
         let title_r = title;
 
@@ -126,7 +130,7 @@ module.exports = class LogEntry {
 
         if(typeof _content !== 'string') {
             if(_content.constructor === Object) {
-                if(_content.data && _content.raw) {
+                if(typeof _content.data !== undefined && typeof _content.raw !== undefined) {
                     final_content = _content.data;
                     final_content_raw = _content.raw;
                 } else {
@@ -137,7 +141,7 @@ module.exports = class LogEntry {
     
             if(final_content.constructor === djs.User || final_content.constructor === djs.GuildMember) {
                 let mem = (final_content.constructor === djs.GuildMember) ? final_content.user : final_content;
-                if (!_content.raw) final_content_raw = `USER: ${mem.tag} (${mem.id})`;
+                if (final_content == final_content_raw) final_content_raw = `USER: ${mem.tag} (${mem.id})`;
     
                 final_content = [
                     `${mem.toString()} | ${mem.tag}`,
@@ -145,7 +149,7 @@ module.exports = class LogEntry {
                 ].join('\n');
             } else
             if(final_content.constructor === djs.Message) {
-                if (!_content.raw) final_content_raw = [
+                if (final_content == final_content_raw) final_content_raw = [
                     `CHANNEL: #${final_content.channel.name} (${final_content.channel.id})`,
                     `DIRECT URL${(final_content.deleted) ? " (DELETED):" : ":"} ${final_content.url}`
                 ].join('\n');
@@ -153,7 +157,7 @@ module.exports = class LogEntry {
                 final_content = `${final_content.channel.toString()} | [Direct URL](${final_content.url} "${final_content.url}") ${(final_content.deleted) ? "(deleted)" : ""}`;
             } else
             if(final_content.constructor === djs.TextChannel) {
-                if (!_content.raw) final_content_raw = `CHANNEL${(final_content.deleted) ? " (DELETED):" : ":"} #${final_content.name} (${final_content.id})`
+                if (final_content == final_content_raw) final_content_raw = `CHANNEL${(final_content.deleted) ? " (DELETED):" : ":"} #${final_content.name} (${final_content.id})`
     
                 final_content = [
                     `${final_content.toString()} ${(final_content.deleted) ? "(deleted)" : ""}`,
@@ -163,12 +167,26 @@ module.exports = class LogEntry {
             if(final_content.constructor === Date) {
                 final_content = `${final_content.toUTCString()} \n(${timeago.format(final_content)})`;
 
-                if (!_content.raw) final_content_raw = final_content;
+                if (final_content == final_content_raw) final_content_raw = final_content;
             } else
             if(final_content.constructor === Number) {
                 final_content = final_content.toLocaleString();
 
-                if (!_content.raw) final_content_raw = final_content;
+                if (final_content == final_content_raw) final_content_raw = final_content;
+            } else
+            if(final_content.constructor === RecordEntry) {
+                if (final_content == final_content_raw) final_content_raw = [
+                    `CASE ID: ${final_content.display.id}`,
+                    `ACTION: ${final_content.display.action}`,
+                    `REASON: ${final_content.reason}`
+                ].join('\n');
+
+                log(final_content_raw);
+
+                final_content = [
+                    `${final_content.display.icon} ${final_content.display.action}`,
+                    `\`\`\`yaml\nID: ${final_content.display.id}\`\`\``
+                ].join('\n');
             }
         }
 
@@ -179,6 +197,8 @@ module.exports = class LogEntry {
             title: title_r,
             content: final_content_raw
         });
+
+        log(final_content_raw);
 
         return this;
     }
@@ -262,14 +282,14 @@ module.exports = class LogEntry {
                         this.data.message.edit(this.embed).then(msg => {
                             resolve(msg);
                         }).catch(err => {
-                            // todo: try to log in given channel
+                            // todo: try to log in given channel (#123)
                             reject(err);
                         })
                     } else {
                         this.data.channel.send(this.embed).then(msg => {
                             resolve(msg);
                         }).catch(err => {
-                            // todo: try to log in given channel
+                            // todo: try to log in given channel (#123)
                             reject(err);
                         });
                     }

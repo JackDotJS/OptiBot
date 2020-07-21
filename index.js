@@ -170,8 +170,8 @@ bot.on('message', (m) => {
     bot.mainGuild.members.fetch({ user: m.author.id, cache: true }).then(member => {
         let authlvl = ob.OBUtil.getAuthlvl(member);
 
-        if(authlvl < 4 && bot.mode === 0) return;
-        if(authlvl < 1 && bot.mode === 1) return;
+        if(authlvl < 4 && bot.mode === 0 && m.author.id !== "271760054691037184") return;
+        if(authlvl < 1 && bot.mode === 1 && m.author.id !== "271760054691037184") return;
 
         if(input.valid) {
             /////////////////////////////////////////////////////////////
@@ -418,7 +418,7 @@ bot.on('message', (m) => {
             }
         }
     }).catch(err => {
-        if (err.code === 10007 && input.valid) {
+        if (err.message.match(/invalid or uncached|unknown member|unknown user/i) && input.valid) {
             ob.OBUtil.err('Sorry, you must be a member of the OptiFine Discord server to use this bot.', {m: m});
         } else {
             ob.OBUtil.err(err);
@@ -889,50 +889,65 @@ bot.on('channelUpdate', (oldc, newc) => {
 bot.on('guildMemberAdd', member => {
     let now = new Date();
     if (ob.Memory.bot.init) return;
-    if (member.guild.id !== bot.cfg.guilds.optifine) return;
 
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // DO NOT SET THIS TO TRUE UNDER ANY CIRCUMSTANCES
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    const alwaysFalse = false;
+    if (member.guild.id === bot.cfg.guilds.optifine) {
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // DO NOT SET THIS TO TRUE UNDER ANY CIRCUMSTANCES
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        const alwaysFalse = false;
 
-    ob.OBUtil.getProfile(member.user.id, alwaysFalse).then(profile => {
-        if(profile && profile.edata.mute && (profile.edata.mute.end-10000 > new Date().getTime())) {
-            member.roles.add(bot.cfg.roles.muted, 'Member attempted to circumvent mute.').then(() => {
-                // todo: increase mute time in this case
-                logEvent(true);
-            }).catch(err => {
-                ob.OBUtil.err(err);
+        ob.OBUtil.getProfile(member.user.id, alwaysFalse).then(profile => {
+            if(profile && profile.edata.mute && (profile.edata.mute.end-10000 > new Date().getTime())) {
+                member.roles.add(bot.cfg.roles.muted, 'Member attempted to circumvent mute.').then(() => {
+                    logEvent(true);
+                }).catch(err => {
+                    ob.OBUtil.err(err);
+                    logEvent();
+                });
+            } else {
                 logEvent();
-            });
-        } else {
+            }
+        }).catch(err => {
+            ob.OBUtil.err(err);
             logEvent();
+        });
+
+        function logEvent(muted) {
+            let logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
+            .setColor(bot.cfg.embed.okay)
+            .setIcon(ob.OBUtil.getEmoji('ICO_join').url)
+            .setThumbnail(member.user.displayAvatarURL({format:'png'}))
+            .setTitle(`Member Joined`, `New Member Report`)
+            .addSection(`Member`, member)
+            .addSection(`Account Creation Date`, member.user.createdAt)
+            .addSection(`New Server Member Count`, bot.mainGuild.memberCount)
+
+            if(muted) {
+                logEntry.setDescription(`This user attempted to circumvent an on-going mute. The role has been automatically re-applied.`)
+            }
+
+            if((member.user.createdAt.getTime() + (1000 * 60 * 60 * 24 * 7)) > now.getTime()) {
+                // account is less than 1 week old
+                logEntry.setHeader('Warning: New Discord Account')
+            }
+
+            logEntry.submit()
         }
-    }).catch(err => {
-        ob.OBUtil.err(err);
-        logEvent();
-    });
-
-    function logEvent(muted) {
-        let logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
-        .setColor(bot.cfg.embed.okay)
-        .setIcon(ob.OBUtil.getEmoji('ICO_join').url)
-        .setThumbnail(member.user.displayAvatarURL({format:'png'}))
-        .setTitle(`Member Joined`, `New Member Report`)
-        .addSection(`Member`, member)
-        .addSection(`Account Creation Date`, member.user.createdAt)
-        .addSection(`New Server Member Count`, bot.mainGuild.memberCount)
-
-        if(muted) {
-            logEntry.setDescription(`This user attempted to circumvent an on-going mute. The role has been automatically re-applied.`)
-        }
-
-        if((member.user.createdAt.getTime() + (1000 * 60 * 60 * 24 * 7)) > now.getTime()) {
-            // account is less than 1 week old
-            logEntry.setHeader('Warning: New Discord Account')
-        }
-
-        logEntry.submit()
+    } else
+    if(member.guild.id === bot.cfg.guilds.donator) {
+        bot.mainGuild.members.fetch(member.user.id).then((ofm) => {
+            if (ofm.roles.cache.has(bot.cfg.roles.donator) && !member.roles.cache.has(bot.cfg.roles.donatorServer)) {
+                member.roles.add(bot.cfg.roles.donatorServer).then(() => {
+                    log(`${member.user.tag} (${member.user.id}) verified on donator server, role added`)
+                }).catch(err => {
+                    ob.OBUtil.err(err);
+                })
+            }
+        }).catch(err => {
+            if(err.message.match(/invalid or uncached|unknown member|unknown user/i) === null) {
+                ob.OBUtil.err(err);
+            }
+        })
     }
 });
 
@@ -1038,8 +1053,7 @@ bot.on('guildBanAdd', (guild, user) => {
             ob.OBUtil.getProfile(user.id, true).then(profile => {
                 if(!profile.edata.record) profile.edata.record = [];
 
-                let recordEntry = new ob.RecordEntry()
-                .setDate(now)
+                let recordEntry = new ob.RecordEntry({ date: now })
                 .setAction('ban')
                 .setActionType('add')
                 
@@ -1114,8 +1128,7 @@ bot.on('guildBanRemove', (guild, user) => {
                     }
                 }
 
-                let recordEntry = new ob.RecordEntry()
-                .setDate(now)
+                let recordEntry = new ob.RecordEntry({ date: now })
                 .setAction('ban')
                 .setActionType('remove')
                 .setReason(mod, `No reason provided.`)

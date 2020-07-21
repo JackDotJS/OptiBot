@@ -25,19 +25,23 @@ metadata.run = (m, args, data) => {
         .setColor(bot.cfg.embed.default);
 
         m.channel.send('_ _', {embed: embed}).then((msg) => {
-            process.send({ 
-                type: 'restart',
-                guild: msg.guild.id,
-                channel: msg.channel.id,
-                message: msg.id,
-                author: m.author.id
-            }, (err) => {
-                if(err) {
-                    OBUtil.err(err.stack, {m:m});
-                } else {
-                    bot.exit(16);
-                }
-            });
+            if(msg.channel.type === 'dm') {
+                bot.exit(16);
+            } else {
+                process.send({ 
+                    type: 'restart',
+                    guild: msg.guild.id,
+                    channel: msg.channel.id,
+                    message: msg.id,
+                    author: m.author.id
+                }, (err) => {
+                    if(err) {
+                        OBUtil.err(err.stack, {m:m});
+                    } else {
+                        bot.exit(16);
+                    }
+                });
+            }
         });
     });
 }

@@ -25,36 +25,21 @@ metadata.run = (m, args, data) => {
             if(result && !['user', 'member', 'id'].includes(result.type)) {
                 OBUtil.err(`You must specify a valid user.`, {m:m});
             } else {
-                let id = null;
-                let username = null;
-
-                if (result.type === 'user') {
-                    id = result.target.id;
-                    username = result.target.tag;
-                } else
-                if (result.type === 'member') {
-                    id = result.target.user.id;
-                    username = result.target.user.tag;
-                } else {
-                    id = result.target;
-                    username = `<${result.target}>`
-                }
-
-                bot.mainGuild.fetchBan(id).then(() => {
-                    OBUtil.err(`${username} has already been banned.`, {m:m});
+                bot.mainGuild.fetchBan(result.id).then(() => {
+                    OBUtil.err(`${result.mention} has already been banned.`, {m:m});
                 }).catch(err => {
                     if(err.stack.match(/unknown ban/i)) {
                         let embed = new djs.MessageEmbed()
                         .setAuthor('Are you sure?', OBUtil.getEmoji('ICO_warn').url)
                         .setColor(bot.cfg.embed.default)
-                        .setDescription(`The following user will be banned from the server: \n> ${username} (${id})`)
+                        .setDescription(`The following user will be banned from the server: \n> ${result.mention} (${result.id})`)
                         .addField(`Reason`, reason);
 
                         m.channel.stopTyping(true);
                         m.channel.send('_ _', {embed: embed}).then(msg => {
                             OBUtil.confirm(m, msg).then(res => {
                                 if(res === 1) {
-                                    Memory.rban[id] = m.author;
+                                    Memory.rban[result.id] = m.author;
 
                                     bot.mainGuild.members.ban(result.target, { reason: reason}).then(() => {
                                         let update = new djs.MessageEmbed()

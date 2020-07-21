@@ -10,7 +10,7 @@ const metadata = {
     name: path.parse(__filename).name,
     aliases: ['addpoint', 'addp', 'ap', 'points'],
     short_desc: `Add points to a user.`,
-    long_desc: `Gives a number of points to a given user. [todo]`,
+    long_desc: `Gives a number of points to a given user.`,
     args: `<discord member> <points> [reason]`,
     authlvl: 2,
     flags: ['NO_DM', 'STRICT', 'LITE'],

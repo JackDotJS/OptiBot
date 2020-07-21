@@ -125,11 +125,11 @@ module.exports = class OptiBotUtilities {
         const log = bot.log;
 
         let embed = new djs.MessageEmbed()
-        .setAuthor(`Missing Arguments`, this.getEmoji('ICO_warn').url)
+        .setAuthor(`Missing Arguments`, OptiBotUtilities.getEmoji('ICO_warn').url)
         .setColor(bot.cfg.embed.default)
         .addField('Usage', Command.parseMetadata(metadata).args)
 
-        m.channel.send({embed: embed}).then(bm => this.afterSend(bm, m.author.id))
+        m.channel.send({embed: embed}).then(bm => OptiBotUtilities.afterSend(bm, m.author.id))
     }
 
     /**
@@ -266,12 +266,12 @@ module.exports = class OptiBotUtilities {
                         }
                     }
                 }).catch(err => {
-                    if (err.stack.match(/invalid or uncached|unknown member|unknown user/i)) {
+                    if (err.message.match(/invalid or uncached|unknown member|unknown user/i)) {
                         if(type === 0) {
                             bot.users.fetch(id).then(user => {
                                 remember({ type: "user", target: user });
                             }).catch(err => {
-                                if(err.stack.match(/invalid or uncached|unknown member|unknown user/i)) {
+                                if(err.message.match(/invalid or uncached|unknown member|unknown user/i)) {
                                     remember({ type: "id", target: id });
                                 } else {
                                     reject(err);
@@ -551,18 +551,18 @@ module.exports = class OptiBotUtilities {
                 }
             }
     
-            embed.setAuthor('Something went wrong.', this.getEmoji('ICO_error').url)
+            embed.setAuthor('Something went wrong.', OptiBotUtilities.getEmoji('ICO_error').url)
             .setTitle(bot.cfg.messages.error[~~(Math.random() * bot.cfg.messages.error.length)])
             .setDescription(`\`\`\`diff\n-[${loc}] ${err}\`\`\``);
         } else {
-            embed.setAuthor(err, this.getEmoji('ICO_error').url)
+            embed.setAuthor(err, OptiBotUtilities.getEmoji('ICO_error').url)
         }
     
         // log(util.inspect(data));
     
         if(data.m) {
             data.m.channel.send({embed: embed}).then(bm => {
-                this.afterSend(bm, data.m.author.id)
+                OptiBotUtilities.afterSend(bm, data.m.author.id)
             }).catch(e => log(e.stack, 'error'));
         } else {
             return embed;
@@ -647,19 +647,19 @@ module.exports = class OptiBotUtilities {
 
             bot.db.msg.insert(cacheData, (err) => {
                 if (err) {
-                    this.err(err);
+                    OptiBotUtilities.err(err);
                 } else {
                     log('successfully added message to cache', 'debug');
                     log('checking cache limit', 'debug');
                     bot.db.msg.find({}).sort({ message: 1 }).exec((err, docs) => {
                         if (err) {
-                            this.err(err);;
+                            OptiBotUtilities.err(err);;
                         } else
                         if (docs.length > bot.cfg.db.limit) {
                             log('reached cache limit, removing first element from cache.', 'debug');
                             bot.db.msg.remove(docs[0], {}, (err) => {
                                 if (err) {
-                                    this.err(err);;
+                                    OptiBotUtilities.err(err);;
                                 } else {
                                     try {
                                         bot.guilds.cache.get(docs[0].guild).channels.cache.get(docs[0].channel).messages.fetch(docs[0].message).then((msg) => {
@@ -669,15 +669,15 @@ module.exports = class OptiBotUtilities {
                                                 reaction.remove().then(() => {
                                                     log('Time expired for message deletion.', 'trace');
                                                 }).catch(err => {
-                                                    this.err(err);;
+                                                    OptiBotUtilities.err(err);;
                                                 })
                                             }
                                         }).catch(err => {
-                                            this.err(err);;
+                                            OptiBotUtilities.err(err);;
                                         });
                                     }
                                     catch(err) {
-                                        this.err(err);;
+                                        OptiBotUtilities.err(err);;
                                     }
                                 }
                             });
@@ -686,7 +686,7 @@ module.exports = class OptiBotUtilities {
                 }
             })
         }).catch(err => {
-            this.err(err);;
+            OptiBotUtilities.err(err);;
         });
     }
 
@@ -695,14 +695,14 @@ module.exports = class OptiBotUtilities {
         const log = bot.log;
 
         const errHandler = (err, user) => {
-            this.err(err);
+            OptiBotUtilities.err(err);
     
             let type = null;
             if(user) type = (user.constructor === djs.User) ? 'user' : 'member';
     
             let logEntry = new LogEntry({channel: "moderation"})
             .setColor(bot.cfg.embed.error)
-            .setIcon(this.getEmoji('ICO_error').url)
+            .setIcon(OptiBotUtilities.getEmoji('ICO_error').url)
             .setTitle(`Member Unmute Failure`, `Member Mute Removal Failure Report`)
             .setHeader(`An error occurred while trying to unmute a user.`)
             .setDescription(`\`\`\`diff\n-${err}\`\`\``)
@@ -717,10 +717,10 @@ module.exports = class OptiBotUtilities {
             logEntry.submit();
         }
     
-        bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch(id).then(mem => {
+        bot.mainGuild.members.fetch(id).then(mem => {
             removeRole(mem);
         }).catch(err => {
-            if (err.stack.match(/invalid or uncached|unknown member|unknown user/i)) {
+            if (err.message.match(/invalid or uncached|unknown member|unknown user/i)) {
                 bot.users.fetch(id).then(user => {
                     removeRole(user);
                 }).catch(err => {
@@ -738,13 +738,14 @@ module.exports = class OptiBotUtilities {
                 user.roles.remove(bot.cfg.roles.muted, `Mute period expired.`).then(() => {
                     removeProfileData(user, 'member');
                 }).catch(err => {
+                    log(util.inspect(user));
                     errHandler(err, user);
                 });
             }
         }
     
         function removeProfileData(user, type) {
-            this.getProfile(id, false).then(profile => {
+            OptiBotUtilities.getProfile(id, false).then(profile => {
                 if(profile) {
                     /* let entry = new RecordEntry()
                     .setMod(bot.user.id)
@@ -758,7 +759,7 @@ module.exports = class OptiBotUtilities {
     
                     delete profile.edata.mute
     
-                    this.updateProfile(profile).then(() => {
+                    OptiBotUtilities.updateProfile(profile).then(() => {
                         finish(user, type);
                     }).catch(err => {
                         errHandler(err, user);
@@ -781,7 +782,7 @@ module.exports = class OptiBotUtilities {
     
             let logEntry = new LogEntry({channel: "moderation"})
                 .setColor(bot.cfg.embed.default)
-                .setIcon(this.getEmoji('ICO_unmute').url)
+                .setIcon(OptiBotUtilities.getEmoji('ICO_unmute').url)
                 .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
                 .setHeader(`Reason: Mute period expired.`)
                 .addSection(`Member Unmuted`, (type === "user") ? user : user.user)

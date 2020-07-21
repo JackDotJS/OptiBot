@@ -29,18 +29,16 @@ metadata.run = (m, args, data) => {
             if(result.type === 'notfound') {
                 OBUtil.err('Unable to find a valid user.', {m:m});
             } else {
-                let id = (result.type === 'id') ? result.target : result.target.id;
-                let name = (result.type === 'id') ? id : result.target.user.tag;
                 let create = ((args[1] && args[1].toLowerCase() === 'set') || (args[1] && args[1].toLowerCase() === 'calc'));
 
-                OBUtil.getProfile(id, create).then(profile => {
+                OBUtil.getProfile(result.id, create).then(profile => {
                     if(args[1] && args[1].toLowerCase() === 'set') {
                         let num = parseFloat(args[2]);
                         
                         if(data.authlvl < 2) {
                             OBUtil.err(`You're not strong enough to access this part of the command.`, {m:m})
                         } else
-                        if(result.type !== 'id' && OBUtil.getAuthlvl(result.target.id) > data.authlvl) {
+                        if(result.type !== 'id' && OBUtil.getAuthlvl(result.target) > data.authlvl) {
                             OBUtil.err(`You're not strong enough to modify this user.`, {m:m})
                         } else
                         if(isNaN(num)) {
@@ -64,7 +62,7 @@ metadata.run = (m, args, data) => {
                                 let embed = new djs.MessageEmbed()
                                 .setAuthor(`Profile updated.`, OBUtil.getEmoji('ICO_okay').url)
                                 .setColor(bot.cfg.embed.okay)
-                                .setDescription(`The risk factor of ${name} is now ${num.toFixed(2)}.`);
+                                .setDescription(`The risk factor of ${result.tag} is now ${num.toFixed(2)}.`);
 
                                 m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
                             }).catch(err => {
@@ -90,7 +88,7 @@ metadata.run = (m, args, data) => {
                         let risk = profile.edata.risk;
 
                         let msg = [
-                            `The risk factor of <@${id}> is **${risk.level}** as of ${new Date(risk.date).toUTCString()} (${timeago.format(risk.date)}).`
+                            `The risk factor of ${result.mention} is **${risk.level}** as of ${new Date(risk.date).toUTCString()} (${timeago.format(risk.date)}).`
                         ]
 
                         if(risk.manual) msg.push(`This number was set manually by <@${risk.author}>.`)
@@ -106,7 +104,7 @@ metadata.run = (m, args, data) => {
 
                         m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
                     } else {
-                        let embed = OBUtil.err(`${name} has not yet been evaluated.`)
+                        let embed = OBUtil.err(`${result.tag} has not yet been evaluated.`)
                         .setDescription(`See \`${bot.prefix}help ${metadata.name}\` for more information.`)
 
                         m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
@@ -228,7 +226,7 @@ metadata.run = (m, args, data) => {
                         OBUtil.updateProfile(profile).then(() => {
                             let embed = new djs.MessageEmbed()
                             .setAuthor(`Member Threat Advisory System`, OBUtil.getEmoji('ICO_warn').url)
-                            .setTitle(`The risk factor of ${name} is ${score.toFixed(2)}.`)
+                            .setTitle(`The risk factor of ${result.tag} is ${score.toFixed(2)}.`)
                             .setColor(bot.cfg.embed.default)
 
                             if(reducedAccuracy) {

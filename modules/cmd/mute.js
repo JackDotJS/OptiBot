@@ -145,6 +145,8 @@ metadata.run = (m, args, data) => {
 
                 log(util.inspect(Memory.mutes));
 
+                log(util.inspect(profile));
+
                 if(muteData.end !== null) {
                     if(Memory.mutes.length === 0) {
                         if(muteData.end < bot.exitTime.getTime()) {

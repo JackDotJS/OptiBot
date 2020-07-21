@@ -56,16 +56,13 @@ metadata.run = (m, args, data) => {
                             user = result.target.user;
                         } else
                         if(result.type === 'user') {
-                            mem = null;
                             user = result.target;
                         }
-
 
                         let embed = new djs.MessageEmbed()
                         .setAuthor((user.id === m.author.id) ? "You are..." : "That is...", OBUtil.getEmoji('ICO_user').url)
                         .setColor(bot.cfg.embed.default)
-                        // todo: add profile emoji command
-                        .setTitle(`${user.tag} ${(profile && profile.ndata.emoji) ? profile.ndata.emoji : ""}`)
+                        .setTitle(`${user.tag} ${(profile && profile.ndata.emoji) ? profile.ndata.emoji : ""}`) // todo: add profile emoji command. (#166)
                         .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 64 }))
         
                         let presence = []

@@ -5,16 +5,21 @@ const Memory = require(`./OptiBotMemory.js`);
 
 module.exports = class RecordEntry {
     constructor(raw = {}) {
-        this.date = (raw.date) ? raw.date : new Date().getTime();
-        this.moderator = (raw.moderator) ? raw.moderator : null;
-        this.url = (raw.url) ? raw.url : null;
-        this.action = (raw.action) ? raw.action : null;
-        this.actionType = (raw.actionType) ? raw.actionType : null;
-        this.reason = (raw.reason) ? raw.reason : null;
-        this.details = (raw.details) ? raw.details : null;
-        this.parent = (raw.parent) ? raw.parent : null;
+        Memory.core.client.log(util.inspect(raw));
+        
+        this.date = (raw.date !== undefined && raw.date !== null) ? raw.date : new Date().getTime();
+        this.moderator = (raw.moderator !== undefined) ? raw.moderator : null;
+        this.url = (raw.url !== undefined) ? raw.url : null;
+        this.action = (raw.action !== undefined) ? raw.action : null;
+        this.actionType = (raw.actionType !== undefined) ? raw.actionType : null;
+        this.reason = (raw.reason !== undefined) ? raw.reason : null;
+        this.details = (raw.details !== undefined) ? raw.details : null;
+        this.parent = (raw.parent !== undefined) ? raw.parent : null;
         this.children = [];
         this.display = {
+            id: null,
+            parent: null,
+            children: null,
             icon: null,
             action: null,
         };
@@ -23,26 +28,27 @@ module.exports = class RecordEntry {
 
         Object.defineProperty(this, 'raw', {
             get: () => {
-                if(this.moderator instanceof djs.User) {
-                    this.moderator = this.moderator.id;
+
+                let pardonTemp = this.pardon;
+
+                if(pardonTemp && pardonTemp.admin.constructor === djs.User) {
+                    pardonTemp.admin = pardonTemp.admin.id;
                 }
-        
-                if(this.pardon && this.pardon.admin instanceof djs.User) {
-                    this.pardon.admin = this.pardon.admin.id;
-                }
-        
-                return {
+
+                let rawData = {
                     date: this.date,
-                    moderator: this.moderator,
+                    moderator: (this.moderator.constructor === djs.User) ? this.moderator.id : this.moderator,
                     url: this.url,
                     action: this.action,
                     actionType: this.actionType,
                     reason: this.reason,
                     details: this.details,
                     parent: this.parent,
-                    pardon: this.pardon,
+                    pardon: pardonTemp,
                     edits: this.edits
-                };
+                }
+        
+                return rawData;
             }
         })
 
@@ -54,6 +60,8 @@ module.exports = class RecordEntry {
 
         let action = null;
         let type = null;
+
+        this.display.id = this.date.toString(36).toUpperCase();
 
         switch(this.action) {
             case 0:
@@ -98,7 +106,19 @@ module.exports = class RecordEntry {
             this.display.action = `${type} ${action}`;
         }
 
-        return this;
+        if(this.parent) {
+            this.display.parent = this.parent.toString(36).toUpperCase();
+        }
+
+        if(this.children.length > 0) {
+            this.display.children = [];
+            for(let child of this.children) {
+                this.display.children.push(child.toString(36).toUpperCase())
+            }
+            return this;
+        } else {
+            return this;
+        }
     }
 
     _addUpdate(key, value, author) {
@@ -239,8 +259,14 @@ module.exports = class RecordEntry {
     }
 
     setParent(author, caseID) {
-        if(!Number.isInteger(Number(caseID))) {
-            throw new Error('Case ID must be a complete integer.')
+        let target = caseID;
+
+        if(!Number.isInteger(parseInt(caseID))) {
+            target = parseInt(caseID, 36);
+        }
+
+        if(isNaN(target) || caseid < 1420070400000 || caseid > new Date().getTime()) {
+            throw new Error('Invalid case ID.')
         } else
         if(this.parent) {
             this._addUpdate('parent', parseInt(caseID), author)
@@ -251,21 +277,21 @@ module.exports = class RecordEntry {
         return this;
     }
 
-    pardon(author, reason) {
+    setPardon(m, reason) {
         if(!reason) {
             throw new Error(`Missing reason for pardon.`)
         }
 
-        if(text.length === 0) {
+        if(reason.length === 0) {
             throw new Error('Invalid pardon reason string.')
         }
 
-        if(this.reason) {
-            this._addUpdate('pardon', String(reason), author)
+        if(this.pardon) {
+            this._addUpdate('pardon', String(reason), m.author)
         } else {
             this.pardon = {
                 date: new Date().getTime(),
-                admin: author.id,
+                admin: m.author.id,
                 url: m.url,
                 reason: String(reason)
             }

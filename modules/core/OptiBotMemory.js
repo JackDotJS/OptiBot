@@ -34,7 +34,7 @@ const memory = {
     targets: {}, // target memory. lists the previous target used by a given user in commands.
     rdel: [], // recent deletions
     rban: {}, // recent bans
-    
+    donatorInvites: {}, // donator invite cache
 }
 
 /**

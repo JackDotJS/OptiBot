@@ -33,13 +33,13 @@ module.exports = class Command {
         if(typeof meta.authlvl !== 'number') {
             throw new Error(`Authorization level not specified or invalid.`)
         } else {
-            this.metadata = this.parseMetadata(meta);
+            this.metadata = Command.parseMetadata(meta);
             this.exec = meta.run;
             this.rawArgs = meta.args;
         }
     }
 
-    parseMetadata({
+    static parseMetadata({
         name = null,
         aliases = [],
         short_desc = `This command has no set description.`,

@@ -42,13 +42,13 @@ metadata.run = (m, args, data) => {
         let selfTarget = false;
 
         OBUtil.parseTarget(m, 0, target, data.member).then((result) => {
-            if(result && result.type === 'user') {
+            if(result && result.type !== 'notfound') {
                 target = result.target.toString();
 
-                if(result.target.id === bot.user.id) {
+                if(result.id === bot.user.id) {
                     botTarget = true;
                 } else
-                if(result.target.id === m.author.id) {
+                if(result.id === m.author.id) {
                     selfTarget = true;
                 }
             }

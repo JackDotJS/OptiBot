@@ -31,35 +31,17 @@ metadata.run = (m, args, data) => {
             } else
             if (OBUtil.getAuthlvl(result.target) > data.authlvl) {
                 OBUtil.err(`You are not strong enough to add notes to this user.`, {m:m})
+            } else 
+            if (result.id === m.author.id || result.id === bot.user.id) {
+                OBUtil.err('Nice try.', {m:m});
             } else {
-                let userid = result.target; // ID only
-                let username = userid;
-                let mention = userid;
-
-                if (result.type === 'user') { // partial user
-                    userid = result.target.id; 
-                    username = result.target.tag; 
-                    mention = result.target.toString();
-                } else 
-                if (result.type === 'member') { // member
-                    userid = result.target.user.id; 
-                    username = result.target.user.tag;
-                    mention = result.target.user.toString();
+                let reason = m.content.substring( `${bot.prefix}${metadata.name} ${args[0]} `.length )
+                if(reason.length > 1000) {
+                    return OBUtil.err(`Note cannot exceed 1000 characters in length.`, {m:m});
                 }
 
-                if (userid === m.author.id || userid === bot.user.id) {
-                    OBUtil.err('Nice try.', {m:m});
-                    return;
-                }
-
-                OBUtil.getProfile(userid, true).then(profile => {
+                OBUtil.getProfile(result.id, true).then(profile => {
                     if(!profile.edata.record) profile.edata.record = [];
-                    let reason = m.content.substring( `${bot.prefix}${metadata.name} ${args[0]} `.length )
-
-                    if(reason.length > 750) {
-                        OBUtil.err(`Note cannot exceed 750 characters in length.`, {m:m})
-                        return;
-                    }
 
                     let entry = new RecordEntry()
                     .setMod(m.author.id)
@@ -68,13 +50,13 @@ metadata.run = (m, args, data) => {
                     .setActionType('add')
                     .setReason(m.author, reason)
 
-                    profile.edata.record.push(entry.data);
+                    profile.edata.record.push(entry.raw);
 
                     OBUtil.updateProfile(profile).then(() => {
                         let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
                         .setIcon(OBUtil.getEmoji('ICO_docs').url)
-                        .setTitle(`Member Note Created`, `Moderation Note Report`)
+                        .setTitle(`Moderation Note Created`, `Moderation Note Report`)
                         .addSection(`Member`, result.target)
                         .addSection(`Note Author`, m.author)
                         .addSection(`Note Contents`, reason)
@@ -84,7 +66,7 @@ metadata.run = (m, args, data) => {
                         .setAuthor(`Note added.`, OBUtil.getEmoji('ICO_okay').url)
                         .setColor(bot.cfg.embed.okay)
                         .setDescription(`User record has been updated.`)
-                        .addField(`Member`, `${mention} | ${username}\n\`\`\`yaml\nID: ${userid}\`\`\``)
+                        .addField(`Member`, `${result.mention} | ${result.tag}\n\`\`\`yaml\nID: ${result.id}\`\`\``)
                         .addField('Note', reason)
 
                         m.channel.stopTyping(true);

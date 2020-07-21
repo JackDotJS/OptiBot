@@ -8,6 +8,7 @@ const log = bot.log;
 
 const metadata = {
     name: path.parse(__filename).name,
+    aliased: ['boatvan'],
     short_desc: `Start a vote to ban a user. (very real command\\™️)`,
     long_desc: `Starts a vote to ban a given user. \n\n__**THIS IS A JOKE COMMAND. THIS WILL NOT ACTUALLY BAN ANYONE.**__`,
     args: `<discord user> [reason]`,
@@ -35,8 +36,8 @@ metadata.run = (m, args, data) => {
     }
 
     OBUtil.parseTarget(m, 0, target, bot, data.member).then((result) => {
-        if(result && result.type === 'user') {
-            if(result.target.id === bot.user.id) {
+        if(result && result.type !== 'notfound') {
+            if(result.id === bot.user.id) {
                 m.channel.send('fuck you');
             } else {
                 target = result.target.toString();

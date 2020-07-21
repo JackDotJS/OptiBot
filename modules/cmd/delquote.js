@@ -18,7 +18,7 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
     OBUtil.parseTarget(m, 0, args[0], data.member).then(result => {
-        if(!result) {
+        if(!result || data.authlvl < 2) {
             if(args[0] && data.authlvl >= 2) {
                 OBUtil.err(`You must specify a valid user.`, {m:m});
             } else {
@@ -68,9 +68,6 @@ metadata.run = (m, args, data) => {
                 });
             }
         } else
-        if(data.authlvl < 2) {
-            OBUtil.err('You do not have permission to remove quotes from other profiles.', {m:m});
-        } else 
         if(result.type === 'notfound') {
             OBUtil.err(`Unable to find a user.`, {m:m});
         } else {

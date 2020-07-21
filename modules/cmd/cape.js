@@ -27,16 +27,14 @@ metadata.run = (m, args, data) => {
             if(!result || result.type === 'notfound') {
                 getMCname();
             } else {
-                let id = (result.type === 'id') ? result.target : result.target.user.id;
-
-                OBUtil.getProfile(id, false).then(profile => {
+                OBUtil.getProfile(result.id, false).then(profile => {
                     if(!profile) {
                         getMCname();
                     } else
                     if(profile.ndata.cape) {
                         getMCname(profile.ndata.cape.uuid);
                     } else {
-                        OBUtil.err(`${(result.type === 'id') ? result.target : result.target.user.tag} does not have a verified cape on their profile.`, {m:m})
+                        OBUtil.err(`${result.tag} does not have a verified cape on their profile.`, {m:m})
                     }
                 });
             }

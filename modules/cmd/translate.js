@@ -3,7 +3,7 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const iso = require('iso-639-1')
 const request = require('request');
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -30,7 +30,7 @@ metadata.run = (m, args, data) => {
                     log(util.inspect(d));
 
                     let embed = new djs.MessageEmbed()
-                    .setAuthor(`Translated Message`, OBUtil.getEmoji('ICO_globe').url)
+                    .setAuthor(`Translated Message`, Assets.getEmoji('ICO_globe').url)
                     .setDescription(d[0][0][0])
                     .setColor(bot.cfg.embed.default)
                     .addField('Detected Language', iso.getName(d[2]))

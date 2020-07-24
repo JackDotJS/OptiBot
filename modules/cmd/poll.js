@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -44,7 +44,7 @@ metadata.run = (m, args, data) => {
             }
 
             let embed = new djs.MessageEmbed()
-            .setAuthor(`Poll started by ${vote.author}`, OBUtil.getEmoji('ICO_docs').url)
+            .setAuthor(`Poll started by ${vote.author}`, Assets.getEmoji('ICO_docs').url)
             .setColor(bot.cfg.embed.default)
             .setDescription(`> ${vote.issue}`)
 
@@ -80,7 +80,7 @@ metadata.run = (m, args, data) => {
                 let embed = new djs.MessageEmbed();
 
                 if (args[0].toLowerCase() === 'end') {
-                    embed.setAuthor(`Poll ended`, OBUtil.getEmoji('ICO_okay').url)
+                    embed.setAuthor(`Poll ended`, Assets.getEmoji('ICO_okay').url)
                     .setColor(bot.cfg.embed.okay)
                     .setDescription(`**[Click here to go to the original poll.](${bm.url})**`)
                     .addField('Final Results', counts.join('\n\n'))
@@ -91,7 +91,7 @@ metadata.run = (m, args, data) => {
                         message: null
                     }
                 } else {
-                    embed.setAuthor(`Poll started by ${Memory.vote.author}`, OBUtil.getEmoji('ICO_docs').url)
+                    embed.setAuthor(`Poll started by ${Memory.vote.author}`, Assets.getEmoji('ICO_docs').url)
                     .setColor(bot.cfg.embed.default)
                     .setDescription(`> ${Memory.vote.issue}\n**[Click here to vote!](${bm.url})**`)
                     .addField('Current Count', counts.join('\n\n'))

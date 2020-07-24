@@ -2,7 +2,7 @@ const util = require(`util`);
 const path = require(`path`);
 const djs = require(`discord.js`);
 const request = require('request');
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -14,7 +14,7 @@ const metadata = {
     long_desc: `Verifies your donator status. If successful, this will grant you the donator access role, and reset your donator token in the process. \n\nYou can find your donator token by logging in through the website, at https://optifine.net/login. Look at the bottom of the page for a string of random characters (see picture for example). \n**Remember that your "Donation ID" is NOT your token!**\n\nPlease note that this will NOT automatically verify you for the \`${bot.prefix}cape\` command. Use this command for details: \`${bot.prefix}faq verify cape\``,
     args: `<e-mail> <token>`,
     authlvl: 0,
-    image: 'IMG_token.png',
+    image: 'IMG_token',
     flags: ['DM_ONLY', 'STRICT', 'DELETE_ON_MISUSE', 'NO_TYPER', 'CONFIDENTIAL', 'LITE'],
     run: null
 }
@@ -101,7 +101,7 @@ metadata.run = (m, args, data) => {
                 getDonatorInvite().then(invite => {
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
-                    .setAuthor(`You already have the Donator role!`, OBUtil.getEmoji('ICO_info').url)
+                    .setAuthor(`You already have the Donator role!`, Assets.getEmoji('ICO_info').url)
 
                     if(invite) {
                         embed.setDescription(`However, it seems you're not yet a member of the Donator Discord server. Here's an invite!\n${invite.url}`);
@@ -135,7 +135,7 @@ metadata.run = (m, args, data) => {
                         if(donator.member) { 
                             let embed = new djs.MessageEmbed()
                             .setColor(bot.cfg.embed.okay)
-                            .setAuthor('Thank you for your contribution! Your donator role has been granted.', OBUtil.getEmoji('ICO_okay').url)
+                            .setAuthor('Thank you for your contribution! Your donator role has been granted.', Assets.getEmoji('ICO_okay').url)
                             .setDescription(`Please note, your token has been reset. Additionally, you cannot get an invite to the Donator Discord server because you're already a member.`);
         
                             m.channel.send({ embed: embed })
@@ -143,7 +143,7 @@ metadata.run = (m, args, data) => {
                         if(donator.ban) {
                             let embed = new djs.MessageEmbed()
                             .setColor(bot.cfg.embed.okay)
-                            .setAuthor('Thank you for your contribution! Your donator role has been granted.', OBUtil.getEmoji('ICO_okay').url)
+                            .setAuthor('Thank you for your contribution! Your donator role has been granted.', Assets.getEmoji('ICO_okay').url)
                             .setDescription(`Please note, your token has been reset. Additionally, you cannot get an invite to the Donator Discord server because you've been banned.`);
         
                             m.channel.send({ embed: embed })
@@ -151,7 +151,7 @@ metadata.run = (m, args, data) => {
                             getDonatorInvite().then(invite => {
                                 let embed = new djs.MessageEmbed()
                                 .setColor(bot.cfg.embed.okay)
-                                .setAuthor(`Thank you for your contribution! Your donator role has been granted.`, OBUtil.getEmoji('ICO_okay').url)
+                                .setAuthor(`Thank you for your contribution! Your donator role has been granted.`, Assets.getEmoji('ICO_okay').url)
 
                                 if(invite) {
                                     embed.setDescription(`You're now qualified to join the Donator Discord server. If you're interested, here's an invite!\n${invite.url}`);

@@ -1,6 +1,6 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory, LogEntry } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -37,14 +37,14 @@ metadata.run = (m, args, data) => {
             m.channel.setRateLimitPerUser((time.ms / 1000), `Slowmode set by ${m.author.tag} (${m.author.id})`).then(() => {
                 let logEntry = new LogEntry({channel: "moderation"})
                 .setColor(bot.cfg.embed.default)
-                .setIcon(OBUtil.getEmoji('ICO_time').url)
+                .setIcon(Assets.getEmoji('ICO_time').url)
                 .setTitle(`Slowmode Time Updated`, `Slowmode Update Report`)
                 .addSection(`Moderator Responsible`, m.author)
                 .addSection(`Command Location`, m)
                 .addSection(`New Slowmode Value`, (time.ms === 0) ? `Slowmode disabled.` : `${time.string}.`)
                 .submit().then(() => {
                     let embed = new djs.MessageEmbed()
-                    .setAuthor(`Slowmode ${(time.ms === 0) ? `disabled.` : `set to ${time.string}.`}`, OBUtil.getEmoji('ICO_okay').url)
+                    .setAuthor(`Slowmode ${(time.ms === 0) ? `disabled.` : `set to ${time.string}.`}`, Assets.getEmoji('ICO_okay').url)
                     .setColor(bot.cfg.embed.okay)
         
                     m.channel.send({embed: embed})//.then(bm => OBUtil.afterSend(bm, m.author.id));

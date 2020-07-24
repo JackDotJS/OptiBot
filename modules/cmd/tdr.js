@@ -1,7 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const request = require('request');
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -12,7 +12,7 @@ const metadata = {
     short_desc: `Toggle donator role color.`,
     long_desc: `Toggles the donator role color. Useful if you have any special "creator" role.\n\n**You must already be a verified donator to use this command.** Type \`${bot.prefix}help dr\` for details.`,
     authlvl: 0,
-    image: 'IMG_token.png',
+    image: 'IMG_token',
     flags: ['DM_OPTIONAL', 'NO_TYPER', 'LITE'],
     run: null
 }
@@ -24,7 +24,7 @@ metadata.run = (m, args, data) => {
             data.member.roles.remove(bot.cfg.roles.donatorColor, 'Color toggled by user.').then(() => {
                 let embed = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.okay)
-                .setAuthor('Donator color disabled.', OBUtil.getEmoji('ICO_okay').url)
+                .setAuthor('Donator color disabled.', Assets.getEmoji('ICO_okay').url)
 
                 m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
             });
@@ -32,7 +32,7 @@ metadata.run = (m, args, data) => {
             data.member.roles.add(bot.cfg.roles.donatorColor, 'Color toggled by user.').then(() => {
                 let embed = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.okay)
-                .setAuthor('Donator color enabled.', OBUtil.getEmoji('ICO_okay').url)
+                .setAuthor('Donator color enabled.', Assets.getEmoji('ICO_okay').url)
 
                 m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
             });

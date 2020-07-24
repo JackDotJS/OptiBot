@@ -143,8 +143,8 @@ module.exports = class OptiBotUtilities {
         const log = bot.log;
 
         return new Promise((resolve, reject) => {
-            bot.log('get profile: '+id);
-            bot.db.profiles.find({ id: id, format: 3 }, (err, docs) => {
+            log('get profile: '+id);
+            Memory.db.profiles.find({ id: id, format: 3 }, (err, docs) => {
                 if(err) {
                     reject(err);
                 } else
@@ -169,7 +169,7 @@ module.exports = class OptiBotUtilities {
 
             if(data instanceof Profile) raw = data.raw;
 
-            bot.db.profiles.update({ id: raw.id }, raw, { upsert: true }, (err) => {
+            Memory.db.profiles.update({ id: raw.id }, raw, { upsert: true }, (err) => {
                 if(err) {
                     reject(err);
                 } else {
@@ -526,34 +526,62 @@ module.exports = class OptiBotUtilities {
     static err(err, data = {}) {
         const bot = Memory.core.client;
         const log = bot.log;
-
-        let call = cid.getData();
-        let file;
-        let line;
-        if(!data.file) file = (call.evalFlag) ? 'eval()' : call.filePath.substring(call.filePath.lastIndexOf('\\')+1)
-        if(!data.line) line = call.lineNumber;
     
         let embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.error)
     
         if(err instanceof Error) {
-            log(err.stack, 'error', file, line);
+            log(err.stack, 'error');
+
+            let lines = err.stack.split('\n');
+
+            let formatted = [
+                err.toString()
+            ]
+
+            if(bot.mode < 2) {
+                for(let line of lines) {
+                    if(line.includes('node_modules')) break;
     
-            let loc = `${file}:${line}`;
+                    let file = line.match(new RegExp(`${Memory.core.root.drive}\\[^,]+\\d+:\\d+`));
+                    if(!file) continue;
+                    file = file[0]
     
-            if(!call.evalFlag) {
-                let match = err.stack.match(new RegExp(`${file.replace('.', '\\.')}:\\d+:\\d+`));
+                    let trace = line.match(/(?<=at\s)[^\r\n\t\f\v(< ]+/);
+                    if(trace) trace = trace[0];
     
-                log(match);
+                    let evalTrace = line.match(/(?<=<anonymous>):\d+:\d+/);
+                    if(evalTrace) evalTrace = evalTrace[0];
     
-                if(match) {
-                    loc = `${match[0]}`;
+                    let str = '';
+
+                    let fileshort = file.replace(Memory.core.root.dir, '~');
+    
+                    if(trace && trace !== file) {
+                        if(trace === 'eval') {
+                            str += trace + evalTrace;
+                            formatted.push(str);
+                            formatted.push(fileshort);
+                        } else 
+                        if(evalTrace) {
+                            str += `${trace} (at eval${evalTrace}, ${fileshort})`;
+                            formatted.push(str);
+                        } else {
+                            str += `${trace} (${fileshort})`;
+                            formatted.push(str);
+                        }
+                    } else {
+                        str += fileshort;
+                        formatted.push(str);
+                    }
                 }
+    
+                formatted = [...new Set(formatted)];
             }
     
             embed.setAuthor('Something went wrong.', OptiBotUtilities.getEmoji('ICO_error').url)
             .setTitle(bot.cfg.messages.error[~~(Math.random() * bot.cfg.messages.error.length)])
-            .setDescription(`\`\`\`diff\n-[${loc}] ${err}\`\`\``);
+            .setDescription(`\`\`\`diff\n- ${formatted.join('\n-   at ')}\`\`\``);
         } else {
             embed.setAuthor(err, OptiBotUtilities.getEmoji('ICO_error').url)
         }
@@ -645,19 +673,19 @@ module.exports = class OptiBotUtilities {
                 user: author
             }
 
-            bot.db.msg.insert(cacheData, (err) => {
+            Memory.db.msg.insert(cacheData, (err) => {
                 if (err) {
                     OptiBotUtilities.err(err);
                 } else {
                     log('successfully added message to cache', 'debug');
                     log('checking cache limit', 'debug');
-                    bot.db.msg.find({}).sort({ message: 1 }).exec((err, docs) => {
+                    Memory.db.msg.find({}).sort({ message: 1 }).exec((err, docs) => {
                         if (err) {
                             OptiBotUtilities.err(err);;
                         } else
                         if (docs.length > bot.cfg.db.limit) {
                             log('reached cache limit, removing first element from cache.', 'debug');
-                            bot.db.msg.remove(docs[0], {}, (err) => {
+                            Memory.db.msg.remove(docs[0], {}, (err) => {
                                 if (err) {
                                     OptiBotUtilities.err(err);;
                                 } else {

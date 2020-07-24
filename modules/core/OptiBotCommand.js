@@ -21,22 +21,12 @@ module.exports = class Command {
      * @param {Function} data.run The actual command function.
      */
     constructor (meta) {
-        if(typeof meta.name !== 'string') {
-            throw new TypeError(`Command name not specified or invalid.`)
-        } else 
-        if(meta.name.match(/[^a-zA-Z0-9]/) !== null) {
-            throw new Error(`Command name cannot have special characters.`)
-        } else 
-        if(typeof meta.run !== 'function') {
-            throw new Error(`Command function not specified or invalid.`)
-        } else 
-        if(typeof meta.authlvl !== 'number') {
-            throw new Error(`Authorization level not specified or invalid.`)
-        } else {
-            this.metadata = Command.parseMetadata(meta);
-            this.exec = meta.run;
-            this.rawArgs = meta.args;
-        }
+        const bot = Memory.core.client;
+        const log = bot.log;
+
+        this.metadata = Command.parseMetadata(meta);
+        this.exec = meta.run;
+        this.rawArgs = meta.args;
     }
 
     static parseMetadata({
@@ -47,10 +37,39 @@ module.exports = class Command {
         args = '',
         image = null,
         authlvl = null,
-        flags = null
+        flags = null,
+        run = null
     }) {
         const bot = Memory.core.client;
         const log = bot.log;
+
+        if(typeof name !== 'string' || name.match(/[^a-zA-Z0-9]/) !== null) {
+            throw new TypeError(`Invalid or unspecified Command property: name`)
+        }
+        if(typeof aliases !== 'string' && !Array.isArray(aliases)) {
+            throw new TypeError(`Invalid Command property: aliases`)
+        }
+        if(typeof short_desc !== 'string') {
+            throw new TypeError(`Invalid Command property: short_desc`)
+        }
+        if(typeof long_desc !== 'string' && typeof long_desc !== 'undefined' && long_desc !== null) {
+            throw new TypeError(`Invalid Command property: long_desc`)
+        }
+        if(typeof args !== 'string' && !Array.isArray(args)) {
+            throw new TypeError(`Invalid Command property: args`)
+        }
+        if(typeof image !== 'string' && typeof image !== 'undefined' && image !== null) {
+            throw new TypeError(`Invalid Command property: image`)
+        }
+        if(typeof authlvl !== 'number') {
+            throw new TypeError(`Invalid or unspecified Command property: authlvl`)
+        }
+        if(!Array.isArray(aliases) && typeof flags !== 'undefined' && flags !== null) {
+            throw new TypeError(`Invalid Command property: flags`)
+        }
+        if(typeof run !== 'function') {
+            throw new Error(`Invalid or unspecified Command property: run`)
+        }
 
         const metadata = {
             name: name,
@@ -58,6 +77,7 @@ module.exports = class Command {
             short_desc: short_desc,
             long_desc: (long_desc) ? long_desc : short_desc,
             args: null,
+            args_pt: null,
 
             // Image to be shown as a thumbnail when this command is viewed through !help.
             // Must be a plain string specifying a complete filename from the ../assets/img directory.
@@ -169,18 +189,23 @@ module.exports = class Command {
 
         if(Array.isArray(args) && args.length > 0) {
             let examples = [];
+            let examplesRaw = [];
             for(let i = 0; i < args.length; i++) {
                 examples.push(`\`\`\`ini\n${bot.prefix}${name} ${args[i]}\`\`\``)
+                examplesRaw.push(`${bot.prefix}${name} ${args[i]}`)
 
                 if(i+1 === args.length) {
                     metadata.args = examples.join('');
+                    metadata.args_pt = examplesRaw.join('\n');
                 }
             }
         } else
         if(typeof args === 'string') {
-            metadata.args = `\`\`\`ini\n${bot.prefix}${name} ${args}\`\`\``
+            metadata.args = `\`\`\`ini\n${bot.prefix}${name} ${args}\`\`\``;
+            metadata.args_pt = `${bot.prefix}${name} ${args}`;
         } else {
-            metadata.args = `\`\`\`ini\n${bot.prefix}${name}\`\`\``
+            metadata.args = `\`\`\`ini\n${bot.prefix}${name}\`\`\``;
+            metadata.args_pt = `${bot.prefix}${name}`;
         }
 
         return metadata;

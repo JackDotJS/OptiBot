@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -30,7 +30,7 @@ metadata.run = (m, args, data) => {
 
         let embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
-        .setAuthor('Getting Started', OBUtil.getEmoji('ICO_info').url)
+        .setAuthor('Getting Started', Assets.getEmoji('ICO_info').url)
         .setThumbnail(bot.user.displayAvatarURL({format: 'png', size:64}))
         .setDescription(desc.join('\n'))
         .addField('Commands List', `\`\`\`${bot.prefix}list\`\`\``)
@@ -38,7 +38,7 @@ metadata.run = (m, args, data) => {
 
         m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
     } else {
-        bot.commands.find(args[0]).then((cmd) => {
+        Assets.fetchCommand(args[0]).then((cmd) => {
             if (!cmd || (cmd.metadata.flags['HIDDEN'] && data.authlvl < cmd.metadata.authlvl)) {
                 OBUtil.err(`The "${args[0]}" command does not exist.`, {m:m})
             } else
@@ -50,7 +50,7 @@ metadata.run = (m, args, data) => {
 
                 let embed = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.default)
-                .setAuthor('OptiBot Commands', OBUtil.getEmoji('ICO_info').url)
+                .setAuthor('OptiBot Commands', Assets.getEmoji('ICO_info').url)
                 .setTitle(`${bot.prefix}${md.name}`)
                 .setDescription(md.long_desc)
                 .addField('Usage', md.args)
@@ -75,7 +75,7 @@ metadata.run = (m, args, data) => {
                 }
 
                 if (md.image) {
-                    embed.attachFiles([new djs.MessageAttachment(bot.images.find(md.image), "thumbnail.png")])
+                    embed.attachFiles([Assets.getImage(md.image).attachment])
                     .setThumbnail('attachment://thumbnail.png');
                 }
 

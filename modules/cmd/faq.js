@@ -4,7 +4,7 @@ const djs = require(`discord.js`);
 const sim = require('string-similarity');
 const wink = require('jaro-winkler');
 
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -109,7 +109,7 @@ metadata.run = (m, args, data) => {
                 } else {
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
-                    .setAuthor('Frequently Asked Questions', OBUtil.getEmoji('ICO_faq').url)
+                    .setAuthor('Frequently Asked Questions', Assets.getEmoji('ICO_faq').url)
                     .setTitle(best.q)
                     .setFooter(`${(best.r * 100).toFixed(1)}% match during search.`);
 

@@ -2,7 +2,7 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const sim = require('string-similarity');
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -22,7 +22,7 @@ metadata.run = (m, args, data) => {
     if(!args[0]) {
         OBUtil.missingArgs(m, metadata);
     } else {
-        bot.db.pol.find({}, (err, docs) => {
+        Memory.db.pol.find({}, (err, docs) => {
             if(err) {
                 OBUtil.err(err, {m:m});
             } else {
@@ -40,7 +40,7 @@ metadata.run = (m, args, data) => {
                     if(docs[i].kw.includes(match.bestMatch.target)) {
                         return bot.guilds.cache.get(bot.cfg.policies.guild).channels.cache.get(bot.cfg.policies.channel).messages.fetch(docs[i].id).then(pm => {
                             let embed = pm.embeds[0]
-                            .setAuthor('OptiFine Discord Moderation Policies', OBUtil.getEmoji('ICO_docs').url)
+                            .setAuthor('OptiFine Discord Moderation Policies', Assets.getEmoji('ICO_docs').url)
                             .setColor(bot.cfg.embed.default)
                             .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`)
 

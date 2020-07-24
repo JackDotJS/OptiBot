@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory, RecordEntry, LogEntry } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -63,7 +63,7 @@ metadata.run = (m, args, data) => {
                             return OBUtil.err(`Unable to find case ID "${args[1]}".`, {m:m});
                         } else
                         if(entry.moderator !== m.author.id && data.authlvl < 4) {
-                            return OBUtil.err(`You do not have permission to modify this value.`, {m:m});
+                            return OBUtil.err(`You do not have permission to modify this entry.`, {m:m});
                         }
 
                         let property = args[2].toLowerCase();
@@ -153,10 +153,10 @@ metadata.run = (m, args, data) => {
 
                         const cont = () => {
                             let embed = new djs.MessageEmbed()
-                            .setAuthor('Are you sure?', OBUtil.getEmoji('ICO_warn').url)
+                            .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
                             .setColor(bot.cfg.embed.default)
                             .setDescription([
-                                `The following record entry will be updated:${OBUtil.getEmoji('ICO_space')}`,
+                                `The following record entry will be updated:${Assets.getEmoji('ICO_space')}`,
                                 `${entry.display.icon} ${entry.display.action}`,
                                 `\`\`\`yaml\nID: ${entry.display.id}\`\`\``
                             ].join('\n'))
@@ -186,7 +186,7 @@ metadata.run = (m, args, data) => {
                                             OBUtil.updateProfile(profile).then(() => {
                                                 let logEntry = new LogEntry({channel: "moderation"})
                                                 .setColor(bot.cfg.embed.default)
-                                                .setIcon(OBUtil.getEmoji('ICO_docs').url)
+                                                .setIcon(Assets.getEmoji('ICO_docs').url)
                                                 .setTitle(`Record Entry Edited`, `Record Entry Edit Report`)
                                                 .addSection(`Member`, result.target)
                                                 .addSection(`Record Entry`, entry)
@@ -195,7 +195,7 @@ metadata.run = (m, args, data) => {
                                                 .addSection(`New ${propertyName}`, (newValue) ? newValue : "<none>")
                                                 .submit().then(() => {
                                                     let embed = new djs.MessageEmbed()
-                                                    .setAuthor(`Record Entry Updated.`, OBUtil.getEmoji('ICO_okay').url)
+                                                    .setAuthor(`Record Entry Updated.`, Assets.getEmoji('ICO_okay').url)
                                                     .setColor(bot.cfg.embed.okay)
                                                     .addField(`Record Entry`, [
                                                         `${entry.display.icon} ${entry.display.action}`,
@@ -211,14 +211,14 @@ metadata.run = (m, args, data) => {
                                     } else
                                     if(res === 0) {
                                         let update = new djs.MessageEmbed()
-                                        .setAuthor('Cancelled', OBUtil.getEmoji('ICO_load').url)
+                                        .setAuthor('Cancelled', Assets.getEmoji('ICO_load').url)
                                         .setColor(bot.cfg.embed.default)
                                         .setDescription(`${result.mention}'s profile has not been changed.`)
 
                                         msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
                                     } else {
                                         let update = new djs.MessageEmbed()
-                                        .setAuthor('Timed out', OBUtil.getEmoji('ICO_load').url)
+                                        .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
                                         .setColor(bot.cfg.embed.default)
                                         .setDescription(`Sorry, you didn't respond in time. Please try again.`)
 

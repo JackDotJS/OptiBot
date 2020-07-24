@@ -4,9 +4,9 @@ const util = require(`util`);
 const fileType = require('file-type');
 const request = require('request');
 const djs = require(`discord.js`);
-const ob = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
-const bot = ob.Memory.core.client;
+const bot = Memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -29,35 +29,36 @@ metadata.run = (m, args, data) => {
 
             let raw = `${output}`;
             let inspect = `${util.inspect(output)}`
-            let time = `${(execEnd - execStart).toLocaleString()}ms (${(execEnd - execStart) / 1000} seconds)`;
-            let contents = [
-                `REAL EXECUTION TIME:`,
-                `\`\`\`${time} \`\`\``
-            ]
+            let info = [
+                `Execution Time: ${(execEnd - execStart).toLocaleString()}ms (${(execEnd - execStart) / 1000} seconds)`,
+                `Typeof: ${typeof output}`,
+                `Constructor: ${output.constructor.name}`
+            ];
+            let result = []
+            let contents = []
 
-            if(raw === inspect) {
-                contents = contents.concat([
-                    `OUTPUT (COMBINED):`,
-                    `\`\`\`javascript\n${inspect} \`\`\``
-                ]).join('\n');
-            } else {
-                contents = contents.concat([
-                    `RAW OUTPUT:`,
-                    `\`\`\`${raw} \`\`\``,
-                    `INSPECTION UTILITY:`,
-                    `\`\`\`javascript\n${inspect} \`\`\``
-                ]).join('\n');
+            function compileContents() {
+                contents.push(
+                    `Result Information:`,
+                    `\`\`\`yaml\n${info.join('\n')} \`\`\``, 
+                    ...result
+                );
+                contents = contents.join('\n');
             }
 
             if(Buffer.isBuffer(output)) {
                 let ft = fileType(output);
                 if(ft !== null && ft !== undefined) {
-                    contents = [
-                        `REAL EXECUTION TIME:`,
-                        `\`\`\`${time} \`\`\``,
-                        `IMAGE OUTPUT:`
-                    ].join('\n');
+                    result = [
+                        `File Output:`
+                    ];
+                    info.push(
+                        `File Size: ${output.length.toLocaleString()} bytes`,
+                        `File Extension: ${ft.ext}`,
+                        `File MIME Type: ${ft.mime}`
+                    )
 
+                    compileContents()
                     m.channel.stopTyping(true);
                     m.channel.send(contents, {files: [new djs.MessageAttachment(output, 'output.'+ft.ext)]})
                 } else {
@@ -66,23 +67,47 @@ metadata.run = (m, args, data) => {
             } else {
                 defaultRes()
             }
+            
 
             function defaultRes() {
+                if(raw === inspect) {
+                    result.push(
+                        `Output:`,
+                        `\`\`\`javascript\n${inspect} \`\`\``
+                    );
+                    info.push(
+                        `Output Length: ${raw.length.toLocaleString()} characters`
+                    )
+                } else {
+                    result.push(
+                        `Raw Output:`,
+                        `\`\`\`${raw} \`\`\``,
+                        `Inspected Output:`,
+                        `\`\`\`javascript\n${inspect} \`\`\``
+                    );
+                    info.push(
+                        `Raw Output Length: ${raw.length.toLocaleString()} characters`,
+                        `Inspected Output Length: ${inspect.length.toLocaleString()} characters`
+                    )
+                }
+
+                compileContents()
+
                 if(contents.length > 2000) {
                     let oldlength = contents.length;
                     contents = [
                         '////////////////////////////////////////////////////////////////',
-                        '// INPUT',
+                        '// Input',
                         '////////////////////////////////////////////////////////////////',
                         '',
                         code,
                         '',
                         '',
                         '////////////////////////////////////////////////////////////////',
-                        '// EXECUTION TIME',
+                        '// Result Information',
                         '////////////////////////////////////////////////////////////////',
                         '',
-                        time,
+                        info.join('\n'),
                         '',
                         '',
                     ]
@@ -90,7 +115,7 @@ metadata.run = (m, args, data) => {
                     if(raw === inspect) {
                         contents = contents.concat([
                             '////////////////////////////////////////////////////////////////',
-                            '// OUTPUT (COMBINED)',
+                            '// Output',
                             '////////////////////////////////////////////////////////////////',
                             '',
                             raw
@@ -98,14 +123,14 @@ metadata.run = (m, args, data) => {
                     } else {
                         contents = contents.concat([
                             '////////////////////////////////////////////////////////////////',
-                            '// RAW OUTPUT',
+                            '// Raw Output',
                             '////////////////////////////////////////////////////////////////',
                             '',
                             raw,
                             '',
                             '',
                             '////////////////////////////////////////////////////////////////',
-                            '// INSPECTION UTILITY',
+                            '// Inspected Output',
                             '////////////////////////////////////////////////////////////////',
                             '',
                             inspect
@@ -113,7 +138,12 @@ metadata.run = (m, args, data) => {
                     }
 
                     m.channel.stopTyping(true);
-                    m.channel.send(`Output too long! (${(oldlength - 2000).toLocaleString()} characters over message limit)`, { files: [new djs.MessageAttachment(Buffer.from(contents), 'output.txt')] })
+                    m.channel.send([
+                        `Result Information:`,
+                        `\`\`\`yaml\n${info.join('\n')}\`\`\``,
+                        `Output too long! (${(oldlength - 2000).toLocaleString()} characters over message limit)`,
+                        `See attached file for output:`
+                    ].join('\n'), { files: [new djs.MessageAttachment(Buffer.from(contents), 'output.txt')] })
                 } else {
                     m.channel.stopTyping(true);
                     m.channel.send(contents)
@@ -127,4 +157,4 @@ metadata.run = (m, args, data) => {
     }, 250);
 }
 
-module.exports = new ob.Command(metadata);
+module.exports = new Command(metadata);

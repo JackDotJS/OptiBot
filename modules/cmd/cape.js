@@ -3,7 +3,7 @@ const util = require('util');
 const djs = require(`discord.js`);
 const Jimp = require('jimp');
 const request = require('request');
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -202,14 +202,14 @@ metadata.run = (m, args, data) => {
                     .setTitle(djs.Util.escapeMarkdown(player.name))
                     .setURL(`https://namemc.com/profile/${player.name}`)
 
-                    bot.db.profiles.find({ "data.cape.uuid": player.id }, (err, docs) => {
+                    Memory.db.profiles.find({ "data.cape.uuid": player.id }, (err, docs) => {
                         if (err) {
                             OBUtil.err(err, {m:m})
                         } else {
                             if (image.type !== 'cropped') {
-                                embed.setAuthor('OptiFine Donator Cape (Full Texture)', OBUtil.getEmoji('ICO_cape').url);
+                                embed.setAuthor('OptiFine Donator Cape (Full Texture)', Assets.getEmoji('ICO_cape').url);
                             } else {
-                                embed.setAuthor('OptiFine Donator Cape', OBUtil.getEmoji('ICO_cape').url);
+                                embed.setAuthor('OptiFine Donator Cape', Assets.getEmoji('ICO_cape').url);
                             }
 
                             if (docs.length !== 0) embed.setDescription(`<:okay:642112445997121536> Cape owned by <@${docs[0].userid}>`);

@@ -1,17 +1,42 @@
+const path = require(`path`);
+const fs = require(`fs`);
+const database = require('nedb');
+
 const memory = {
     core: {
         client: {
+            keys: require(path.resolve('./cfg/keys.json')),
             log: console.log
         },
         logfile: null, // filename of running console log
+        root: {
+            drive: null,
+            dir: null,
+            folder: null
+        },
+        bootFunc: null,  // used to hold boot function when bot cant connect
+    },
+    assets: {
+        splash: require(path.resolve('./cfg/splash.json')),
+        commands: [],
+        optibits: [],
+        images: {
+            default: fs.readFileSync(path.resolve('./assets/img/default.png')),
+            index: []
+        }
+    },
+    db: {
+        msg: new database({ filename: './data/messages.db', autoload: true }), // react-deletion cache
+        profiles: new database({ filename: './data/profiles.db', autoload: true }), // optibot profiles
+        stats: new database({ filename: './data/statistics.db', autoload: true }), // server statistics
+        smr: new database({ filename: './data/smr.db', autoload: true }), 
+        bl: new database({ filename: './data/blacklist.db', autoload: true }),
+        faq: new database({ filename: './data/faq.db', autoload: true }),
+        pol: new database({ filename: './data/policies.db', autoload: true })
     },
     _temp: null, // used to hold boot function when bot cant connect
     sm: {},
     li: 0, // date of last interaction
-    bot: {
-        locked: null,
-        init: true,
-    },
     presence: {
         status: 'online'
     },

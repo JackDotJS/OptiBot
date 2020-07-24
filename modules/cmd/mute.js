@@ -2,7 +2,7 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const { Command, OBUtil, Memory, RecordEntry, LogEntry } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -203,26 +203,26 @@ metadata.run = (m, args, data) => {
                         .setColor(bot.cfg.embed.okay)
 
                         if (isUpdate) {
-                            embed.setAuthor(`Mute updated.`, OBUtil.getEmoji('ICO_okay').url);
+                            embed.setAuthor(`Mute updated.`, Assets.getEmoji('ICO_okay').url);
                             if (muteData.end === null) {
-                                embed.setDescription(`${result.mention} will now be muted until hell freezes over.`, OBUtil.getEmoji('ICO_okay').url);
+                                embed.setDescription(`${result.mention} will now be muted until hell freezes over.`, Assets.getEmoji('ICO_okay').url);
                             } else {
-                                embed.setDescription(`${result.mention} will now be muted for ${timeData.string}.`, OBUtil.getEmoji('ICO_okay').url);  
+                                embed.setDescription(`${result.mention} will now be muted for ${timeData.string}.`, Assets.getEmoji('ICO_okay').url);  
                             }
                         } else {
-                            embed.setAuthor(`User muted.`, OBUtil.getEmoji('ICO_okay').url);
+                            embed.setAuthor(`User muted.`, Assets.getEmoji('ICO_okay').url);
 
                             if (muteData.end === null) {
-                                embed.setDescription(`${result.mention} has been muted until hell freezes over.`, OBUtil.getEmoji('ICO_okay').url);
+                                embed.setDescription(`${result.mention} has been muted until hell freezes over.`, Assets.getEmoji('ICO_okay').url);
                             } else {
-                                embed.setDescription(`${result.mention} has been muted for ${timeData.string}.`, OBUtil.getEmoji('ICO_okay').url); 
+                                embed.setDescription(`${result.mention} has been muted for ${timeData.string}.`, Assets.getEmoji('ICO_okay').url); 
                             }
                         }
 
                         if(rvt.reasonAdded) {
                             embed.addField(`Reason`, rvt.reasonText)
                         } else {
-                            embed.addField(`Reason`, `No reason provided. \n(Please use the \`${bot.prefix}addnote\` command.)`)
+                            embed.addField(`Reason`, `No reason provided. \n(Please use the \`${bot.prefix}editrecord\` command.)`)
                         }
 
                         m.channel.stopTyping(true);
@@ -234,7 +234,7 @@ metadata.run = (m, args, data) => {
 
                         let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
-                        .setIcon(OBUtil.getEmoji('ICO_mute').url)
+                        .setIcon(Assets.getEmoji('ICO_mute').url)
                         .addSection(`Member Muted`, result.target)
                         .addSection(`Moderator Responsible`, m.author)
                         .addSection(`Command Location`, m)

@@ -1,6 +1,6 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -27,7 +27,7 @@ metadata.run = (m, args, data) => {
                         OBUtil.err('Your profile does not have a quote message.', {m:m})
                     } else {
                         let embed = new djs.MessageEmbed()
-                        .setAuthor('Are you sure?', OBUtil.getEmoji('ICO_warn').url)
+                        .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
                         .setColor(bot.cfg.embed.default)
                         .setDescription(`The following quote will be permanently removed from your OptiBot profile: \n> ${profile.ndata.quote}`)
         
@@ -38,7 +38,7 @@ metadata.run = (m, args, data) => {
         
                                     OBUtil.updateProfile(profile).then(() => {
                                         let update = new djs.MessageEmbed()
-                                        .setAuthor(`Success`, OBUtil.getEmoji('ICO_okay').url)
+                                        .setAuthor(`Success`, Assets.getEmoji('ICO_okay').url)
                                         .setColor(bot.cfg.embed.okay)
                                         .setDescription(`Your profile has been updated.`)
                     
@@ -47,14 +47,14 @@ metadata.run = (m, args, data) => {
                                 } else
                                 if(res === 0) {
                                     let update = new djs.MessageEmbed()
-                                    .setAuthor('Cancelled', OBUtil.getEmoji('ICO_load').url)
+                                    .setAuthor('Cancelled', Assets.getEmoji('ICO_load').url)
                                     .setColor(bot.cfg.embed.default)
                                     .setDescription('Your profile has not been changed.')
         
                                     msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
                                 } else {
                                     let update = new djs.MessageEmbed()
-                                    .setAuthor('Timed out', OBUtil.getEmoji('ICO_load').url)
+                                    .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
                                     .setColor(bot.cfg.embed.default)
                                     .setDescription(`Sorry, you didn't respond in time. Please try again.`)
         
@@ -79,7 +79,7 @@ metadata.run = (m, args, data) => {
                     OBUtil.err('This profile does not have a quote message.', {m:m})
                 } else {
                     let embed = new djs.MessageEmbed()
-                    .setAuthor('Are you sure?', OBUtil.getEmoji('ICO_warn').url)
+                    .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
                     .setColor(bot.cfg.embed.default)
                     .setDescription(`The following quote will be permanently removed from ${result.mention}'s OptiBot profile: \n> ${profile.ndata.quote}`)
     
@@ -92,7 +92,7 @@ metadata.run = (m, args, data) => {
     
                                 OBUtil.updateProfile(profile).then(() => {
                                     let update = new djs.MessageEmbed()
-                                    .setAuthor(`Success`, OBUtil.getEmoji('ICO_okay').url)
+                                    .setAuthor(`Success`, Assets.getEmoji('ICO_okay').url)
                                     .setColor(bot.cfg.embed.okay)
                                     .setDescription(`${result.mention}'s profile has been updated.`)
 
@@ -103,14 +103,14 @@ metadata.run = (m, args, data) => {
                             } else
                             if(res === 0) {
                                 let update = new djs.MessageEmbed()
-                                .setAuthor('Cancelled', OBUtil.getEmoji('ICO_load').url)
+                                .setAuthor('Cancelled', Assets.getEmoji('ICO_load').url)
                                 .setColor(bot.cfg.embed.default)
                                 .setDescription(`${result.mention}'s profile has not been changed.`)
     
                                 msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
                             } else {
                                 let update = new djs.MessageEmbed()
-                                .setAuthor('Timed out', OBUtil.getEmoji('ICO_load').url)
+                                .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
                                 .setColor(bot.cfg.embed.default)
                                 .setDescription(`Sorry, you didn't respond in time. Please try again.`)
     

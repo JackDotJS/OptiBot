@@ -1,6 +1,6 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -17,7 +17,7 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
-    .setAuthor(`Successfully beaned user`, OBUtil.getEmoji('ICO_okay').url)
+    .setAuthor(`Successfully beaned user`, Assets.getEmoji('ICO_okay').url)
     .setColor(bot.cfg.embed.okay);
 
     if(!args[0]) {

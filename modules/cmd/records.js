@@ -2,7 +2,7 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const { Command, OBUtil, Memory, RecordEntry } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -75,7 +75,7 @@ metadata.run = (m, args, data) => {
                     let title = `Member Records`;
                     
                     if(!profile || !profile.edata.record) {
-                        embed.setAuthor(title, OBUtil.getEmoji('ICO_docs').url)
+                        embed.setAuthor(title, Assets.getEmoji('ICO_docs').url)
                         .addField(`Record Statistics`, `This user has no known record.`)
                         .setFooter(footer.join('\n'))
 
@@ -106,7 +106,7 @@ metadata.run = (m, args, data) => {
 
                                 embed = new djs.MessageEmbed()
                                 .setColor(bot.cfg.embed.default)
-                                .setAuthor(title+' | Single Entry', OBUtil.getEmoji('ICO_docs').url)
+                                .setAuthor(title+' | Single Entry', Assets.getEmoji('ICO_docs').url)
                                 .setTitle(`Case ID: ${entry.display.id} ${(entry.pardon) ? '(PARDONED)' : ''}`)
                                 .setDescription(`${new Date(entry.date).toUTCString()} \n(${timeago.format(entry.date)})`)
                                 .addField(`Member`, [
@@ -187,7 +187,7 @@ metadata.run = (m, args, data) => {
 
                         stats.push(
                             `**Pardoned Entries**: ${pardonedCount.toLocaleString()}`,
-                            `**Violation Points**: ${points.toLocaleString()}/${bot.cfg.points.userMax.toLocaleString()} ${(points > bot.cfg.points.userMax) ? OBUtil.getEmoji('ICO_warn').toString() : ""}`
+                            `**Violation Points**: ${points.toLocaleString()}/${bot.cfg.points.userMax.toLocaleString()} ${(points > bot.cfg.points.userMax) ? Assets.getEmoji('ICO_warn').toString() : ""}`
                         );
 
                         let i = (pageNum > 1) ? (perPage * (pageNum - 1)) : 0;
@@ -211,11 +211,11 @@ metadata.run = (m, args, data) => {
                                         )
                                     }
     
-                                    embed.setAuthor(title, OBUtil.getEmoji('ICO_docs').url)
+                                    embed.setAuthor(title, Assets.getEmoji('ICO_docs').url)
                                     .setFooter(footer.join('\n'))
                                     .fields.unshift({
                                         name: `Record Information`,
-                                        value: stats.join(`${OBUtil.getEmoji('ICO_space')}\n`)+`${OBUtil.getEmoji('ICO_space')}`
+                                        value: stats.join(`${Assets.getEmoji('ICO_space')}\n`)+`${Assets.getEmoji('ICO_space')}`
                                     });
     
                                     m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
@@ -241,7 +241,7 @@ metadata.run = (m, args, data) => {
                                     return next();
                                 }
 
-                                let reason = `> **${(entry.action !== 0) ? "Reason" : "Note Contents"}:**${OBUtil.getEmoji('ICO_space')}\n> ${entry.pardon.reason.split('\n').join('\n> ')}`;
+                                let reason = `> **${(entry.action !== 0) ? "Reason" : "Note Contents"}:**${Assets.getEmoji('ICO_space')}\n> ${entry.pardon.reason.split('\n').join('\n> ')}`;
 
                                 details.push(
                                     `**Pardoned By:** <@${entry.pardon.admin}>`,
@@ -254,7 +254,7 @@ metadata.run = (m, args, data) => {
                                     details.push(reason);
                                 }
                             } else {
-                                let reason = `> **${(entry.action !== 0) ? "Reason" : "Note Contents"}:**${OBUtil.getEmoji('ICO_space')}\n> ${entry.reason.split('\n').join('\n> ')}`;
+                                let reason = `> **${(entry.action !== 0) ? "Reason" : "Note Contents"}:**${Assets.getEmoji('ICO_space')}\n> ${entry.reason.split('\n').join('\n> ')}`;
 
                                 details.push(
                                     `**Moderator:** <@${entry.moderator}>`,
@@ -273,7 +273,7 @@ metadata.run = (m, args, data) => {
                                 }
                             }
 
-                            embed.addField(`${entry.display.icon} ${(entry.edits) ? "*\\*" : ""}${entry.display.action}${(entry.edits) ? "*" : ""} ${entry.pardon ? "**(PARDONED)**" : ""}`, details.join(`${OBUtil.getEmoji('ICO_space')}\n`));
+                            embed.addField(`${entry.display.icon} ${(entry.edits) ? "*\\*" : ""}${entry.display.action}${(entry.edits) ? "*" : ""} ${entry.pardon ? "**(PARDONED)**" : ""}`, details.join(`${Assets.getEmoji('ICO_space')}\n`));
 
                             added++;
 

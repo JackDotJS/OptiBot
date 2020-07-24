@@ -1,6 +1,6 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -17,7 +17,7 @@ const metadata = {
 metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor('AdoptOpenJDK', OBUtil.getEmoji('ICO_jdk').url)
+    .setAuthor('AdoptOpenJDK', Assets.getEmoji('ICO_jdk').url)
     .setTitle('https://adoptopenjdk.net/')
 
     m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id))

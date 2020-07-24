@@ -2,7 +2,7 @@ const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require("timeago.js");
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -60,7 +60,7 @@ metadata.run = (m, args, data) => {
                         }
 
                         let embed = new djs.MessageEmbed()
-                        .setAuthor((user.id === m.author.id) ? "You are..." : "That is...", OBUtil.getEmoji('ICO_user').url)
+                        .setAuthor((user.id === m.author.id) ? "You are..." : "That is...", Assets.getEmoji('ICO_user').url)
                         .setColor(bot.cfg.embed.default)
                         .setTitle(`${user.tag} ${(profile && profile.ndata.emoji) ? profile.ndata.emoji : ""}`) // todo: add profile emoji command. (#166)
                         .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 64 }))

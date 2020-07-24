@@ -1,6 +1,6 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -30,7 +30,7 @@ metadata.run = (m, args, data) => {
                 }).catch(err => {
                     if(err.stack.match(/unknown ban/i)) {
                         let embed = new djs.MessageEmbed()
-                        .setAuthor('Are you sure?', OBUtil.getEmoji('ICO_warn').url)
+                        .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
                         .setColor(bot.cfg.embed.default)
                         .setDescription(`The following user will be banned from the server: \n> ${result.mention} (${result.id})`)
                         .addField(`Reason`, reason);
@@ -44,7 +44,7 @@ metadata.run = (m, args, data) => {
                                     bot.mainGuild.members.ban(result.target, { reason: reason}).then(() => {
                                         let update = new djs.MessageEmbed()
                                         .setColor(bot.cfg.embed.okay)
-                                        .setAuthor(`Successfully banned user`, OBUtil.getEmoji('ICO_okay').url)
+                                        .setAuthor(`Successfully banned user`, Assets.getEmoji('ICO_okay').url)
                                         .setDescription(`${(result.type === 'id') ? `\`${result.target}\`` : result.target.toString()} has been banned.`)
                                         .addField(`Reason`, reason);
                     
@@ -53,14 +53,14 @@ metadata.run = (m, args, data) => {
                                 } else
                                 if(res === 0) {
                                     let update = new djs.MessageEmbed()
-                                    .setAuthor('Cancelled', OBUtil.getEmoji('ICO_load').url)
+                                    .setAuthor('Cancelled', Assets.getEmoji('ICO_load').url)
                                     .setColor(bot.cfg.embed.default)
                                     .setDescription('User has not been banned.')
 
                                     msg.edit({embed: update}).then(bm => OBUtil.afterSend(bm, m.author.id))
                                 } else {
                                     let update = new djs.MessageEmbed()
-                                    .setAuthor('Timed out', OBUtil.getEmoji('ICO_load').url)
+                                    .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
                                     .setColor(bot.cfg.embed.default)
                                     .setDescription(`Sorry, you didn't respond in time. Please try again.`)
 

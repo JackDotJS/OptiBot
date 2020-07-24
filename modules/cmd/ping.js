@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -17,7 +17,7 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
-    .setAuthor(`Ping...`, OBUtil.getEmoji('ICO_wifi').url)
+    .setAuthor(`Ping...`, Assets.getEmoji('ICO_wifi').url)
     .setColor(bot.cfg.embed.default)
     .setDescription(`API Latency: ... \nMessage Latency: ...`)
 

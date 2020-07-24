@@ -3,7 +3,7 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const request = require('request');
 const timeago = require("timeago.js");
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -32,7 +32,7 @@ metadata.run = (m, args, data) => {
     let hcount = 0;
 
     let embed = new djs.MessageEmbed()
-    .setAuthor('Are you sure?', OBUtil.getEmoji('ICO_warn').url)
+    .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
     .setColor(bot.cfg.embed.default)
     .setDescription(`The <#${bot.cfg.policies.channel}> channel will be completely reset and replaced with the given file. This action may take several minutes, and **cannot be undone.**`)
 
@@ -45,14 +45,14 @@ metadata.run = (m, args, data) => {
                     } else {
                         let update = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.default)
-                        .setAuthor('Reloading staff policies...', OBUtil.getEmoji('ICO_load').url)
+                        .setAuthor('Reloading staff policies...', Assets.getEmoji('ICO_load').url)
 
                         msg.edit({embed: update}).then((msg) => {
                             time = new Date();
 
                             policies = eval(data);
 
-                            bot.db.pol.remove({}, {}, (err) => {
+                            Memory.db.pol.remove({}, {}, (err) => {
                                 if(err) {
                                     OBUtil.err(err, {m:m});
                                 } else {
@@ -70,14 +70,14 @@ metadata.run = (m, args, data) => {
             } else
             if(res === 0) {
                 let update = new djs.MessageEmbed()
-                .setAuthor('Cancelled', OBUtil.getEmoji('ICO_load').url)
+                .setAuthor('Cancelled', Assets.getEmoji('ICO_load').url)
                 .setColor(bot.cfg.embed.default)
                 .setDescription('Staff policies has not been changed.')
 
                 msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
             } else {
                 let update = new djs.MessageEmbed()
-                .setAuthor('Timed out', OBUtil.getEmoji('ICO_load').url)
+                .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
                 .setColor(bot.cfg.embed.default)
                 .setDescription(`Sorry, you didn't respond in time. Please try again.`)
 
@@ -163,7 +163,7 @@ metadata.run = (m, args, data) => {
                 }
 
                 if(policies[i].kw) {
-                    bot.db.pol.insert({ id: pm.id, kw: policies[i].kw}, (err) => {
+                    Memory.db.pol.insert({ id: pm.id, kw: policies[i].kw}, (err) => {
                         if(err) {
                             OBUtil.err(err, {m:m});
                         } else {
@@ -195,7 +195,7 @@ metadata.run = (m, args, data) => {
                 if(pi+1 === itext_trimmed.length) {
                     embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.okay)
-                    .setAuthor(`Policies successfully updated in ${((new Date().getTime() - time.getTime()) / 1000).toFixed(2)} seconds.`, OBUtil.getEmoji('ICO_okay').url)
+                    .setAuthor(`Policies successfully updated in ${((new Date().getTime() - time.getTime()) / 1000).toFixed(2)} seconds.`, Assets.getEmoji('ICO_okay').url)
 
                     msg.edit({embed: embed}).then((msg) => OBUtil.afterSend(msg, m.author.id)).catch((err) => OBUtil.err(err, {m:m}));
                 } else {

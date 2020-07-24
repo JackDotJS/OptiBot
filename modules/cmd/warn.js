@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory, RecordEntry, LogEntry } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -52,7 +52,7 @@ metadata.run = (m, args, data) => {
                     OBUtil.updateProfile(profile).then(() => {
                         let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
-                        .setIcon(OBUtil.getEmoji('ICO_warn').url)
+                        .setIcon(Assets.getEmoji('ICO_warn').url)
                         .setTitle(`Member Warned`, `Member Warning Report`)
                         .addSection(`Member`, result.target)
                         .addSection(`Moderator Responsible`, m.author)
@@ -63,7 +63,7 @@ metadata.run = (m, args, data) => {
                         }
 
                         let embed = new djs.MessageEmbed()
-                        .setAuthor(`User warned`, OBUtil.getEmoji('ICO_warn').url)
+                        .setAuthor(`User warned`, Assets.getEmoji('ICO_warn').url)
                         .setColor(bot.cfg.embed.default)
                         .setDescription(`${result.mention} has been warned.`)
 
@@ -71,7 +71,7 @@ metadata.run = (m, args, data) => {
                             embed.addField('Reason', reason)
                             logEntry.setHeader(`Reason: ${reason}`)
                         } else {
-                            embed.addField(`Reason`, `No reason provided. \n(Please use the \`${bot.prefix}addnote\` command.)`)
+                            embed.addField(`Reason`, `No reason provided. \n(Please use the \`${bot.prefix}editrecord\` command.)`)
                             logEntry.setHeader(`No reason provided.`)
                         }
 

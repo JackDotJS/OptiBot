@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -31,7 +31,7 @@ const metadata = {
 }
 
 metadata.run = (m, args, data) => {
-    let list = bot.commands.index
+    let list = Memory.assets.commands
     let filtered;
     let selectPage = 1;
     let menu = '';
@@ -175,7 +175,7 @@ metadata.run = (m, args, data) => {
 
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor(`OptiBot Command Index | Page ${pageNum}/${pageLimit}`, OBUtil.getEmoji('ICO_docs').url)
+    .setAuthor(`OptiBot Command Index | Page ${pageNum}/${pageLimit}`, Assets.getEmoji('ICO_docs').url)
     .setDescription(`Hover over the tooltip icons [${tooltip}](${m.url.replace(/\/\d+$/, '')} "No easter eggs here... 👀") or use \`${bot.prefix}help <command>\` for detailed information.`)
 
     if(stext.length > 0) {
@@ -194,7 +194,12 @@ metadata.run = (m, args, data) => {
             hover_text.push(cmd.long_desc);
         }
 
-        hover_text.push(`\nUsage: ${cmd.args}`);
+        hover_text.push(
+            ``,
+            `Usage:`,
+            `${cmd.args_pt}`,
+            ``
+        );
 
         if (cmd.flags['NO_DM']) {
             if(cmd.flags['BOT_CHANNEL_ONLY']) {

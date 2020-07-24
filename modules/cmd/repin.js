@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -28,7 +28,7 @@ metadata.run = (m, args, data) => {
                     result.target.unpin().then(() => {
                         result.target.pin().then(() => {
                             let embed = new djs.MessageEmbed()
-                            .setAuthor(`Pinned message successfully moved.`, OBUtil.getEmoji('ICO_okay').url)
+                            .setAuthor(`Pinned message successfully moved.`, Assets.getEmoji('ICO_okay').url)
                             .setColor(bot.cfg.embed.okay);
     
                             m.channel.send({embed: embed}).then(msg => { OBUtil.afterSend(msg, m.author.id) });

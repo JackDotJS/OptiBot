@@ -19,16 +19,34 @@ const log = (message, level, file, line) => {
     if (!file) file = (call.evalFlag) ? 'eval()' : call.filePath.substring(call.filePath.lastIndexOf('\\')+1);
     if (!line) line = call.lineNumber;
 
-    process.send({
-        type: 'log',
-        message: message,
-        level: level,
-        misc: `${file}:${line}`
-    });
+    try {
+        process.send({
+            type: 'log',
+            message: message,
+            level: level,
+            misc: `${file}:${line}`
+        });
+    }
+    catch (e) {
+        try {
+            process.send({
+                type: 'log',
+                message: util.inspect(message),
+                level: level,
+                misc: `${file}:${line}`
+            });
+        }
+        catch(e2) {
+            log(e);
+            log(e2);
+        }
+    }
+
+    
 }
 
 const bot = new ob.Client({
-    fetchAllMembers: true, // end my life
+    //fetchAllMembers: true, // end my life
     presence: {
         status: 'idle', 
         activity: {
@@ -55,13 +73,17 @@ bot.login(bot.keys.discord).catch(err => {
 
 bot.on('ready', () => {
     log(ob.Memory)
-    if (ob.Memory.bot.init) {
+    if (bot.pause) {
         log('Successfully connected to Discord API.', 'info');
 
         let botLoadAssets = function() {
             ob.OBUtil.setWindowTitle('Loading Assets...');
+
+            ob.Memory.core.root.drive = path.parse(__dirname).root;
+            ob.Memory.core.root.dir = __dirname;
+            ob.Memory.core.root.folder = path.parse(__dirname).base;
     
-            bot.loadAssets().then((time) => {
+            ob.Assets.load().then((time) => {
                 let now = new Date();
                 let width = 64; //inner width of box
                 function centerText(text, totalWidth) {
@@ -73,7 +95,7 @@ bot.on('ready', () => {
                     return `│` + (` `.repeat(leftMargin)) + text + (` `.repeat(rightMargin)) + `│`;
                 }
 
-                let splash = bot.splash[~~(Math.random() * bot.splash.length)];
+                let splash = ob.Memory.assets.splash[~~(Math.random() * ob.Memory.assets.splash.length)];
 
                 if(splash.indexOf('\n') > -1) {
                     splash = splash.substring(splash.lastIndexOf('\n')+1).substring(0, width);
@@ -111,8 +133,6 @@ bot.on('ready', () => {
                     type: 'ready'
                 });
 
-                ob.Memory.bot.init = false;
-
                 bot.setBotStatus(1);
                 ob.OBUtil.setWindowTitle(null);
             }).catch(err => {
@@ -120,13 +140,13 @@ bot.on('ready', () => {
                 bot.exit(1);
             });
             
-            if(ob.Memory._temp) delete ob.Memory._temp;
+            if(ob.Memory.core.bootFunc) delete ob.Memory.core.bootFunc;
         }
 
         if(!bot.mainGuild.available) {
             ob.OBUtil.setWindowTitle('Waiting for primary guild...');
             log('Primary guild unavailable.\nAssets will be loaded once the guild is available again.', 'warn')
-            ob.Memory._temp = botLoadAssets();
+            ob.Memory.core.bootFunc = botLoadAssets();
         } else {
             botLoadAssets();
         }
@@ -141,7 +161,7 @@ bot.on('ready', () => {
 ////////////////////////////////////////
 
 bot.on('message', (m) => {
-    if (ob.Memory.bot.init) return;
+    if (bot.pause) return;
     if (m.author.bot || m.author.system || m.type !== 'DEFAULT' || m.system) return;
     
     if (ob.Memory.users.indexOf(m.author.id) === -1) {
@@ -177,12 +197,12 @@ bot.on('message', (m) => {
             /////////////////////////////////////////////////////////////
             // COMMAND HANDLER
             /////////////////////////////////////////////////////////////
-    
-            bot.commands.find(input.cmd).then(cmd => {
+
+            ob.Assets.fetchCommand(input.cmd).then(cmd => {
                 let unknownCMD = () => {
                     let ratings = [];
                                 
-                    bot.commands.index.filter((thisCmd) => thisCmd.metadata.authlvl <= authlvl && !thisCmd.metadata.flags['HIDDEN'])
+                    ob.Memory.assets.commands.filter((thisCmd) => thisCmd.metadata.authlvl <= authlvl && !thisCmd.metadata.flags['HIDDEN'])
                     .forEach((thisCmd) => {
                         let rating = {
                             command: thisCmd.metadata.name,
@@ -241,9 +261,7 @@ bot.on('message', (m) => {
                     let content = '_ _';
 
                     if(image) {
-                        embed.attachFiles([
-                            new djs.MessageAttachment(image, 'image.png')
-                        ])
+                        embed.attachFiles([image])
                         .setImage('attachment://image.png')
                     }
     
@@ -287,7 +305,7 @@ bot.on('message', (m) => {
                     checkMisuse('This command cannot be used in DMs (Direct Messages).');
                 } else
                 if(cmd.metadata.flags['DM_ONLY'] && m.channel.type !== 'dm' && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
-                    checkMisuse('This command can only be used in DMs (Direct Messages).', bot.images.find('IMG_dm.png'));
+                    checkMisuse('This command can only be used in DMs (Direct Messages).', ob.Assets.getImage('IMG_dm.png').attachment);
                 } else
                 if(cmd.metadata.flags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && (bot.cfg.channels.bot.indexOf(m.channel.id) === -1 && bot.cfg.channels.bot.indexOf(m.channel.parentID) === -1) && (authlvl === 0 || cmd.metadata.flags['STRICT'])) {
                     checkMisuse('This command can only be used in DMs (Direct Messages) OR the #optibot channel.');
@@ -460,7 +478,7 @@ process.on('message', (m) => {
 ////////////////////////////////////////
 
 bot.on('presenceUpdate', (old, mem) => {
-    if (ob.Memory.bot.init) return;
+    if (bot.pause) return;
     if (mem.guild.id !== bot.cfg.guilds.optifine) return;
     if (mem.user.bot) return;
 
@@ -487,7 +505,7 @@ bot.on('presenceUpdate', (old, mem) => {
 
 bot.on('messageDelete', m => {
     let now = new Date();
-    if (ob.Memory.bot.init) return;
+    if (bot.pause) return;
     if (m.channel.type === 'dm') return;
     if (m.type !== 'DEFAULT' || m.system || m.author.system) return;
     if (m.author.system || m.author.bot) return;
@@ -624,23 +642,24 @@ bot.on('messageDelete', m => {
 bot.on('messageDeleteBulk', ms => {
     let now = new Date();
 
-    if (ob.Memory.bot.init) return;
-
-    let logEntry = new ob.LogEntry({time: now, channel: "delete"})
-    .preLoad()
+    if (bot.pause) return;
 
     bot.setTimeout(() => {
         let messages = [...ms.values()];
 
         let i = 0;
         (function postNext() {
+            if(i === messages.length) return;
+
             let m = messages[i];
+            log(util.inspect(m));
 
             if (m.type !== 'DEFAULT' || m.system || m.author.system) {
                 i++;
-                postNext();
-                return;
+                return postNext();
             }
+
+            let logEntry = new ob.LogEntry({time: now, channel: "delete"})
 
             let desc = [
                 `Message originally posted on ${m.createdAt.toUTCString()}`,
@@ -654,7 +673,7 @@ bot.on('messageDeleteBulk', ms => {
             .addSection(`Author`, m.author)
             .addSection(`Message Location`, m)
 
-            if(m.content > 0) {
+            if(m.content.length > 0) {
                 logEntry.addSection(`Message Contents`, m.content);
             }
 
@@ -714,7 +733,7 @@ bot.on('messageDeleteBulk', ms => {
 bot.on('messageUpdate', (m, mNew) => {
     let now = new Date();
 
-    if (ob.Memory.bot.init) return;
+    if (bot.pause) return;
     if (m.channel.type === 'dm') return;
     if (m.type !== 'DEFAULT' || m.system || m.author.system || m.author.bot) return;
     if (m.guild.id !== bot.cfg.guilds.optifine) return;
@@ -835,7 +854,7 @@ bot.on('messageUpdate', (m, mNew) => {
 
 bot.on('channelUpdate', (oldc, newc) => {
     let now = new Date();
-    if (ob.Memory.bot.init) return;
+    if (bot.pause) return;
     if (oldc.type !== 'text') return;
     if (oldc.guild.id !== bot.cfg.guilds.optifine) return;
 
@@ -888,7 +907,7 @@ bot.on('channelUpdate', (oldc, newc) => {
 
 bot.on('guildMemberAdd', member => {
     let now = new Date();
-    if (ob.Memory.bot.init) return;
+    if (bot.pause) return;
 
     if (member.guild.id === bot.cfg.guilds.optifine) {
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -957,7 +976,7 @@ bot.on('guildMemberAdd', member => {
 
 bot.on('guildMemberRemove', member => {
     let now = new Date();
-    if (ob.Memory.bot.init) return;
+    if (bot.pause) return;
     if (member.guild.id !== bot.cfg.guilds.optifine) return;
 
     for(let i in ob.Memory.mutes) {
@@ -1010,7 +1029,7 @@ bot.on('guildMemberRemove', member => {
 
 bot.on('guildBanAdd', (guild, user) => {
     let now = new Date();
-    if (ob.Memory.bot.init) return;
+    if (bot.pause) return;
     if (guild.id !== bot.cfg.guilds.optifine) return;
 
     let logEntry = new ob.LogEntry({time: now, channel: "moderation"})
@@ -1085,7 +1104,7 @@ bot.on('guildBanAdd', (guild, user) => {
 
 bot.on('guildBanRemove', (guild, user) => {
     let now = new Date();
-    if (ob.Memory.bot.init) return;
+    if (bot.pause) return;
     if (guild.id !== bot.cfg.guilds.optifine) return;
 
     let logEntry = new ob.LogEntry({time: now, channel: "moderation"})
@@ -1161,7 +1180,7 @@ bot.on('guildBanRemove', (guild, user) => {
 
 bot.on('raw', packet => {
     let now = new Date();
-    if (ob.Memory.bot.init) return;
+    if (bot.pause) return;
     if(packet.t === 'MESSAGE_REACTION_ADD') {
         let channel = bot.channels.cache.get(packet.d.channel_id);
         if (channel.messages.cache.has(packet.d.message_id)) return; // stops if the message exists in the bot's cache.
@@ -1205,7 +1224,7 @@ bot.on('raw', packet => {
         // this packet does not contain the actual message data, unfortunately.
         // as of writing, this only contains the message ID, the channel ID, and the guild ID.
         bot.setTimeout(() => {
-            bot.db.msg.remove({message: packet.d.id}, {}, (err, num) => {
+            ob.Memory.db.msg.remove({message: packet.d.id}, {}, (err, num) => {
                 if (err) {
                     ob.OBUtil.err(err);
                 } else 
@@ -1240,23 +1259,81 @@ bot.on('raw', packet => {
 ////////////////////////////////////////
 
 bot.on('messageReactionAdd', (mr, user) => {
-    if (ob.Memory.bot.init) return;
+    let now = new Date();
+    if (bot.pause) return;
     if (mr.message.channel.type === 'dm') return;
     if (user.id === bot.user.id) return;
 
     if (mr.emoji.id === bot.cfg.emoji.deleter) {
-        let del = (docs, mod) => {
+        let del = (docs, mod, orguser) => {
             if(mr.message.content.indexOf(bot.cfg.messages.confirmDelete) > -1) {
-                mr.message.delete().then(() => {
-                    bot.db.msg.remove(docs[0], {}, (err) => {
+                let logEntry = new ob.LogEntry({time: now, channel: "delete"})
+                .preLoad()
+                mr.message.delete().then((bm) => {
+                    ob.Memory.db.msg.remove(docs[0], {}, (err) => {
                         if (err) {
-                            ob.OBUtil.err(err);
+                            logEntry.error(err);
                         } else {
-                            log(`Bot message deleted at ${(mod) ? 'moderator' : 'user'} request.`);
+                            let desc = [
+                                `Message originally posted on ${bm.createdAt.toUTCString()}`,
+                                `(${timeago.format(bm.createdAt)})`
+                            ];
+
+                            logEntry.setColor(bot.cfg.embed.error)
+                            .setIcon(ob.OBUtil.getEmoji('ICO_trash').url)
+                            .setTitle(`OptiBot Message Deleted`, `OptiBot Message Deletion Report`)
+                            .setDescription(desc.join('\n'), desc.join(' '))
+                            .addSection(`Deleted by`, user)
+
+                            if(mod) {
+                                logEntry.addSection(`Original Author`, orguser)
+                            }
+
+                            logEntry.addSection(`Message Location`, bm)
+
+                            if(bm.content.length > 0 && bm.content !== '_ _' && bm.content !== bot.cfg.messages.confirmDelete) {
+                                logEntry.addSection(`Message Contents`, bm.content);
+                            }
+            
+                            let att = [];
+                            let att_raw = [];
+                            if (bm.attachments.size > 0) {
+                                bm.attachments.each(a => {
+                                    att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`)
+                                    att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`)
+                                });
+                            }
+            
+                            if(att.length > 0) {
+                                logEntry.addSection(`Message Attachments`, {
+                                    data: att.join('\n'),
+                                    raw: att_raw.join('\n')
+                                })
+                            }
+            
+                            if(bm.embeds.length > 0) {
+                                let rawEmbeds = [];
+            
+                                for(let i = 0; i < bm.embeds.length; i++) {
+                                    rawEmbeds.push(util.inspect(bm.embeds[i], { showHidden: true, getters: true }));
+                                    if(i+1 < bm.embeds.length) {
+                                        rawEmbeds.push('');
+                                    } else {
+                                        rawEmbeds = rawEmbeds.join('\n');
+                                    }
+                                }
+            
+                                logEntry.addSection(`Message Embeds`, {
+                                    data: `[${bm.embeds.length} Embed${(bm.embeds.length > 1) ? "s" : ""}]`,
+                                    raw: rawEmbeds
+                                })
+                            }
+
+                            logEntry.submit();
                         }
                     });
                 }).catch(err => {
-                    ob.OBUtil.err(err);
+                    logEntry.error(err);
                 });
             } else {
                 let nm = `${mr.message.content}\n\n${bot.cfg.messages.confirmDelete}`;
@@ -1270,7 +1347,7 @@ bot.on('messageReactionAdd', (mr, user) => {
             }
         }
 
-        bot.db.msg.find({message: mr.message.id}, (err, docs) => {
+        ob.Memory.db.msg.find({message: mr.message.id}, (err, docs) => {
             if(err) {
                 ob.OBUtil.err(err);
             } else
@@ -1278,8 +1355,15 @@ bot.on('messageReactionAdd', (mr, user) => {
                 del(docs);
             } else {
                 let mem = bot.mainGuild.members.cache.get(user.id);
+                let org = bot.mainGuild.members.cache.get(docs[0].user);
                 if(mem && mem.roles.cache.has(bot.cfg.roles.moderator)) {
-                    del(docs, true);
+                    if(!org) {
+                        bot.users.fetch(docs[0].user).then((org) => {
+                            del(docs, true, org);
+                        });
+                    } else {
+                        del(docs, true, org);
+                    }
                 }
             }
         });
@@ -1318,7 +1402,7 @@ bot.on('guildUpdate', (oldg, newg) => {
     if(oldg.available === false && newg.available === true) {
         log(`Guild available! \n"${newg.name}" has recovered. \nGuild ID: ${guild.id}`, 'warn');
         if(newg.id === bot.cfg.guilds.optifine) {
-            ob.Memory._temp();
+            ob.Memory.core.bootFunc();
         }
     }
 });

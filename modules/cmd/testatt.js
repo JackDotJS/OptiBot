@@ -2,7 +2,7 @@ const path = require(`path`);
 const util = require(`util`);
 const crypto = require(`crypto`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -12,7 +12,7 @@ const metadata = {
     short_desc: `Short description. Shows in \`${bot.prefix}list\``,
     long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
     args: `[args]`,
-    image: 'IMG_args.png',
+    image: 'IMG_args',
     authlvl: 5,
     flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
     run: null
@@ -34,7 +34,7 @@ metadata.run = (m, args, data) => {
 
                 let embed2 = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.default)
-                .setAuthor('blah', OBUtil.getEmoji('ICO_jarfix').url, attachment.url)
+                .setAuthor('blah', Assets.getEmoji('ICO_jarfix').url, attachment.url)
                 .setTitle(`Something Cool`)
 
                 entry.edit(embed2);

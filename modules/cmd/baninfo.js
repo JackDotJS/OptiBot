@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory, RecordEntry, LogEntry } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -49,7 +49,7 @@ metadata.run = (m, args, data) => {
     
                         let embed = new djs.MessageEmbed()
                         .setColor(bot.cfg.embed.default)
-                        .setAuthor(`Ban Information`, OBUtil.getEmoji('ICO_docs').url)
+                        .setAuthor(`Ban Information`, Assets.getEmoji('ICO_docs').url)
                         .setTitle(result.tag)
                         .setDescription([
                             `Mention: ${result.mention}`,

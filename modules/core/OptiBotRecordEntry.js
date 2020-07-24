@@ -265,7 +265,7 @@ module.exports = class RecordEntry {
             target = parseInt(caseID, 36);
         }
 
-        if(isNaN(target) || caseid < 1420070400000 || caseid > new Date().getTime()) {
+        if(isNaN(target) || caseID < 1420070400000 || caseID > new Date().getTime()) {
             throw new Error('Invalid case ID.')
         } else
         if(this.parent) {

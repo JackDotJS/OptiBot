@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory, LogEntry } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -73,7 +73,7 @@ metadata.run = (m, args, data) => {
                             
 
                             let embed = new djs.MessageEmbed()
-                            .setAuthor('Are you sure?', OBUtil.getEmoji('ICO_warn').url)
+                            .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
                             .setColor(bot.cfg.embed.default)
                             .addField(`The following record entry will be dismissed:`, `${entry.display.icon} ${entry.display.action}\n> ${entry.reason.split('\n').join('\n> ')}`)
                             .addField(`Pardon Reason`, reason);
@@ -87,7 +87,7 @@ metadata.run = (m, args, data) => {
                                             OBUtil.updateProfile(profile).then(() => {
                                                 let logEntry = new LogEntry({channel: "moderation"})
                                                 .setColor(bot.cfg.embed.default)
-                                                .setIcon(OBUtil.getEmoji('ICO_unban').url)
+                                                .setIcon(Assets.getEmoji('ICO_unban').url)
                                                 .setTitle(`Record Entry Pardoned`, `Record Entry Pardon Report`)
                                                 .addSection(`Member`, result.target)
                                                 .addSection(`Case`, entry)
@@ -96,7 +96,7 @@ metadata.run = (m, args, data) => {
                                                 .addSection(`Pardon Reason`, reason)
                                                 .submit().then(() => {
                                                     let update = new djs.MessageEmbed()
-                                                    .setAuthor(`Success`, OBUtil.getEmoji('ICO_okay').url)
+                                                    .setAuthor(`Success`, Assets.getEmoji('ICO_okay').url)
                                                     .setColor(bot.cfg.embed.okay)
                                                     .setDescription(`Case ID ${entry.date} has been marked as pardoned.`)
                                                     .addField('Pardon Reason', reason);
@@ -108,14 +108,14 @@ metadata.run = (m, args, data) => {
                                     } else
                                     if(res === 0) {
                                         let update = new djs.MessageEmbed()
-                                        .setAuthor('Cancelled', OBUtil.getEmoji('ICO_load').url)
+                                        .setAuthor('Cancelled', Assets.getEmoji('ICO_load').url)
                                         .setColor(bot.cfg.embed.default)
                                         .setDescription('Record entry has not been changed.')
             
                                         msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
                                     } else {
                                         let update = new djs.MessageEmbed()
-                                        .setAuthor('Timed out', OBUtil.getEmoji('ICO_load').url)
+                                        .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
                                         .setColor(bot.cfg.embed.default)
                                         .setDescription(`Sorry, you didn't respond in time. Please try again.`)
             

@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -12,7 +12,7 @@ const metadata = {
     short_desc: `Start a vote to ban a user. (very real command\\™️)`,
     long_desc: `Starts a vote to ban a given user. \n\n__**THIS IS A JOKE COMMAND. THIS WILL NOT ACTUALLY BAN ANYONE.**__`,
     args: `<discord user> [reason]`,
-    image: 'IMG_banhammer.png',
+    image: 'IMG_banhammer',
     authlvl: 1,
     flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
     run: null
@@ -46,7 +46,7 @@ metadata.run = (m, args, data) => {
 
         let embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
-        .setAuthor(`Vote Ban`, OBUtil.getEmoji('ICO_unban').url)
+        .setAuthor(`Vote Ban`, Assets.getEmoji('ICO_unban').url)
         .setTitle(`Vote started.`)
         .setDescription(`Banning: ${target} \nWaiting for ${bot.mainGuild.memberCount.toLocaleString()} votes...`)
         .addField(`Reason`, reason)
@@ -57,7 +57,7 @@ metadata.run = (m, args, data) => {
                     let total = bm.reactions.cache.get(bot.cfg.emoji.confirm);
                     embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.error)
-                    .setAuthor(`Vote Ban`, OBUtil.getEmoji('ICO_ban').url)
+                    .setAuthor(`Vote Ban`, Assets.getEmoji('ICO_ban').url)
                     .setTitle(`Vote ended.`)
                     .addField(`Reason`, reason)
 

@@ -1,6 +1,6 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory, LogEntry } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -16,12 +16,12 @@ const metadata = {
 metadata.run = (m, args, data) => {
     let logEntry = new LogEntry()
     .setColor(bot.cfg.embed.default)
-    .setIcon(OBUtil.getEmoji('ICO_door').url)
+    .setIcon(Assets.getEmoji('ICO_door').url)
     .setTitle(`OptiBot is now shutting down...`, `OptiBot Exit Report`)
     .addSection(`Command Issuer`, m.author)
     .submit().then(() => {
         let embed = new djs.MessageEmbed()
-        .setAuthor('Shutting down. Goodbye!', OBUtil.getEmoji('ICO_door').url)
+        .setAuthor('Shutting down. Goodbye!', Assets.getEmoji('ICO_door').url)
         .setColor(bot.cfg.embed.default);
 
         m.channel.send({embed: embed}).then(() => {

@@ -4,6 +4,7 @@ const cid = require('caller-id');
 const timeago = require("timeago.js");
 const Memory = require(`./OptiBotMemory.js`);
 const RecordEntry = require(`./OptiBotRecordEntry.js`);
+const OBUtil = require(`./OptiBotUtil.js`)
 
 module.exports = class LogEntry {
     constructor(opts = {time: new Date(), console: true, embed: true, channel: "misc"}) {
@@ -78,6 +79,32 @@ module.exports = class LogEntry {
         }
         
         return this;
+    }
+
+    error(err) {
+        return new Promise((resolve, reject) => {
+            const bot = Memory.core.client;
+            const log = bot.log;
+
+            let embed = OBUtil.err(err);
+
+            if(this.data.publishing.embed) {
+                // todo: try uploading log data, if there is any
+                if(this.data.message) {
+                    this.data.message.edit(embed).then(msg => {
+                        resolve(msg);
+                    }).catch(err => {
+                        OBUtil.err(err);
+                    })
+                } else {
+                    this.data.channel.send(embed).then(msg => {
+                        resolve(msg);
+                    }).catch(err => {
+                        OBUtil.err(err);
+                    });
+                }
+            }
+        });
     }
 
     setColor(color) {
@@ -282,17 +309,23 @@ module.exports = class LogEntry {
                         this.data.message.edit(this.embed).then(msg => {
                             resolve(msg);
                         }).catch(err => {
-                            // todo: try to log in given channel (#123)
-                            reject(err);
+                            this.error(err).then((msg) => {
+                                resolve(msg);
+                            });
                         })
                     } else {
                         this.data.channel.send(this.embed).then(msg => {
                             resolve(msg);
                         }).catch(err => {
-                            // todo: try to log in given channel (#123)
-                            reject(err);
+                            this.error(err).then((msg) => {
+                                resolve(msg);
+                            });
                         });
                     }
+                }).catch(err => {
+                    this.error(err).then((msg) => {
+                        resolve(msg);
+                    });
                 });
             }
         });

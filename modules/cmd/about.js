@@ -1,7 +1,7 @@
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, OBUtil, Memory } = require(`../core/OptiBot.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -36,7 +36,7 @@ metadata.run = (m, args, data) => {
 
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor('About', OBUtil.getEmoji('ICO_info').url)
+    .setAuthor('About', Assets.getEmoji('ICO_info').url)
     .setThumbnail(bot.user.displayAvatarURL({ format: 'png', size: 64 }))
     .setTitle(`The official OptiFine Discord server bot. \n\n`)
     .setDescription(`Developed and maintained by <@181214529340833792>, <@251778569397600256>, and <@225738946661974017> out of love for a great community.`)

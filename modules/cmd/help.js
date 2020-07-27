@@ -76,7 +76,7 @@ metadata.run = (m, args, data) => {
 
                 if (md.image) {
                     embed.attachFiles([Assets.getImage(md.image).attachment])
-                    .setThumbnail('attachment://thumbnail.png');
+                    .setThumbnail('attachment://image.png');
                 }
 
                 let restrictions = [];

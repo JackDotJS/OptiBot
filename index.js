@@ -198,6 +198,8 @@ bot.on('message', (m) => {
             // COMMAND HANDLER
             /////////////////////////////////////////////////////////////
 
+            ob.Memory.li = new Date().getTime()
+
             ob.Assets.fetchCommand(input.cmd).then(cmd => {
                 let unknownCMD = () => {
                     let ratings = [];
@@ -316,7 +318,6 @@ bot.on('message', (m) => {
                     if(!cmd.metadata.flags['NO_TYPER']) m.channel.startTyping();
                     bot.setTimeout(() => {
                         try {
-                            ob.Memory.li = new Date().getTime()
                             cmd.exec(m, input.args, {member, authlvl, input});
                         }
                         catch (err) {
@@ -334,7 +335,7 @@ bot.on('message', (m) => {
             // TIDBIT HANDLER
             /////////////////////////////////////////////////////////////
     
-            if (m.channel.type === 'dm') {
+            /* if (m.channel.type === 'dm') {
                 let embed = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.default)
                 //.setAuthor(`Hi there!`, ob.OBUtil.getEmoji('ICO_info').url)
@@ -375,12 +376,6 @@ bot.on('message', (m) => {
                                 .setAuthor(`Message Quote`, ob.OBUtil.getEmoji('ICO_quote').url)
                                 .setTitle(`Posted by ${msg.author.tag}`)
                                 .setFooter(`Quoted by ${m.author.tag}`)
-        
-                                /* if(msg.author.displayAvatarURL.endsWith('.gif')) {
-                                    embed.setThumbnail(msg.author.displayAvatarURL.substring(0, msg.author.displayAvatarURL.lastIndexOf('.')))
-                                } else {
-                                    embed.setThumbnail(msg.author.displayAvatarURL)
-                                } */
         
                                 if(msg.content.length === 0) {
                                     contents = []
@@ -433,6 +428,40 @@ bot.on('message', (m) => {
     
             if (m.mentions.has(bot.user)) {
                 m.react(bot.mainGuild.emojis.cache.get('663409134644887572'));
+            } */
+
+            let validbits = [];
+
+            for(let optibit of ob.Memory.assets.optibits) {
+                if(authlvl < optibit.metadata.authlvl) continue;
+                if(optibit.metadata.flags['NO_DM'] && m.channel.type === 'dm') continue;
+                if(optibit.metadata.flags['DM_ONLY'] && m.channel.type !== 'dm') continue;
+
+                if(optibit.validate(m, member, authlvl)) {
+                    validbits.push(optibit);
+                }
+            }
+
+            if(validbits.length > 0) {
+                ob.Memory.li = new Date().getTime()
+                
+                validbits.sort((a,b) => { a.metadata.priority - b.metadata.priority });
+                validbits.reverse();
+
+                log(util.inspect(validbits))
+
+                for(optibit of validbits) {
+                    if(validbits[0].metadata.concurrent && !optibit.metadata.concurrent) continue;
+
+                    try {
+                        optibit.exec(m, member, authlvl)
+                    }
+                    catch(err) {
+                        ob.OBUtil.err(err, {m: m})
+                    }
+
+                    if(!validbits[0].metadata.concurrent) break;
+                }
             }
         }
     }).catch(err => {
@@ -635,7 +664,9 @@ bot.on('messageDelete', m => {
 
                 ob.Memory.rdel.splice(ob.Memory.rdel.indexOf(m.id), 1);
             }
-        })
+        }).catch(err => {
+            logEntry.error(err);
+        });
     }, 500);
 });
 
@@ -1066,8 +1097,6 @@ bot.on('guildBanAdd', (guild, user) => {
             } else {
                 logEntry.addSection(`Moderator Responsible`, `Error: Unable to determine.`)
             }
-            
-            logEntry.submit()
 
             ob.OBUtil.getProfile(user.id, true).then(profile => {
                 if(!profile.edata.record) profile.edata.record = [];
@@ -1088,13 +1117,17 @@ bot.on('guildBanAdd', (guild, user) => {
 
                 ob.OBUtil.updateProfile(profile).then(() => {
                     log(`ban addition record successfully saved`)
+                    logEntry.submit()
                 }).catch(err => {
-                    ob.OBUtil.err(err);
-                })
+                    logEntry.error(err);
+                });
 
+            }).catch(err => {
+                logEntry.error(err);
             });
-
-        }).catch(err => ob.OBUtil.err(err));
+        }).catch(err => {
+            logEntry.error(err);
+        });
     }, 5000);
 });
 
@@ -1133,8 +1166,6 @@ bot.on('guildBanRemove', (guild, user) => {
             } else {
                 logEntry.addSection(`Moderator Responsible`, `Error: Unable to determine.`)
             }
-            
-            logEntry.submit()
 
             ob.OBUtil.getProfile(user.id, true).then(profile => {
                 if(!profile.edata.record) profile.edata.record = [];
@@ -1164,13 +1195,18 @@ bot.on('guildBanRemove', (guild, user) => {
 
                 ob.OBUtil.updateProfile(profile).then(() => {
                     log(`ban removal record successfully saved`)
+                    logEntry.submit()
                 }).catch(err => {
-                    ob.OBUtil.err(err);
-                })
+                    logEntry.error(err);
+                });
 
+            }).catch(err => {
+                logEntry.error(err);
             });
 
-        }).catch(err => ob.OBUtil.err(err));
+        }).catch(err => {
+            logEntry.error(err);
+        });
     }, 5000);
 });
 
@@ -1224,9 +1260,11 @@ bot.on('raw', packet => {
         // this packet does not contain the actual message data, unfortunately.
         // as of writing, this only contains the message ID, the channel ID, and the guild ID.
         bot.setTimeout(() => {
+            let logEntry = new ob.LogEntry({time: now, channel: "delete"})
+
             ob.Memory.db.msg.remove({message: packet.d.id}, {}, (err, num) => {
                 if (err) {
-                    ob.OBUtil.err(err);
+                    logEntry.error(err);
                 } else 
                 if (num > 0) {
                     log(`Bot message deleted natively.`);
@@ -1242,14 +1280,13 @@ bot.on('raw', packet => {
                 `Message originally posted on ${mt.toUTCString()}`,
                 `(${timeago.format(mt)})`
             ];
-
-            let logEntry = new ob.LogEntry({time: now, channel: "delete"})
-            .setColor(bot.cfg.embed.error)
+            
+            logEntry.setColor(bot.cfg.embed.error)
             .setIcon(ob.OBUtil.getEmoji('ICO_trash').url)
             .setTitle(`(Uncached) Message Deleted`, `Uncached Message Deletion Report`)
             .setDescription(desc.join('\n'), desc.join(' '))
             .addSection(`Message Location`, `${bot.channels.cache.get(packet.d.channel_id).toString()} | [Direct URL](https://discordapp.com/channels/${packet.d.guild_id}/${packet.d.channel_id}/${packet.d.id}) (deleted)`)
-            logEntry.submit()
+            .submit()
         }, 100);
     }
 });

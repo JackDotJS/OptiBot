@@ -65,6 +65,64 @@ module.exports = class LogEntry {
         return str;
     }
 
+    _compilePlaintext() {
+        let plaintext = [];
+        let w = 64;
+        let div = `#`.repeat(w);
+
+        let center = (text, width) => {
+            if(text.length > width) return text;
+            
+            let left = Math.floor((width - (text.length)) / 2);
+            let right = Math.ceil((width - (text.length)) / 2);
+
+            return `${" ".repeat(left)}${text}${` `.repeat(right)}`;
+        }
+
+        plaintext.push(
+            center(this.ptd.report, w),
+            center(`${this.data.time.toUTCString()}`, w),
+            center(`${this.data.caller} (approx.)`, w),
+            ``,
+            div,
+            ``,
+            this.ptd.title || `<Untitled>`,
+            ``,
+        )
+
+        if(this.ptd.header) {
+            plaintext.push(
+                `------ ${this.ptd.header} ------`,
+                ``,
+            );
+        }
+
+        if(this.ptd.description) {
+            plaintext.push(
+                this.ptd.description,
+                ``,
+            );
+        }
+
+        if(this.ptd.sections.length > 0) {
+            for(let i = 0; i < this.ptd.sections.length; i++) {
+                let section = this.ptd.sections[i];
+
+                plaintext.push(
+                    `--- ${section.title} ---`,
+                    section.content,
+                    ``,
+                )
+
+                if(i+1 < this.ptd.sections.length) {
+                    plaintext.push(``);
+                }
+            }
+        }
+
+        return plaintext.join('\n');
+    }
+
     preLoad() {
         const bot = Memory.core.client;
 
@@ -87,22 +145,37 @@ module.exports = class LogEntry {
             const log = bot.log;
 
             let embed = OBUtil.err(err);
+            let plaintext = this._compilePlaintext();
+
+            embed.setFooter([
+                `Click on embed title to download plaintext report.`,
+                `Some log data may be corrupt or missing due to this error.`,
+                `Event logged on ${this.data.time.toUTCString()}`
+            ].join('\n'))
+            .setTimestamp(this.data.time)
 
             if(this.data.publishing.embed) {
-                // todo: try uploading log data, if there is any
-                if(this.data.message) {
-                    this.data.message.edit(embed).then(msg => {
-                        resolve(msg);
-                    }).catch(err => {
-                        OBUtil.err(err);
-                    })
-                } else {
-                    this.data.channel.send(embed).then(msg => {
-                        resolve(msg);
-                    }).catch(err => {
-                        OBUtil.err(err);
-                    });
-                }
+                bot.guilds.cache.get(bot.cfg.guilds.optibot).channels.cache.get(bot.cfg.channels.logFiles).send({
+                    files: [new djs.MessageAttachment(Buffer.from(plaintext), `${this.ptd.report.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_')}.txt`)]
+                }).then(att => {
+                    embed.author.url = [...att.attachments.values()][0].url
+
+                    if(this.data.message) {
+                        this.data.message.edit(embed).then(msg => {
+                            resolve(msg);
+                        }).catch(err => {
+                            OBUtil.err(err);
+                        })
+                    } else {
+                        this.data.channel.send(embed).then(msg => {
+                            resolve(msg);
+                        }).catch(err => {
+                            OBUtil.err(err);
+                        });
+                    }
+                }).catch(err => {
+                    OBUtil.err(err);
+                });
             }
         });
     }
@@ -235,61 +308,7 @@ module.exports = class LogEntry {
             const bot = Memory.core.client;
             const log = bot.log;
 
-            let plaintext = [];
-            let w = 64;
-            let div = `#`.repeat(w);
-
-            let center = (text, width) => {
-                if(text.length > width) return text;
-                
-                let left = Math.floor((width - (text.length)) / 2);
-                let right = Math.ceil((width - (text.length)) / 2);
-
-                return `${" ".repeat(left)}${text}${` `.repeat(right)}`;
-            }
-
-            plaintext.push(
-                center(this.ptd.report, w),
-                center(`${this.data.time.toUTCString()}`, w),
-                center(`${this.data.caller} (approx.)`, w),
-                ``,
-                div,
-                ``,
-                this.ptd.title || `<Untitled>`,
-                ``,
-            )
-
-            if(this.ptd.header) {
-                plaintext.push(
-                    `------ ${this.ptd.header} ------`,
-                    ``,
-                );
-            }
-
-            if(this.ptd.description) {
-                plaintext.push(
-                    this.ptd.description,
-                    ``,
-                );
-            }
-
-            if(this.ptd.sections.length > 0) {
-                for(let i = 0; i < this.ptd.sections.length; i++) {
-                    let section = this.ptd.sections[i];
-
-                    plaintext.push(
-                        `--- ${section.title} ---`,
-                        section.content,
-                        ``,
-                    )
-
-                    if(i+1 < this.ptd.sections.length) {
-                        plaintext.push(``);
-                    }
-                }
-            }
-
-            plaintext = plaintext.join('\n');
+            let plaintext = this._compilePlaintext();
 
             if(this.data.publishing.console) {
                 log(`\n\n\n${plaintext}\n\n\n`, 'info');
@@ -297,7 +316,7 @@ module.exports = class LogEntry {
 
             if(this.data.publishing.embed) {
                 bot.guilds.cache.get(bot.cfg.guilds.optibot).channels.cache.get(bot.cfg.channels.logFiles).send({
-                    files: [new djs.MessageAttachment(Buffer.from(plaintext), `${this.ptd.report.toLowerCase().replace(' ', '_')}.txt`)]
+                    files: [new djs.MessageAttachment(Buffer.from(plaintext), `${this.ptd.report.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_')}.txt`)]
                 }).then(att => {
                     if(this.embed.author) {
                         this.embed.author.url = [...att.attachments.values()][0].url

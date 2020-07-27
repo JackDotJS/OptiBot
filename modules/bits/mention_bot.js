@@ -7,28 +7,22 @@ const bot = Memory.core.client;
 const log = bot.log;
 
 const metadata = {
-    name: 'Template',
+    name: 'Bot Mention Reactor',
     description: `Description.`,
-    usage: `Usage Example?`,
-    image: 'IMG_args',
-    priority: -1,
+    priority: 0,
     concurrent: true,
-    authlvl: 5,
+    authlvl: 0,
     flags: ['DM_OPTIONAL', 'HIDDEN'],
     validator: null,
     run: null
 }
 
 metadata.validator = (m, member, authlvl) => {
-    return m.content.match(/examplebit/i);
+    return m.mentions.has(bot.user)
 }
 
 metadata.executable = (m, member, authlvl) => {
-    let embed = new djs.MessageEmbed()
-    .setAuthor(`Example MessageEmbed`)
-    .setColor(bot.cfg.embed.default)
-
-    m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
+    m.react(bot.mainGuild.emojis.cache.get('663409134644887572'));
 }
 
 module.exports = new OptiBit(metadata);

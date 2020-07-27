@@ -192,24 +192,26 @@ module.exports = class OptiBotUtilities {
         const bot = Memory.core.client;
         const log = bot.log;
 
-        if (['previous', 'last', 'recent', 'prev'].includes(target.toLowerCase())) {
-            log('last target')
-            if(Memory.targets[m.author.id] !== undefined) {
-                log('exists')
-                if(type === 0) {
-                    target = Memory.targets[m.author.id].u;
-                } else
-                if(type === 1) {
-                    target = Memory.targets[m.author.id].m;
-                }
-            } else {
-                log('does not exist')
-            }
-        }
-
         return new Promise((resolve, reject) => {
             log(`get target from ${target}`);
             log(`select type ${type}`);
+
+            if(!target) return resolve();
+
+            if (['previous', 'last', 'recent', 'prev'].includes(target.toLowerCase())) {
+                log('last target')
+                if(Memory.targets[m.author.id] !== undefined) {
+                    log('exists')
+                    if(type === 0) {
+                        target = Memory.targets[m.author.id].u;
+                    } else
+                    if(type === 1) {
+                        target = Memory.targets[m.author.id].m;
+                    }
+                } else {
+                    log('does not exist')
+                }
+            }
 
             function remember(final) {
                 let final_fixed = final;

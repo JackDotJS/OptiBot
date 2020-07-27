@@ -28,6 +28,7 @@ const memory = {
     db: {
         msg: new database({ filename: './data/messages.db', autoload: true }), // react-deletion cache
         profiles: new database({ filename: './data/profiles.db', autoload: true }), // optibot profiles
+        cprofiles: new database({ filename: './data/profiles_original.db', autoload: true }), // OLD optibot profiles
         stats: new database({ filename: './data/statistics.db', autoload: true }), // server statistics
         smr: new database({ filename: './data/smr.db', autoload: true }), 
         bl: new database({ filename: './data/blacklist.db', autoload: true }),

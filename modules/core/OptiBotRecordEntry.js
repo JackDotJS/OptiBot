@@ -6,7 +6,8 @@ const Memory = require(`./OptiBotMemory.js`);
 module.exports = class RecordEntry {
     constructor(raw = {}) {
         Memory.core.client.log(util.inspect(raw));
-        
+
+        // please kill me
         this.date = (raw.date !== undefined && raw.date !== null) ? raw.date : new Date().getTime();
         this.moderator = (raw.moderator !== undefined) ? raw.moderator : null;
         this.url = (raw.url !== undefined) ? raw.url : null;
@@ -25,6 +26,7 @@ module.exports = class RecordEntry {
         };
         this.pardon = (raw.pardon) ? raw.pardon : null;
         this.edits = (raw.edits) ? raw.edits : null;
+        this.index = (raw.index) ? raw.index : null;
 
         Object.defineProperty(this, 'raw', {
             get: () => {

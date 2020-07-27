@@ -17,7 +17,7 @@ module.exports = class OptiBot extends djs.Client {
         const prefix = (mode === 0) ? cfg.prefixes.debug[0] : cfg.prefixes.default[0]; // first in array is always default, but all others will be accepted during real usage.
 
         let exit = new Date()
-        exit.setUTCHours(8, 0, 0, 0); // 1 AM US Pacific, 4 AM US Eastern
+        exit.setUTCHours(8, 0, 0, 0); // 8 AM = 1 AM US Pacific, 4 AM US Eastern
 
         if(exit.getTime() - new Date().getTime() < 0) {
             exit.setUTCDate(exit.getUTCDate()+1)

@@ -18,8 +18,8 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
     OBUtil.parseTarget(m, 0, args[0], data.member).then(result => {
-        if(!result || data.authlvl < 2) {
-            if(args[0] && data.authlvl >= 2) {
+        if(!result || data.authlvl < 2 || result.id === m.author.id) {
+            if(!result && args[0] && data.authlvl >= 2) {
                 OBUtil.err(`You must specify a valid user.`, {m:m});
             } else {
                 OBUtil.getProfile(m.author.id, false).then(profile => {
@@ -86,9 +86,21 @@ metadata.run = (m, args, data) => {
                     m.channel.send('_ _', {embed: embed}).then(msg => {
                         OBUtil.confirm(m, msg).then(res => {
                             if(res === 1) {
-                                delete profile.ndata.quote;
+                                let logEntry = new LogEntry({channel: "moderation"})
+                                .setColor(bot.cfg.embed.default)
+                                .setIcon(Assets.getEmoji('ICO_warn').url)
+                                .setTitle(`Profile Quote Deleted`, `Profile Quote Deletion Report`)
+                                .addSection(`Member`, result.target)
+                                .addSection(`Moderator Responsible`, m.author)
+                                .addSection(`Command Location`, m)
 
-                                log(profile);
+                                if(result.type !== 'id') {
+                                    logEntry.setThumbnail(((result.type === "user") ? result.target : result.target.user).displayAvatarURL({format:'png'}))
+                                }
+
+                                logEntry.addSection(`Quote`, profile.ndata.quote)
+
+                                delete profile.ndata.quote;
     
                                 OBUtil.updateProfile(profile).then(() => {
                                     let update = new djs.MessageEmbed()
@@ -97,9 +109,11 @@ metadata.run = (m, args, data) => {
                                     .setDescription(`${result.mention}'s profile has been updated.`)
 
                                     msg.channel.stopTyping(true);
-                
+                                    logEntry.submit();
                                     msg.edit({embed: update})//.then(msg => { OBUtil.afterSend(msg, m.author.id); });
-                                });
+                                }).catch(err => {
+                                    logEntry.error(err);
+                                })
                             } else
                             if(res === 0) {
                                 let update = new djs.MessageEmbed()

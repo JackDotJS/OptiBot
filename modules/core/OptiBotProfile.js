@@ -42,6 +42,7 @@ module.exports = class OptiBotProfile {
 
             let children = [];
             let found = null;
+            let index = null;
             let record = this.edata.record;
 
             for(let i = 0; i < record.length; i++) {
@@ -51,14 +52,17 @@ module.exports = class OptiBotProfile {
                     children.push(entry.date);
                 } else
                 if(entry.date === target) {
+                    index = i;
                     found = entry;
                     // not using break here because we still need to find any children of this entry
                 }
             }
 
-            if(found === null) {
+            if(!found) {
                 resolve(null)
             } else {
+                found.index = index;
+                
                 if(children.length > 0) {
                     found.children = children;
                 }

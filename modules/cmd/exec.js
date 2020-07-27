@@ -32,10 +32,13 @@ metadata.run = (m, args, data) => {
             let info = [
                 `Execution Time: ${(execEnd - execStart).toLocaleString()}ms (${(execEnd - execStart) / 1000} seconds)`,
                 `Typeof: ${typeof output}`,
-                `Constructor: ${output.constructor.name}`
             ];
             let result = []
             let contents = []
+
+            if(output != null) {
+                info.push(`Constructor: ${output.constructor.name}`);
+            }
 
             function compileContents() {
                 contents.push(
@@ -76,7 +79,7 @@ metadata.run = (m, args, data) => {
                         `\`\`\`javascript\n${inspect} \`\`\``
                     );
                     info.push(
-                        `Output Length: ${raw.length.toLocaleString()} characters`
+                        `Output Text Length: ${raw.length.toLocaleString()} characters`
                     )
                 } else {
                     result.push(
@@ -86,8 +89,8 @@ metadata.run = (m, args, data) => {
                         `\`\`\`javascript\n${inspect} \`\`\``
                     );
                     info.push(
-                        `Raw Output Length: ${raw.length.toLocaleString()} characters`,
-                        `Inspected Output Length: ${inspect.length.toLocaleString()} characters`
+                        `Raw Output Text Length: ${raw.length.toLocaleString()} characters`,
+                        `Inspected Output Text Length: ${inspect.length.toLocaleString()} characters`
                     )
                 }
 

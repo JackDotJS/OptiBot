@@ -185,13 +185,13 @@ bot.on('message', (m) => {
         }
     }
 
-    let input = ob.OBUtil.parseInput(m.content);
-
     bot.mainGuild.members.fetch({ user: m.author.id, cache: true }).then(member => {
         let authlvl = ob.OBUtil.getAuthlvl(member);
 
         if(authlvl < 4 && bot.mode === 0 && m.author.id !== "271760054691037184") return;
         if(authlvl < 1 && bot.mode === 1 && m.author.id !== "271760054691037184") return;
+
+        let input = ob.OBUtil.parseInput(m.content);
 
         if(input.valid) {
             /////////////////////////////////////////////////////////////
@@ -223,16 +223,7 @@ bot.on('message', (m) => {
                         ratings.push(rating);
                     });
     
-                    ratings.sort((a, b) => {
-                        if (a.distance < b.distance) {
-                            return 1;
-                        } else 
-                        if (a.distance > b.distance) {
-                            return -1;
-                        } else {
-                            return 0;
-                        }
-                    });
+                    ratings.sort((a, b) => b.distance - a.distance);
     
                     let closest = ratings[0];
     
@@ -285,10 +276,13 @@ bot.on('message', (m) => {
 
                     if(m.channel.type === 'dm') {
                         loc = 'DM';
-                    } else if(m.guild.id === bot.cfg.guilds.optibot) {
+                    } else 
+                    if(m.guild.id === bot.cfg.guilds.optibot) {
                         loc = `OB:#${m.channel.name}`;
+                    } else
+                    if(m.guild.id === bot.cfg.guilds.donator) {
+                        loc = `DR:#${m.channel.name}`;
                     }
-
 
                     log(`[${loc}] [L${authlvl}] ${m.author.tag} (${m.author.id}) Command issued: ${logargs}`, 'info')
                 }
@@ -334,101 +328,6 @@ bot.on('message', (m) => {
             /////////////////////////////////////////////////////////////
             // TIDBIT HANDLER
             /////////////////////////////////////////////////////////////
-    
-            /* if (m.channel.type === 'dm') {
-                let embed = new djs.MessageEmbed()
-                .setColor(bot.cfg.embed.default)
-                //.setAuthor(`Hi there!`, ob.OBUtil.getEmoji('ICO_info').url)
-                .setTitle('Hi there!')
-                .setDescription(`For a list of commands, type \`${bot.prefix}list\`. If you've donated and you'd like to receive your donator role, type \`${bot.prefix}help dr\` for instructions.`)
-    
-                m.channel.send({ embed: embed });
-            } else
-            if(m.content.match(/discordapp\.com|discord.com/i)) {
-                ob.Memory.li = new Date().getTime()
-                let urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
-    
-                if(urls !== null) {
-                    for(let link of urls) {
-                        let seg = link.split(/(?<!\/)\/(?!\/)|(?<!\\)\\(?!\\)/g).reverse();
-    
-                        if(link.match(/discordapp\.com|discord.com/i) && seg.length === 5 && !isNaN(parseInt(seg[0])) && !isNaN(parseInt(seg[1])) && !isNaN(parseInt(seg[2]))) {
-                            foundQuote(seg);
-                            break;
-                        }
-                    }
-    
-                    function foundQuote(seg) {
-                        let rg = seg[2];
-                        let rc = seg[1];
-                        let rm = seg[0];
-    
-                        let guild = bot.guilds.cache.get(rg);
-                        let channel;
-                        if(guild !== undefined) channel = guild.channels.cache.get(rc);
-    
-                        if(channel !== undefined) {
-                            channel.messages.fetch(rm).then(msg => {
-                                let contents = msg.content;
-                                let image = null;
-                                let embed = new djs.MessageEmbed()
-                                .setColor(bot.cfg.embed.default)
-                                .setAuthor(`Message Quote`, ob.OBUtil.getEmoji('ICO_quote').url)
-                                .setTitle(`Posted by ${msg.author.tag}`)
-                                .setFooter(`Quoted by ${m.author.tag}`)
-        
-                                if(msg.content.length === 0) {
-                                    contents = []
-                                    if(msg.embeds.length > 0) {
-                                        contents.push(`\`[${msg.embeds.length} Embed(s)]\``);
-                                    }
-        
-                                    if(msg.attachments.size > 0) {
-                                        let attURL = msg.attachments.first().url;
-                                        if(attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
-                                            image = attURL;
-        
-                                            if((msg.attachments.size - 1) > 0) {
-                                                contents.push(`\`[${msg.attachments.size} Attachment(s)]\``);
-                                            }
-                                        } else {
-                                            contents.push(`\`[${msg.attachments.size} Attachment(s)]\``);
-                                        }
-                                    }
-        
-                                    if(contents.length > 0) {
-                                        contents = contents.join('\n');
-                                    }
-                                } else
-                                if(msg.attachments.size > 0) {
-                                    let attURL = msg.attachments.first().url;
-                                    if(attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
-                                        image = attURL;
-                                    }
-                                }
-        
-                                if(contents.length !== 0) {
-                                    embed.setDescription(contents);
-                                }
-        
-                                if(image !== null) {
-                                    embed.setImage(image);
-                                }
-        
-                                m.channel.send({embed: embed}).then(bm => ob.OBUtil.afterSend(bm, m.author.id));
-                            }).catch(err => {
-                                if(err.stack.toLowerCase().indexOf('unknown message') === -1) {
-                                    ob.OBUtil.err(err);
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-    
-            if (m.mentions.has(bot.user)) {
-                m.react(bot.mainGuild.emojis.cache.get('663409134644887572'));
-            } */
 
             let validbits = [];
 
@@ -454,6 +353,19 @@ bot.on('message', (m) => {
                     if(validbits[0].metadata.concurrent && !optibit.metadata.concurrent) continue;
 
                     try {
+                        let loc = `#${m.channel.name}`;
+
+                        if(m.channel.type === 'dm') {
+                            loc = 'DM';
+                        } else 
+                        if(m.guild.id === bot.cfg.guilds.optibot) {
+                            loc = `OB:#${m.channel.name}`;
+                        } else
+                        if(m.guild.id === bot.cfg.guilds.donator) {
+                            loc = `DR:#${m.channel.name}`;
+                        }
+
+                        log(`[${loc}] [L${authlvl}] ${m.author.tag} (${m.author.id}) OptiBit Executed: "${optibit.metadata.name}"`, 'info')
                         optibit.exec(m, member, authlvl)
                     }
                     catch(err) {

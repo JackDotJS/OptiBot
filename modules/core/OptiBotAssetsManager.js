@@ -60,6 +60,7 @@ module.exports = class OptiBotAssetsManager {
                         const ob = require('./OptiBot.js');
     
                         delete require.cache[require.resolve(`./OptiBotCommand.js`)];
+                        delete require.cache[require.resolve(`./OptiBotBit.js`)];
                         delete require.cache[require.resolve(`./OptiBotProfile.js`)];
                         delete require.cache[require.resolve(`./OptiBotLogEntry.js`)];
                         delete require.cache[require.resolve(`./OptiBotRecordEntry.js`)];

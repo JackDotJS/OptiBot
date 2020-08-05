@@ -23,7 +23,7 @@ module.exports = class OptiBit {
     static parseMetadata({
         name =  null,
         description = `This OptiBit has no set description.`,
-        usage = ``,
+        usage = null,
         image = null,
         priority = 0,
         concurrent = false,
@@ -41,7 +41,7 @@ module.exports = class OptiBit {
         if(typeof description !== 'string') {
             throw new TypeError(`Invalid OptiBit property: description`)
         }
-        if(typeof usage !== 'string' && !Array.isArray(usage)) {
+        if(typeof usage !== 'string') {
             throw new TypeError(`Invalid OptiBit property: usage`)
         }
         if(typeof image !== 'string' && typeof image !== 'undefined' && image !== null) {
@@ -69,8 +69,7 @@ module.exports = class OptiBit {
         const metadata = {
             name: name,
             description: description,
-            usage: null,
-            usage_pt: null,
+            usage: usage,
 
             // Image to be shown as a thumbnail when this OptiBit is viewed through !bits.
             // Must be a plain string specifying a complete filename from the ../assets/img directory.
@@ -105,7 +104,7 @@ module.exports = class OptiBit {
                 // OptiBit can ONLY be used in Direct Messages
                 DM_ONLY: false, 
     
-                // Do not list this OptiBit in !bits
+                // Do not list this OptiBit in !optibits
                 HIDDEN: false,
 
                 // Preserve OptiBit during Modes 1 and 2.
@@ -148,24 +147,6 @@ module.exports = class OptiBit {
             }
         } else {
             if(authlvl !== 5) metadata.authlvl = 5;
-        }
-
-        if(Array.isArray(usage) && usage.length > 0) {
-            let examples = [];
-            let examplesRaw = [];
-            for(let i = 0; i < usage.length; i++) {
-                examples.push(`\`\`\`ini\n${usage[i]}\`\`\``)
-                examplesRaw.push(`${usage[i]}`)
-
-                if(i+1 === usage.length) {
-                    metadata.usage = examples.join('');
-                    metadata.usage_pt = examplesRaw.join('\n');
-                }
-            }
-        } else
-        if(typeof usage === 'string') {
-            metadata.usage = `\`\`\`ini\n${usage}\`\`\``;
-            metadata.usage_pt = `${usage}`;
         }
 
         return metadata;

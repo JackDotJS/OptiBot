@@ -38,6 +38,49 @@ metadata.run = (m, args, data) => {
 
             if(output != null) {
                 info.push(`Constructor: ${output.constructor.name}`);
+
+                if(Array.isArray(output)) {
+                    let itemTypes = [];
+
+                    for(item of output) {
+                        if(item === null) {
+                            itemTypes.push('null')
+                        } else
+                        if(item === undefined) {
+                            itemTypes.push('undefined')
+                        } else {
+                            itemTypes.push(`${item.constructor.name}`)
+                        }
+                    }
+
+                    info.push(
+                        `Array Length: ${output.length}`,
+                        `Array Item Types: ${[...new Set(itemTypes)].join(', ')}`,
+                    )
+                } else
+                if(output.constructor === Object) {
+                    let keys = Object.keys(output);
+
+                    let itemTypes = [];
+
+                    for(let i = 0; i < keys.length; i++) {
+                        let value = output[keys[i]];
+
+                        if(value === null) {
+                            itemTypes.push('null')
+                        } else
+                        if(value === undefined) {
+                            itemTypes.push('undefined')
+                        } else {
+                            itemTypes.push(`${value.constructor.name}`)
+                        }
+                    }
+
+                    info.push(
+                        `Object Keys: ${keys.length}`,
+                        `Object Value Types: ${[...new Set(itemTypes)].join(', ')}`
+                    )
+                }
             }
 
             function compileContents() {
@@ -76,7 +119,7 @@ metadata.run = (m, args, data) => {
                 if(raw === inspect) {
                     result.push(
                         `Output:`,
-                        `\`\`\`javascript\n${inspect} \`\`\``
+                        `\`\`\`javascript\n${djs.Util.escapeCodeBlock(inspect)} \`\`\``
                     );
                     info.push(
                         `Output Text Length: ${raw.length.toLocaleString()} characters`
@@ -84,9 +127,9 @@ metadata.run = (m, args, data) => {
                 } else {
                     result.push(
                         `Raw Output:`,
-                        `\`\`\`${raw} \`\`\``,
+                        `\`\`\`${djs.Util.escapeCodeBlock(raw)} \`\`\``,
                         `Inspected Output:`,
-                        `\`\`\`javascript\n${inspect} \`\`\``
+                        `\`\`\`javascript\n${djs.Util.escapeCodeBlock(inspect)} \`\`\``
                     );
                     info.push(
                         `Raw Output Text Length: ${raw.length.toLocaleString()} characters`,

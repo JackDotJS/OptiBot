@@ -34,7 +34,7 @@ metadata.run = (m, args, data) => {
         .setThumbnail(bot.user.displayAvatarURL({format: 'png', size:64}))
         .setDescription(desc.join('\n'))
         .addField('Commands List', `\`\`\`${bot.prefix}list\`\`\``)
-        .addField('Other Features', `\`\`\`${bot.prefix}bits\`\`\``)
+        .addField('Other Features', `\`\`\`${bot.prefix}optibits\`\`\``)
 
         m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
     } else {
@@ -55,13 +55,11 @@ metadata.run = (m, args, data) => {
                 .setDescription(md.long_desc)
                 .addField('Usage', md.args)
 
-                
-
                 if (md.aliases.length > 0) {
                     embed.addField('Alias(es)', `\`\`\`${bot.prefix}${md.aliases.join(`, ${bot.prefix}`)}\`\`\``)
                 }
 
-                if (data.authlvl >= 5 && (bot.cfg.channels.mod.indexOf(m.channel.id) > -1 || bot.cfg.channels.mod.indexOf(m.channel.parentID) > -1)) {
+                if (data.authlvl >= 5 && (m.channel.type === 'dm' || [m.channel.id, m.channel.parentID].some(e => bot.cfg.channels.mod.includes(e)))) {
                     let taglist = [];
 
                     Object.keys(md.flags).forEach((tag) => {

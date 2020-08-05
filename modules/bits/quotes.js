@@ -9,7 +9,7 @@ const log = bot.log;
 const metadata = {
     name: 'Message Quotes',
     description: `todo`,
-    usage: `<any message URL>`,
+    usage: `Simply post any Discord message URL.`,
     priority: 1,
     concurrent: false,
     authlvl: 0,

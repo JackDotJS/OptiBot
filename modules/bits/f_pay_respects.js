@@ -7,28 +7,25 @@ const bot = Memory.core.client;
 const log = bot.log;
 
 const metadata = {
-    name: 'Template',
+    name: 'F in the chat',
     description: `Description.`,
-    usage: `Usage Example?`,
-    image: 'IMG_args',
-    priority: -1,
+    usage: `Self-explanatory.`,
+    priority: 0,
     concurrent: false,
-    authlvl: 5,
+    authlvl: 0,
     flags: ['DM_OPTIONAL', 'HIDDEN'],
     validator: null,
     run: null
 }
 
 metadata.validator = (m, member, authlvl) => {
-    return m.content.match(/examplebit/i);
+    return (m.content.toLowerCase().trim() === 'f');
 }
 
 metadata.executable = (m, member, authlvl) => {
-    let embed = new djs.MessageEmbed()
-    .setAuthor(`Example MessageEmbed`)
-    .setColor(bot.cfg.embed.default)
-
-    m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
+    m.react('🇫').catch((err) => {
+        OBUtil.err(err);
+    });
 }
 
 module.exports = new OptiBit(metadata);

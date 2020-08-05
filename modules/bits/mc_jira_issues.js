@@ -7,28 +7,23 @@ const bot = Memory.core.client;
 const log = bot.log;
 
 const metadata = {
-    name: 'Template',
-    description: `Description.`,
-    usage: `Usage Example?`,
-    image: 'IMG_args',
-    priority: -1,
-    concurrent: false,
-    authlvl: 5,
+    name: 'Mojang JIRA Issue Detector',
+    description: `todo`,
+    usage: `Type \` MC- \` immediately followed by a series of numbers, like so: \` MC-123456 \`. Does not work if the overall number is NOT surrounded by empty space, periods, or any other word-ending characters (e.g, brackets \` [] \` and parenthesis \` () \`).`,
+    priority: 2,
+    concurrent: true,
+    authlvl: 50,
     flags: ['DM_OPTIONAL', 'HIDDEN'],
     validator: null,
     run: null
 }
 
 metadata.validator = (m, member, authlvl) => {
-    return m.content.match(/examplebit/i);
+    //todo
 }
 
 metadata.executable = (m, member, authlvl) => {
-    let embed = new djs.MessageEmbed()
-    .setAuthor(`Example MessageEmbed`)
-    .setColor(bot.cfg.embed.default)
-
-    m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
+    //todo
 }
 
 module.exports = new OptiBit(metadata);

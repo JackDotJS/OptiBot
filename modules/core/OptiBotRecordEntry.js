@@ -5,58 +5,64 @@ const Memory = require(`./OptiBotMemory.js`);
 
 module.exports = class RecordEntry {
     constructor(raw = {}) {
-        Memory.core.client.log(util.inspect(raw));
+        try {
+            Memory.core.client.log(util.inspect(raw));
 
-        // please kill me
-        this.date = (raw.date != null) ? raw.date : new Date().getTime();
-        this.moderator = (raw.moderator != null) ? raw.moderator : null;
-        this.url = (raw.url != null) ? raw.url : null;
-        this.action = (raw.action != null) ? raw.action : null;
-        this.actionType = (raw.actionType != null) ? raw.actionType : null;
-        this.reason = (raw.reason != null) ? raw.reason : null;
-        this.details = (raw.details != null) ? raw.details : null;
-        this.parent = (raw.parent != null) ? raw.parent : null;
-        this.children = [];
-        this.display = {
-            id: null,
-            parent: null,
-            children: null,
-            icon: null,
-            action: null,
-        };
-        this.pardon = (raw.pardon) ? raw.pardon : null;
-        this.edits = (raw.edits) ? raw.edits : null;
-        this.index = (raw.index) ? raw.index : null;
+            // please kill me
+            this.date = (raw.date != null) ? raw.date : new Date().getTime();
+            this.moderator = (raw.moderator != null) ? raw.moderator : null;
+            this.url = (raw.url != null) ? raw.url : null;
+            this.action = (raw.action != null) ? raw.action : null;
+            this.actionType = (raw.actionType != null) ? raw.actionType : null;
+            this.reason = (raw.reason != null) ? raw.reason : null;
+            this.details = (raw.details != null) ? raw.details : null;
+            this.parent = (raw.parent != null) ? raw.parent : null;
+            this.children = [];
+            this.display = {
+                id: null,
+                parent: null,
+                children: null,
+                icon: null,
+                action: null,
+            };
+            this.pardon = (raw.pardon) ? raw.pardon : null;
+            this.edits = (raw.edits) ? raw.edits : null;
+            this.index = (raw.index) ? raw.index : null;
 
-        if(this.date.constructor === Date) this.date = this.date.getTime();
+            if(this.date.constructor === Date) this.date = this.date.getTime();
 
-        Object.defineProperty(this, 'raw', {
-            get: () => {
+            Object.defineProperty(this, 'raw', {
+                get: () => {
 
-                let pardonTemp = this.pardon;
+                    let pardonTemp = this.pardon;
 
-                if(pardonTemp && pardonTemp.admin.constructor === djs.User) {
-                    pardonTemp.admin = pardonTemp.admin.id;
+                    if(pardonTemp && pardonTemp.admin.constructor === djs.User) {
+                        pardonTemp.admin = pardonTemp.admin.id;
+                    }
+
+                    let rawData = {
+                        date: this.date,
+                        moderator: (this.moderator.constructor === djs.User) ? this.moderator.id : this.moderator,
+                        url: this.url,
+                        action: this.action,
+                        actionType: this.actionType,
+                        reason: this.reason,
+                        details: this.details,
+                        parent: this.parent,
+                        pardon: pardonTemp,
+                        edits: this.edits
+                    }
+            
+                    return rawData;
                 }
+            })
 
-                let rawData = {
-                    date: this.date,
-                    moderator: (this.moderator.constructor === djs.User) ? this.moderator.id : this.moderator,
-                    url: this.url,
-                    action: this.action,
-                    actionType: this.actionType,
-                    reason: this.reason,
-                    details: this.details,
-                    parent: this.parent,
-                    pardon: pardonTemp,
-                    edits: this.edits
-                }
-        
-                return rawData;
-            }
-        })
-
-        this._def();
+            this._def();
+        }
+        catch(err) {
+            Memory.core.client.log(err);
+            Memory.core.client.log('WHAT THE FUCK')
+        }
     }
 
     _def() {

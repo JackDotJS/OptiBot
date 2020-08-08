@@ -978,13 +978,17 @@ bot.on('guildBanAdd', (guild, user) => {
     var logEntry = new ob.LogEntry({time: now, channel: "moderation"})
     .preLoad()
 
+    log(util.inspect(guild));
+
+    log(util.inspect(user));
+
     log('ban: got here')
 
     bot.setTimeout(() => {
         log('ban: got here')
         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_ADD' }).then((audit) => {
             log('ban: got here')
-            
+
             let ad = [...audit.entries.values()];
 
             let mod = ob.Memory.rban[user.id];
@@ -1000,16 +1004,24 @@ bot.on('guildBanAdd', (guild, user) => {
             log('ban: got here')
             
             logEntry.setColor(bot.cfg.embed.error)
-            .setIcon(ob.OBUtil.getEmoji('ICO_ban').url)
-            .setThumbnail(user.displayAvatarURL({format:'png'}))
-            .setTitle(`Member Banned`, `Member Ban Report`)
-            .addSection(`Banned Member`, user)
+            log('ban: got here')
+            logEntry.setIcon(ob.OBUtil.getEmoji('ICO_ban').url)
+            log('ban: got here')
+            logEntry.setThumbnail(user.displayAvatarURL({format:'png'}))
+            log('ban: got here')
+            logEntry.setTitle(`Member Banned`, `Member Ban Report`)
+            log('ban: got here')
+            logEntry.addSection(`Banned Member`, user)
+
+            log('ban: got here')
 
             if(reason) {
                 logEntry.setHeader(`Reason: ${reason}`)
             } else {
                 logEntry.setHeader(`No reason provided.`)
             }
+
+            log('ban: got here')
 
             if(mod) {
                 logEntry.addSection(`Moderator Responsible`, mod);

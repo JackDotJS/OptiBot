@@ -133,9 +133,10 @@ module.exports = class LogEntry {
 
             this.data.channel.send(embed).then(msg => {
                 this.data.message = msg;
-                return this;
             });
-        } else return this;
+        }
+
+        return this;
     }
 
     error(err) {

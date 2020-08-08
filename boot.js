@@ -298,6 +298,18 @@ function init() {
         log(content, 'fatal', 'index.js:NULL');
         chunks_err = [];
     });
+    bot.stderr.on('readable', () => {
+        let data;
+      
+        while (data = this.read()) {
+            log(data, 'warn', 'index.js:TEST');
+        }
+    });
+    bot.stderr.on('pause', () => {
+        let content = Buffer.concat(chunks_err).toString();
+        log(content, 'fatal', 'index.js:NULL');
+        chunks_err = [];
+    });
 
     bot.on('message', (data) => {
         if(data.type === 'log') {

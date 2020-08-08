@@ -1072,7 +1072,7 @@ bot.on('guildBanAdd', (guild, user) => {
                 });
             }
             catch(err) {
-                log(err)
+                log(util.inspect(err))
                 log('what the fuck is happening')
             }
             

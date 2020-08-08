@@ -92,6 +92,8 @@ metadata.run = (m, args, data) => {
             let isUpdate = false;
             if (rvt.reasonText.length > 0) rvt.reasonAdded = true;
 
+            log('mute: made it here');
+
             OBUtil.getProfile(result.id, true).then(profile => {
                 if(!profile.edata.mute) {
                     profile.edata.mute = muteData;
@@ -116,11 +118,15 @@ metadata.run = (m, args, data) => {
 
                 if(!profile.edata.record) profile.edata.record = [];
 
+                log('mute: made it here');
+
                 let entry = new RecordEntry()
                 .setMod(m.author.id)
                 .setURL(m.url)
                 .setAction('mute')
                 .setReason(m.author, (rvt.reasonAdded) ? rvt.reasonText : `No reason provided.`)
+
+                log('mute: made it here');
 
                 if(isUpdate) {
                     entry.setActionType('edit')
@@ -140,6 +146,8 @@ metadata.run = (m, args, data) => {
                         entry.setDetails(m.author, `Mute set as permanent.`)
                     }
                 }
+
+                log('mute: made it here');
 
                 profile.edata.record.push(entry.raw);
 

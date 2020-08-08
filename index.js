@@ -455,7 +455,7 @@ bot.on('messageDelete', m => {
 
     ob.Memory.rdel.push(m.id);
 
-    let logEntry = new ob.LogEntry({time: now, channel: "delete"})
+    var logEntry = new ob.LogEntry({time: now, channel: "delete"})
     .preLoad()
 
     bot.setTimeout(() => {
@@ -975,7 +975,7 @@ bot.on('guildBanAdd', (guild, user) => {
     if (bot.pause) return;
     if (guild.id !== bot.cfg.guilds.optifine) return;
 
-    let logEntry = new ob.LogEntry({time: now, channel: "moderation"})
+    var logEntry = new ob.LogEntry({time: now, channel: "moderation"})
     .preLoad()
 
     log('ban: got here')
@@ -1233,7 +1233,7 @@ bot.on('messageReactionAdd', (mr, user) => {
     if (mr.emoji.id === bot.cfg.emoji.deleter) {
         let del = (docs, mod, orguser) => {
             if(mr.message.content.indexOf(bot.cfg.messages.confirmDelete) > -1) {
-                let logEntry = new ob.LogEntry({time: now, channel: "delete"})
+                var logEntry = new ob.LogEntry({time: now, channel: "delete"})
                 .preLoad()
                 mr.message.delete().then((bm) => {
                     ob.Memory.db.msg.remove(docs[0], {}, (err) => {

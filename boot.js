@@ -219,7 +219,6 @@ process.title = `OptiBot ${pkg.version}`;
     process.stdout.write(`\u001b[2J\u001b[0;0H`);
     if(process.argv.indexOf(`--skipsetup`) > -1) {
         env.mode = parseInt(process.argv.indexOf(`--skipsetup`) + 1);
-        env.rl.close();
         init();
     } else {
         env.rl = readline.createInterface({
@@ -461,16 +460,17 @@ function init() {
     }
 
     function update() {
-        /* setTimeout(() => {
+        setTimeout(() => {
             child.execSync('git fetch --all');
-            child.execSync('git reset --hard master');
+            child.execSync('git reset --hard origin/nx');
             child.execSync('npm install');
 
             setTimeout(() => {
                 env.log.stream.end();
 
                 setTimeout(() => {
-                    // see line 517 for an explanation on this monstrosity
+                    // i know this looks like a fucking mess of commands and switches but trust me it NEEDS to be structured precisely like this to work.
+                    // fuck windows batch
                     child.spawn(`cmd`, ['/C', 'start', '""', 'cmd', '/C', 'init.bat', '--skipsetup', env.mode], {
                         detached: true,
                         stdio: 'ignore',
@@ -480,6 +480,6 @@ function init() {
                     process.exit(3);
                 }, 500);
             }, 500);
-        }, 500); */
+        }, 500);
     }
 }

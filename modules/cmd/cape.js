@@ -20,6 +20,9 @@ const metadata = {
 }
 
 metadata.run = (m, args, data) => {
+
+    let capeOwner
+
     if(!args[0]) {
         OBUtil.missingArgs(m, metadata);
     } else {
@@ -32,7 +35,7 @@ metadata.run = (m, args, data) => {
                         getMCname();
                     } else
                     if(profile.ndata.cape) {
-                        getMCname(profile.ndata.cape.uuid);
+                        getMCname(profile.ndata.cape.uuid, profile.id);
                     } else {
                         OBUtil.err(`${result.tag} does not have a verified cape on their profile.`, {m:m})
                     }
@@ -40,7 +43,7 @@ metadata.run = (m, args, data) => {
             }
         });
 
-        function getMCname(uuid) {
+        function getMCname(uuid, discord) {
             if(uuid) {
                 request({ url: `https://api.mojang.com/user/profiles/${uuid}/names`, encoding: null }, (err, res, data) => {
                     if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
@@ -52,9 +55,9 @@ metadata.run = (m, args, data) => {
                         let dp = JSON.parse(data);
                         let dataNormalized = {
                             name: dp[dp.length - 1]["name"],
-                            id: profile.cape.uuid
+                            id: uuid
                         }
-                        getCape(dataNormalized);
+                        getCape(dataNormalized, discord);
                     }
                 });
             } else
@@ -80,7 +83,7 @@ metadata.run = (m, args, data) => {
             }
         }
 
-        function getCape(player) {
+        function getCape(player, discord) {
             log(util.inspect(player));
 
             request({ url: 'https://optifine.net/capes/' + player.name + '.png', encoding: null }, (err, res, data) => {
@@ -90,7 +93,7 @@ metadata.run = (m, args, data) => {
                 if (res.statusCode === 404) {
                     OBUtil.err(`Player "${player.name}" does not have an OptiFine cape.`, {m:m})
                 } else {
-                    processCape(data, player);
+                    processCape(data, player, discord);
                 }
             });
 
@@ -102,7 +105,7 @@ metadata.run = (m, args, data) => {
             } */
         }
 
-        function processCape(capeTex, player) {
+        function processCape(capeTex, player, discord) {
             Jimp.read(capeTex, (err, image) => {
                 if (err) {
                     OBUtil.err(err, {m:m})
@@ -110,13 +113,13 @@ metadata.run = (m, args, data) => {
                 if(args[1] && args[1].toLowerCase() === 'full') {
                     imageData.type = 'full';
 
-                    final(imageData, player);
+                    final(imageData, player, discord);
                 } else
                 if(Math.round(image.bitmap.width / image.bitmap.height) !== 2) {
                     log(`Unknown cape resolution: ${player.name}`, 'warn');
                     imageData.type = 'default';
 
-                    final(imageData, player);
+                    final(imageData, player, discord);
                 } else {
                     let imageData = {
                         jimp: image,
@@ -183,42 +186,34 @@ metadata.run = (m, args, data) => {
                             imageData.jimp = full;
                             imageData.type = 'cropped';
 
-                            final(imageData, player);
+                            final(imageData, player, discord);
                         }
                     });
                 }
             });
         }
 
-        function final(image, player) {
+        function final(image, player, discord) {
             image.jimp.getBuffer(Jimp.AUTO, (err, img) => {
-                if (err) {
-                    OBUtil.err(err, {m:m})
+                if (err) return OBUtil.err(err, {m:m});
+
+                let embed = new djs.MessageEmbed()
+                .setColor(bot.cfg.embed.default)
+                .attachFiles([new djs.MessageAttachment(img, "cape.png")])
+                .setImage('attachment://cape.png')
+                .setTitle(djs.Util.escapeMarkdown(player.name))
+                .setURL(`https://namemc.com/profile/${player.name}`)
+
+                if (image.type !== 'cropped') {
+                    embed.setAuthor('OptiFine Donator Cape (Full Texture)', Assets.getEmoji('ICO_cape').url);
                 } else {
-                    let embed = new djs.MessageEmbed()
-                    .setColor(bot.cfg.embed.default)
-                    .attachFiles([new djs.MessageAttachment(img, "cape.png")])
-                    .setImage('attachment://cape.png')
-                    .setTitle(djs.Util.escapeMarkdown(player.name))
-                    .setURL(`https://namemc.com/profile/${player.name}`)
-
-                    Memory.db.profiles.find({ "data.cape.uuid": player.id }, (err, docs) => {
-                        if (err) {
-                            OBUtil.err(err, {m:m})
-                        } else {
-                            if (image.type !== 'cropped') {
-                                embed.setAuthor('OptiFine Donator Cape (Full Texture)', Assets.getEmoji('ICO_cape').url);
-                            } else {
-                                embed.setAuthor('OptiFine Donator Cape', Assets.getEmoji('ICO_cape').url);
-                            }
-
-                            if (docs.length !== 0) embed.setDescription(`<:okay:642112445997121536> Cape owned by <@${docs[0].userid}>`);
-                            if (image.type === 'default') embed.setFooter(`This image could not be cropped because the cape texture has an unusual resolution.`);
-
-                            m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
-                        }
-                    });
+                    embed.setAuthor('OptiFine Donator Cape', Assets.getEmoji('ICO_cape').url);
                 }
+
+                if (discord) embed.setDescription(`<:okay:642112445997121536> Cape owned by <@${discord}>`);
+                if (image.type === 'default') embed.setFooter(`This image could not be cropped because the cape texture has an unusual resolution.`);
+
+                m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
             });
         }
     }

@@ -26,7 +26,7 @@ module.exports = class OptiBot extends djs.Client {
         this.keys = keys;
         this.log = log;
         this.cfg = cfg;
-        this.mode = 0;
+        this.mode = mode;
         this.pause = true;
         this.exitTime = exit;
         this.locked = (mode === 0 || mode === 1);
@@ -41,33 +41,6 @@ module.exports = class OptiBot extends djs.Client {
                 return this.guilds.cache.get(this.cfg.guilds.optifine);
             }
         });
-
-        /* this.setTimeout(() => {
-            this.pause = true;
-            this.setBotStatus(-1)
-
-            let logEntry = new LogEntry({time: new Date()})
-            .setColor(this.cfg.embed.default)
-            .setIcon(Assets.getEmoji('ICO_door').url)
-            .setTitle(`OptiBot is now restarting...`, `OptiBot Restart Report`)
-            .submit().then(() => {
-                let maxPauseTime = 30000;
-                let minPauseTime = 5000;
-                let pauseTime = minPauseTime;
-
-                let li = new Date().getTime() - Memory.li;
-
-                if(li > maxPauseTime) pauseTime = minPauseTime;
-                if(li < minPauseTime) pauseTime = maxPauseTime;
-                if(li < maxPauseTime && li > minPauseTime) pauseTime = li/(1000);
-
-                log(`Restarting in ${(pauseTime/(1000)).toFixed(1)} seconds...`, 'warn');
-
-                this.setTimeout(() => {
-                    this.exit(18)
-                }, pauseTime);
-            });
-        }, exit.getTime() - new Date().getTime()) */
     }
 
     exit(code = 0) {
@@ -131,6 +104,8 @@ module.exports = class OptiBot extends djs.Client {
             } else {
                 // normal
                 pr.status = 'online';
+                pr.activity.type = 'LISTENING';
+                pr.activity.name = '?help';
             }
         } else
         if (type === 2) {

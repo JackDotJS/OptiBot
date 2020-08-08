@@ -27,7 +27,7 @@ const env = {
          * 4 = ERROR
          * 5 = FATAL
          */
-        level: 2,
+        level: 0, // TODO: set to 2 later
         stream: null,
         filename: null
     },
@@ -111,7 +111,8 @@ const log = (m, lvl, file) => {
             entry.message.color = '\x1b[35m';
         } else
         if (env.log.level > 0) return;
-    }
+    } else
+    if (env.log.level > 0) return;
 
     if(typeof m !== `string`) {
         entry.message.color = `\x1b[33m`;
@@ -279,12 +280,24 @@ function init() {
         stdio: ['pipe', 'pipe', 'pipe', 'ipc']
     });
 
+    var chunks_out = [];
     bot.stdout.on('data', (data) => {
-        log(data, undefined, 'index.js:NULL');
+        chunks_out = chunks_out.concat(data);
+    });
+    bot.stdout.on('end', () => {
+        let content = Buffer.concat(chunks_out).toString();
+        log(content, undefined, 'index.js:NULL');
+        chunks_out = [];
     });
 
+    var chunks_err = [];
     bot.stderr.on('data', (data) => {
-        log(data, 'fatal', 'index.js:NULL');
+        chunks_err = chunks_err.concat(data);
+    });
+    bot.stderr.on('end', () => {
+        let content = Buffer.concat(chunks_err).toString();
+        log(content, 'fatal', 'index.js:NULL');
+        chunks_err = [];
     });
 
     bot.on('message', (data) => {

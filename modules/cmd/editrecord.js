@@ -66,6 +66,9 @@ metadata.run = (m, args, data) => {
                             return OBUtil.err(`You do not have permission to modify this entry.`, {m:m});
                         }
 
+                        log(util.inspect(entry))
+                        log(typeof entry.date);
+
                         let property = args[2].toLowerCase();
                         let propertyName = null;
                         let oldValue = null;

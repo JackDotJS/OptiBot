@@ -63,7 +63,7 @@ metadata.run = (m, args, data) => {
                         .setAuthor((user.id === m.author.id) ? "You are..." : "That is...", Assets.getEmoji('ICO_user').url)
                         .setColor(bot.cfg.embed.default)
                         .setTitle(`${user.tag} ${(profile && profile.ndata.emoji) ? profile.ndata.emoji : ""}`) // todo: add profile emoji command. (#166)
-                        .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 64 }))
+                        .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 64, format: 'png' }))
         
                         let presence = []
         

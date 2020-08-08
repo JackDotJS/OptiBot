@@ -21,11 +21,11 @@ module.exports = class LogEntry {
             },
             truncated: false,
             publishing: {
-                console: (opts.console === undefined) ? true : opts.console,
-                embed: (opts.embed === undefined) ? true : opts.embed
+                console: (opts.console != null) ? opts.console : true,
+                embed: (opts.embed != null) ? opts.embed : true
             },
-            time: (opts.time === undefined) ? new Date() : opts.time,
-            channel: (opts.channel === undefined) ? "misc" : opts.channel,
+            time: (opts.time != null) ? opts.time : new Date(),
+            channel: (opts.channel != null) ? opts.channel : "misc",
             caller: new Error().stack.split('\n')[2].match(/\w+\.js:\d+:\d+/i),
             icon: null,
             message: null
@@ -133,10 +133,9 @@ module.exports = class LogEntry {
 
             this.data.channel.send(embed).then(msg => {
                 this.data.message = msg;
+                return this;
             });
-        }
-        
-        return this;
+        } else return this;
     }
 
     error(err) {

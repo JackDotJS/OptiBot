@@ -1,7 +1,7 @@
 /**
  * OptiBot NX - Main Program
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * Written by Kyle Edwards <wingedasterisk@gmail.com>, January 2020
+ * Written by Kyle Edwards <wingedasterisk@gmail.com>, August 2020
  */
 
 if(!process.send) throw new Error(`Cannot run standalone. Please use the "init.bat" file.`);
@@ -592,12 +592,12 @@ bot.on('messageDeleteBulk', ms => {
 
         let i = 0;
         (function postNext() {
-            if(i === messages.length) return;
+            if(i >= messages.length) return;
 
             let m = messages[i];
             log(util.inspect(m));
 
-            if (m.type !== 'DEFAULT' || m.system || m.author.system) {
+            if (m.type !== 'DEFAULT' || m.system || m.author.system || m.author.bot || m.author.id === bot.user.id) {
                 i++;
                 return postNext();
             }
@@ -978,7 +978,10 @@ bot.on('guildBanAdd', (guild, user) => {
     let logEntry = new ob.LogEntry({time: now, channel: "moderation"})
     .preLoad()
 
+    log('ban: got here')
+
     bot.setTimeout(() => {
+        log('ban: got here')
         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_ADD' }).then((audit) => {
             let ad = [...audit.entries.values()];
 
@@ -1010,30 +1013,44 @@ bot.on('guildBanAdd', (guild, user) => {
                 logEntry.addSection(`Moderator Responsible`, `Error: Unable to determine.`)
             }
 
+            log('ban: got here')
+
             ob.OBUtil.getProfile(user.id, true).then(profile => {
                 if(!profile.edata.record) profile.edata.record = [];
 
+                log('ban: got here 3')
+
                 let recordEntry = new ob.RecordEntry({ date: now })
-                .setAction('ban')
-                .setActionType('add')
+                log('ban: got here 4')
+                recordEntry.setAction('ban')
+                log('ban: got here 4')
+                recordEntry.setActionType('add')
+
+                log('ban: got here 3')
                 
                 if(reason !== null) {
                     recordEntry.setReason(bot.user, reason)
                 }
 
+                log('ban: got here 3')
+
                 if(mod !== null) {
                     recordEntry.setMod(mod.id);
                 }
 
+                log('ban: got here 3')
+
                 profile.edata.record.push(recordEntry.raw);
 
+                log('ban: got here')
+
                 ob.OBUtil.updateProfile(profile).then(() => {
+                    log('ban: got here')
                     log(`ban addition record successfully saved`)
                     logEntry.submit()
                 }).catch(err => {
                     logEntry.error(err);
                 });
-
             }).catch(err => {
                 logEntry.error(err);
             });
@@ -1235,7 +1252,11 @@ bot.on('messageReactionAdd', (mr, user) => {
                             .addSection(`Deleted by`, user)
 
                             if(mod) {
-                                logEntry.addSection(`Original Author`, orguser)
+                                if(orguser) {
+                                    logEntry.addSection(`Original Author`, orguser)
+                                } else {
+                                    logEntry.addSection(`Original Author`, `Unknown.`)
+                                }
                             }
 
                             logEntry.addSection(`Message Location`, bm)
@@ -1300,18 +1321,23 @@ bot.on('messageReactionAdd', (mr, user) => {
             if(err) {
                 ob.OBUtil.err(err);
             } else
-            if(docs.length > 0 && docs[0].user === user.id) {
+            if(docs[0] && docs[0].user === user.id) {
                 del(docs);
             } else {
                 let mem = bot.mainGuild.members.cache.get(user.id);
-                let org = bot.mainGuild.members.cache.get(docs[0].user);
                 if(mem && mem.roles.cache.has(bot.cfg.roles.moderator)) {
-                    if(!org) {
-                        bot.users.fetch(docs[0].user).then((org) => {
+                    if (docs[0]) {
+                        let org = bot.mainGuild.members.cache.get(docs[0].user);
+
+                        if(!org) {
+                            bot.users.fetch(docs[0].user).then((org) => {
+                                del(docs, true, org);
+                            });
+                        } else {
                             del(docs, true, org);
-                        });
+                        }
                     } else {
-                        del(docs, true, org);
+                        del(docs, true);
                     }
                 }
             }

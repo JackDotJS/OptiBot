@@ -92,7 +92,7 @@ metadata.run = (m, args, data) => {
                 getLogs().then((modlog) => {
                     let footer = [
                         `Note that existing actions before October 30, 2019 will not show here.`,
-                        `All records before [TODO], 2020 may be missing information.`
+                        `All records before August 5, 2020 may be missing information.`
                     ]
 
                     let embed = new djs.MessageEmbed()

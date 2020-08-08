@@ -54,7 +54,7 @@ metadata.run = (m, args, data) => {
                 OBUtil.getProfile(result.id, false).then(profile => {
                     let footer = [
                         `Note that existing violations before October 30, 2019 will not show here.`,
-                        `All records before [TODO], 2020 may be missing information.`
+                        `All records before August 5, 2020 may be missing information.`
                     ]
 
                     let embed = new djs.MessageEmbed()

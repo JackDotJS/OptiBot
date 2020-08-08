@@ -8,7 +8,7 @@ const log = bot.log;
 
 const metadata = {
     name: path.parse(__filename).name,
-    aliased: ['boatvan'],
+    aliases: ['boatvan'],
     short_desc: `Start a vote to ban a user. (very real command\\™️)`,
     long_desc: `Starts a vote to ban a given user. \n\n__**THIS IS A JOKE COMMAND. THIS WILL NOT ACTUALLY BAN ANYONE.**__`,
     args: `<discord user> [reason]`,

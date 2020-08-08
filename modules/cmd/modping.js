@@ -8,7 +8,7 @@ const log = bot.log;
 
 const metadata = {
     name: path.parse(__filename).name,
-    aliases: ['pingmods', 'moderator', 'moderators'],
+    aliases: ['pingmods', 'moderator', 'moderators', 'mods'],
     short_desc: `Ping server moderators.`,
     long_desc: `Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.** \n\nAdditionally, this command tries to minimize mass pings by only selecting moderators that have sent a message in the past 10 minutes, or those who are simply online. \nThe selection priority works as followed:\n\n**1.** Recent Messages\n**2.** "Online" status\n**3.** All with the <@&467060304145023006> or <@&644668061818945557> roles.`,
     authlvl: 0,
@@ -19,109 +19,138 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
     let pinged = [m.author.id];
+
+    let pings = null;
     
     let pingType = 0;
     let attempts = 0;
-    let text = null;
-    let text_ur = null;
-
-    let guild = bot.guilds.cache.get(bot.cfg.guilds.optifine);
-    let role_mod = guild.roles.cache.get(bot.cfg.roles.moderator);
-    let role_jrmod = guild.roles.cache.get(bot.cfg.roles.jrmod);
+    let startMsg = []
 
     function getPings() {
-        let pings_msg = [];
-        let pings_status = [];
-        let pings_all = [];
-        let pings_everyone = [];
+        let pings = {
+            recent: [],
+            online: [],
+            all: [],
+            everyone: [], // everyone including already pinged
+        }
+
+        let data = {
+            ids: null,
+            selectTier: 0,
+            mentions: null,
+            count: null
+        }
+
         for(let i = 0; i < Memory.mods.length; i++) {
             let mod = Memory.mods[i];
-            if(pinged.indexOf(mod.id) === -1) {
+
+            pings.everyone.push(mod.id);
+
+            if(!pinged.includes(mod.id)) {
+                pings.all.push(mod.id);
+
                 if(mod.status === 'online') {
-                    pings_status.push(mod.id);
+                    pings.online.push(mod.id);
                 }
+
                 if((mod.last_message + 600000) > new Date().getTime()) {
-                    pings_msg.push(mod.id);
-                }
-                pings_all.push(mod.id);
-            }
-            pings_everyone.push(mod.id);
-
-            if(i+1 === Memory.mods.length) {
-                if(attempts === 0) {
-                    if(pings_msg.length > 1) pings_msg = [pings_msg[~~(Math.random() * pings_msg.length)]];
-                    if(pings_status.length > 1) pings_status = [pings_status[~~(Math.random() * pings_status.length)]];
-                }
-
-                return {
-                    recent: pings_msg,
-                    online: pings_status,
-                    all: pings_all,
-                    everyone: pings_everyone
+                    pings.recent.push(mod.id);
                 }
             }
         }
-    }
 
-    if(Memory.mpc.indexOf(m.channel.id) > -1) {
-        m.channel.send(`Sorry ${m.author}, this command is currently on cooldown in this channel. Please wait a few moments before trying this again.`)
-        .then(bm => OBUtil.afterSend(bm, m.author.id));
-        return
-    }
+        if(attempts === 0) {
+            if(pings.recent.length > 1) pings.recent = [pings.recent[~~(Math.random() * pings.recent.length)]];
+            if(pings.online.length > 1) pings.online = [pings.online[~~(Math.random() * pings.online.length)]];
+            if(pings.all.length > 1) pings.all = [pings.all[~~(Math.random() * pings.all.length)]];
+        }
 
-    let result = getPings();
+        if(pings.recent.length === 0) {
+            if(pings.online.length === 0) {
+                // worst case scenario: no active mods, no online mods.
 
-    if(result.recent.length === 0) {
-        pingType = 1;
-        if(result.online.length === 0) {
-            pingType = 2;
-            // worst case scenario: no active mods, no online mods.
+                data.selectTier = 2;
 
-            if((role_mod.mentionable && role_jrmod.mentionable) || guild.members.cache.get(bot.user.id).hasPermission('MENTION_EVERYONE', {checkAdmin: true})) {
-                text = `${m.author}, a moderator should be with you soon! \n${role_mod} ${role_jrmod}`;
+                let role_mod = bot.mainGuild.roles.cache.get(bot.cfg.roles.moderator);
+                let role_jrmod = bot.mainGuild.roles.cache.get(bot.cfg.roles.jrmod);
+
+                if(pinged.length === 1 && ((role_mod.mentionable && role_jrmod.mentionable) || bot.mainGuild.me.hasPermission('MENTION_EVERYONE', {checkAdmin: true}))) {
+                    data.count = pings.everyone.length;
+                    data.mentions = `${role_mod} ${role_jrmod}`;
+                } else {
+                    pinged.push(...pings.all);
+                    data.count = pings.all.length;
+                    data.mentions = `<@${pings.all.join('> <@')}>`;
+                }
             } else {
-                text = `${m.author}, one of these moderators should be with you soon! \n<@${result.all.join('> <@')}>`;
+                // no active mods, AT LEAST ONE online mod
+                data.selectTier = 1;
+
+                pinged.push(...pings.online);
+                data.count = pings.online.length;
+                data.mentions = `<@${pings.online.join('> <@')}>`;
             }
-        } else
-        if(result.online.length === 1) {
-            // no active mods, one online mod
-            pinged.push(result.online[0]);
-            text = `${m.author}, moderator <@${result.online[0]}> should be with you soon!`;
         } else {
-            // no active mods, some online mods
-            pinged = pinged.concat(result.online);
-            text = `${m.author}, one of these moderators should be with you soon! \n<@${result.online.join('> <@')}>`;
+            // best case scenario: AT LEAST ONE active mod
+            pinged.push(...pings.recent);
+            data.count = pings.recent.length;
+            data.mentions = `<@${pings.recent.join('> <@')}>`;
         }
-    } else 
-    if(result.recent.length === 1) {
-        // one active mod
-        pinged.push(result.recent[0]);
-        text = `${m.author}, moderator <@${result.recent[0]}> should be with you soon!`;
-    } else {
-        // best case scenario: some active mods
-        pinged = pinged.concat(result.recent);
-        text = `${m.author}, one of these moderators should be with you soon! \n<@${result.recent.join('> <@')}>`;
+
+        data.ids = pings;
+        return data;
     }
 
-    if(pingType !== 2) text_ur = `${text}\n\nModerators: If you see this and you're available, please use the reaction button (<:confirm:672309254279135263>) or send a message in this channel to begin resolving this issue.`;
-
-    m.channel.send(text_ur).then(msg => {
+    if(Memory.mpc.includes(m.channel.id)) {
+        return m.channel.send(`Sorry ${m.author}, this command is currently on cooldown in this channel. Please wait a few moments before trying this again.`)
+        .then(bm => OBUtil.afterSend(bm, m.author.id));
+    } else {
         Memory.mpc.push(m.channel.id);
+    }
+
+    pings = getPings();
+
+    if (pings.count > 5) {
+        startMsg.push(`${m.author}, a moderator should be with you soon! \n${pings.mentions}`);
+    } else
+    if (pings.count === 1) {
+        startMsg.push(`${m.author}, moderator ${pings.mentions} should be with you soon!`);
+    } else {
+        startMsg.push(`${m.author}, one of these moderators should be with you soon! \n${pings.mentions}`);
+    }
+
+    if(pings.selectTier !== 2) startMsg.push(
+        ``,
+        `Moderators: If you're available, please use the reaction button (<:confirm:672309254279135263>) or send a message in this channel to begin resolving this issue.`
+    );
+
+    m.channel.send(startMsg.join('\n')).then(msg => {
         attempts++;
 
-        const filter = (r, user) => r.emoji.id === bot.cfg.emoji.confirm && result.everyone.indexOf(user.id) > -1;
-        const filter_m = (mm) => result.everyone.indexOf(mm.author.id) > -1;
+        // reaction filter
+        const filter = (r, user) => r.emoji.id === bot.cfg.emoji.confirm && pings.ids.everyone.includes(user.id);
+        // message filter
+        const filter_m = (mm) => pings.ids.everyone.includes(mm.author.id);
         
         function tryResolution(godfuckingdammit) {
-            if(pingType === 2) return;
-            const df = msg.createReactionCollector(filter, { time: (1000 * 60) });
+            if(pings.selectTier === 2 && attempts === 0) return;
+
+            let timeout = (1000 * 30 * attempts);
+
+            log(`modping: waiting for ${timeout/1000} seconds`);
+
+            const df = msg.createReactionCollector(filter, { time: timeout });
             const mc = msg.channel.createMessageCollector(filter_m);
 
             df.on('collect', (r, user) => {
                 df.stop('resolved');
                 
                 resolve()
-                msg.edit(`~~${text}~~ \n\n**Resolved by ${user.toString()}**`)
+                msg.edit([
+                    `~~${startMsg[0]}~~`,
+                    ``,
+                    `**Resolved by ${user.toString()}**`
+                ].join('\n'))
             });
 
             mc.on('collect', (mm) => {
@@ -141,36 +170,28 @@ metadata.run = (m, args, data) => {
                 mc.stop();
                 if(reason === 'time') {
                     // post next level of pings
-                    if(pingType !== 2 && pinged.length !== result.everyone.length) {
-                        result = getPings();
+                    if(pingType !== 2 && pinged.length !== pings.ids.everyone.length) {
+                        pings = getPings();
+
                         let newtext = [
                             `**Original Message: <${msg.url}>**`,
                             ``,
-                            `It seems like they were busy. Let's try pinging some others.`
-                        ]
+                            `It seems like they were busy. Let's try pinging some others.`,
+                            pings.mentions
+                        ];
 
-                        if(pingType === 0 && result.online.length > 0) {
-                            if(result.online.length === 1) {
-                                pinged.push(result.online[0]);
-                                newtext.push(`<@${result.online[0]}>`);
-                            } else {
-                                pinged = pinged.concat(result.online);
-                                newtext.push(`<@${result.online.join('> <@')}>`);
-                            }
+                        if(pinged.length !== pings.ids.everyone.length) {
+                            newtext.push(
+                                ``, 
+                                `Moderators: If you're available, please post a message here or use the reaction button **on the original message above** to begin resolving this issue.`
+                            )
                         } else {
-                            pinged = pinged.concat(result.all);
-                            newtext.push(`<@${result.all.join('> <@')}>`);
-                        }
-
-                        if(pinged.length !== result.everyone.length) {
-                            newtext.push(``, `Moderators: If you see this and you're available, please post a message here or use the reaction button **on the original message above** to begin resolving this issue.`)
-                        } else {
-                            msg.edit(text)
+                            msg.edit(startMsg[0])
                         }
 
                         m.channel.send(newtext.join('\n')).then(() => {
                             attempts++;
-                            if(pinged.length !== result.everyone.length) {
+                            if(pinged.length !== pings.ids.everyone.length) {
                                 if(attempts > 2) pingType++;
                                 tryResolution(godfuckingdammit);
                             } else {
@@ -190,7 +211,6 @@ metadata.run = (m, args, data) => {
         function resolve() {
             Memory.mpc.splice(Memory.mpc.indexOf(m.channel.id), 1);
             if(!msg.deleted) {
-
                 msg.reactions.removeAll();
             }
         }

@@ -8,14 +8,14 @@ module.exports = class RecordEntry {
         Memory.core.client.log(util.inspect(raw));
 
         // please kill me
-        this.date = (raw.date !== undefined && raw.date !== null) ? raw.date : new Date().getTime();
-        this.moderator = (raw.moderator !== undefined) ? raw.moderator : null;
-        this.url = (raw.url !== undefined) ? raw.url : null;
-        this.action = (raw.action !== undefined) ? raw.action : null;
-        this.actionType = (raw.actionType !== undefined) ? raw.actionType : null;
-        this.reason = (raw.reason !== undefined) ? raw.reason : null;
-        this.details = (raw.details !== undefined) ? raw.details : null;
-        this.parent = (raw.parent !== undefined) ? raw.parent : null;
+        this.date = (raw.date != null) ? raw.date : new Date().getTime();
+        this.moderator = (raw.moderator != null) ? raw.moderator : null;
+        this.url = (raw.url != null) ? raw.url : null;
+        this.action = (raw.action != null) ? raw.action : null;
+        this.actionType = (raw.actionType != null) ? raw.actionType : null;
+        this.reason = (raw.reason != null) ? raw.reason : null;
+        this.details = (raw.details != null) ? raw.details : null;
+        this.parent = (raw.parent != null) ? raw.parent : null;
         this.children = [];
         this.display = {
             id: null,
@@ -27,6 +27,8 @@ module.exports = class RecordEntry {
         this.pardon = (raw.pardon) ? raw.pardon : null;
         this.edits = (raw.edits) ? raw.edits : null;
         this.index = (raw.index) ? raw.index : null;
+
+        if(this.date.constructor === Date) this.date = this.date.getTime();
 
         Object.defineProperty(this, 'raw', {
             get: () => {
@@ -60,8 +62,8 @@ module.exports = class RecordEntry {
     _def() {
         const OBUtil = require(`./OptiBotUtil.js`);
 
-        let action = null;
-        let type = null;
+        let action = '';
+        let type = '';
 
         this.display.id = this.date.toString(36).toUpperCase();
 
@@ -94,7 +96,7 @@ module.exports = class RecordEntry {
 
         switch(this.actionType) {
             case -1:
-                type = `Remove`;
+                type = (this.action == 4) ? `Revoke` : `Remove`;
                 break;
             case 0:
                 type = `Update`;
@@ -104,9 +106,7 @@ module.exports = class RecordEntry {
                 break;
         }
 
-        if(action !== null && type !== null) {
-            this.display.action = `${type} ${action}`;
-        }
+        this.display.action = `${type} ${action}`.trim();
 
         if(this.parent) {
             this.display.parent = this.parent.toString(36).toUpperCase();

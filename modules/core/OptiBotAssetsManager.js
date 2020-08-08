@@ -99,7 +99,6 @@ module.exports = class OptiBotAssetsManager {
                         (function loadCmd() {
                             let cmd = commands[i1];
                             if(i1+1 > commands.length) {
-                                log(Memory.assets.commands);
                                 resolve();
                             } else 
                             if(cmd.endsWith('.js')) {
@@ -307,11 +306,19 @@ module.exports = class OptiBotAssetsManager {
                             if(img.match(/\./) !== null) {
                                 let buffer = fs.readFileSync(path.resolve(`./assets/img/${img}`));
     
-                                Memory.assets.images.index.push({
-                                    name: img.substring(0, img.lastIndexOf('.')),
-                                    buffer: buffer,
-                                    attachment: new djs.MessageAttachment(buffer, `image${img.substring(img.lastIndexOf('.'))}`)
-                                });
+                                if(img.substring(0, img.lastIndexOf('.')) === 'default') {
+                                    Memory.assets.images.default = {
+                                        name: img.substring(0, img.lastIndexOf('.')),
+                                        buffer: buffer,
+                                        attachment: new djs.MessageAttachment(buffer, `image${img.substring(img.lastIndexOf('.'))}`)
+                                    };
+                                } else {
+                                    Memory.assets.images.index.push({
+                                        name: img.substring(0, img.lastIndexOf('.')),
+                                        buffer: buffer,
+                                        attachment: new djs.MessageAttachment(buffer, `image${img.substring(img.lastIndexOf('.'))}`)
+                                    });
+                                }
                             }
                         }
                         resolve();
@@ -342,7 +349,7 @@ module.exports = class OptiBotAssetsManager {
                                         task.fn();
                                     }, (task.time));
     
-                                    // todo: add support for scheduled tasks via database (#)
+                                    // todo: add support for scheduled tasks via database
                                 }
     
                                 if(i+1 === tasks.length) {

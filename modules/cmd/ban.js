@@ -7,6 +7,7 @@ const log = bot.log;
 
 const metadata = {
     name: path.parse(__filename).name,
+    aliases: ['null'],
     short_desc: `Ban a given user.`,
     long_desc: `Bans a given user... and that's it. This command only really exists to allow moderators to ban users outside of the server. **Note that this will NOT delete any existing messages for the sake of preserving history.**`,
     args: `<discord member> <reason>`,

@@ -282,6 +282,7 @@ function init() {
     var chunks_out = [];
     bot.stdout.on('data', (data) => {
         chunks_out = chunks_out.concat(data);
+        log(data, undefined, 'index.js:NULL');
     });
     bot.stdout.on('end', () => {
         let content = Buffer.concat(chunks_out).toString();
@@ -292,20 +293,9 @@ function init() {
     var chunks_err = [];
     bot.stderr.on('data', (data) => {
         chunks_err = chunks_err.concat(data);
+        log(data, 'fatal', 'index.js:NULL');
     });
     bot.stderr.on('end', () => {
-        let content = Buffer.concat(chunks_err).toString();
-        log(content, 'fatal', 'index.js:NULL');
-        chunks_err = [];
-    });
-    bot.stderr.on('readable', () => {
-        let data;
-      
-        while (data = this.read()) {
-            log(data, 'warn', 'index.js:TEST');
-        }
-    });
-    bot.stderr.on('pause', () => {
         let content = Buffer.concat(chunks_err).toString();
         log(content, 'fatal', 'index.js:NULL');
         chunks_err = [];

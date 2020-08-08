@@ -115,7 +115,7 @@ bot.on('ready', () => {
                 log(centerText(`  `, width), `info`);
                 log(`╰${'─'.repeat(width)}╯`, `info`);
 
-                let logEntry = new ob.LogEntry({time: now})
+                var logEntry = new ob.LogEntry({time: now})
                 .setColor(bot.cfg.embed.default)
                 .setIcon(ob.OBUtil.getEmoji('ICO_info').url)
                 .setThumbnail(bot.user.displayAvatarURL({format: 'png'}))
@@ -602,7 +602,7 @@ bot.on('messageDeleteBulk', ms => {
                 return postNext();
             }
 
-            let logEntry = new ob.LogEntry({time: now, channel: "delete"})
+            var logEntry = new ob.LogEntry({time: now, channel: "delete"})
 
             let desc = [
                 `Message originally posted on ${m.createdAt.toUTCString()}`,
@@ -682,7 +682,7 @@ bot.on('messageUpdate', (m, mNew) => {
     if (m.guild.id !== bot.cfg.guilds.optifine) return;
     if (ob.OBUtil.parseInput(mNew).cmd === 'dr') return;
 
-    let logEntry = new ob.LogEntry({time: now, channel: "edit"})
+    var logEntry = new ob.LogEntry({time: now, channel: "edit"})
 
     let desc = [
         `Message originally posted on ${m.createdAt.toUTCString()}`,
@@ -803,7 +803,7 @@ bot.on('channelUpdate', (oldc, newc) => {
 
     if(oldc.topic === newc.topic && oldc.name === newc.name) return;
 
-    let logEntry = new ob.LogEntry({time: now, channel: "other"})
+    var logEntry = new ob.LogEntry({time: now, channel: "other"})
     .setColor(bot.cfg.embed.default)
     .setIcon(ob.OBUtil.getEmoji('ICO_edit').url)
     .setTitle(`Channel Updated`, `Channel Update Report`)
@@ -875,7 +875,7 @@ bot.on('guildMemberAdd', member => {
         });
 
         function logEvent(muted) {
-            let logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
+            var logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
             .setColor(bot.cfg.embed.okay)
             .setIcon(ob.OBUtil.getEmoji('ICO_join').url)
             .setThumbnail(member.user.displayAvatarURL({format:'png'}))
@@ -938,7 +938,7 @@ bot.on('guildMemberRemove', member => {
             for(let i = 0; i < ad.length; i++) {
                 if ((ad[i].action === 'MEMBER_KICK' || ad[i].action === 'MEMBER_BAN_ADD') && ad[i].target.id === member.user.id) {
                     if(ad[i].action === 'MEMBER_KICK') {
-                        let logEntry = new ob.LogEntry({time: now, channel: "moderation"})
+                        var logEntry = new ob.LogEntry({time: now, channel: "moderation"})
                         .setColor(bot.cfg.embed.error)
                         .setIcon(ob.OBUtil.getEmoji('ICO_leave').url)
                         .setThumbnail(member.user.displayAvatarURL({format:'png'}))
@@ -951,7 +951,7 @@ bot.on('guildMemberRemove', member => {
                     break;
                 } else
                 if (i+1 >= ad.length) {
-                    let logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
+                    var logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
                     .setColor(bot.cfg.embed.error)
                     .setIcon(ob.OBUtil.getEmoji('ICO_leave').url)
                     .setThumbnail(member.user.displayAvatarURL({format:'png'}))
@@ -983,6 +983,8 @@ bot.on('guildBanAdd', (guild, user) => {
     bot.setTimeout(() => {
         log('ban: got here')
         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_ADD' }).then((audit) => {
+            log('ban: got here')
+            
             let ad = [...audit.entries.values()];
 
             let mod = ob.Memory.rban[user.id];
@@ -994,6 +996,8 @@ bot.on('guildBanAdd', (guild, user) => {
                     break;
                 }
             }
+
+            log('ban: got here')
             
             logEntry.setColor(bot.cfg.embed.error)
             .setIcon(ob.OBUtil.getEmoji('ICO_ban').url)
@@ -1069,7 +1073,7 @@ bot.on('guildBanRemove', (guild, user) => {
     if (bot.pause) return;
     if (guild.id !== bot.cfg.guilds.optifine) return;
 
-    let logEntry = new ob.LogEntry({time: now, channel: "moderation"})
+    var logEntry = new ob.LogEntry({time: now, channel: "moderation"})
     .preLoad()
 
     bot.setTimeout(() => {
@@ -1189,7 +1193,7 @@ bot.on('raw', packet => {
         // this packet does not contain the actual message data, unfortunately.
         // as of writing, this only contains the message ID, the channel ID, and the guild ID.
         bot.setTimeout(() => {
-            let logEntry = new ob.LogEntry({time: now, channel: "delete"})
+            var logEntry = new ob.LogEntry({time: now, channel: "delete"})
 
             ob.Memory.db.msg.remove({message: packet.d.id}, {}, (err, num) => {
                 if (err) {

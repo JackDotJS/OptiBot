@@ -21,8 +21,6 @@ metadata.run = (m, args, data) => {
     .setColor(bot.cfg.embed.default)
     .setDescription(`API Latency: ... \nMessage Latency: ...`)
 
-    throw new Error('test');
-
     let timeStart = new Date().getTime();
     m.channel.send('_ _', {embed: embed}).then(msg => {
         let timeTaken = new Date().getTime() - timeStart;

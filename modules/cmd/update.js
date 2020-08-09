@@ -15,7 +15,7 @@ const metadata = {
 }
 
 metadata.run = (m, args, data) => {
-    function updateNow() {
+    function updateNow(msg) {
         let logEntry = new LogEntry()
         .setColor(bot.cfg.embed.default)
         .setIcon(Assets.getEmoji('ICO_door').url)
@@ -26,9 +26,15 @@ metadata.run = (m, args, data) => {
             .setAuthor('Updating. See you soon!', Assets.getEmoji('ICO_door').url)
             .setColor(bot.cfg.embed.default);
 
-            m.channel.send({embed: embed}).then(() => {
-                bot.exit(17);
-            });
+            if(msg) {
+                msg.edit({embed: embed}).then(() => {
+                    bot.exit(17);
+                });
+            } else {
+                m.channel.send({embed: embed}).then(() => {
+                    bot.exit(17);
+                });
+            }
         });
     }
 
@@ -44,7 +50,7 @@ metadata.run = (m, args, data) => {
     m.channel.send('_ _', {embed: embed}).then(msg => {
         OBUtil.confirm(m, msg).then(res => {
             if(res === 1) {
-                updateNow()
+                updateNow(msg)
             } else
             if(res === 0) {
                 let update = new djs.MessageEmbed()

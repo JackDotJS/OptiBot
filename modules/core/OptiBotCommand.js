@@ -123,6 +123,10 @@ module.exports = class Command {
                 // result in errors/crashes.
                 STRICT: false,
 
+                // Normally, authlvls between the member and the command are compared as "greater than or equal to".
+                // This flag ensures the member's authlvl must always equal the command's required authlvl.
+                STRICT_AUTH: false,
+
                 // Deletes the users message if any restriction results in the command not firing.
                 // Useful for reducing spam, or for commands that require particularly sensitive information as arguments.
                 DELETE_ON_MISUSE: false, 

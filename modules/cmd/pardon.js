@@ -12,7 +12,7 @@ const metadata = {
     long_desc: `Dismisses a given record entry. Note that this will only pardon a single record entry. If needed, any linked entries must also be pardoned separately.`,
     args: `<discord member> <case ID> <reason>`,
     authlvl: 4,
-    flags: ['NO_TYPER', 'NO_DM', 'STRICT'],
+    flags: ['NO_TYPER', 'NO_DM', 'STRICT', 'STRICT_AUTH'],
     run: null
 }
 

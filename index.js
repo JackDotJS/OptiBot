@@ -290,7 +290,7 @@ bot.on('message', (m) => {
                 if(!cmd) {
                     unknownCMD();
                 } else
-                if(authlvl < cmd.metadata.authlvl) {
+                if(authlvl < cmd.metadata.authlvl || (cmd.metadata.flags['STRICT_AUTH'] && authlvl !== cmd.metadata.authlvl)) {
                     if(cmd.metadata.flags['HIDDEN']) {
                         unknownCMD();
                     } else {

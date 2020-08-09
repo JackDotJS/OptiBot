@@ -61,8 +61,10 @@ metadata.run = (m, args, data) => {
                     profile.getRecord(args[1]).then(entry => {
                         if(!entry) {
                             return OBUtil.err(`Unable to find case ID "${args[1]}".`, {m:m});
-                        } else
-                        if(entry.moderator !== m.author.id && data.authlvl < 4) {
+                        }
+                        if(entry.moderator !== m.author.id && data.authlvl !== 4) {
+                            log(entry.moderator)
+                            log(m.author.id)
                             return OBUtil.err(`You do not have permission to modify this entry.`, {m:m});
                         }
 

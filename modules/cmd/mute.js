@@ -129,7 +129,7 @@ metadata.run = (m, args, data) => {
                 log('mute: made it here');
 
                 if(isUpdate) {
-                    entry.setActionType('edit')
+                    entry.setActionType('update')
                     .setParent(m.author, profile.edata.mute.caseID)
 
                     if(muteData.end !== null) {

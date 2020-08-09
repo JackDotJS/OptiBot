@@ -14,7 +14,7 @@ const metadata = {
     long_desc: `Forcefully updates the <#${bot.cfg.policies.channel}> channel with a given file.`,
     args: `<attachment>`,
     authlvl: 4,
-    flags: ['NO_DM', 'MOD_CHANNEL_ONLY', 'STRICT', 'DELETE_ON_MISUSE', 'LITE'],
+    flags: ['NO_DM', 'MOD_CHANNEL_ONLY', 'STRICT', 'DELETE_ON_MISUSE', 'LITE', 'STRICT_AUTH'],
     run: null
 }
 

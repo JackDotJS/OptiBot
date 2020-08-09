@@ -251,7 +251,7 @@ bot.on('message', (m) => {
                     .setAuthor(msg, ob.OBUtil.getEmoji('ICO_error').url)
                     .setColor(bot.cfg.embed.error)
     
-                    let content = '_ _';
+                    let content = '';
 
                     if(image) {
                         embed.attachFiles([image])
@@ -259,7 +259,7 @@ bot.on('message', (m) => {
                     }
     
                     if(cmd.metadata.flags['DELETE_ON_MISUSE']) {
-                        m.delete({reason: `User issued "${bot.prefix}dr" command in server channel.`}).catch(err => {
+                        m.delete({reason: `User misused "${bot.prefix}${cmd.metadata.name}" command.`}).catch(err => {
                             ob.OBUtil.err(err);
                         });
                         content = m.author;

@@ -53,7 +53,7 @@ metadata.run = (m, args, data) => {
     if(inputTest == null) inputTest = m.content.match(/(?<=\w:)\S+/);
     if(inputTest == null) inputTest = args;
 
-    let inputSpaceCount = inputTest[0].split(' ').length - 1;
+    let inputSpaceCount = (inputTest[0] != null) ? (inputTest[0].split(' ').length - 1) : 0;
 
     if (args[0] && isNaN(args[0])) {
         menu = args[0].toLowerCase();

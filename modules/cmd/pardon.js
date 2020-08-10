@@ -57,21 +57,17 @@ metadata.run = (m, args, data) => {
 
                             switch(entry.action) {
                                 case 0: 
-                                    OBUtil.err(`Notes cannot be pardoned.`, {m:m});
-                                    break;
+                                    return OBUtil.err(`Notes cannot be pardoned.`, {m:m});
                                 case 3:
-                                    OBUtil.err(`Kicks cannot be pardoned.`, {m:m});
-                                    break;
+                                    return OBUtil.err(`Kicks cannot be pardoned.`, {m:m});
                                 case 4:
-                                    OBUtil.err(`Bans cannot be pardoned.`, {m:m});
-                                    break;
+                                    return OBUtil.err(`Bans cannot be pardoned.`, {m:m});
                             }
 
                             if(entry.actionType === -1) {
-                                OBUtil.err(`Removal-type entries cannot be pardoned.`, {m:m});
+                                return OBUtil.err(`Removal-type entries cannot be pardoned.`, {m:m});
                             }
                             
-
                             let embed = new djs.MessageEmbed()
                             .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
                             .setColor(bot.cfg.embed.default)
@@ -98,7 +94,7 @@ metadata.run = (m, args, data) => {
                                                     let update = new djs.MessageEmbed()
                                                     .setAuthor(`Success`, Assets.getEmoji('ICO_okay').url)
                                                     .setColor(bot.cfg.embed.okay)
-                                                    .setDescription(`Case ID ${entry.date} has been marked as pardoned.`)
+                                                    .setDescription(`Case ID ${entry.display.id} has been marked as pardoned.`)
                                                     .addField('Pardon Reason', reason);
                                 
                                                     msg.edit({embed: update})//.then(msg => { OBUtil.afterSend(msg, m.author.id); });

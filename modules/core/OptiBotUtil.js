@@ -73,7 +73,7 @@ module.exports = class OptiBotUtilities {
         return data;
     }
 
-    static getAuthlvl(member) {
+    static getAuthlvl(member, ignoreElevated) {
         /**
          * Authorization Level
          * 
@@ -90,34 +90,34 @@ module.exports = class OptiBotUtilities {
         const bot = Memory.core.client;
         const log = bot.log;
 
-        if(!member || member === null || typeof member !== 'object') {
-            return 0;
-        } else
         if(member.constructor === djs.User) {
             log('expected object type member, got user instead', 'warn');
-            return 0;
+            if(bot.cfg.superusers.includes(member.id) && !ignoreElevated) {
+                return 5
+            }
         } else
-        if(bot.cfg.superusers.indexOf(member.user.id) > -1) {
-            return 5;
-        } else 
-        if(member.permissions.has('ADMINISTRATOR')) {
-            return 4;
-        } else 
-        if(member.roles.cache.has(bot.cfg.roles.moderator)) {
-            return 3;
-        } else 
-        if(member.roles.cache.has(bot.cfg.roles.jrmod)) {
-            return 2;
-        } else 
-        if(member.roles.cache.has(bot.cfg.roles.advisor)) {
-            return 1;
-        } else 
-        if(member.roles.cache.has(bot.cfg.roles.muted)) {
-            return -1;
-        } else {
-            return 0;
+        if(member != null && member.constructor === djs.GuildMember) {
+            if(bot.cfg.superusers.includes(member.user.id) && !ignoreElevated) {
+                return 5
+            }
+            if(member.permissions.has('ADMINISTRATOR')) {
+                return 4
+            } 
+            if(member.roles.cache.has(bot.cfg.roles.moderator)) {
+                return 3
+            }
+            if(member.roles.cache.has(bot.cfg.roles.jrmod)) {
+                return 2
+            }
+            if(member.roles.cache.has(bot.cfg.roles.advisor)) {
+                return 1
+            }
+            if(member.roles.cache.has(bot.cfg.roles.muted)) {
+                return -1
+            }
         }
-        
+
+        return 0
     }
 
     static missingArgs(m, metadata) {
@@ -196,7 +196,10 @@ module.exports = class OptiBotUtilities {
             log(`get target from ${target}`);
             log(`select type ${type}`);
 
-            if(!target) return resolve();
+            if(!target) {
+                log('auto-target: self')
+                target = 'me';
+            }
 
             if (['previous', 'last', 'recent', 'prev'].includes(target.toLowerCase())) {
                 log('last target')

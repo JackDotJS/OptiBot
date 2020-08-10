@@ -16,7 +16,7 @@ const metadata = {
         `Lists all OptiBot commands. By default, this will show every single command you have access to. Alternatively, you can use the following filters:`,
         ``,
         `**General**`,
-        `**\`q:*\`** - Search commands with a given word, or a phrase surrounded by quotes (").`,
+        `**\`q:*\`** - Search commands with a given word, or a phrase surrounded by quotes ("). This will search command names, short/long descriptions, and arguments.`,
         `**\`has:*\`** - Same as the above, but 100% more strict.`,
         ``,
         `**Role-Based**`,
@@ -49,6 +49,12 @@ metadata.run = (m, args, data) => {
 
     let isModChannel = (m.channel.type === 'dm' || bot.cfg.channels.mod.includes(m.channel.id) || bot.cfg.channels.mod.includes(m.channel.parentID));
 
+    let inputTest = m.content.match(/(?<=\w:["'`]).+(?=["'`])/);
+    if(inputTest == null) inputTest = m.content.match(/(?<=\w:)\S+/);
+    if(inputTest == null) inputTest = args;
+
+    let inputSpaceCount = inputTest[0].split(' ').length - 1;
+
     if (args[0] && isNaN(args[0])) {
         menu = args[0].toLowerCase();
     } else 
@@ -59,9 +65,13 @@ metadata.run = (m, args, data) => {
     if(args[0] && !isNaN(args[0])) {
         selectPage = parseInt(args[0]);
     } else
-    if(args[1] && !isNaN(args[1])) {
-        selectPage = parseInt(args[1]);
+    if(args[1+(inputSpaceCount)] && !isNaN(args[1+(inputSpaceCount)])) {
+        selectPage = parseInt(args[1+(inputSpaceCount)]);
     }
+
+    log(`target: args[${1+(inputSpaceCount)}] === ${args[1+(inputSpaceCount)]}`)
+    log(selectPage)
+    log(args)
 
     let defaultFilter = () => {
         if(!isModChannel && data.authlvl > 0) {
@@ -145,7 +155,8 @@ metadata.run = (m, args, data) => {
             let ratings = [
                 compare(cmd.metadata.name.toLowerCase(), query),
                 compare(cmd.metadata.short_desc.toLowerCase(), query),
-                compare(cmd.metadata.long_desc.toLowerCase(), query)
+                compare(cmd.metadata.long_desc.toLowerCase(), query),
+                compare(cmd.metadata.args.toLowerCase(), query)
             ];
 
             for(let alias of cmd.metadata.aliases) {
@@ -181,6 +192,7 @@ metadata.run = (m, args, data) => {
             if(cmd.metadata.aliases.includes(query)) return true;
             if(cmd.metadata.short_desc.includes(query)) return true;
             if(cmd.metadata.long_desc.includes(query)) return true;
+            if(cmd.metadata.args.includes(query)) return true;
         });
     } else {
         defaultFilter();

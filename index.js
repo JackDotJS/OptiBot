@@ -188,6 +188,8 @@ bot.on('message', (m) => {
     bot.mainGuild.members.fetch({ user: m.author.id, cache: true }).then(member => {
         let authlvl = ob.OBUtil.getAuthlvl(member);
 
+        log(authlvl);
+
         if(authlvl < 4 && bot.mode === 0 && m.author.id !== "271760054691037184") return;
         if(authlvl < 1 && bot.mode === 1 && m.author.id !== "271760054691037184") return;
 
@@ -290,7 +292,7 @@ bot.on('message', (m) => {
                 if(!cmd) {
                     unknownCMD();
                 } else
-                if(authlvl < cmd.metadata.authlvl || (cmd.metadata.flags['STRICT_AUTH'] && authlvl !== cmd.metadata.authlvl)) {
+                if(authlvl < cmd.metadata.authlvl || (cmd.metadata.flags['IGNORE_ELEVATED'] && ob.OBUtil.getAuthlvl(member, true) !== cmd.metadata.authlvl) || (cmd.metadata.flags['STRICT_AUTH'] && authlvl !== cmd.metadata.authlvl)) {
                     if(cmd.metadata.flags['HIDDEN']) {
                         unknownCMD();
                     } else {

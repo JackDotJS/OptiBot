@@ -42,7 +42,7 @@ metadata.run = (m, args, data) => {
             log(query);
             runs++;
             log(runs);
-            bot.guilds.cache.get(bot.cfg.guilds.optifine).channels.cache.get('531622141393764352').messages.fetch({limit:100, before:before}, true).then(msgs => {
+            bot.guilds.cache.get(bot.cfg.guilds.faq).channels.cache.get(bot.cfg.channels.faq).messages.fetch({limit:100, before:before}, true).then(msgs => {
                 let last = false;
                 if(msgs.has('531629512559951872')) {
                     log('non-faq deleted');

@@ -17,7 +17,7 @@ const metadata = {
         `test <attachment>`
     ],
     authlvl: 4,
-    flags: ['NO_DM', 'MOD_CHANNEL_ONLY', 'STRICT', 'DELETE_ON_MISUSE', 'LITE', 'STRICT_AUTH'],
+    flags: ['NO_DM', 'MOD_CHANNEL_ONLY', 'STRICT', 'DELETE_ON_MISUSE', 'LITE', 'IGNORE_ELEVATED'],
     run: null
 }
 
@@ -27,7 +27,7 @@ metadata.run = (m, args, data) => {
     }
 
     let rules = [];
-    let channel = bot.guilds.cache.get(bot.cfg.guilds.optibot).channels.cache.get(bot.cfg.channels.rules);
+    let channel = bot.guilds.cache.get(bot.cfg.guilds.rules).channels.cache.get(bot.cfg.channels.rules);
     let deleteOld = true;
     let time = 0;
 

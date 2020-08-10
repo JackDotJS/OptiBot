@@ -127,6 +127,9 @@ module.exports = class Command {
                 // This flag ensures the member's authlvl must always equal the command's required authlvl.
                 STRICT_AUTH: false,
 
+                // Ignores elevated "Bot Developer" permissions and compares next available authlvl.
+                IGNORE_ELEVATED: false,
+
                 // Deletes the users message if any restriction results in the command not firing.
                 // Useful for reducing spam, or for commands that require particularly sensitive information as arguments.
                 DELETE_ON_MISUSE: false, 

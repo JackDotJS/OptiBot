@@ -15,6 +15,10 @@ const metadata = {
 }
 
 metadata.run = (m, args, data) => {
+    if(bot.mode === 0) {
+        return OBUtil.err('This command cannot be used in mode 0.', {m:m})
+    }
+
     function updateNow(msg) {
         let logEntry = new LogEntry()
         .setColor(bot.cfg.embed.default)

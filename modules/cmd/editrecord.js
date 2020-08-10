@@ -62,9 +62,7 @@ metadata.run = (m, args, data) => {
                         if(!entry) {
                             return OBUtil.err(`Unable to find case ID "${args[1]}".`, {m:m});
                         }
-                        if(entry.moderator.id !== m.author.id && data.authlvl !== 4) {
-                            log(entry.moderator)
-                            log(m.author.id)
+                        if(entry.moderator.id !== m.author.id && ob.OBUtil.getAuthlvl(member, true) !== 4) {
                             return OBUtil.err(`You do not have permission to modify this entry.`, {m:m});
                         }
 

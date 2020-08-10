@@ -10,11 +10,11 @@ const log = bot.log;
 
 const metadata = {
     name: path.parse(__filename).name,
-    short_desc: `Force update <#${bot.cfg.policies.channel}> channel.`,
-    long_desc: `Forcefully updates the <#${bot.cfg.policies.channel}> channel with a given file.`,
+    short_desc: `Force update <#${bot.cfg.channels.policies}> channel.`,
+    long_desc: `Forcefully updates the <#${bot.cfg.channels.policies}> channel with a given file.`,
     args: `<attachment>`,
     authlvl: 4,
-    flags: ['NO_DM', 'MOD_CHANNEL_ONLY', 'STRICT', 'DELETE_ON_MISUSE', 'LITE', 'STRICT_AUTH'],
+    flags: ['NO_DM', 'MOD_CHANNEL_ONLY', 'STRICT', 'DELETE_ON_MISUSE', 'LITE', 'IGNORE_ELEVATED'],
     run: null
 }
 
@@ -24,7 +24,7 @@ metadata.run = (m, args, data) => {
     }
 
     let policies = [];
-    let channel = bot.guilds.cache.get(bot.cfg.policies.guild).channels.cache.get(bot.cfg.policies.channel);
+    let channel = bot.guilds.cache.get(bot.cfg.guilds.policies).channels.cache.get(bot.cfg.channels.policies);
     let time = 0;
 
     let itext = []
@@ -34,7 +34,7 @@ metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
     .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
     .setColor(bot.cfg.embed.default)
-    .setDescription(`The <#${bot.cfg.policies.channel}> channel will be completely reset and replaced with the given file. This action may take several minutes, and **cannot be undone.**`)
+    .setDescription(`The <#${bot.cfg.channels.policies}> channel will be completely reset and replaced with the given file. This action may take several minutes, and **cannot be undone.**`)
 
     m.channel.send('_ _', {embed: embed}).then(msg => {
         OBUtil.confirm(m, msg).then(res => {
@@ -124,7 +124,7 @@ metadata.run = (m, args, data) => {
         // NOW we can post the new policies
         let i = 0;
         (function postPol() {
-            bot.guilds.cache.get(bot.cfg.policies.guild).channels.cache.get(bot.cfg.policies.channel).send({embed: policies[i].embed, files: policies[i].files}).then((pm) => {
+            channel.send({embed: policies[i].embed, files: policies[i].files}).then((pm) => {
                 function cont() {
                     if(i+1 === policies.length) {
                         let temp = '';
@@ -191,7 +191,7 @@ metadata.run = (m, args, data) => {
                 .setTimestamp(time);
             } 
 
-            bot.guilds.cache.get(bot.cfg.policies.guild).channels.cache.get(bot.cfg.policies.channel).send({embed: lastEmbed}).then(() => {
+            channel.send({embed: lastEmbed}).then(() => {
                 if(pi+1 === itext_trimmed.length) {
                     embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.okay)

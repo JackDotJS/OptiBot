@@ -12,9 +12,9 @@ module.exports = class OptiBot extends djs.Client {
         super(options);
         
         const keys = require(path.resolve('./cfg/keys.json'));
-        const cfg = require(path.resolve('./cfg/config.json'));
+        const cfg = (mode === 0) ? require(path.resolve('./cfg/debug_config.json')) : require(path.resolve('./cfg/config.json'));
         const version = require(path.resolve('./package.json')).version;
-        const prefix = (mode === 0) ? cfg.prefixes.debug[0] : cfg.prefixes.default[0]; // first in array is always default, but all others will be accepted during real usage.
+        const prefix = cfg.prefixes[0]; // first in array is always default, but all others will be accepted during real usage.
 
         let exit = new Date()
         exit.setUTCHours(8, 0, 0, 0); // 8 AM = 1 AM US Pacific, 4 AM US Eastern
@@ -31,7 +31,7 @@ module.exports = class OptiBot extends djs.Client {
         this.exitTime = exit;
         this.locked = (mode === 0 || mode === 1);
         this.prefix = prefix;
-        this.prefixes = (mode === 0) ? cfg.prefixes.debug : cfg.prefixes.default;
+        this.prefixes = cfg.prefixes;
         this.version = version;
         
         Memory.core.client = this;

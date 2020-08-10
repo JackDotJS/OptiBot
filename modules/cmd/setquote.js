@@ -29,7 +29,7 @@ metadata.run = (m, args, data) => {
                 quote.push(line.trim());
             }
 
-            profile.ndata.quote = quote.join(' ');
+            profile.ndata.quote = djs.Util.escapeCodeBlock(quote.join(' '));
 
             OBUtil.updateProfile(profile).then(() => {
                 let embed = new djs.MessageEmbed()

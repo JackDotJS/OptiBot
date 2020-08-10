@@ -38,7 +38,7 @@ metadata.run = (m, args, data) => {
     OBUtil.parseTarget(m, 0, target, bot, data.member).then((result) => {
         if(result && result.type !== 'notfound') {
             if(result.id === bot.user.id) {
-                m.channel.send('fuck you');
+                return m.channel.send('fuck you');
             } else {
                 target = result.target.toString();
             }

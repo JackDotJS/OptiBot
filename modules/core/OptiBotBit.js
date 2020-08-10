@@ -41,7 +41,7 @@ module.exports = class OptiBit {
         if(typeof description !== 'string') {
             throw new TypeError(`Invalid OptiBit property: description`)
         }
-        if(typeof usage !== 'string' && flags != null) {
+        if(typeof usage !== 'string' && usage != null) {
             throw new TypeError(`Invalid OptiBit property: usage`)
         }
         if(typeof image !== 'string' && image != null) {

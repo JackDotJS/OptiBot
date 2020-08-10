@@ -273,7 +273,7 @@ metadata.run = (m, args, data) => {
                                 }
                             }
 
-                            embed.addField(`${entry.display.icon} ${(entry.edits) ? "*\\*" : ""}${entry.display.action}${(entry.edits) ? "*" : ""} ${entry.pardon ? "**(PARDONED)**" : ""}`, details.join(`${Assets.getEmoji('ICO_space')}\n`));
+                            embed.addField(`${entry.display.icon} ${(entry.edits) ? "**" : ""}${entry.display.action}${(entry.edits) ? "*" : ""} ${entry.pardon ? "**(PARDONED)**" : ""}`, details.join(`${Assets.getEmoji('ICO_space')}\n`));
 
                             added++;
 

@@ -27,7 +27,7 @@ const env = {
          * 4 = ERROR
          * 5 = FATAL
          */
-        level: 0, // TODO: set to 2 later
+        level: 2,
         stream: null,
         filename: null
     },

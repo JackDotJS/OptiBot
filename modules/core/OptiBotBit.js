@@ -41,10 +41,10 @@ module.exports = class OptiBit {
         if(typeof description !== 'string') {
             throw new TypeError(`Invalid OptiBit property: description`)
         }
-        if(typeof usage !== 'string') {
+        if(typeof usage !== 'string' && flags != null) {
             throw new TypeError(`Invalid OptiBit property: usage`)
         }
-        if(typeof image !== 'string' && typeof image !== 'undefined' && image !== null) {
+        if(typeof image !== 'string' && image != null) {
             throw new TypeError(`Invalid OptiBit property: description`)
         }
         if(typeof priority !== 'number') {
@@ -56,7 +56,7 @@ module.exports = class OptiBit {
         if(typeof authlvl !== 'number') {
             throw new TypeError(`Invalid or unspecified OptiBit property: authlvl`)
         }
-        if(!Array.isArray(flags) && typeof flags !== 'undefined' && flags !== null) {
+        if(!Array.isArray(flags) && flags != null) {
             throw new TypeError(`Invalid OptiBit property: flags`)
         }
         if(typeof validator !== 'function') {

@@ -273,162 +273,176 @@ function init() {
     
     env.log.filename = new Date().toUTCString().replace(/[/\\?%*:|"<>]/g, `.`)
     env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);
+    
+    function preinit() {
+        log(`Pre-Init: Backing up OptiBot profiles...`, 'info')
+        fs.copyFile(`./data/profiles.db`, `./archive/data/profiles_before_${env.log.filename}.db`, (err) => {
+            if(err) throw err;
 
-    log('spawning child process');
-    const bot = child.spawn('node', ['index.js', env.mode, env.log.filename], {
-        stdio: ['pipe', 'pipe', 'pipe', 'ipc']
-    });
+            log(`Pre-Init: OptiBot profiles successfully archived.`, 'info')
 
-    var chunks_out = [];
-    bot.stdout.on('data', (data) => {
-        chunks_out = chunks_out.concat(data);
-        log(data, undefined, 'index.js:NULL');
-    });
-    bot.stdout.on('end', () => {
-        let content = Buffer.concat(chunks_out).toString();
-        log(content, undefined, 'index.js:NULL');
-        chunks_out = [];
-    });
+            // todo: archive logs (#43)
+            spawn();
+        });
+    }
 
-    var chunks_err = [];
-    bot.stderr.on('data', (data) => {
-        chunks_err = chunks_err.concat(data);
-        log(data, 'fatal', 'index.js:NULL');
-    });
-    bot.stderr.on('end', () => {
-        let content = Buffer.concat(chunks_err).toString();
-        log(content, 'fatal', 'index.js:NULL');
-        chunks_err = [];
-    });
+    function spawn() {
+        log('OptiBot is now booting...', 'info');
+        const bot = child.spawn('node', ['index.js', env.mode, env.log.filename], {
+            stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+        });
 
-    bot.on('message', (data) => {
-        if(data.type === 'log') {
-            log(data.message, data.level, data.misc);
-        } else
-        if(data.type === 'ready') {
-            log('Bot ready');
-            if(env.cr.logfile !== null) {
-                // send crash data
-                bot.send({ crashlog: env.cr.logfile }, (err) => {
-                    if(err) {
-                        log('Failed to send crashlog data: '+err.stack, 'error');
-                    } else {
-                        // once finished, clear crash data so it's not sent again during next scheduled restart.
-                        env.cr.logfile = null;
-                    }
-                });
+        var chunks_out = [];
+        bot.stdout.on('data', (data) => {
+            chunks_out = chunks_out.concat(data);
+            log(data, undefined, 'index.js:NULL');
+        });
+        bot.stdout.on('end', () => {
+            let content = Buffer.concat(chunks_out).toString();
+            if (content.length > 0) log(content, undefined, 'index.js:NULL');
+            chunks_out = [];
+        });
+
+        var chunks_err = [];
+        bot.stderr.on('data', (data) => {
+            chunks_err = chunks_err.concat(data);
+            log(data, 'fatal', 'index.js:NULL');
+        });
+        bot.stderr.on('end', () => {
+            let content = Buffer.concat(chunks_err).toString();
+            if (content.length > 0) log(content, 'fatal', 'index.js:NULL');
+            chunks_err = [];
+        });
+
+        bot.on('message', (data) => {
+            if(data.type === 'log') {
+                log(data.message, data.level, data.misc);
+            } else
+            if(data.type === 'ready') {
+                log('Bot ready');
+                if(env.cr.logfile !== null) {
+                    // send crash data
+                    bot.send({ crashlog: env.cr.logfile }, (err) => {
+                        if(err) {
+                            log('Failed to send crashlog data: '+err.stack, 'error');
+                        } else {
+                            // once finished, clear crash data so it's not sent again during next scheduled restart.
+                            env.cr.logfile = null;
+                        }
+                    });
+                }
+
+                if(env.r.guild !== null) {
+                    // send restart data
+                    bot.send({ restart: env.r }, (err) => {
+                        if(err) {
+                            log('Failed to send restart data: '+err.stack, 'error');
+                        } else {
+                            env.r.guild = null;
+                            env.r.channel = null;
+                            env.r.message = null;
+                            env.r.author = null;
+                        }
+                    });
+                }
+            } else
+            if(data.type === 'logLvl') {
+                env.log.level = parseInt(data.content)
+                log('Log level updated.', 'fatal');
+            } else
+            if(data.type === 'restart') {
+                env.r.guild = data.guild;
+                env.r.channel = data.channel;
+                env.r.message = data.message;
+                env.r.author = data.author;
+            }
+        });
+
+        bot.on('exit', (code) => {
+            log(`Child process ended with exit code ${code}`, 'info');
+
+            if([18, 1].indexOf(code) > -1) {
+                env.r.guild = null;
+                env.r.channel = null;
+                env.r.message = null;
+                env.r.author = null;
             }
 
-            if(env.r.guild !== null) {
-                // send restart data
-                bot.send({ restart: env.r }, (err) => {
-                    if(err) {
-                        log('Failed to send restart data: '+err.stack, 'error');
-                    } else {
-                        env.r.guild = null;
-                        env.r.channel = null;
-                        env.r.message = null;
-                        env.r.author = null;
-                    }
-                });
+            if(code === 0) {
+                log('OptiBot is now shutting down at user request.', 'info');
+                end(code, true);
+            } else
+            if(code === 1) {
+                log('OptiBot seems to have crashed. Restarting...', 'info');
+                let logSuffix = 'CRASH';
+
+                env.cr.logfile = `${env.log.filename}_${logSuffix}.log`;
+                setTimeout(() => {
+                    end(code, false, logSuffix)
+                }, (env.mode === 0) ? 5000 : 10);
+            } else
+            if(code === 2) {
+                log('Bash Error. (How the fuck?)', 'fatal');
+                end(code, true);
+            } else
+            if(code === 3) {
+                log('Internal JavaScript parse error.', 'fatal');
+                end(code, true);
+            } else
+            if(code === 4) {
+                log('Internal JavaScript Evaluation Failure.', 'fatal');
+                end(code, true);
+            } else
+            if(code === 5) {
+                log('Fatal Error.', 'fatal');
+                end(code, true);
+            } else
+            if(code === 6) {
+                log('Non-function Internal Exception Handler.', 'fatal');
+                end(code, true);
+            } else
+            if(code === 7) {
+                log('Internal Exception Handler Run-Time Failure.', 'fatal');
+                end(code, true);
+            } else
+            if(code === 8) {
+                log('Uncaught exception. (Unused in newer NodeJS)', 'fatal');
+                end(code, true);
+            } else
+            if(code === 9) {
+                log('Invalid Launch Argument(s).', 'fatal');
+                end(code, true);
+            } else
+            if(code === 10) {
+                log('Internal JavaScript Run-Time Failure.', 'fatal');
+                end(code, true);
+            } else
+            if(code === 12) {
+                log('Invalid Debug Argument(s).', 'fatal');
+                end(code, true);
+            } else
+
+
+            if(code === 16) {
+                log('OptiBot is now restarting at user request...', 'info');
+                end(code, false);
+            } else
+            if(code === 17) {
+                log('OptiBot is now being updated...', 'info');
+                update();
+            } else
+            if(code === 18) {
+                log('OptiBot is now undergoing scheduled restart.', 'info');
+                end(code, false);
+            } else
+
+            
+            if(code > 128) {
+                log(`Signal exit code ${code - 128}.`, 'fatal');
+                end(code, true);
             }
-        } else
-        if(data.type === 'logLvl') {
-            env.log.level = parseInt(data.content)
-            log('Log level updated.', 'fatal');
-        } else
-        if(data.type === 'restart') {
-            env.r.guild = data.guild;
-            env.r.channel = data.channel;
-            env.r.message = data.message;
-            env.r.author = data.author;
-        }
-    });
-
-    bot.on('exit', (code) => {
-        log(`Child process ended with exit code ${code}`, 'info');
-
-        if([18, 1].indexOf(code) > -1) {
-            env.r.guild = null;
-            env.r.channel = null;
-            env.r.message = null;
-            env.r.author = null;
-        }
-
-        if(code === 0) {
-            log('OptiBot is now shutting down at user request.', 'info');
-            end(code, true);
-        } else
-        if(code === 1) {
-            log('OptiBot seems to have crashed. Restarting...', 'info');
-            let logSuffix = 'CRASH';
-
-            env.cr.logfile = `${env.log.filename}_${logSuffix}.log`;
-            setTimeout(() => {
-                end(code, false, logSuffix)
-            }, (env.mode === 0) ? 5000 : 10);
-        } else
-        if(code === 2) {
-            log('Bash Error. (How the fuck?)', 'fatal');
-            end(code, true);
-        } else
-        if(code === 3) {
-            log('Internal JavaScript parse error.', 'fatal');
-            end(code, true);
-        } else
-        if(code === 4) {
-            log('Internal JavaScript Evaluation Failure.', 'fatal');
-            end(code, true);
-        } else
-        if(code === 5) {
-            log('Fatal Error.', 'fatal');
-            end(code, true);
-        } else
-        if(code === 6) {
-            log('Non-function Internal Exception Handler.', 'fatal');
-            end(code, true);
-        } else
-        if(code === 7) {
-            log('Internal Exception Handler Run-Time Failure.', 'fatal');
-            end(code, true);
-        } else
-        if(code === 8) {
-            log('Uncaught exception. (Unused in newer NodeJS)', 'fatal');
-            end(code, true);
-        } else
-        if(code === 9) {
-            log('Invalid Launch Argument(s).', 'fatal');
-            end(code, true);
-        } else
-        if(code === 10) {
-            log('Internal JavaScript Run-Time Failure.', 'fatal');
-            end(code, true);
-        } else
-        if(code === 12) {
-            log('Invalid Debug Argument(s).', 'fatal');
-            end(code, true);
-        } else
-
-
-        if(code === 16) {
-            log('OptiBot is now restarting at user request...', 'info');
-            end(code, false);
-        } else
-        if(code === 17) {
-            log('OptiBot is now being updated...', 'info');
-            update();
-        } else
-        if(code === 18) {
-            log('OptiBot is now undergoing scheduled restart.', 'info');
-            end(code, false);
-        } else
-
-        
-        if(code > 128) {
-            log(`Signal exit code ${code - 128}.`, 'fatal');
-            end(code, true);
-        }
-    });
+        });
+    }
 
     function end(code, exit, log_suffix) {
         env.rph++;
@@ -484,4 +498,6 @@ function init() {
             }, 500);
         }, 500);
     }
+
+    preinit();
 }

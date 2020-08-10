@@ -528,6 +528,7 @@ module.exports = class OptiBotAssetsManager {
             })();
 
             function assetsFinal() {
+                log(`Primary Assets loaded with ${errors} error(s)!`, 'info')
                 log([
                     `Primary Asset Loader finished.`,
                     `Stages: ${stages.length}`,
@@ -540,7 +541,10 @@ module.exports = class OptiBotAssetsManager {
 
                 for(let stage of stagesAsync) {
                     function stagesAsyncFinal() {
-                        if(done === totals) {
+                        log(`Loading assets... ${Math.round((100 * done) / totals)}%`, 'info');
+                        if(done === totals) { 
+                            log(`Secondary Assets loaded with ${errorsAsync} error(s)!`, 'info')
+                            log(`Encountered ${errors + errorsAsync} total error(s) during setup.`, 'info')
                             log([
                                 `Secondary Asset Loader finished.`,
                                 `Stages: ${stagesAsync.length}`,
@@ -550,8 +554,6 @@ module.exports = class OptiBotAssetsManager {
                                 `Total Skipped: ${skipped + skippedAsync}`,
                                 `Total Errors: ${errors + errorsAsync}`
                             ].join('\n'), 'debug')
-                        } else {
-                            log(`Loading assets... ${Math.round((100 * done) / totals)}%`, 'info');
                         }
                     }
                     

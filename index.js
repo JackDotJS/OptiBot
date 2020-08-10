@@ -188,8 +188,6 @@ bot.on('message', (m) => {
     bot.mainGuild.members.fetch({ user: m.author.id, cache: true }).then(member => {
         let authlvl = ob.OBUtil.getAuthlvl(member);
 
-        log(authlvl);
-
         if(authlvl < 4 && bot.mode === 0 && m.author.id !== "271760054691037184") return;
         if(authlvl < 1 && bot.mode === 1 && m.author.id !== "271760054691037184") return;
 
@@ -201,6 +199,8 @@ bot.on('message', (m) => {
             /////////////////////////////////////////////////////////////
 
             ob.Memory.li = new Date().getTime()
+
+            log(authlvl);
 
             ob.Assets.fetchCommand(input.cmd).then(cmd => {
                 let unknownCMD = () => {

@@ -55,23 +55,19 @@ metadata.run = (m, args, data) => {
                             `Mention: ${result.mention}`,
                             `\`\`\`yaml\nID: ${result.id}\`\`\``
                         ].join('\n'))
+                        .addField(`Ban Reason`, ban.reason)
 
                         if(result.type !== 'id') {
                             embed.setThumbnail(((result.type === "user") ? result.target : result.target.user).displayAvatarURL({format:'png'}))
                         }
 
-                        if(!recordEntry) {
-                            embed.addField(`Ban Reason`, ban.reason)
-                        } else {
-                            if(recordEntry.reason === ban.reason) {
-                                embed.addField(`Ban Reason`, ban.reason)
-                            } else {
-                                embed.addField(`(Discord) Ban Reason`, ban.reason)
-                                embed.addField(`(Record) Ban Reason`, ban.reason)
+                        if(recordEntry != null) {
+                            if(recordEntry.reason !== ban.reason) {
+                                embed.addField(`(Record) Ban Reason`, recordEntry.reason)
                             }
-
-                            if(recordEntry.details) {
-                                embed.addField(`(Record) Details`, ban.reason)
+    
+                            if(recordEntry.details != null) {
+                                embed.addField(`(Record) Details`, recordEntry.details)
                             }
                         }
 

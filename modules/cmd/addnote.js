@@ -35,7 +35,7 @@ metadata.run = (m, args, data) => {
             if (result.id === m.author.id || result.id === bot.user.id) {
                 OBUtil.err('Nice try.', {m:m});
             } else {
-                let reason = m.content.substring( `${bot.prefix}${metadata.name} ${args[0]} `.length )
+                let reason = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} `.length )
                 if(reason.length > 1000) {
                     return OBUtil.err(`Note cannot exceed 1000 characters in length.`, {m:m});
                 }

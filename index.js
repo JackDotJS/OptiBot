@@ -899,6 +899,7 @@ bot.on('guildMemberAdd', member => {
         }
     } else
     if(member.guild.id === bot.cfg.guilds.donator) {
+        // todo: make this a function in OBUtil
         bot.mainGuild.members.fetch(member.user.id).then((ofm) => {
             if (ofm.roles.cache.has(bot.cfg.roles.donator) && !member.roles.cache.has(bot.cfg.roles.donatorServer)) {
                 member.roles.add(bot.cfg.roles.donatorServer).then(() => {

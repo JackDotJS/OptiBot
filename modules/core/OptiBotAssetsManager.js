@@ -233,6 +233,84 @@ module.exports = class OptiBotAssetsManager {
             });
 
             stagesAsync.push({
+                name: 'Muted Member Pre-cacher',
+                tiers: [true, false, false],
+                load: () => {
+                    return new Promise((resolve, reject) => {
+                        Memory.db.profiles.find({ "edata.mute": { $exists: true }, format: 3}, (err, docs) => {
+                            if(err) {
+                                reject(err);
+                            } else
+                            if(docs.length === 0) {
+                                resolve()
+                            } else {
+                                for(let i = 0; i < docs.length; i++) {
+                                    let profile = docs[i];
+                                    if(profile.edata.mute.end !== null) {
+                                        let exp = profile.edata.mute.end;
+                                        let remaining = exp - new Date().getTime();
+    
+                                        if(exp <= bot.exitTime.getTime()) {
+                                            if(remaining < (1000 * 60)) {
+                                                log(`Unmuting user ${profile.id} due to expired (or nearly expired) mute.`, 'info')
+                                                OBUtil.unmuter(profile.id);
+                                            } else {
+                                                log(`Scheduling ${profile.id} for unmute today. (${(remaining/1000)/60} hours from now)`, 'info')
+                                                Memory.mutes.push({
+                                                    id: profile.id,
+                                                    time: bot.setTimeout(() => {
+                                                        OBUtil.unmuter(profile.id);
+                                                    }, remaining)
+                                                });
+                                            }
+                                        }
+                                    }
+    
+                                    if(i+1 >= docs.length) {
+                                        resolve();
+                                    }
+                                }
+                            }
+                        });
+                    })
+                }
+            });
+
+            stagesAsync.push({
+                name: 'Moderator Presence Pre-cacher',
+                tiers: [true, false, false],
+                load: () => {
+                    return new Promise((resolve, reject) => {
+                        Memory.mods = [];
+    
+                        log(bot.cfg.roles.moderator)
+    
+                        let getModRole = bot.mainGuild.roles.cache.get(bot.cfg.roles.moderator);
+    
+                        getModRole.members.each(mod => {
+                            if(mod.id !== '202558206495555585') {
+                                Memory.mods.push({
+                                    id: mod.id,
+                                    status: mod.presence.status,
+                                    last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
+                                });
+                            }
+                        })
+    
+                        bot.mainGuild.roles.cache.get(bot.cfg.roles.jrmod).members.each(mod => {
+                            Memory.mods.push({
+                                id: mod.id,
+                                status: mod.presence.status,
+                                last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
+                            });
+                        })
+    
+                        resolve();
+                    })
+                }
+            });
+
+            stagesAsync.push({
                 name: 'OptiBit Loader',
                 tiers: [true, true, false],
                 load: () => {
@@ -368,6 +446,38 @@ module.exports = class OptiBotAssetsManager {
             });
 
             stagesAsync.push({
+                name: 'Unverified Donator Checker',
+                tiers: [true, false, false],
+                load: () => {
+                    return new Promise((resolve, reject) => {
+                        bot.guilds.cache.get(bot.cfg.guilds.donator).members.fetch().then((members) => {
+                            members.each((member) => {
+                                if (member.roles.cache.size === 1) {
+                                    // todo: make this a function in OBUtil
+                                    bot.mainGuild.members.fetch(member.user.id).then((ofm) => {
+                                        if (ofm.roles.cache.has(bot.cfg.roles.donator) && !member.roles.cache.has(bot.cfg.roles.donatorServer)) {
+                                            member.roles.add(bot.cfg.roles.donatorServer).then(() => {
+                                                log(`${member.user.tag} (${member.user.id}) verified on donator server, role added`)
+                                            }).catch(err => {
+                                                log(`member id from error: ${member.user.id}`)
+                                                ob.OBUtil.err(err);
+                                            })
+                                        }
+                                    }).catch(err => {
+                                        if(err.message.match(/invalid or uncached|unknown member|unknown user/i) === null) {
+                                            log(`member id from error: ${member.user.id}`)
+                                            ob.OBUtil.err(err);
+                                        }
+                                    })
+                                }
+                            });
+                            resolve();
+                        });
+                    })
+                }
+            });
+
+            stagesAsync.push({
                 name: 'Message Pre-Cacher',
                 tiers: [true, false, false],
                 load: () => {
@@ -402,85 +512,6 @@ module.exports = class OptiBotAssetsManager {
                                 next();
                             }
                         })();
-                    })
-                }
-            });
-
-            stagesAsync.push({
-                name: 'Moderator Presence Pre-cacher',
-                tiers: [true, false, false],
-                load: () => {
-                    return new Promise((resolve, reject) => {
-                        Memory.mods = [];
-    
-                        log(bot.cfg.roles.moderator)
-    
-                        let getModRole = bot.mainGuild.roles.cache.get(bot.cfg.roles.moderator);
-    
-                        getModRole.members.each(mod => {
-                            if(mod.id !== '202558206495555585') {
-                                Memory.mods.push({
-                                    id: mod.id,
-                                    status: mod.presence.status,
-                                    last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
-                                });
-                            }
-                        })
-    
-                        bot.mainGuild.roles.cache.get(bot.cfg.roles.jrmod).members.each(mod => {
-                            Memory.mods.push({
-                                id: mod.id,
-                                status: mod.presence.status,
-                                last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
-                            });
-                        })
-    
-                        resolve();
-                    })
-                }
-            });
-
-            stagesAsync.push({
-                name: 'Muted Member Pre-cacher',
-                tiers: [true, false, false],
-                load: () => {
-                    return new Promise((resolve, reject) => {
-                        Memory.db.profiles.find({ "data.edata.mute": { $exists: true }, format: 3}, (err, docs) => {
-                            if(err) {
-                                reject(err);
-                            } else
-                            if(docs.length === 0) {
-                                resolve()
-                            } else {
-                                for(let i = 0; i < docs.length; i++) {
-                                    let profile = docs[i];
-                                    if(profile.edata.mute.end !== null) {
-                                        let exp = profile.edata.mute.end;
-                                        let remaining = exp - new Date().getTime();
-    
-                                        if(exp <= bot.exitTime.getTime()) {
-                                            log('unmute today')
-                                            if(remaining < (1000 * 60)) {
-                                                log('unmute now')
-                                                OBUtil.unmuter(profile.id);
-                                            } else {
-                                                log('unmute later')
-                                                Memory.mutes.push({
-                                                    id: profile.id,
-                                                    time: bot.setTimeout(() => {
-                                                        OBUtil.unmuter(profile.id);
-                                                    }, remaining)
-                                                });
-                                            }
-                                        }
-                                    }
-    
-                                    if(i+1 >= docs.length) {
-                                        resolve();
-                                    }
-                                }
-                            }
-                        });
                     })
                 }
             });

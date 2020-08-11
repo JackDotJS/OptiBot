@@ -18,11 +18,11 @@ metadata.run = (m, args, data) => {
     if(!args[0]) {
         OBUtil.missingArgs(m, metadata);
     } else 
-    if(m.content.substring(`${bot.prefix}${metadata.name} `.length).length > 256) {
+    if(m.content.substring(`${bot.prefix}${data.input.cmd} `.length).length > 256) {
         OBUtil.err('Message cannot exceed 256 characters in length.', {m:m})
     } else {
         OBUtil.getProfile(m.author.id, true).then(profile => {
-            let lines = m.content.substring(`${bot.prefix}${metadata.name} `.length).replace(/\>/g, '\\>').split('\n');
+            let lines = m.content.substring(`${bot.prefix}${data.input.cmd} `.length).replace(/\>/g, '\\>').split('\n');
             let quote = [];
             
             for(let line of lines) {

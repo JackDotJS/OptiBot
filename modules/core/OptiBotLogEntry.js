@@ -4,7 +4,6 @@ const cid = require('caller-id');
 const timeago = require("timeago.js");
 const Memory = require(`./OptiBotMemory.js`);
 const RecordEntry = require(`./OptiBotRecordEntry.js`);
-const OBUtil = require(`./OptiBotUtil.js`)
 
 module.exports = class LogEntry {
     constructor(opts = {time: new Date(), console: true, embed: true, channel: "misc"}) {
@@ -141,6 +140,7 @@ module.exports = class LogEntry {
 
     error(err) {
         return new Promise((resolve, reject) => {
+            const OBUtil = require(`./OptiBotUtil.js`)
             const bot = Memory.core.client;
             const log = bot.log;
 

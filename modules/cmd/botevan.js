@@ -20,7 +20,7 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
     let target = (args[0] || `*Someone(TM)*`);
-    let reason = (args[1]) ? m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length ) : null;
+    let reason = (args[1]) ? m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} `.length ) : null;
 
     if(!reason) {
         someReason = [

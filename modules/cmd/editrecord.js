@@ -46,7 +46,7 @@ metadata.run = (m, args, data) => {
             if(!['reason','details','parent','pardon'].includes(args[2].toLowerCase())) {
                 OBUtil.err(`Invalid property: \`${args[2]}\``, {m:m});
             } else {
-                let value = m.content.substring( `${bot.prefix}${metadata.name} ${args[0]} ${args[1]} ${args[2]} `.length ).trim();
+                let value = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} ${args[1]} ${args[2]} `.length ).trim();
 
                 if(value.length > 1000) {
                     OBUtil.err(`New value cannot exceed 1000 characters in length.`, {m:m})

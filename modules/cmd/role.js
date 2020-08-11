@@ -40,7 +40,7 @@ metadata.run = (m, args, data) => {
                     role: null,
                     rating: 0,
                 };
-                let reqrole = m.content.substring((`${bot.prefix}${path.parse(__filename).name} ${args[0]} `).length);
+                let reqrole = m.content.substring((`${bot.prefix}${data.input.cmd} ${args[0]} `).length);
                 for(let role of roles) {
                     let newrating = sim.compareTwoStrings(reqrole, role.name)
                     if (newrating > match.rating) {

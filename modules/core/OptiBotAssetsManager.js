@@ -244,8 +244,13 @@ module.exports = class OptiBotAssetsManager {
                             if(docs.length === 0) {
                                 resolve()
                             } else {
-                                for(let i = 0; i < docs.length; i++) {
+
+                                let i = -1;
+                                (function nextEntry() {
+                                    i++;
                                     let profile = docs[i];
+                                    if(i >= docs.length) return resolve();
+                                    
                                     if(profile.edata.mute.end !== null) {
                                         let exp = profile.edata.mute.end;
                                         let remaining = exp - new Date().getTime();
@@ -254,6 +259,7 @@ module.exports = class OptiBotAssetsManager {
                                             if(remaining < (1000 * 60)) {
                                                 log(`Unmuting user ${profile.id} due to expired (or nearly expired) mute.`, 'info')
                                                 OBUtil.unmuter(profile.id);
+                                                nextEntry();
                                             } else {
                                                 log(`Scheduling ${profile.id} for unmute today. (${(remaining/1000)/60} hours from now)`, 'info')
                                                 Memory.mutes.push({
@@ -262,14 +268,15 @@ module.exports = class OptiBotAssetsManager {
                                                         OBUtil.unmuter(profile.id);
                                                     }, remaining)
                                                 });
+                                                nextEntry();
                                             }
+                                        } else {
+                                            nextEntry();
                                         }
+                                    } else {
+                                        nextEntry();
                                     }
-    
-                                    if(i+1 >= docs.length) {
-                                        resolve();
-                                    }
-                                }
+                                })();
                             }
                         });
                     })

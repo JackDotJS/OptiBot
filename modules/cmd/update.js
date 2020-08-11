@@ -9,8 +9,8 @@ const metadata = {
     name: path.parse(__filename).name,
     short_desc: `Force update OptiBot`,
     args: '[skip]',
-    authlvl: 5,
-    flags: ['NO_DM', 'NO_TYPER'],
+    authlvl: 4,
+    flags: ['NO_DM', 'NO_TYPER', 'IGNORE_ELEVATED'],
     run: null
 }
 

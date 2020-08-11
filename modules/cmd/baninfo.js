@@ -40,7 +40,7 @@ metadata.run = (m, args, data) => {
                             for(let i = 0; i < record.length; i++) {
                                 let entry = record[i]
     
-                                if(entry.action === 4 && entry.actionType === -1) {
+                                if(entry.action === 4 && entry.actionType === 1) {
                                     recordEntry = entry;
                                     break;
                                 }

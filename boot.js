@@ -37,7 +37,7 @@ const env = {
         hour: 0,
         interval: setInterval(() => {
             let now = new Date().getHours();
-            if(now !== env.currentHour) {
+            if(now !== env.autostart.hour) {
                 env.autostart.rph = 0;
                 env.autostart.hour = now;
             }
@@ -275,6 +275,14 @@ function init() {
     env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);
     
     function preinit() {
+        if(env.autostart.rph > 5 && env.mode != 0) {
+            log(`Pre-Init: Unusually high client reset count: ${env.autostart.rph}`, 'warn')
+            if(env.autostart.rph > 50) {
+                log(`Pre-Init: Potential boot loop detected, shutting down for safety.`, 'warn')
+                return end(19, true, 'FATAL')
+            }
+        }
+
         log(`Pre-Init: Backing up OptiBot profiles...`, 'info')
         let pzip = new AZip();
         pzip.addLocalFile(`./data/profiles.db`)
@@ -284,33 +292,64 @@ function init() {
 
             log(`Pre-Init: OptiBot profiles successfully archived.`, 'info')
 
-            return spawn();
-
             if(new Date().getUTCDate() === 1) {
                 log(`Pre-Init: Archiving log files...`, 'info')
                 let logs = fs.readdirSync('./logs');
 
-                let zips = {}
+                let zipData = {}
+                let current = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
 
                 for(let log of logs) {
                     if(!log.endsWith('.log')) continue;
-                    let creation = new Date(Math.min(fs.statSync(`./logs/` + a).mtime.getTime(), Date.parse(a.substring(0, a.lastIndexOf("GMT")+3).replace(/./g, ":"))))
+                    let creation = new Date(Math.min(fs.statSync(`./logs/${log}`).mtime.getTime(), Date.parse(log.substring(0, log.lastIndexOf("GMT")+3).replace(/\./g, ":"))))
 
-                    if(creation.toLocaleString('default', { month: 'long', year: 'numeric' }) === new Date().toLocaleString('default', { month: 'long', year: 'numeric' })) continue;
+                    if(creation.toLocaleString('default', { month: 'long', year: 'numeric' }) === current) continue;
 
                     let target = `${creation.getUTCMonth()}_${creation.getUTCFullYear()}`;
 
-                    if(zips[target] != null) {
-                        zips[target].files.push(log);
+                    if(zipData[target] != null) {
+                        zipData[target].files.push(log);
                     } else {
-                        zips[target] = {
+                        zipData[target] = {
                             files: [log],
                             name: `${creation.toLocaleString('default', { month: 'long', year: 'numeric' })}`
                         }
                     }
                 }
 
-                // todo: check if zips is empty, check if zip archives already exist, etc
+                let keys = Object.keys(zipData);
+
+                if(keys.length === 0) {
+                    spawn();
+                } else {
+                    log(`Pre-Init: Preparing to write ${keys.length} ZIP archive(s)...`, 'info')
+
+                    let archived = 0;
+                    let i = 0;
+                    (function nextZip() {
+                        if (i >= keys.length) {
+                            log(`Pre-Init: Successfully archived ${archived} log files.`, 'info')
+                            return spawn();
+                        }
+
+                        let data = zipData[keys[i]];
+                        let path = `./archive/logs/${data.name}.zip`;
+                        let zip = (fs.existsSync(path)) ? new AZip(path) : new AZip();
+
+                        for(let file of data.files) {
+                            archived++;
+                            zip.addLocalFile(`./logs/${file}`);
+                            fs.unlinkSync(`./logs/${file}`);
+                        }
+
+                        zip.writeZip(path, (err) => {
+                            if(err) log(err.stack, 'error');
+
+                            i++;
+                            nextZip();
+                        })
+                    })();
+                }
             } else {
                 spawn();
             }
@@ -466,6 +505,10 @@ function init() {
                 log('OptiBot is now undergoing scheduled restart.', 'info');
                 end(code, false);
             } else
+            if(code === 19) {
+                log('OptiBot is shutting down automatically.', 'fatal');
+                end(code, true, 'FATAL');
+            } else
 
             
             if(code > 128) {
@@ -476,7 +519,7 @@ function init() {
     }
 
     function end(code, exit, log_suffix) {
-        env.rph++;
+        env.autostart.rph++;
 
         setTimeout(() => {
             env.log.stream.end();

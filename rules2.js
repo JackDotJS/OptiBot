@@ -128,8 +128,7 @@ module.exports = [
         .setColor(bot.cfg.embed.default)
         .setTitle(`Please DO NOT ping or privately message server moderators for general OptiFine support.`)
         .setDescription([
-            `Any questions about OptiFine should be redirected to <#423433009568546827>.`,
-            `Here, more people will see your question/issue and you'll be much, MUCH more likely to get faster and better help.`
+            `Any questions about OptiFine should be redirected to <#423433009568546827>. Here, more people will see your question/issue and you'll be much, MUCH more likely to get faster and better help.`
         ].join(`\n`))
     },
     {
@@ -168,7 +167,7 @@ module.exports = [
         .setDescription([
             `Under certain circumstances, most server bans may qualify to be revoked.`,
             ``,
-            `[To get started, see this Google Form](https://forms.gle/kqMKzeBxzm29pWku8 "https://forms.gle/kqMKzeBxzm29pWku8"), and PLEASE be sure to read all the information provided.`
+            `[To get started, see this Google Form](https://forms.gle/kqMKzeBxzm29pWku8 "https://forms.gle/kqMKzeBxzm29pWku8"), and PLEASE be sure to read all the information provided. You can also find the link to this form on our subreddit, [/r/OptiFine](https://www.reddit.com/r/OptiFine/ "https://www.reddit.com/r/OptiFine/"), and our Twitter, [@OptiFineNews](https://twitter.com/OptiFineNews "https://twitter.com/OptiFineNews")`
         ].join(`\n`))
     },
     {

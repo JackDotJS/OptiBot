@@ -6,7 +6,6 @@ const path = require(`path`);
 const Memory = require('./OptiBotMemory.js');
 var Command = require('./OptiBotCommand.js');
 var OptiBit = require('./OptiBotBit.js');
-var OBUtil = require('./OptiBotUtil.js');
 
 module.exports = class OptiBotAssetsManager {
     constructor() {
@@ -24,6 +23,7 @@ module.exports = class OptiBotAssetsManager {
 
         const bot = Memory.core.client;
         const log = bot.log;
+        var OBUtil = require('./OptiBotUtil.js');
 
         return new Promise((success, failure) => {
             log('Loading assets...', 'info');

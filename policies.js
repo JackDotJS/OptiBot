@@ -208,7 +208,7 @@
         .setDescription(`Examples of spam includes, but is not limited to:\n\n　• Messages that only contain random, arbitrary characters.\n　• Posting the same type of message over and over and over and over.\n　• Mass pinging users or roles for no legitimate reason.\n　• Large walls of text that do not contribute to real discussions. (copypastas for example)\n\nNote that this rule is somewhat "relaxed" for the <#584850909725458503> channel.`) // todo: mention bot misusage
         .addField('Policy', `[TODO]`)
     },
-    {
+    { // TODO: Any link URL, server IP, or other reference that's posted with the sole intention of marketing purposes or general promotion is considered advertising.
         title: `Rule 5) No Advertising`,
         kw: ['rule 5', 'no advertising', 'ads', 'advertising', 'invite links'],
         embed: new djs.MessageEmbed()

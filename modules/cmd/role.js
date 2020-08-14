@@ -51,7 +51,7 @@ metadata.run = (m, args, data) => {
 
                 log(match);
 
-                if (match.rating < 0.2) {
+                if (match.rating < 0.05) {
                     OBUtil.err('What kind of role is that?', {m:m})
                 } else
                 if (!result.target.roles.cache.has(match.role.id)) {

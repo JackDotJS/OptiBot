@@ -16,7 +16,7 @@ module.exports = [
         .setDescription([
             `**By communicating and participating in this server, you agree to adhere to the following rules at all times.**`,
             ``,
-            `If you see someone breaking these rules, please ping any online moderator, or use the !modping command.`,
+            `If you see someone breaking these rules, please ping any online moderator, or use the ${bot.prefix}modping command.`,
             `${Assets.getEmoji('ICO_space')}`
         ].join('\n'))
         .addField(
@@ -119,7 +119,7 @@ module.exports = [
             `Requesting roles`,
             `> ` + [
                 `If you're a creator of a resource pack, shader pack, or other Minecraft mod, and you'd like the relevant roles to highlight your expertise, you can ping any moderator (or use the \`!modping\` command) to make a request.`,
-                `[For more information, see this message.](https://discordapp.com/channels/423430686880301056/531622141393764352/556593372182216705 "https://discordapp.com/channels/423430686880301056/531622141393764352/556593372182216705")`
+                `[For more information, see this <#531622141393764352> entry.](https://discordapp.com/channels/423430686880301056/531622141393764352/556593372182216705 "https://discordapp.com/channels/423430686880301056/531622141393764352/556593372182216705")`
             ].join(jt) + at
         )
         .addField(

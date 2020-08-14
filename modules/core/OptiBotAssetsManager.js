@@ -457,28 +457,26 @@ module.exports = class OptiBotAssetsManager {
                 tiers: [true, false, false],
                 load: () => {
                     return new Promise((resolve, reject) => {
-                        bot.guilds.cache.get(bot.cfg.guilds.donator).members.fetch().then((members) => {
-                            members.each((member) => {
+                        bot.guilds.cache.get(bot.cfg.guilds.donator).members.fetch().then((mem) => {
+                            let members = [...mem.values()];
+
+                            let i = -1;
+                            (function nextMember() {
+                                i++;
+                                if(i >= members.length) return resolve();
+
+                                let member = members[i];
+
                                 if (member.roles.cache.size === 1) {
-                                    // todo: make this a function in OBUtil
-                                    bot.mainGuild.members.fetch(member.user.id).then((ofm) => {
-                                        if (ofm.roles.cache.has(bot.cfg.roles.donator) && !member.roles.cache.has(bot.cfg.roles.donatorServer)) {
-                                            member.roles.add(bot.cfg.roles.donatorServer).then(() => {
-                                                log(`${member.user.tag} (${member.user.id}) verified on donator server, role added`)
-                                            }).catch(err => {
-                                                log(`member id from error: ${member.user.id}`)
-                                                ob.OBUtil.err(err);
-                                            })
-                                        }
+                                    OBUtil.verifyDonator(member).then(() => {
+                                        nextMember();
                                     }).catch(err => {
-                                        if(err.message.match(/invalid or uncached|unknown member|unknown user/i) === null) {
-                                            log(`member id from error: ${member.user.id}`)
-                                            ob.OBUtil.err(err);
-                                        }
+                                        OBUtil.err(err);
+                                        nextMember();
                                     })
                                 }
-                            });
-                            resolve();
+                            })()
+                            
                         });
                     })
                 }

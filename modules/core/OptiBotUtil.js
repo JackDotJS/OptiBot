@@ -6,6 +6,7 @@ const Profile = require(`./OptiBotProfile.js`);
 const Command = require(`./OptiBotCommand.js`);
 const LogEntry = require(`./OptiBotLogEntry.js`);
 const Memory = require(`./OptiBotMemory.js`);
+const Assets = require(`./OptiBotAssetsManager.js`);
 
 module.exports = class OptiBotUtilities {
     constructor() {
@@ -125,7 +126,7 @@ module.exports = class OptiBotUtilities {
         const log = bot.log;
 
         let embed = new djs.MessageEmbed()
-        .setAuthor(`Missing Arguments`, OptiBotUtilities.getEmoji('ICO_warn').url)
+        .setAuthor(`Missing Arguments`, Assets.getEmoji('ICO_warn').url)
         .setColor(bot.cfg.embed.default)
         .addField('Usage', Command.parseMetadata(metadata).args)
 
@@ -584,11 +585,11 @@ module.exports = class OptiBotUtilities {
                 formatted = [...new Set(formatted)];
             }
     
-            embed.setAuthor('Something went wrong.', OptiBotUtilities.getEmoji('ICO_error').url)
+            embed.setAuthor('Something went wrong.', Assets.getEmoji('ICO_error').url)
             .setTitle(bot.cfg.messages.error[~~(Math.random() * bot.cfg.messages.error.length)])
             .setDescription(`\`\`\`diff\n- ${formatted.join('\n-   at ')}\`\`\``);
         } else {
-            embed.setAuthor(err, OptiBotUtilities.getEmoji('ICO_error').url)
+            embed.setAuthor(err, Assets.getEmoji('ICO_error').url)
         }
     
         // log(util.inspect(data));
@@ -735,7 +736,7 @@ module.exports = class OptiBotUtilities {
     
             let logEntry = new LogEntry({channel: "moderation"})
             .setColor(bot.cfg.embed.error)
-            .setIcon(OptiBotUtilities.getEmoji('ICO_error').url)
+            .setIcon(Assets.getEmoji('ICO_error').url)
             .setTitle(`Member Unmute Failure`, `Member Mute Removal Failure Report`)
             .setHeader(`An error occurred while trying to unmute a user.`)
             .setDescription(`\`\`\`diff\n-${err}\`\`\``)
@@ -815,7 +816,7 @@ module.exports = class OptiBotUtilities {
     
             let logEntry = new LogEntry({channel: "moderation"})
                 .setColor(bot.cfg.embed.default)
-                .setIcon(OptiBotUtilities.getEmoji('ICO_unmute').url)
+                .setIcon(Assets.getEmoji('ICO_unmute').url)
                 .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
                 .setHeader(`Reason: Mute period expired.`)
                 .addSection(`Member Unmuted`, (type === "user") ? user : user.user)
@@ -942,19 +943,48 @@ module.exports = class OptiBotUtilities {
         return `${newStr}${face[~~(Math.random() * face.length)]}`;
     }
 
-    static getEmoji(target) {
-        const bot = Memory.core.client;
-        const log = bot.log;
+    static verifyDonator(member) {
+        return new Promise((resolve, reject) => {
+            log(`${member.user.tag} (${member.user.id}) joined OptiFine Donator server!`, 'info')
 
-        let result;
+            function grantRole() {
+                member.roles.add(bot.cfg.roles.donatorServer, 'Verified Donator via OptiFine Server.').then(() => {
+                    log(`${member.user.tag} (${member.user.id}) has been successfully verified as a donator.`, 'info')
+                    resolve()
+                }).catch(err => {
+                    log(`Error occurred while verifying ${member.user.tag} (${member.user.id}) as a donator.`, 'error')
+                    reject(err);
+                })
+            }
 
-        if(Number.isInteger(parseInt(target))) {
-            result = bot.emojis.cache.get(target)
-        } else {
-            result = bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === target.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)))
-        }
-
-        if(result) return result;
-        return bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === 'ICO_default'.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)))
+            function kick() {
+                member.kick('Unverified Donator.').then(() => {
+                    log(`Kicked ${member.user.tag} (${member.user.id}) for not being a verified donator.`, 'info')
+                    resolve()
+                }).catch(err => {
+                    log(`Error occurred while kicking ${member.user.tag} (${member.user.id}) from donator server.`, 'error')
+                    reject(err);
+                })
+            }
+            
+            bot.mainGuild.members.fetch(member.user.id).then((ofm) => {
+                if (ofm.roles.cache.has(bot.cfg.roles.donator)) {
+                    if(!member.roles.cache.has(bot.cfg.roles.donatorServer)) {
+                        grantRole();
+                    } else {
+                        resolve();
+                    }
+                } else {
+                    kick();
+                }
+            }).catch(err => {
+                if(err.message.match(/invalid or uncached|unknown member|unknown user/i) != null) {
+                    kick()
+                } else {
+                    log(`Error occurred while verifying ${member.user.tag} (${member.user.id}) as a donator.`, 'error')
+                    reject(err);
+                }
+            })
+        })
     }
 }

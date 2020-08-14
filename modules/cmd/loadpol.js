@@ -12,7 +12,10 @@ const metadata = {
     name: path.parse(__filename).name,
     short_desc: `Force update <#${bot.cfg.channels.policies}> channel.`,
     long_desc: `Forcefully updates the <#${bot.cfg.channels.policies}> channel with a given file.`,
-    args: `<attachment>`,
+    args: [
+        `<attachment>`,
+        `test <attachment>`
+    ],
     authlvl: 4,
     flags: ['NO_DM', 'MOD_CHANNEL_ONLY', 'STRICT', 'DELETE_ON_MISUSE', 'LITE', 'IGNORE_ELEVATED'],
     run: null
@@ -25,6 +28,7 @@ metadata.run = (m, args, data) => {
 
     let policies = [];
     let channel = bot.guilds.cache.get(bot.cfg.guilds.policies).channels.cache.get(bot.cfg.channels.policies);
+    let deleteOld = true;
     let time = 0;
 
     let itext = []
@@ -34,7 +38,15 @@ metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
     .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
     .setColor(bot.cfg.embed.default)
-    .setDescription(`The <#${bot.cfg.channels.policies}> channel will be completely reset and replaced with the given file. This action may take several minutes, and **cannot be undone.**`)
+
+    if(args[0] && args[0].toLowerCase() === 'test') {
+        channel = m.channel;
+        deleteOld = false;
+        embed.setDescription(`(TEST) The given policies will be loaded in this channel. This action may take several minutes.`)
+    } else {
+        embed.setDescription(`The <#${bot.cfg.channels.policies}> channel will be completely reset and replaced with the given file. This action may take several minutes, and **cannot be undone.**`)
+    }
+    
 
     m.channel.send('_ _', {embed: embed}).then(msg => {
         OBUtil.confirm(m, msg).then(res => {
@@ -52,18 +64,22 @@ metadata.run = (m, args, data) => {
 
                             policies = eval(data);
 
-                            Memory.db.pol.remove({}, {}, (err) => {
-                                if(err) {
-                                    OBUtil.err(err, {m:m});
-                                } else {
-                                    channel.bulkDelete(100).then(() => {
-                                        finallyPostShit(msg);
-                                    }).catch(err => {
-                                        OBUtil.err(err);
-                                        planBthisfucker(msg);
-                                    });
-                                }
-                            });
+                            if(deleteOld) {
+                                Memory.db.pol.remove({}, {}, (err) => {
+                                    if(err) {
+                                        OBUtil.err(err, {m:m});
+                                    } else {
+                                        channel.bulkDelete(100).then(() => {
+                                            finallyPostShit(msg);
+                                        }).catch(err => {
+                                            OBUtil.err(err);
+                                            planBthisfucker(msg);
+                                        });
+                                    }
+                                });
+                            } else {
+                                finallyPostShit(msg);
+                            }
                         }).catch((err) => OBUtil.err(err, {m:m}));
                     }
                 });
@@ -153,16 +169,16 @@ metadata.run = (m, args, data) => {
                     }
                 }
 
-                if(policies[i].type === 0) {
+                if(policies[i].files != null && policies[i].title != null) {
                     hcount++;
                     itext.push(`${hcount}. [${policies[i].title}](${pm.url})<:space:704617016774098967>`) // blank emoji used for spacing
                 } else
-                if(policies[i].title) {
+                if(policies[i].title != null) {
                     // underscores with a zero width character in-between to prevent trimming
                     itext.push(`_​_　• [${policies[i].title}](${pm.url})<:space:704617016774098967>`) // blank emoji used for spacing
                 }
 
-                if(policies[i].kw) {
+                if(policies[i].kw && deleteOld) {
                     Memory.db.pol.insert({ id: pm.id, kw: policies[i].kw}, (err) => {
                         if(err) {
                             OBUtil.err(err, {m:m});

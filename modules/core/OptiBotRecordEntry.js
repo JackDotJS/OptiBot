@@ -66,7 +66,7 @@ module.exports = class RecordEntry {
     }
 
     _def() {
-        const OBUtil = require(`./OptiBotUtil.js`);
+        const Assets = require(`./OptiBotAssetsManager.js`);
 
         let action = '';
         let type = '';
@@ -75,27 +75,27 @@ module.exports = class RecordEntry {
 
         switch(this.action) {
             case 0:
-                this.display.icon = `${OBUtil.getEmoji('ICO_docs')}`;
+                this.display.icon = `${Assets.getEmoji('ICO_docs')}`;
                 action = `Note`;
                 break;
             case 1:
-                this.display.icon = `${OBUtil.getEmoji('ICO_warn')}`;
+                this.display.icon = `${Assets.getEmoji('ICO_warn')}`;
                 action = `Warning`;
                 break;
             case 2:
-                this.display.icon = `${OBUtil.getEmoji('ICO_mute')}`;
+                this.display.icon = `${Assets.getEmoji('ICO_mute')}`;
                 action = `Mute`;
                 break;
             case 3:
-                this.display.icon = `${OBUtil.getEmoji('ICO_kick')}`;
+                this.display.icon = `${Assets.getEmoji('ICO_kick')}`;
                 action = `Kick`;
                 break;
             case 4:
-                this.display.icon = `${OBUtil.getEmoji('ICO_ban')}`;
+                this.display.icon = `${Assets.getEmoji('ICO_ban')}`;
                 action = `Ban`;
                 break;
             case 5:
-                this.display.icon = `${OBUtil.getEmoji('ICO_points')}`;
+                this.display.icon = `${Assets.getEmoji('ICO_points')}`;
                 action = `Points`;
                 break;
         }

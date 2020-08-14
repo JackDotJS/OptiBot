@@ -13,7 +13,7 @@ const fs = require(`fs`);
 const util = require(`util`);
 const crypto = require(`crypto`);
 const callerId = require(`caller-id`);
-const zip = require(`adm-zip`);
+const AZip = require('adm-zip');
 const pkg = require(`./package.json`);
 
 const env = {
@@ -276,13 +276,44 @@ function init() {
     
     function preinit() {
         log(`Pre-Init: Backing up OptiBot profiles...`, 'info')
-        fs.copyFile(`./data/profiles.db`, `./archive/data/profiles_before_${env.log.filename}.db`, (err) => {
+        let pzip = new AZip();
+        pzip.addLocalFile(`./data/profiles.db`)
+
+        pzip.writeZip(`./archive/data/profiles_before_${env.log.filename}.zip`, (err) => {
             if(err) throw err;
 
             log(`Pre-Init: OptiBot profiles successfully archived.`, 'info')
 
-            // todo: archive logs (#43)
-            spawn();
+            return spawn();
+
+            if(new Date().getUTCDate() === 1) {
+                log(`Pre-Init: Archiving log files...`, 'info')
+                let logs = fs.readdirSync('./logs');
+
+                let zips = {}
+
+                for(let log of logs) {
+                    if(!log.endsWith('.log')) continue;
+                    let creation = new Date(Math.min(fs.statSync(`./logs/` + a).mtime.getTime(), Date.parse(a.substring(0, a.lastIndexOf("GMT")+3).replace(/./g, ":"))))
+
+                    if(creation.toLocaleString('default', { month: 'long', year: 'numeric' }) === new Date().toLocaleString('default', { month: 'long', year: 'numeric' })) continue;
+
+                    let target = `${creation.getUTCMonth()}_${creation.getUTCFullYear()}`;
+
+                    if(zips[target] != null) {
+                        zips[target].files.push(log);
+                    } else {
+                        zips[target] = {
+                            files: [log],
+                            name: `${creation.toLocaleString('default', { month: 'long', year: 'numeric' })}`
+                        }
+                    }
+                }
+
+                // todo: check if zips is empty, check if zip archives already exist, etc
+            } else {
+                spawn();
+            }
         });
     }
 

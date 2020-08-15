@@ -899,8 +899,8 @@ bot.on('guildMemberAdd', member => {
         }
     } else
     if(member.guild.id === bot.cfg.guilds.donator) {
-        OBUtil.verifyDonator(member).catch(err => {
-            OBUtil.err(err);
+        ob.OBUtil.verifyDonator(member).catch(err => {
+            ob.OBUtil.err(err);
         })
     }
 });

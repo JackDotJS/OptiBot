@@ -286,7 +286,12 @@ metadata.run = (m, args, data) => {
 
                     if(result.type === 'member') {
                         result.target.roles.add(bot.cfg.roles.muted, `Member muted for ${timeData.string} by ${m.author.tag}`).then(() => {
-                            logInfo();
+                            result.target.voice.kick(`Member muted for ${timeData.string} by ${m.author.tag}`).then(() => {
+                                logInfo();
+                            }).catch(err => {
+                                OBUtil.err(err, {m:m})
+                                logInfo();
+                            });
                         }).catch(err => OBUtil.err(err, {m:m}));
                     } else {
                         logInfo();

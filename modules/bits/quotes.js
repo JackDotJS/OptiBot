@@ -51,6 +51,7 @@ metadata.executable = (m, member, authlvl) => {
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
                     .setAuthor(`Message posted by ${msg.author.tag}`, Assets.getEmoji('ICO_quote').url)
+                    .setThumbnail(msg.author.displayAvatarURL({ format: 'png', size: 64, dynamic: true}))
                     .setFooter(`Quoted by ${m.author.tag}`)
 
                     if(msg.content.length === 0) {

@@ -48,9 +48,10 @@ metadata.executable = (m, member, authlvl) => {
                 channel.messages.fetch(rm).then(msg => {
                     let contents = msg.content;
                     let image = null;
+                    let title = `Message posted`;
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
-                    .setAuthor(`Message posted by ${msg.author.tag}`, Assets.getEmoji('ICO_quote').url)
+                    //.setTitle((msg.member.nickname != null) ? `${msg.member.nickname} [${msg.author.tag}]` : msg.author.tag)
                     .setThumbnail(msg.author.displayAvatarURL({ format: 'png', size: 64, dynamic: true}))
                     .setFooter(`Quoted by ${m.author.tag}`)
 
@@ -76,11 +77,14 @@ metadata.executable = (m, member, authlvl) => {
                         if(contents.length > 0) {
                             contents = contents.join('\n');
                         }
-                    } else
-                    if(msg.attachments.size > 0) {
-                        let attURL = msg.attachments.first().url;
-                        if(attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
-                            image = attURL;
+                    } else {
+                        if (OBUtil.parseInput(msg.content).valid) title = `Command issued`;
+
+                        if(msg.attachments.size > 0) {
+                            let attURL = msg.attachments.first().url;
+                            if(attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
+                                image = attURL;
+                            }
                         }
                     }
 
@@ -88,9 +92,15 @@ metadata.executable = (m, member, authlvl) => {
                         embed.setDescription(contents);
                     }
 
-                    if(image !== null) {
+                    if(image != null) {
                         embed.setImage(image);
+
+                        if(contents.length == 0) {
+                            title = `Image posted`
+                        }
                     }
+
+                    embed.setAuthor(`${title} by ${msg.author.tag}`, Assets.getEmoji('ICO_quote').url)
 
                     m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                 }).catch(err => {

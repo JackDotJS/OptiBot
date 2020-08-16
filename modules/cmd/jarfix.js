@@ -7,8 +7,8 @@ const log = bot.log;
 
 const metadata = {
     name: path.parse(__filename).name,
-    aliases: ['jdk', 'jre', `ojdk`, `openjdk`],
-    short_desc: `Provides some links to download Java.`,
+    //aliases: ['fixjar'],
+    short_desc: `Provides a link to download Jarfix.`,
     authlvl: 0,
     flags: ['DM_OPTIONAL', 'NO_TYPER'],
     run: null
@@ -17,9 +17,8 @@ const metadata = {
 metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor('Download Java', Assets.getEmoji('ICO_java').url)
-    .setTitle('https://www.java.com')
-    .setDescription(`Looking for AdoptOpenJDK? **(Advanced users only!)**\nhttps://adoptopenjdk.net/`)
+    .setAuthor('Download Jarfix', Assets.getEmoji('ICO_jarfix').url)
+    .setTitle('https://johann.loefflmann.net/en/software/jarfix/index.html')
 
     m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id))
 }

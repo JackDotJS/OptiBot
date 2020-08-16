@@ -50,7 +50,7 @@ metadata.executable = (m, member, authlvl) => {
                     let image = null;
                     let embed = new djs.MessageEmbed()
                     .setColor(bot.cfg.embed.default)
-                    .setAuthor(`Message posted by ${msg.author.tag}`, OBUtil.getEmoji('ICO_quote').url)
+                    .setAuthor(`Message posted by ${msg.author.tag}`, Assets.getEmoji('ICO_quote').url)
                     .setFooter(`Quoted by ${m.author.tag}`)
 
                     if(msg.content.length === 0) {

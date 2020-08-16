@@ -944,6 +944,9 @@ module.exports = class OptiBotUtilities {
     }
 
     static verifyDonator(member) {
+        const bot = Memory.core.client;
+        const log = bot.log;
+        
         return new Promise((resolve, reject) => {
             log(`${member.user.tag} (${member.user.id}) joined OptiFine Donator server!`, 'info')
 

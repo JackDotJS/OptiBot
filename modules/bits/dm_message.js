@@ -25,7 +25,7 @@ metadata.validator = (m, member, authlvl) => {
 metadata.executable = (m, member, authlvl) => {
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    //.setAuthor(`Hi there!`, ob.OBUtil.getEmoji('ICO_info').url)
+    //.setAuthor(`Hi there!`, Assets.getEmoji('ICO_info').url)
     .setTitle('Hi there!')
     .setDescription(`For a list of commands, type \`${bot.prefix}list\`. If you've donated and you'd like to receive your donator role, type \`${bot.prefix}help dr\` for instructions.`)
 

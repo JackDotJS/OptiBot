@@ -17,8 +17,10 @@ const metadata = {
 metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor('AdoptOpenJDK', Assets.getEmoji('ICO_jdk').url)
-    .setTitle('https://adoptopenjdk.net/')
+    .setAuthor('Java', Assets.getEmoji('ICO_java').url)
+    .setTitle('Download Java')
+    .setURL('https://www.java.com')
+    .addField(`Alternative`, '[Download AdoptOpenJDK](https://adoptopenjdk.net/)')
 
     m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id))
 }

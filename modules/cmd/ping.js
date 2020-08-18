@@ -8,7 +8,7 @@ const log = bot.log;
 
 const metadata = {
     name: path.parse(__filename).name,
-    aliases: ['latency'],
+    aliases: ['latency', 'pong'],
     short_desc: `Measure bot latency and response lag.`,
     authlvl: 1,
     flags: ['DM_OPTIONAL', 'NO_TYPER'],
@@ -17,7 +17,7 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
-    .setAuthor(`Ping...`, Assets.getEmoji('ICO_wifi').url)
+    .setAuthor((data.input.cmd === 'pong') ? `Pong...` : `Ping...`, Assets.getEmoji('ICO_wifi').url)
     .setColor(bot.cfg.embed.default)
     .setDescription(`API Latency: ... \nMessage Latency: ...`)
 
@@ -61,8 +61,7 @@ metadata.run = (m, args, data) => {
                 desc.push(`Message Latency: ${message.toLocaleString()}ms (Awful)`)
             }
 
-
-            embed.author.name = `Pong!`
+            embed.author.name = (data.input.cmd === 'pong') ? `Ping!` : `Pong!`;
             embed.description = desc.join('\n');
             msg.edit('_ _', {embed:embed}).then(() => {
                 OBUtil.afterSend(msg, m.author.id);

@@ -11,7 +11,6 @@ const metadata = {
     aliases: ['unlockdown'],
     short_desc: `Unlock ALL server channels.`,
     long_desc: `Unlocks ALL channels in the server.`,
-    args: `[channel]`,
     authlvl: 3,
     flags: ['NO_DM', 'STRICT', 'NO_TYPER', 'LITE'],
     run: null

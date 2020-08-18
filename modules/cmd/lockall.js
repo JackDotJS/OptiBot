@@ -11,7 +11,6 @@ const metadata = {
     aliases: ['lockdown'],
     short_desc: `Lock ALL server channels.`,
     long_desc: `Locks ALL channels in the server.`,
-    args: `[channel]`,
     authlvl: 3,
     flags: ['NO_DM', 'STRICT', 'NO_TYPER', 'LITE'],
     run: null

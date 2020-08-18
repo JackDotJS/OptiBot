@@ -305,10 +305,10 @@ bot.on('message', (m) => {
                 if(cmd.metadata.flags['DM_ONLY'] && m.channel.type !== 'dm' && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
                     checkMisuse('This command can only be used in DMs (Direct Messages).', ob.Assets.getImage('IMG_dm').attachment);
                 } else
-                if(cmd.metadata.flags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && bot.cfg.channels.bot.some(id => [m.channel.id, m.channel.parentID].includes(id)) && (authlvl === 0 || cmd.metadata.flags['STRICT'])) {
+                if(cmd.metadata.flags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && !bot.cfg.channels.bot.some(id => [m.channel.id, m.channel.parentID].includes(id)) && (authlvl === 0 || cmd.metadata.flags['STRICT'])) {
                     checkMisuse('This command can only be used in DMs (Direct Messages) OR the #optibot channel.');
                 } else
-                if(cmd.metadata.flags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && bot.cfg.channels.mod.some(id => [m.channel.id, m.channel.parentID].includes(id)) && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
+                if(cmd.metadata.flags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && !bot.cfg.channels.mod.some(id => [m.channel.id, m.channel.parentID].includes(id)) && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
                     checkMisuse('This command can only be used in moderator-only channels.');
                 } else {
                     if(!cmd.metadata.flags['NO_TYPER']) m.channel.startTyping();

@@ -25,19 +25,20 @@ metadata.run = (m, args, data) => {
 
         let str = `#${channel.name} (${channel.id})`;
 
-        if(bot.cfg.channels.bot.indexOf(channel.id) > -1 || bot.cfg.channels.bot.indexOf(channel.parentID) > -1) {
+        if(bot.cfg.channels.bot.some(id => [channel.id, channel.parentID].includes(id))) {
+            
             str += `\n- bot channel`;
         }
 
-        if(bot.cfg.channels.mod.indexOf(channel.id) > -1 || bot.cfg.channels.mod.indexOf(channel.parentID) > -1) {
+        if(bot.cfg.channels.mod.some(id => [channel.id, channel.parentID].includes(id))) {
             str += `\n- mod channel`;
         }
 
-        if(bot.cfg.channels.blacklist.indexOf(channel.id) > -1 || bot.cfg.channels.blacklist.indexOf(channel.parentID) > -1) {
+        if(bot.cfg.channels.blacklist.some(id => [channel.id, channel.parentID].includes(id))) {
             str += `\n- blacklisted`;
         }
 
-        if(bot.cfg.channels.nomodify.indexOf(channel.id) > -1 || bot.cfg.channels.nomodify.indexOf(channel.parentID) > -1) {
+        if(bot.cfg.channels.nomodify.some(id => [channel.id, channel.parentID].includes(id))) {
             str += `\n- no modification`;
         }
 

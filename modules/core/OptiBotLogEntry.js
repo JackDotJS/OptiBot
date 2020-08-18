@@ -218,7 +218,7 @@ module.exports = class LogEntry {
         return this;
     }
 
-    addSection(_title, _content) {
+    addSection(_title, _content, inline) {
         const bot = Memory.core.client;
         const log = bot.log;
 
@@ -292,7 +292,7 @@ module.exports = class LogEntry {
 
         final_content = this._truncate(final_content, 1024);
 
-        this.embed.addField(title, final_content);
+        this.embed.addField(title, final_content, inline);
         this.ptd.sections.push({
             title: title_r,
             content: final_content_raw

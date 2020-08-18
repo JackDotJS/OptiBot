@@ -13,7 +13,7 @@ module.exports = {
 
         let logEntry = new ob.LogEntry({time: new Date()})
         .setColor(bot.cfg.embed.default)
-        .setIcon(ob.OBUtil.getEmoji('ICO_door').url)
+        .setIcon(ob.Assets.getEmoji('ICO_door').url)
         .setTitle(`OptiBot is now restarting...`, `OptiBot Restart Report`)
         .submit().then(() => {
             let maxPauseTime = 10000;

@@ -176,6 +176,18 @@ if(typeof require(`./cfg/keys.json`).discord !== 'string') {
     throw new Error(`./cfg/keys.json - Missing Discord API token.`);
 }
 
+if (!fs.existsSync(`./archive`)) {
+    fs.mkdirSync(`./archive`)
+}
+
+if (!fs.existsSync(`./archive/logs`)) {
+    fs.mkdirSync(`./archive/logs`)
+}
+
+if (!fs.existsSync(`./archive/data`)) {
+    fs.mkdirSync(`./archive/data`)
+}
+
 if (!fs.existsSync(`./data`)) {
     fs.mkdirSync(`./data`)
 }
@@ -189,7 +201,7 @@ if (!fs.existsSync(`./logs`)) {
 }
 
 if (!fs.existsSync(`./modules`)) {
-    fs.mkdirSync(`./modules`)
+    throw new Error(`OptiBot Modules directory not found.`);
 }
 
 if (!fs.existsSync(`./modules/cmd`)) {
@@ -197,19 +209,11 @@ if (!fs.existsSync(`./modules/cmd`)) {
 }
 
 if (!fs.existsSync(`./modules/core`)) {
-    throw new Error(`Core directory not found.`);
+    throw new Error(`Core Module directory not found.`);
 }
 
 if (!fs.existsSync(`./modules/core/OptiBot.js`)) {
     throw new Error(`OptiBot Core Module not found.`);
-}
-
-if (!fs.existsSync(`./modules/core/OptiBotClient.js`)) {
-    throw new Error(`OptiBot Client Module not found.`);
-}
-
-if (!fs.existsSync(`./modules/core/OptiBotCommand.js`)) {
-    throw new Error(`Command Class Module not found.`);
 }
 
 process.title = `OptiBot ${pkg.version}`;
@@ -498,8 +502,13 @@ function init() {
                 end(code, false);
             } else
             if(code === 17) {
-                log('OptiBot is now being updated...', 'info');
-                update();
+                if(env.mode === 0) {
+                    log('OptiBot cannot be updated in mode 0. Restarting...', 'info');
+                    end(16, false);
+                } else {
+                    log('OptiBot is now being updated...', 'info');
+                    update();
+                }
             } else
             if(code === 18) {
                 log('OptiBot is now undergoing scheduled restart.', 'info');
@@ -552,7 +561,7 @@ function init() {
     function update() {
         setTimeout(() => {
             child.execSync('git fetch --all');
-            child.execSync('git reset --hard origin/nx');
+            child.execSync('git reset --hard origin/master');
             child.execSync('npm install');
 
             setTimeout(() => {

@@ -1,7 +1,7 @@
 <div align="center">
-<h1>OptiBot: Project NX</h1>
-<h3>Official Discord bot for OptiFine.</h3>
-<a href="https://discord.gg/3mMpcwW">https://discord.gg/3mMpcwW</a>
+    <h1>OptiBot</h1>
+    <h3>Official Discord bot for OptiFine.</h3>
+    <a href="https://discord.gg/3mMpcwW">https://discord.gg/OptiFine</a>
 </div>
 
 ## Requirements

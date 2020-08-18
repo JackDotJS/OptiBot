@@ -26,39 +26,39 @@ metadata.run = (m, args, data) => {
         let timeTaken = new Date().getTime() - timeStart;
         bot.setTimeout(() => {
             let desc = []
-            let api = Math.round(bot.ws.ping).toLocaleString();
-            let message = timeTaken.toLocaleString();
+            let api = Math.round(bot.ws.ping);
+            let message = timeTaken;
 
             if(api < 100) {
-                desc.push(`API Latency: ${api}ms (Great)`)
+                desc.push(`API Latency: ${api.toLocaleString()}ms (Great)`)
             } else
             if(api < 200) {
-                desc.push(`API Latency: ${api}ms (Good)`)
+                desc.push(`API Latency: ${api.toLocaleString()}ms (Good)`)
             } else
             if(api < 700) {
-                desc.push(`API Latency: ${api}ms (Okay)`)
+                desc.push(`API Latency: ${api.toLocaleString()}ms (Okay)`)
             } else
             if(api < 2000) {
-                desc.push(`API Latency: ${api}ms (Bad)`)
+                desc.push(`API Latency: ${api.toLocaleString()}ms (Bad)`)
             } else
             if(api >= 2000) {
-                desc.push(`API Latency: ${api}ms (Awful)`)
+                desc.push(`API Latency: ${api.toLocaleString()}ms (Awful)`)
             }
 
             if(message < 100) {
-                desc.push(`Message Latency: ${message}ms (Great)`)
+                desc.push(`Message Latency: ${message.toLocaleString()}ms (Great)`)
             } else
             if(message < 200) {
-                desc.push(`Message Latency: ${message}ms (Good)`)
+                desc.push(`Message Latency: ${message.toLocaleString()}ms (Good)`)
             } else
             if(message < 700) {
-                desc.push(`Message Latency: ${message}ms (Okay)`)
+                desc.push(`Message Latency: ${message.toLocaleString()}ms (Okay)`)
             } else
             if(message < 2000) {
-                desc.push(`Message Latency: ${message}ms (Bad)`)
+                desc.push(`Message Latency: ${message.toLocaleString()}ms (Bad)`)
             } else
             if(message >= 2000) {
-                desc.push(`Message Latency: ${message}ms (Awful)`)
+                desc.push(`Message Latency: ${message.toLocaleString()}ms (Awful)`)
             }
 
 

@@ -1,0 +1,1 @@
+node locate.js >> scan_results.txt

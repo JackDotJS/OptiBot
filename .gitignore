@@ -1,15 +1,13 @@
-archive/data/*
-logs/*
-!logs/.gitkeep
-data/*
+archive
+assets/ref.txt
+assets/emoji/src
+cfg/keys.json
+data
 !data/build.json
+logs
 node_modules
-back
-dev
-images_src
 package-lock.json
-todo.txt
-changelog.txt
-OptiBot 1.4.code-workspace
 *.zip
 *.rdp
+scan_results.txt
+temp

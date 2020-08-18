@@ -1,103 +1,131 @@
 {
-    "basic": {
-        "trigger": "!",
-        "trigger_alt": "?",
-        "of_server": "423430686880301056",
-        "ob_server": "627527422312710154"
-    },
-    "cd": {
-        "timer_min": 5,
-        "timer_max": 30,
-        "ol_threshold": 1,
-        "ol_timer": 2,
-        "post_timer_mult": 3,
-        "post_timer": 3,
-        "countdown_interval": 2,
-        "show_countdown": true
-    },
-    "statistics": {
-        "enabled": true,
-        "template": {
-            "month": null,
-            "active": true,
-            "users": {
-                "join": 0,
-                "leave": 0,
-                "bans": 0,
-                "kicks": 0,
-                "mutes": 0,
-                "warns": 0,
-                "unique": []
-            },
-            "messages": 0,
-            "dms": 0,
-            "commands": {
-                "total": 0,
-                "list": {}
-            }
-        }
-    },
-    "db": {
-        "size": 64
-    },
-    "vs": {
-        "embed": {
-            "default": "E29F00",
-            "okay": "43B581",
-            "error": "DD2E44"
-        },
-        "typer": true
-    },
-    "superusers": [
-        "181214529340833792"
-    ],
-    "roles": {
-        "shader_dev": "423834274601369601",
-        "texture_artist": "423836695301980171",
-        "mod_dev": "423839066631569408",
-        "muted": "551089007078015025",
-        "donator": "424169541346525194",
-        "moderator": "467060304145023006",
-        "junior_mod": "644668061818945557"
+    "prefixes": ["!", "?", "$"],
+    "guilds": {
+        "optifine": "423430686880301056",
+        "optibot": "627527422312710154",
+        "donator": "686157288561442834",
+        "log": "423430686880301056",
+        "rules": "423430686880301056",
+        "emoji": [
+            "627527422312710154",
+            "692211554363375666",
+            "672286586641186829",
+            "672287077299388456"
+        ],
+        "policies": "423430686880301056",
+        "faq": "423430686880301056"
     },
     "channels": {
-        "blacklist": [
-            "479192475727167488",
-            "531622141393764352",
-            "531622838881484800",
-            "423433522842173451",
-            "468678768043753482"
+        "bot": [
+            "626843115650547743",
+            "519150952863891458"
         ],
         "mod": [
-            "467073441904984074",
-            "519150952863891458",
-            "644668951372234790",
-            "645431045109579808"
+            "626864678198575114",
+            "656316983758815244"
         ],
-        "bot": [
-            "626843115650547743"
+        "blacklist": [
+            "626863172845830144",
+            "659313542540951552",
+            "659313704428634172"
+        ],
+        "nomodify": [
+            "626864678198575114",
+            "626863172845830144"
+        ],
+        "log": {
+            "moderation": "728756604413018193",
+            "delete": "728756632057675866",
+            "joinleave": "728756664576114728",
+            "edit": "728756676450320466",
+            "misc": "659313704428634172"
+        },
+        "logFiles": "723385591017766945",
+        "rules": "479192475727167488",
+        "policies": "659313542540951552",
+        "faq": "531622141393764352"
+    },
+    "roles": {
+        "advisor": "695553561064505345",
+        "jrmod": "644668061818945557",
+        "moderator": "467060304145023006",
+        "donator": "424169541346525194",
+        "donatorColor": "729735553389690882",
+        "donatorServer": "686158386710315027",
+        "muted": "551089007078015025",
+        "grantable": [
+            "423834274601369601",
+            "423836695301980171",
+            "423839066631569408"
         ]
     },
-    "splash": [
-        "uwu",
-        "<3",
-        "${splashtext}",
-        "if (\"true\" === \"true\") return !false",
-        "now in 3 new flavors",
-        "while yall here be sure to check out my soundcloud",
-        "lmao n00b gg ez",
-        "psp exclusive",
-        "bot of the year",
-        "this bot has gone 0 days bug-free",
-        "[next version] hype",
-        "optifine 1.15 when???",
-        "i cant read",
-        "establish communism",
-        "my wife left me",
-        "FUCK EPIC",
-        "the all new range rover sport",
-        "hilarious joke",
-        "JavaScript, also known as Java for short.",
-        "catch blocks? haha what are those"
-    ]
+    "init": {
+        "cacheLimit": 100
+    },
+    "policies": {
+        "guild": "627527422312710154",
+        "channel": "674046900579598403"
+    },
+    "faq": {
+        "guild": "627527422312710154",
+        "channel": "650087270312968238"
+    },
+    "emoji": {
+        "deleter": "678774775480320021",
+        "confirm": "672309254279135263",
+        "cancel": "672309278605836308"
+    },
+    "messages": {
+        "confirmDelete": "To remove this message, undo the emoji reaction and press it once more to confirm.",
+        "error": [
+            "Everything's going to plan. No, really, that was supposed to happen.",
+            "Uh... Did I do that?",
+            "Oops.",
+            "Why did you do that?",
+            "My bad.",
+            "Why is it breaking :(",
+            "I feel sad now :(",
+            "I let you down. Sorry :(",
+            "Ouch. That hurt :(",
+            "Sorry :(",
+            "I just don't know what went wrong :(",
+            "Oh - I know what I did wrong!",
+            "I blame Jack.",
+            "Don't be sad. I'll do better next time, I promise!",
+            "I'm sorry, Dave.",
+            "Quite honestly, I wouldn't worry myself about that.",
+            "Surprise! Haha. Well, this is awkward.",
+            "Would you like a cupcake?",
+            "Hi, I'm OptiBot, and I'm a crashaholic.",
+            "This doesn't make any sense!",
+            "Don't do that.",
+            "There are four lights!",
+            "I bet Cylons wouldn't have this problem.",
+            "Bruh."
+        ]
+    },
+    "superusers": [
+        "181214529340833792",
+        "251778569397600256",
+        "225738946661974017"
+    ],
+    "embed": {
+        "default": "#e29f00",
+        "okay": "#43b581",
+        "error": "#dd2e44"
+    },
+    "profiles": {
+        "expiration": 30
+    },
+    "db": {
+        "limit": 16
+    },
+    "points": {
+        "userMax": 1000,
+        "assignMax": 1000,
+        "assignMin": 50,
+        "dailyDecay": 10,
+        "decayDelay": 14,
+        "minPercentDecay": 20
+    }
 }

@@ -1,0 +1,16 @@
+{
+  "api": {
+    "discord": "",
+    "github": ""
+  },
+  "trigger": "!",
+  "embeds": {
+    "default": "E29F00"
+  },
+  "channels": {
+    "log": "495044049292492800"
+  },
+  "gh_refs": {
+    "limit": 3
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "api": {
+    "discord": ""
+  },
+  "trigger": "!",
+  "embeds": {
+    "default": "E29F00",
+    "error": "DD2E44"
+  },
+  "log": {
+    "enabled": false,
+    "server": "",
+    "channel": "",
+    "blacklist": []
+  },
+  "roles": {
+    "moderator": "",
+    "shader_dev": "",
+    "texture_artist": "",
+    "mod_dev": ""
+  },
+  "channels": {
+    "activation_unused": ""
+  },
+  "cached_msgs": {
+    "activation_unused": ""
+  },
+  "gh_refs": {
+    "limit": 3
+  },
+  "del_timelimit": 1800000,
+  "processIndicator": false
+}

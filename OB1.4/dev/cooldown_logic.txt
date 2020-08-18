@@ -1,0 +1,7 @@
+user activates command
+
+[timer_min] second timer starts. if [ol_threshold] more commands are used within this time, go into cooldown.
+
+once cooldown ends, start another timer for [post_timer] seconds. if cooldown is started again within this time, multiply [timer_min] by [post_timer_mult]. multiplier is limited to a total of [timer_max] seconds.
+
+admins do not activate cooldown, but are not outright immune.

@@ -1,0 +1,11 @@
+logs/*
+!logs/.gitkeep
+data/*
+!data/.gitkeep
+node_modules
+back
+images_src
+package-lock.json
+todo.txt
+changelog.txt
+OptiBot 1.4.code-workspace

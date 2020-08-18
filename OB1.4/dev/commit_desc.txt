@@ -1,0 +1,5 @@
+- global variables have been removed. these are now accessed through a single global constant (#65)
+- optimized activityHandler() function
+- !status will send a message immediately rather than waiting for all http requests to finish before replying to the user. all http responses are added as message edits (this also means all HTTP requests are asynchronous, so overall this gives a much quicker response time.)
+- added ACT mode (alternate account mode, for various testing purposes)
+- 

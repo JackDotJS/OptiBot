@@ -1,0 +1,15 @@
+JSON is fucking dumb and doesnt allow comments so I made this file to keep track of things.
+
+"servers": [...]
+// This is a whitelist of other Discord servers. When invite links are posted anywhere in the server, OptiBot will attempt to gather data from the link and determine if it is a trusted/known server. If the invite link is of an unknown server, it is simply logged. Original idea was to delete all invites that are not trusted, but sp614x was against this idea so I've reduced this to simply posting a warning of sorts.
+//
+// The following list is the names of the server IDs currently saved:
+OptiFine
+Minecraft
+Forge
+shaderLABS
+Nova Renderer
+Blockbench
+Xysspon
+SEUS Patrons
+Cubic Chunks

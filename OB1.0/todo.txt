@@ -1,0 +1,40 @@
+make embed for player capes
+
+fix documentation lookup to request the actual github page to stay up-to-date.
+
+new DM command: !donator <donation email> <token>, to add donator role to user. requires access to optifine database
+
+find a way to have the server automatically build the bot after updating through gitlab
+
+command to search github issues - similar to youtube music bots?
+
+
+invite link: https://discordapp.com/oauth2/authorize?client_id=468582311370162176&scope=bot&permissions=67226688
+
+
+
+
+
+
+
+
+command spam filter idea
+
+integer variable
+
+while() or setInterval() loop that keeps removing an amount from this variable, unless it would reach negative numbers.
+
+using a command would add +100 to the variable. if the variable reaches 1000, the bot will go into lockdown for 10 seconds.
+
+
+
+
+anti-raid idea
+
+
+mute user via role
+all users must wait 5 minutes to access any channels other than #rules
+
+
+
+give roles via command

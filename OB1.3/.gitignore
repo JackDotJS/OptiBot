@@ -1,0 +1,8 @@
+logs/*
+!logs/.gitkeep
+data/*
+!data/.gitkeep
+node_modules
+package-lock.json
+todo.txt
+changelog.txt

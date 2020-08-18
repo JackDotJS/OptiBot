@@ -1,0 +1,30 @@
+{
+  "name": "optibot",
+  "version": "1.3.15",
+  "description": "Official OptiFine Discord Server bot.",
+  "homepage": "https://discord.gg/3mMpcwW",
+  "author": {
+    "name": "Kyle Edwards",
+    "email": "realjackasterisk@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/jackasterisk/optibot.git"
+  },
+  "license": "Fair",
+  "scripts": {
+    "start": "node bootstrapper.js"
+  },
+  "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.0.17",
+    "bufferutil": "^4.0.1",
+    "discord.js": "^11.4.2",
+    "erlpack": "^0.1.2",
+    "jimp": "^0.6.0",
+    "nedb": "^1.8.0",
+    "random-js": "^1.0.8",
+    "request": "^2.88.0",
+    "string-similarity": "^3.0.0",
+    "ytdl-core": "^0.29.1"
+  }
+}

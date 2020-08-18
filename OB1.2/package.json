@@ -1,0 +1,15 @@
+{
+  "name": "optibot",
+  "version": "1.2.1",
+  "description": "Discord Bot for OptiFine",
+  "homepage": "https://gitlab.com/jackasterisk/optibot",
+  "author": {
+    "name": "Kyle Edwards",
+    "email": "realjackasterisk@gmail.com"
+  },
+  "dependencies": {
+    "discord.js": "^11.3.2",
+    "jimp": "^0.5.3",
+    "request": "^2.88.0"
+  }
+}

@@ -1,0 +1,28 @@
+{
+    "When is OptiFine for [version] coming out?": 
+    "When it's done.",
+
+    "Where can I download pre-releases and preview versions?":
+    "Head to https://optifine.net/downloads, and click on \"Preview versions\" at the top.",
+
+    "Why don't old resource packs or shaders work in 1.13+?":
+    "1.13 changed a lot of things that resource packs and shaders rely on, one of which is The Flattening: https://minecraft.gamepedia.com/1.13/Flattening. You'll have to wait for the developer of the resource/shader pack to update it accordingly. If they already have, just ask around.",
+    
+    "I updated my resource pack to 1.13, but none of the OptiFine features work! Why?":
+    "Most likely you haven't moved your files from the `assets/minecraft/mcpatcher` folder to the `assets/minecraft/optifine` folder. All versions past 1.13 will use this format.",
+    
+    "I can't use OptiFine with my cracked/custom/third-party launcher! Why?":
+    "Some unofficial launchers may not work with OptiFine, and MultiMC in particular has been known to cause issues lately. For users with cracked/pirated launchers, we will not help you. Buy the game first.",
+    
+    "What do the two numbers for FPS mean?":
+    "Average/Minimum. Minimum is sort of a way to tell the \"true\" framerate, or how the framerate might actually feel.",
+    
+    "How do I get the Donator role?":
+    "DM <@468582311370162176> with the following command: `!dr [email] [token]` - Provide the email you used when donating, and then your token. You can find your token on the website: https://optifine.net/login. If the bot is offline, or you otherwise cannot use this command, you can dm <@202558206495555585> with the same information.",
+    
+    "How do I get Shader Dev/Texture Artist/Mod Dev role?":
+    "Kindly ask any moderator. Please include proof of your shader/resource pack/mod, being either screenshots or download links.",
+    
+    "Apostrophes and commas don't work in my CIT! What do I do?":
+    "Use unicode escapes for special characters like these. For example, apostrophes (') would be `\\u0027` and commas (,) would be `\\u002c`."
+}

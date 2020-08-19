@@ -7,8 +7,8 @@ const log = bot.log;
 
 const metadata = {
     name: path.parse(__filename).name,
-    //aliases: ['fixjar'],
-    short_desc: `Provides a link to download Jarfix.`,
+    aliases: ['issues', 'git', 'issue'],
+    short_desc: `Provides a link to OptiFine's issue tracker.`,
     authlvl: 0,
     flags: ['DM_OPTIONAL', 'NO_TYPER'],
     run: null
@@ -17,10 +17,8 @@ const metadata = {
 metadata.run = (m, args, data) => {
     let embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor('Download Jarfix', Assets.getEmoji('ICO_jarfix').url)
-    .setTitle('https://johann.loefflmann.net/jarfix')
-    .addField(`Direct Download`, `https://johann.loefflmann.net/downloads/jarfix.exe`)
-    .setFooter(`Jarfix Copyright © 2002-${new Date().getUTCFullYear()} by Dipl.-Inf. (FH) Johann Nepomuk Löfflmann`)
+    .setAuthor('OptiFine Issue Tracker', Assets.getEmoji('ICO_git').url)
+    .setTitle('https://github.com/sp614x/optifine/issues')
 
     m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id))
 }

@@ -115,7 +115,7 @@ bot.on('ready', () => {
                 log(centerText(`  `, width), `info`);
                 log(`╰${'─'.repeat(width)}╯`, `info`);
 
-                var logEntry = new ob.LogEntry({time: now})
+                var logEntry = new ob.LogEntry({time: now, console: false})
                 .setColor(bot.cfg.embed.default)
                 .setIcon(ob.Assets.getEmoji('ICO_info').url)
                 .setThumbnail(bot.user.displayAvatarURL({format: 'png'}))
@@ -453,7 +453,8 @@ bot.on('messageDelete', m => {
     if (m.type !== 'DEFAULT' || m.system || m.author.system) return;
     if (m.author.system || m.author.bot) return;
     if (m.guild.id !== bot.cfg.guilds.optifine) return;
-    if (ob.OBUtil.parseInput(m).cmd === 'dr') return;
+    if (ob.OBUtil.parseInput(m.content).cmd === 'dr') return;
+    if (bot.cfg.channels.nolog.some(id => [m.channel.id, m.channel.parentID].includes(id))) return;
 
     ob.Memory.rdel.push(m.id);
 
@@ -599,7 +600,7 @@ bot.on('messageDeleteBulk', ms => {
             let m = messages[i];
             log(util.inspect(m));
 
-            if (m.type !== 'DEFAULT' || m.system || m.author.system || m.author.bot || m.author.id === bot.user.id) {
+            if (m.type !== 'DEFAULT' || m.system || m.author.system || m.author.bot || m.author.id === bot.user.id || bot.cfg.channels.nolog.some(id => [m.channel.id, m.channel.parentID].includes(id))) {
                 i++;
                 return postNext();
             }
@@ -683,6 +684,7 @@ bot.on('messageUpdate', (m, mNew) => {
     if (m.type !== 'DEFAULT' || m.system || m.author.system || m.author.bot) return;
     if (m.guild.id !== bot.cfg.guilds.optifine) return;
     if (ob.OBUtil.parseInput(mNew).cmd === 'dr') return;
+    if (bot.cfg.channels.nolog.some(id => [m.channel.id, m.channel.parentID].includes(id))) return;
 
     var logEntry = new ob.LogEntry({time: now, channel: "edit"})
 
@@ -802,6 +804,7 @@ bot.on('channelUpdate', (oldc, newc) => {
     if (bot.pause) return;
     if (oldc.type !== 'text') return;
     if (oldc.guild.id !== bot.cfg.guilds.optifine) return;
+    if (bot.cfg.channels.nolog.some(id => [oldc.id, oldc.parentID].includes(id))) return;
 
     if(oldc.topic === newc.topic && oldc.name === newc.name) return;
 
@@ -1196,7 +1199,7 @@ bot.on('raw', packet => {
         // this packet does not contain the actual message data, unfortunately.
         // as of writing, this only contains the message ID, the channel ID, and the guild ID.
         bot.setTimeout(() => {
-            var logEntry = new ob.LogEntry({time: now, channel: "delete"})
+            var logEntry = new ob.LogEntry({time: now, channel: "delete", embed: false})
 
             ob.Memory.db.msg.remove({message: packet.d.id}, {}, (err, num) => {
                 if (err) {
@@ -1209,6 +1212,7 @@ bot.on('raw', packet => {
 
             if (ob.Memory.rdel.includes(packet.d.id)) return; // stops if the message exists in the bot's cache.
             if (packet.d.guild_id !== bot.cfg.guilds.optifine) return;
+            if (bot.cfg.channels.nolog.includes(packet.d.channel_id)) return;
 
             let mt = djs.SnowflakeUtil.deconstruct(packet.d.id).date;
 

@@ -258,14 +258,20 @@ module.exports = class OptiBotAssetsManager {
                                         if(exp <= bot.exitTime.getTime()) {
                                             if(remaining < (1000 * 60)) {
                                                 log(`Unmuting user ${profile.id} due to expired (or nearly expired) mute.`, 'info')
-                                                OBUtil.unmuter(profile.id);
-                                                nextEntry();
+                                                OBUtil.unmuter(profile.id).then(() => {
+                                                    nextEntry();
+                                                }).catch(err => {
+                                                    OBUtil.err(err);
+                                                    nextEntry();
+                                                });
                                             } else {
-                                                log(`Scheduling ${profile.id} for unmute today. (${(remaining/1000)/60} hours from now)`, 'info')
+                                                log(`Scheduling ${profile.id} for unmute today. (${(remaining/(1000*60))} hours from now)`, 'info')
                                                 Memory.mutes.push({
                                                     id: profile.id,
                                                     time: bot.setTimeout(() => {
-                                                        OBUtil.unmuter(profile.id);
+                                                        OBUtil.unmuter(profile.id).catch(err => {
+                                                            OBUtil.err(err);
+                                                        });
                                                     }, remaining)
                                                 });
                                                 nextEntry();

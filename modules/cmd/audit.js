@@ -218,8 +218,7 @@ metadata.run = (m, args, data) => {
                             )
 
                             if(entry.action === 5) {
-                                // todo: get point decay from profile class
-                                details.push(`**Amount:** ${parseInt(entry.details.match(/(?<=\[)\d+(?=\])/)).toLocaleString()}`)
+                                details.push(`**Amount:** ${entry.display.pointsTotal.toLocaleString()}` + ((entry.display.pointsTotal != entry.display.pointsNow) ? `(now: ${entry.display.pointsNow})` : ""))
                             }
 
                             if(entry.reason.length > 128) {

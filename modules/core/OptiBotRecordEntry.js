@@ -24,6 +24,8 @@ module.exports = class RecordEntry {
                 children: null,
                 icon: null,
                 action: null,
+                pointsTotal: null,
+                pointsNow: null
             };
             this.pardon = (raw.pardon) ? raw.pardon : null;
             this.edits = (raw.edits) ? raw.edits : null;
@@ -67,6 +69,8 @@ module.exports = class RecordEntry {
 
     _def() {
         const Assets = require(`./OptiBotAssetsManager.js`);
+        const OBUtil = require(`./OptiBotUtil.js`);
+        const bot = Memory.core.client;
 
         let action = '';
         let type = '';
@@ -117,6 +121,11 @@ module.exports = class RecordEntry {
         if(this.parent) {
             this.display.parent = this.parent.toString(36).toUpperCase();
         }
+
+        if(this.action === 5 && this.actionType === 1 && this.details != null) {
+            this.display.pointsTotal = parseInt(this.details.match(/(?<=\[)\d+(?=\])/));
+            this.display.pointsNow = OBUtil.calculatePoints(this.date, this.display.pointsTotal);
+        } 
 
         if(this.children.length > 0) {
             this.display.children = [];

@@ -42,8 +42,8 @@ metadata.run = (m, args, data) => {
                     let reason = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} ${args[1]} `.length )
                     let points = Math.abs(parseInt(args[1]));
 
-                    if(points > bot.cfg.points.assignMax) return OBUtil.err('You cannot assign more than 1,000 points at a time.', {m:m});
-                    if(points < bot.cfg.points.assignMin) return OBUtil.err('You must assign at least 25 points.', {m:m});
+                    if(points > bot.cfg.points.assignMax) return OBUtil.err(`You cannot assign more than ${bot.cfg.points.assignMax.toLocaleString()} points at a time.`, {m:m});
+                    if(points < bot.cfg.points.assignMin) return OBUtil.err(`You must assign at least ${bot.cfg.points.assignMin.toLocaleString()} points.`, {m:m});
 
                     let entry = new RecordEntry()
                     .setMod(m.author.id)
@@ -59,7 +59,7 @@ metadata.run = (m, args, data) => {
                         let logEntry = new LogEntry({channel: "moderation"})
                         .setColor(bot.cfg.embed.default)
                         .setIcon(Assets.getEmoji('ICO_points').url)
-                        .setTitle(`Member Points Added`, `Member Point Addition Report`)
+                        .setTitle(`Points Added`, `Point Addition Report`)
                         .addSection(`Member`, result.target)
                         .addSection(`Moderator Responsible`, m.author)
                         .addSection(`Command Location`, m)

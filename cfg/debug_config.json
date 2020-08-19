@@ -120,7 +120,7 @@
     },
     "points": {
         "userMax": 1000,
-        "assignMax": 1000,
+        "assignMax": 800,
         "assignMin": 50,
         "dailyDecay": 10,
         "decayDelay": 14,

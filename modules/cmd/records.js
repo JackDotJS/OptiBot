@@ -131,6 +131,10 @@ metadata.run = (m, args, data) => {
                                     );
                                 }
 
+                                if(entry.action === 5 && entry.actionType === 1) {
+                                    embed.addField(`Points (w/ Calculated Decay)`, entry.display.pointsNow);
+                                }
+
                                 if(entry.details) embed.addField(`${isEdited('details')}Additional Information`, entry.details)
 
                                 if(entry.pardon) {
@@ -171,8 +175,6 @@ metadata.run = (m, args, data) => {
                             `**Total Record Size**: ${record.length.toLocaleString()}`
                         ];
 
-                        
-
                         let pardonedCount = 0;
                         let points = 0;
 
@@ -181,7 +183,7 @@ metadata.run = (m, args, data) => {
                                 pardonedCount++;
                             } else
                             if(entry.action === 5) {
-                                points += parseInt(entry.details.match(/(?<=\[)\d+(?=\])/));
+                                points += OBUtil.calculatePoints(entry.date, parseInt(entry.details.match(/(?<=\[)\d+(?=\])/)));
                             }
                         }
 
@@ -262,8 +264,7 @@ metadata.run = (m, args, data) => {
                                 )
 
                                 if(entry.action === 5) {
-                                    // todo: get point decay from profile class
-                                    details.push(`**Amount:** ${parseInt(entry.details.match(/(?<=\[)\d+(?=\])/)).toLocaleString()}`)
+                                    details.push(`**Amount:** ${entry.display.pointsTotal.toLocaleString()}` + ((entry.display.pointsTotal != entry.display.pointsNow) ? `(now: ${entry.display.pointsNow})` : ""))
                                 }
 
                                 if(entry.reason.length > 128) {

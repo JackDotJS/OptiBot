@@ -13,7 +13,7 @@ const metadata = {
     long_desc: `Toggles the donator role color. Useful if you have any special "creator" role.\n\n**You must already be a verified donator to use this command.** Type \`${bot.prefix}help dr\` for details.`,
     authlvl: 0,
     image: 'IMG_token',
-    flags: ['DM_OPTIONAL', 'NO_TYPER', 'LITE'],
+    flags: ['DM_OPTIONAL', 'NO_TYPER', 'LITE', 'BOT_CHANNEL_ONLY'],
     run: null
 }
 

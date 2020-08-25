@@ -12,7 +12,7 @@ const metadata = {
     long_desc: `Removes a quote from a given profile. Defaults to yourself when no arguments are given. Requires moderator permissions to remove quotes from other profiles.`,
     authlvl: 0,
     args: `[discord member]`,
-    flags: ['DM_OPTIONAL', 'NO_TYPER', 'LITE'],
+    flags: ['DM_OPTIONAL', 'NO_TYPER', 'LITE', 'BOT_CHANNEL_ONLY'],
     run: null
 }
 

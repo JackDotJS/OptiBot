@@ -12,7 +12,7 @@ const metadata = {
     long_desc: `Gives a brief introduction to OptiBot.`,
     args: `[command]`,
     authlvl: 0,
-    flags: ['DM_OPTIONAL', 'NO_TYPER'],
+    flags: ['DM_OPTIONAL', 'NO_TYPER', 'BOT_CHANNEL_ONLY'],
     run: null
 }
 

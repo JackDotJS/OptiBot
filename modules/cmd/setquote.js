@@ -10,7 +10,7 @@ const metadata = {
     short_desc: `Update or add a quote to your profile.`,
     args: `<text>`,
     authlvl: 0,
-    flags: ['DM_OPTIONAL', 'NO_TYPER'],
+    flags: ['DM_OPTIONAL', 'NO_TYPER', 'BOT_CHANNEL_ONLY'],
     run: null
 }
 

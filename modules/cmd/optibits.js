@@ -15,7 +15,7 @@ const metadata = {
     long_desc: `Displays all OptiBits.`,
     args: `[page number|query]`,
     authlvl: 0,
-    flags: ['DM_OPTIONAL'],
+    flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY'],
     run: null
 }
 

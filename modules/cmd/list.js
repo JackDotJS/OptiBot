@@ -35,7 +35,7 @@ const metadata = {
         `[filter] [page number]`
     ],
     authlvl: 0,
-    flags: ['DM_OPTIONAL'],
+    flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY'],
     run: null
 }
 

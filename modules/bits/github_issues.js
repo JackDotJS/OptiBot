@@ -91,7 +91,7 @@ metadata.executable = (m, member, authlvl) => {
             let title = JSON.parse(data).title;
 
             if (title) {
-                issueLinks.push(`[**#${issues[i]}** - ${title}](https://github.com/sp614x/optifine/issues/${issues[i]})`);
+                issueLinks.push(`**#${issues[i]}** - [${title}](https://github.com/sp614x/optifine/issues/${issues[i]})`);
             }
 
             next(true);

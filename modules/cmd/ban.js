@@ -52,7 +52,7 @@ metadata.run = (m, args, data) => {
                             if(res === 1) {
                                 Memory.rban[result.id] = m.author;
 
-                                bot.mainGuild.members.ban(result.target, { reason: reason}).then(() => {
+                                bot.mainGuild.members.ban(result.target, { reason: `${reason} | (On behalf of ${m.author.tag})`}).then(() => {
                                     let update = new djs.MessageEmbed()
                                     .setColor(bot.cfg.embed.okay)
                                     .setAuthor(`Successfully banned user`, Assets.getEmoji('ICO_okay').url)

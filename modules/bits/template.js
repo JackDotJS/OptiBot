@@ -13,7 +13,7 @@ const metadata = {
     image: 'IMG_args',
     priority: -1,
     concurrent: false,
-    authlvl: 5,
+    authlvl: 999,
     flags: ['DM_OPTIONAL', 'HIDDEN'],
     validator: null,
     run: null

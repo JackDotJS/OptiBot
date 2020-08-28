@@ -24,7 +24,7 @@ metadata.validator = (m, member, authlvl) => {
 }
 
 metadata.executable = (m, member, authlvl) => {
-    //remove everything in quotes, single-line codeblocks, multi-line codeblocks, and strikethroughs.
+    //remove everything in quotes ("), single-line codeblocks, multi-line codeblocks, and strikethroughs.
     let filtered = m.content.replace(/"[^"]+"|`{3}[^```]+`{3}|~{2}[^~~]+~{2}|`{1}[^`]+`{1}|<[^<>]+>/gi, "");
     
     // get issues from filtered message using regex, remove duplicates by using a set, and finally convert back to an array.

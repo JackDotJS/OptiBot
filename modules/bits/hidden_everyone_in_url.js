@@ -40,17 +40,21 @@ metadata.executable = (m, member, authlvl) => {
     let detected = [];
 
     for(let url of urls) {
-        let test = url.match(/(?<=%40|@).+(?=%40|@)/gi);
+        try{
+            let url_obj = new URL(url);
 
-        if(test != null) {
-            detected.push(url);
+            if(url_obj.username || url_obj.password) {
+                detected.push(url);
+            }
+        }
+        catch(err) {
+            OBUtil.err(err);
         }
     }
 
     log(detected)
 
     if(detected.length > 0) {
-
         let plan_a = [
             `[Original message](${m.url} "${m.url}") posted by ${m.author}`,
             `\`\`\`${detected.slice(0,3).join('\n')} \n${(detected.length > 3) ? `... (${detected.length-3} more)` : ''}\`\`\``

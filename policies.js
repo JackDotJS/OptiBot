@@ -19,6 +19,8 @@
 
 // todo: make new headers, also maybe color code headers for each team (red = moderators/general, blue = support, purple = social, grey = bug hunters)
 
+/* eslint-disable no-undef */
+
 [
     {
         title: 'Introduction **(Start here!)**',

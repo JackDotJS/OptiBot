@@ -25,7 +25,7 @@ metadata.run = (m, args, data) => {
     if (month_birth > month_now) {
         years--;
     } else
-    if (month_birth == month_now && birthdate.getUTCDate() > now.getUTCDate()) {
+    if (month_birth === month_now && birthdate.getUTCDate() > now.getUTCDate()) {
         years--;
     }
 

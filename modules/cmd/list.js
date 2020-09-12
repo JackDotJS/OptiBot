@@ -50,8 +50,8 @@ metadata.run = (m, args, data) => {
     const isModChannel = (m.channel.type === 'dm' || bot.cfg.channels.mod.includes(m.channel.id) || bot.cfg.channels.mod.includes(m.channel.parentID));
 
     let inputTest = m.content.match(/(?<=\w:["'`]).+(?=["'`])/);
-    if(inputTest == null) inputTest = m.content.match(/(?<=\w:)\S+/);
-    if(inputTest == null) inputTest = args;
+    if(inputTest === null) inputTest = m.content.match(/(?<=\w:)\S+/);
+    if(inputTest === null) inputTest = args;
 
     const inputSpaceCount = (inputTest[0] !== null) ? (inputTest[0].split(' ').length - 1) : 0;
 

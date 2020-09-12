@@ -33,7 +33,7 @@ metadata.executable = (m, member, authlvl) => {
 
     issues = issues.filter((issue) => { if(parseInt(issue) > 100) return true; });
 
-    if (issues == null || issues.length === 0) return;
+    if (issues === null || issues.length === 0) return;
 
     const issueLinks = [];
     const limit = (authlvl > 0) ? 8 : 4;

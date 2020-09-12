@@ -58,14 +58,14 @@ module.exports = class OptiBotAssetsManager {
                 load: () => {
                     return new Promise((resolve, reject) => {
                         const ob = require('./OptiBot.js');
-    
+
                         delete require.cache[require.resolve('./OptiBotCommand.js')];
                         delete require.cache[require.resolve('./OptiBotBit.js')];
                         delete require.cache[require.resolve('./OptiBotProfile.js')];
                         delete require.cache[require.resolve('./OptiBotLogEntry.js')];
                         delete require.cache[require.resolve('./OptiBotRecordEntry.js')];
                         delete require.cache[require.resolve('./OptiBotUtil.js')];
-    
+
                         ob.Command = require('./OptiBotCommand.js');
                         Command = require('./OptiBotCommand.js');
                         ob.OptiBit = require('./OptiBotBit.js');
@@ -75,7 +75,7 @@ module.exports = class OptiBotAssetsManager {
                         ob.RecordEntry = require('./OptiBotRecordEntry.js');
                         ob.OBUtil = require('./OptiBotUtil.js');
                         OBUtil = require('./OptiBotUtil.js');
-    
+
                         resolve();
                     });
                 }
@@ -89,41 +89,41 @@ module.exports = class OptiBotAssetsManager {
                         const commands = fs.readdirSync(path.resolve('./modules/cmd'));
                         const registered = [];
                         let clear = false;
-    
-                        if(Memory.assets.commands.length > 0) {
+
+                        if (Memory.assets.commands.length > 0) {
                             Memory.assets.commands = [];
                             clear = true;
                         }
-    
+
                         let i1 = 0;
                         (function loadCmd() {
                             const cmd = commands[i1];
-                            if(i1+1 > commands.length) {
+                            if (i1 + 1 > commands.length) {
                                 resolve();
-                            } else 
-                            if(cmd.endsWith('.js')) {
+                            } else
+                            if (cmd.endsWith('.js')) {
                                 log(`processing: ${path.resolve(`./modules/cmd/${cmd}`)}`);
-    
-                                if(clear) {
+
+                                if (clear) {
                                     log(`cache delete: ${require.resolve(path.resolve(`./modules/cmd/${cmd}`))}`);
                                     delete require.cache[require.resolve(path.resolve(`./modules/cmd/${cmd}`))];
                                 }
-                
+
                                 try {
                                     const newcmd = require(path.resolve(`./modules/cmd/${cmd}`));
-    
-                                    if((bot.mode === 1 || bot.mode === 2) && !newcmd.metadata.flags['LITE']) {
+
+                                    if ((bot.mode === 1 || bot.mode === 2) && !newcmd.metadata.flags['LITE']) {
                                         log(`Unable to load command "${newcmd.metadata.name}" due to Lite mode.`, 'warn');
                                         i1++;
                                         loadCmd();
                                     }
-    
-                                    if(newcmd.metadata.aliases.length > 0) {
-    
+
+                                    if (newcmd.metadata.aliases.length > 0) {
+
                                         // fucking ughhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
                                         // hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
                                         // hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh
-    
+
                                         let i2 = 0;
                                         let i3 = 0;
                                         let i4 = 0;
@@ -131,16 +131,16 @@ module.exports = class OptiBotAssetsManager {
                                             const register = registered[i2];
                                             (function newAliases() {
                                                 const alias = newcmd.metadata.aliases[i3];
-    
-                                                if(alias === register.cmd) {
+
+                                                if (alias === register.cmd) {
                                                     log(new Error(`Failed to load command, conflicting names/aliases: "${alias}" (${newcmd.metadata.name}.js) === "${register.cmd}" (${register.cmd}.js)`).stack, 'error');
                                                     i1++;
                                                     loadCmd();
-                                                } else 
-                                                if(register.aliases.length === 0) {
-                                                    if(i3+1 >= newcmd.metadata.aliases.length) {
+                                                } else
+                                                if (register.aliases.length === 0) {
+                                                    if (i3 + 1 >= newcmd.metadata.aliases.length) {
                                                         i3 = 0;
-                                                        if(i2+1 >= registered.length) {
+                                                        if (i2 + 1 >= registered.length) {
                                                             finalRegister();
                                                         } else {
                                                             i2++;
@@ -156,17 +156,17 @@ module.exports = class OptiBotAssetsManager {
                                                             log(register.aliases);
                                                             log(i4);
                                                         }
-                                                        if(alias === register.aliases[i4]) {
+                                                        if (alias === register.aliases[i4]) {
                                                             log(new Error(`Failed to load command, conflicting names/aliases: "${alias}" (${newcmd.metadata.name}.js) === "${register.aliases[i4]}" (${register.cmd}.js)`).stack, 'error');
                                                             i1++;
                                                             loadCmd();
                                                         }
-    
-                                                        if(i4+1 >= register.aliases.length) {
+
+                                                        if (i4 + 1 >= register.aliases.length) {
                                                             i4 = 0;
-                                                            if(i3+1 >= newcmd.metadata.aliases.length) {
+                                                            if (i3 + 1 >= newcmd.metadata.aliases.length) {
                                                                 i3 = 0;
-                                                                if(i2+1 >= registered.length) {
+                                                                if (i2 + 1 >= registered.length) {
                                                                     finalRegister();
                                                                 } else {
                                                                     i2++;
@@ -187,7 +187,7 @@ module.exports = class OptiBotAssetsManager {
                                     } else {
                                         finalRegister();
                                     }
-    
+
                                     function finalRegister() {
                                         OptiBotAssetsManager.registerCommand(newcmd).then((reg) => {
                                             log(`Command registered: ${reg.metadata.name}`, 'debug');
@@ -195,7 +195,7 @@ module.exports = class OptiBotAssetsManager {
                                                 cmd: newcmd.metadata.name,
                                                 aliases: newcmd.metadata.aliases
                                             });
-    
+
                                             i1++;
                                             loadCmd();
                                         }).catch(err => {
@@ -237,11 +237,11 @@ module.exports = class OptiBotAssetsManager {
                 tiers: [true, false, false],
                 load: () => {
                     return new Promise((resolve, reject) => {
-                        Memory.db.profiles.find({ 'edata.mute': { $exists: true }, format: 3}, (err, docs) => {
-                            if(err) {
+                        Memory.db.profiles.find({ 'edata.mute': { $exists: true }, format: 3 }, (err, docs) => {
+                            if (err) {
                                 reject(err);
                             } else
-                            if(docs.length === 0) {
+                            if (docs.length === 0) {
                                 resolve();
                             } else {
 
@@ -249,14 +249,14 @@ module.exports = class OptiBotAssetsManager {
                                 (function nextEntry() {
                                     i++;
                                     const profile = docs[i];
-                                    if(i >= docs.length) return resolve();
-                                    
-                                    if(profile.edata.mute.end !== null) {
+                                    if (i >= docs.length) return resolve();
+
+                                    if (profile.edata.mute.end !== null) {
                                         const exp = profile.edata.mute.end;
                                         const remaining = exp - new Date().getTime();
-    
-                                        if(exp <= bot.exitTime.getTime()) {
-                                            if(remaining < (1000 * 60)) {
+
+                                        if (exp <= bot.exitTime.getTime()) {
+                                            if (remaining < (1000 * 60)) {
                                                 log(`Unmuting user ${profile.id} due to expired (or nearly expired) mute.`, 'info');
                                                 OBUtil.unmuter(profile.id).then(() => {
                                                     nextEntry();
@@ -265,7 +265,7 @@ module.exports = class OptiBotAssetsManager {
                                                     nextEntry();
                                                 });
                                             } else {
-                                                log(`Scheduling ${profile.id} for unmute today. (${(remaining/(1000*60))} hours from now)`, 'info');
+                                                log(`Scheduling ${profile.id} for unmute today. (${(remaining / (1000 * 60))} hours from now)`, 'info');
                                                 Memory.mutes.push({
                                                     id: profile.id,
                                                     time: bot.setTimeout(() => {
@@ -295,13 +295,13 @@ module.exports = class OptiBotAssetsManager {
                 load: () => {
                     return new Promise((resolve, reject) => {
                         Memory.mods = [];
-    
+
                         log(bot.cfg.roles.moderator);
-    
+
                         const getModRole = bot.mainGuild.roles.cache.get(bot.cfg.roles.moderator);
-    
+
                         getModRole.members.each(mod => {
-                            if(mod.id !== '202558206495555585') {
+                            if (mod.id !== '202558206495555585') {
                                 Memory.mods.push({
                                     id: mod.id,
                                     status: mod.presence.status,
@@ -309,7 +309,7 @@ module.exports = class OptiBotAssetsManager {
                                 });
                             }
                         });
-    
+
                         bot.mainGuild.roles.cache.get(bot.cfg.roles.jrmod).members.each(mod => {
                             Memory.mods.push({
                                 id: mod.id,
@@ -317,7 +317,7 @@ module.exports = class OptiBotAssetsManager {
                                 last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
                             });
                         });
-    
+
                         resolve();
                     });
                 }
@@ -330,37 +330,37 @@ module.exports = class OptiBotAssetsManager {
                     return new Promise((resolve, reject) => {
                         const optibits = fs.readdirSync(path.resolve('./modules/bits'));
                         let clear = false;
-    
-                        if(Memory.assets.optibits.length > 0) {
+
+                        if (Memory.assets.optibits.length > 0) {
                             Memory.assets.optibits = [];
                             clear = true;
                         }
-    
+
                         let i1 = 0;
                         (function loadBit() {
                             const bit = optibits[i1];
-                            if(i1+1 > optibits.length) {
+                            if (i1 + 1 > optibits.length) {
                                 Memory.assets.optibits.sort((a, b) => a.metadata.priority - b.metadata.priority);
                                 log(Memory.assets.optibits);
                                 resolve();
-                            } else 
-                            if(bit.endsWith('.js')) {
+                            } else
+                            if (bit.endsWith('.js')) {
                                 log(`processing: ${path.resolve(`./modules/bits/${bit}`)}`);
-    
-                                if(clear) {
+
+                                if (clear) {
                                     log(`cache delete: ${require.resolve(path.resolve(`./modules/bits/${bit}`))}`);
                                     delete require.cache[require.resolve(path.resolve(`./modules/bits/${bit}`))];
                                 }
-                
+
                                 try {
                                     const newbit = require(path.resolve(`./modules/bits/${bit}`));
-    
-                                    if((bot.mode === 1 || bot.mode === 2) && !newbit.metadata.flags['LITE']) {
+
+                                    if ((bot.mode === 1 || bot.mode === 2) && !newbit.metadata.flags['LITE']) {
                                         log(`Unable to load OptiBit "${newbit.metadata.name}" due to Lite mode.`, 'warn');
                                         i1++;
                                         loadBit();
                                     } else
-                                    if(newbit.constructor === OptiBit) {
+                                    if (newbit.constructor === OptiBit) {
                                         Memory.assets.optibits.push(newbit);
                                         log(`OptiBit registered: ${newbit.metadata.name}`, 'debug');
                                         i1++;
@@ -392,12 +392,12 @@ module.exports = class OptiBotAssetsManager {
                     return new Promise((resolve, reject) => {
                         Memory.assets.images.index = [];
                         const images = fs.readdirSync(path.resolve('./assets/img'));
-    
-                        for(const img of images) {
-                            if(img.match(/\./) !== null) {
+
+                        for (const img of images) {
+                            if (img.match(/\./) !== null) {
                                 const buffer = fs.readFileSync(path.resolve(`./assets/img/${img}`));
-    
-                                if(img.substring(0, img.lastIndexOf('.')) === 'default') {
+
+                                if (img.substring(0, img.lastIndexOf('.')) === 'default') {
                                     Memory.assets.images.default = {
                                         name: img.substring(0, img.lastIndexOf('.')),
                                         buffer: buffer,
@@ -423,14 +423,14 @@ module.exports = class OptiBotAssetsManager {
                 load: () => {
                     return new Promise((resolve, reject) => {
                         const tasks = fs.readdirSync(path.resolve('./modules/tasks'));
-    
+
                         let i = 0;
                         (function loadTask() {
-                            if(tasks[i].endsWith('.js')) {
+                            if (tasks[i].endsWith('.js')) {
                                 const task = require(path.resolve(`./modules/tasks/${tasks[i]}`));
-                                if((bot.mode === 1 || bot.mode === 2) && !task.lite) {
+                                if ((bot.mode === 1 || bot.mode === 2) && !task.lite) {
                                     log(`Unable to load task "${tasks[i]}" due to Lite mode.`, 'warn');
-                                } else 
+                                } else
                                 if (task.repeat) {
                                     bot.setInterval(() => {
                                         task.fn();
@@ -439,11 +439,11 @@ module.exports = class OptiBotAssetsManager {
                                     bot.setTimeout(() => {
                                         task.fn();
                                     }, (task.time));
-    
+
                                     // todo: add support for scheduled tasks via database
                                 }
-    
-                                if(i+1 === tasks.length) {
+
+                                if (i + 1 === tasks.length) {
                                     resolve();
                                 } else {
                                     i++;
@@ -469,7 +469,7 @@ module.exports = class OptiBotAssetsManager {
                             let i = -1;
                             (function nextMember() {
                                 i++;
-                                if(i >= members.length) return resolve();
+                                if (i >= members.length) return resolve();
 
                                 const member = members[i];
 
@@ -482,7 +482,7 @@ module.exports = class OptiBotAssetsManager {
                                     });
                                 }
                             })();
-                            
+
                         });
                     });
                 }
@@ -494,25 +494,25 @@ module.exports = class OptiBotAssetsManager {
                 load: () => {
                     return new Promise((resolve, reject) => {
                         const channels = [...bot.channels.cache.values()];
-    
+
                         log(`max channels: ${channels.length}`);
-    
+
                         let i = 0;
                         (function loadMsgs() {
                             const channel = channels[i];
-    
+
                             function next() {
-                                if(i+1 >= channels.length) {
+                                if (i + 1 >= channels.length) {
                                     resolve();
                                 } else {
                                     i++;
                                     loadMsgs();
                                 }
                             }
-    
-                            if(channel.type === 'text' && channel.guild.id === bot.mainGuild.id) {
+
+                            if (channel.type === 'text' && channel.guild.id === bot.mainGuild.id) {
                                 log(`[${i}] fetching from channel: ${channel.id}`);
-    
+
                                 channel.messages.fetch({ limit: bot.cfg.init.cacheLimit }, true).then(() => {
                                     next();
                                 }).catch(err => {
@@ -532,7 +532,7 @@ module.exports = class OptiBotAssetsManager {
             let i = 0;
             (function loadStage() {
                 function afterStage() {
-                    if(i+1 === stages.length) {
+                    if (i + 1 === stages.length) {
                         assetsFinal();
                     } else {
                         i++;
@@ -542,7 +542,7 @@ module.exports = class OptiBotAssetsManager {
 
                 log(`stages[i].tiers[tier] = ${stages[i].tiers[tier]}`);
 
-                if(stages[i].tiers[tier]) {
+                if (stages[i].tiers[tier]) {
                     const stageStart = new Date().getTime();
                     log(`Starting stage "${stages[i].name}"`, 'info');
 
@@ -581,10 +581,10 @@ module.exports = class OptiBotAssetsManager {
                 bot.pause = false;
                 success(new Date().getTime() - timeStart);
 
-                for(const stage of stagesAsync) {
+                for (const stage of stagesAsync) {
                     function stagesAsyncFinal() {
                         log(`Loading assets... ${Math.round((100 * done) / totals)}%`, 'info');
-                        if(done === totals) { 
+                        if (done === totals) {
                             log(`Secondary Assets loaded with ${errorsAsync} error(s)!`, 'info');
                             log(`Encountered ${errors + errorsAsync} total error(s) during setup.`, 'info');
                             log([
@@ -598,16 +598,16 @@ module.exports = class OptiBotAssetsManager {
                             ].join('\n'), 'debug');
                         }
                     }
-                    
+
                     log(`stage.tiers[tier] = ${stage.tiers[tier]}`);
 
-                    if(stage.tiers[tier]) {
+                    if (stage.tiers[tier]) {
                         const stageStart = new Date().getTime();
 
                         stage.load().then(() => {
                             const stageTime = (new Date().getTime() - stageStart) / 1000;
                             log(`"${stage.name}" cleared in ${stageTime} second(s).`, 'debug');
-                            
+
                             done++;
                             stagesAsyncFinal();
                         }).catch(err => {
@@ -630,7 +630,7 @@ module.exports = class OptiBotAssetsManager {
 
     static registerCommand(cmd) {
         return new Promise((resolve, reject) => {
-            if(cmd.constructor === Command) {
+            if (cmd.constructor === Command) {
                 Memory.assets.commands.push(cmd);
                 resolve(cmd);
             } else {
@@ -648,15 +648,15 @@ module.exports = class OptiBotAssetsManager {
             (function checkName() {
                 if (query.toLowerCase() === Memory.assets.commands[i1].metadata.name) {
                     resolve(Memory.assets.commands[i1]);
-                } else 
+                } else
                 if (Memory.assets.commands[i1].metadata.aliases.length > 0) {
                     let i2 = 0;
                     (function checkAliases() {
-                        if(query.toLowerCase() === Memory.assets.commands[i1].metadata.aliases[i2]) {
+                        if (query.toLowerCase() === Memory.assets.commands[i1].metadata.aliases[i2]) {
                             resolve(Memory.assets.commands[i1]);
-                        } else 
-                        if(i2+1 === Memory.assets.commands[i1].metadata.aliases.length) {
-                            if (i1+1 === Memory.assets.commands.length) {
+                        } else
+                        if (i2 + 1 === Memory.assets.commands[i1].metadata.aliases.length) {
+                            if (i1 + 1 === Memory.assets.commands.length) {
                                 resolve();
                             } else {
                                 i1++;
@@ -668,7 +668,7 @@ module.exports = class OptiBotAssetsManager {
                         }
                     })();
                 } else
-                if (i1+1 === Memory.assets.commands.length) {
+                if (i1 + 1 === Memory.assets.commands.length) {
                     resolve();
                 } else {
                     i1++;
@@ -684,19 +684,19 @@ module.exports = class OptiBotAssetsManager {
 
         let result;
 
-        if(Number.isInteger(parseInt(query))) {
+        if (Number.isInteger(parseInt(query))) {
             result = bot.emojis.cache.get(query);
         } else {
             result = bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === query.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)));
         }
 
-        if(result) return result;
+        if (result) return result;
         return bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === 'ICO_default'.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)));
     }
 
     static getImage(query) {
-        for(const i in Memory.assets.images.index) {
-            if(Memory.assets.images.index[i].name.toLowerCase() === query.toLowerCase()) {
+        for (const i in Memory.assets.images.index) {
+            if (Memory.assets.images.index[i].name.toLowerCase() === query.toLowerCase()) {
                 return Memory.assets.images.index[i];
             }
         }

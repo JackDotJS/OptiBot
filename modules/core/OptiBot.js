@@ -9,4 +9,4 @@ module.exports = {
     LogEntry: require('./OptiBotLogEntry.js'),
     RecordEntry: require('./OptiBotRecordEntry.js'),
     OBUtil: require('./OptiBotUtil.js'),
-}
+};

@@ -1,7 +1,7 @@
-const path = require(`path`);
-const util = require(`util`);
-const djs = require(`discord.js`);
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
+const path = require('path');
+const util = require('util');
+const djs = require('discord.js');
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -9,40 +9,40 @@ const log = bot.log;
 const metadata = {
     name: path.parse(__filename).name,
     aliases: ['pingmods', 'moderator', 'moderators', 'mods'],
-    short_desc: `Ping server moderators.`,
-    long_desc: `Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.** \n\nAdditionally, this command tries to minimize mass pings by only selecting moderators that have sent a message in the past 10 minutes, or those who are simply online. \nThe selection priority works as followed:\n\n**1.** Recent Messages\n**2.** "Online" status\n**3.** All with the <@&467060304145023006> or <@&644668061818945557> roles.`,
+    short_desc: 'Ping server moderators.',
+    long_desc: 'Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.** \n\nAdditionally, this command tries to minimize mass pings by only selecting moderators that have sent a message in the past 10 minutes, or those who are simply online. \nThe selection priority works as followed:\n\n**1.** Recent Messages\n**2.** "Online" status\n**3.** All with the <@&467060304145023006> or <@&644668061818945557> roles.',
     authlvl: 0,
     flags: ['NO_DM', 'NO_TYPER', 'STRICT'],
     run: null
-}
+};
 
 
 metadata.run = (m, args, data) => {
-    let pinged = [m.author.id];
+    const pinged = [m.author.id];
 
     let pings = null;
     
     let pingType = 0;
     let attempts = 0;
-    let startMsg = []
+    const startMsg = [];
 
     function getPings() {
-        let pings = {
+        const pings = {
             recent: [],
             online: [],
             all: [],
             everyone: [], // everyone including already pinged
-        }
+        };
 
-        let data = {
+        const data = {
             ids: null,
             selectTier: 0,
             mentions: null,
             count: null
-        }
+        };
 
         for(let i = 0; i < Memory.mods.length; i++) {
-            let mod = Memory.mods[i];
+            const mod = Memory.mods[i];
 
             pings.everyone.push(mod.id);
 
@@ -71,8 +71,8 @@ metadata.run = (m, args, data) => {
 
                 data.selectTier = 2;
 
-                let role_mod = bot.mainGuild.roles.cache.get(bot.cfg.roles.moderator);
-                let role_jrmod = bot.mainGuild.roles.cache.get(bot.cfg.roles.jrmod);
+                const role_mod = bot.mainGuild.roles.cache.get(bot.cfg.roles.moderator);
+                const role_jrmod = bot.mainGuild.roles.cache.get(bot.cfg.roles.jrmod);
 
                 if(pinged.length === 1 && ((role_mod.mentionable && role_jrmod.mentionable) || bot.mainGuild.me.hasPermission('MENTION_EVERYONE', {checkAdmin: true}))) {
                     data.count = pings.everyone.length;
@@ -103,7 +103,7 @@ metadata.run = (m, args, data) => {
 
     if(Memory.mpc.includes(m.channel.id)) {
         return m.channel.send(`Sorry ${m.author}, this command is currently on cooldown in this channel. Please wait a few moments before trying this again.`)
-        .then(bm => OBUtil.afterSend(bm, m.author.id));
+            .then(bm => OBUtil.afterSend(bm, m.author.id));
     } else {
         Memory.mpc.push(m.channel.id);
     }
@@ -120,8 +120,8 @@ metadata.run = (m, args, data) => {
     }
 
     if(pings.selectTier !== 2) startMsg.push(
-        ``,
-        `Moderators: If you're available, please use the reaction button (<:confirm:672309254279135263>) or send a message in this channel to begin resolving this issue.`
+        '',
+        'Moderators: If you\'re available, please use the reaction button (<:confirm:672309254279135263>) or send a message in this channel to begin resolving this issue.'
     );
 
     m.channel.send(startMsg.join('\n')).then(msg => {
@@ -135,7 +135,7 @@ metadata.run = (m, args, data) => {
         function tryResolution(godfuckingdammit) {
             if(pings.selectTier === 2 && attempts === 0) return;
 
-            let timeout = (1000 * 30 * attempts);
+            const timeout = (1000 * 30 * attempts);
 
             log(`modping: waiting for ${timeout/1000} seconds`);
 
@@ -145,12 +145,12 @@ metadata.run = (m, args, data) => {
             df.on('collect', (r, user) => {
                 df.stop('resolved');
                 
-                resolve()
+                resolve();
                 msg.edit([
                     `~~${startMsg[0]}~~`,
-                    ``,
+                    '',
                     `**Resolved by ${user.toString()}**`
-                ].join('\n'))
+                ].join('\n'));
             });
 
             mc.on('collect', (mm) => {
@@ -164,7 +164,7 @@ metadata.run = (m, args, data) => {
                  * tired. fuck you
                  */
                 df.handleCollect(godfuckingdammit, mm.author);
-            })
+            });
 
             df.on('end', (c, reason) => {
                 mc.stop();
@@ -173,20 +173,20 @@ metadata.run = (m, args, data) => {
                     if(pingType !== 2 && pinged.length !== pings.ids.everyone.length) {
                         pings = getPings();
 
-                        let newtext = [
+                        const newtext = [
                             `**Original Message: <${msg.url}>**`,
-                            ``,
-                            `It seems like they were busy. Let's try pinging some others.`,
+                            '',
+                            'It seems like they were busy. Let\'s try pinging some others.',
                             pings.mentions
                         ];
 
                         if(pinged.length !== pings.ids.everyone.length) {
                             newtext.push(
-                                ``, 
-                                `Moderators: If you're available, please post a message here or use the reaction button **on the original message above** to begin resolving this issue.`
-                            )
+                                '', 
+                                'Moderators: If you\'re available, please post a message here or use the reaction button **on the original message above** to begin resolving this issue.'
+                            );
                         } else {
-                            msg.edit(startMsg[0])
+                            msg.edit(startMsg[0]);
                         }
 
                         m.channel.send(newtext.join('\n')).then(() => {
@@ -195,11 +195,11 @@ metadata.run = (m, args, data) => {
                                 if(attempts > 2) pingType++;
                                 tryResolution(godfuckingdammit);
                             } else {
-                                resolve()
+                                resolve();
                             }
                         });
                     } else {
-                        resolve()
+                        resolve();
                     }
                 } else
                 if(reason !== 'resolved') {
@@ -220,7 +220,7 @@ metadata.run = (m, args, data) => {
         }).catch(err => {
             OBUtil.err(err, {m:m});
         });
-    })
-}
+    });
+};
 
 module.exports = new Command(metadata);

@@ -1,12 +1,12 @@
 const fs = require('fs');
-const path = require(`path`);
-const util = require(`util`);
+const path = require('path');
+const util = require('util');
 
-const locateTD = /to(-)?do|wip|work[- ]in[- ]progress/gi
-const locateCM = /(^| )(\/{2,}|\/\*)/gim
+const locateTD = /to(-)?do|wip|work[- ]in[- ]progress/gi;
+const locateCM = /(^| )(\/{2,}|\/\*)/gim;
 
 const folders = [
-    `./`
+    './'
 ];
 
 const scanned = [];
@@ -18,33 +18,33 @@ console.log('SCANNING...');
 
 let i = 0;
 (function nextFolder() {
-    let dirPath = folders[i];
-    let dir = fs.readdirSync(dirPath);
+    const dirPath = folders[i];
+    const dir = fs.readdirSync(dirPath);
 
-    let nextd = () => {
+    const nextd = () => {
         if(i+1 >= folders.length) {
-            console.log(`\n\nSCANNED FILES: \n${scanned.join('\n')}`)
-            console.log(`\n\nSCANNED DIRECTORIES: \n${folders.join('\n')}`)
-            console.log(`\n\n"TODO" RESULTS: \n${TDresults.join('\n')}`)
-            console.log(`\n\n"COMMENT" RESULTS: \n${CMresults.join('\n')}`)
+            console.log(`\n\nSCANNED FILES: \n${scanned.join('\n')}`);
+            console.log(`\n\nSCANNED DIRECTORIES: \n${folders.join('\n')}`);
+            console.log(`\n\n"TODO" RESULTS: \n${TDresults.join('\n')}`);
+            console.log(`\n\n"COMMENT" RESULTS: \n${CMresults.join('\n')}`);
         } else {
             i++;
             nextFolder();
         }
-    }
+    };
 
     let i2 = 0;
     (function nextFile() {
-        let file = dir[i2];
+        const file = dir[i2];
 
-        let nextf = () => {
+        const nextf = () => {
             if(i2+1 >= dir.length) {
                 nextd();
             } else {
                 i2++;
                 nextFile();
             }
-        }
+        };
 
         if(dir.length === 0 || file === undefined) {
             nextd();
@@ -56,18 +56,18 @@ let i = 0;
             // file
             if(file.endsWith('.js') && file !== path.parse(__filename).name+'.js') {
                 try {
-                    let content = fs.readFileSync(`${dirPath}/${file}`, {encoding: 'utf8'});
+                    const content = fs.readFileSync(`${dirPath}/${file}`, {encoding: 'utf8'});
 
                     if(content.length === 0) {
                         nextf();
                         return;
                     }
 
-                    let lines = content.split('\n');
+                    const lines = content.split('\n');
                     for(let i3 = 0; i3 < lines.length; i3++) {
-                        let line = lines[i3];
-                        let todo = line.match(locateTD);
-                        let comments = line.match(locateCM);
+                        const line = lines[i3];
+                        const todo = line.match(locateTD);
+                        const comments = line.match(locateCM);
 
                         if(todo) {
                             TDresults.push(`${file}:${i3+1} - ${todo}`);
@@ -90,8 +90,8 @@ let i = 0;
             }
         } else {
             // folder
-            folders.push(`${dirPath}${(i === 0) ? "" : "/"}${file}`);
+            folders.push(`${dirPath}${(i === 0) ? '' : '/'}${file}`);
             nextf();
         }
-    })()
+    })();
 })();

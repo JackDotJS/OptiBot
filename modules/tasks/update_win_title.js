@@ -1,4 +1,4 @@
-const ob = require(`../core/OptiBot.js`);
+const ob = require('../core/OptiBot.js');
 
 module.exports = {
     repeat: true,
@@ -10,4 +10,4 @@ module.exports = {
 
         ob.OBUtil.setWindowTitle();
     }
-}
+};

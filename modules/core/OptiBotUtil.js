@@ -93,12 +93,9 @@ module.exports = class OptiBotUtilities {
 
         if(member.constructor === djs.User) {
             log('expected object type member, got user instead', 'warn');
-            if(bot.cfg.superusers.includes(member.id) && !ignoreElevated) {
-                return 5
-            }
         } else
         if(member != null && member.constructor === djs.GuildMember) {
-            if(bot.cfg.superusers.includes(member.user.id) && !ignoreElevated) {
+            if(member.roles.cache.has(bot.cfg.roles.botdev) && !ignoreElevated) {
                 return 5
             }
             if(member.permissions.has('ADMINISTRATOR')) {

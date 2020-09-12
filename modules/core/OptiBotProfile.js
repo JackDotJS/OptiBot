@@ -1,12 +1,12 @@
-const util = require(`util`);
-const djs = require(`discord.js`);
+const util = require('util');
+const djs = require('discord.js');
 
-const RecordEntry = require(`./OptiBotRecordEntry.js`);
-const Memory = require(`./OptiBotMemory.js`);
+const RecordEntry = require('./OptiBotRecordEntry.js');
+const Memory = require('./OptiBotMemory.js');
 
 module.exports = class OptiBotProfile {
     constructor(raw) {
-        var pd = {
+        const pd = {
             id: null,
             format: 3,
             ndata: {}, // normal data
@@ -40,13 +40,13 @@ module.exports = class OptiBotProfile {
                 target = parseInt(id, 36);
             }
 
-            let children = [];
+            const children = [];
             let found = null;
             let index = null;
-            let record = this.edata.record;
+            const record = this.edata.record;
 
             for(let i = 0; i < record.length; i++) {
-                let entry = record[i]
+                const entry = record[i];
 
                 if(entry.parent === target) {
                     children.push(entry.date);
@@ -59,7 +59,7 @@ module.exports = class OptiBotProfile {
             }
 
             if(!found) {
-                resolve(null)
+                resolve(null);
             } else {
                 found.index = index;
                 
@@ -93,10 +93,10 @@ module.exports = class OptiBotProfile {
             log(data.constructor === RecordEntry);
             log(util.inspect(data.raw));
 
-            let newEntry = (data.constructor === RecordEntry) ? data.raw : data;
-            let record = this.edata.record;
+            const newEntry = (data.constructor === RecordEntry) ? data.raw : data;
+            const record = this.edata.record;
 
-            log(util.inspect(newEntry))
+            log(util.inspect(newEntry));
 
             for(let i = 0; i < record.length; i++) {
                 if(record[i].date === newEntry.date) {
@@ -115,20 +115,20 @@ module.exports = class OptiBotProfile {
         const log = bot.log;
         const now = new Date().getTime();
 
-        let final = {
+        const final = {
             maximum: 0,
             current: 0,
             minimum: 0
-        }
+        };
 
-        let record = this.edata.record;
+        const record = this.edata.record;
         if (!record) return final;
 
         for(let i = 0; i < record.length; i++) {
-            let entry = record[i]
+            const entry = record[i];
 
             if(entry.action === 5 && !entry.pardon) {
-                let points = parseInt(entry.details.match(/(?<=points assigned: \[)\d+(?=\])/i)[0]);
+                const points = parseInt(entry.details.match(/(?<=points assigned: \[)\d+(?=\])/i)[0]);
 
                 final.maximum += points;
                 final.current += points; // temp
@@ -142,4 +142,4 @@ module.exports = class OptiBotProfile {
             }
         }
     }
-}
+};

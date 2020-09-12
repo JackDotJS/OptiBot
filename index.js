@@ -4,18 +4,18 @@
  * Written by Kyle Edwards <wingedasterisk@gmail.com>, August 2020
  */
 
-if(!process.send) throw new Error(`Cannot run standalone. Please use the "init.bat" file.`);
+if(!process.send) throw new Error('Cannot run standalone. Please use the "init.bat" file.');
 
 const cid = require('caller-id');
 const wink = require('jaro-winkler');
-const path = require(`path`);
-const util = require(`util`);
-const djs = require(`discord.js`);
-const timeago = require("timeago.js");
-const ob = require(`./modules/core/OptiBot.js`);
+const path = require('path');
+const util = require('util');
+const djs = require('discord.js');
+const timeago = require('timeago.js');
+const ob = require('./modules/core/OptiBot.js');
 
 const log = (message, level, file, line) => {
-    let call = cid.getData();
+    const call = cid.getData();
     if (!file) file = (call.evalFlag) ? 'eval()' : call.filePath.substring(call.filePath.lastIndexOf('\\')+1);
     if (!line) line = call.lineNumber;
 
@@ -43,7 +43,7 @@ const log = (message, level, file, line) => {
     }
 
     
-}
+};
 
 const bot = new ob.Client({
     //fetchAllMembers: true, // end my life
@@ -51,7 +51,7 @@ const bot = new ob.Client({
         status: 'idle', 
         activity: {
             type: 'WATCHING',
-            name: `assets load 🔄`
+            name: 'assets load 🔄'
         }
     },
     disableMentions: 'everyone'
@@ -62,7 +62,7 @@ ob.Memory.core.logfile = process.argv[3];
 ob.OBUtil.setWindowTitle('Connecting...');
 
 bot.login(bot.keys.discord).catch(err => {
-    ob.OBUtil.setWindowTitle(`Connection Failed.`);
+    ob.OBUtil.setWindowTitle('Connection Failed.');
     log(err, 'fatal');
     process.exit(1);
 });
@@ -72,11 +72,11 @@ bot.login(bot.keys.discord).catch(err => {
 ////////////////////////////////////////
 
 bot.on('ready', () => {
-    log(ob.Memory)
+    log(ob.Memory);
     if (bot.pause) {
         log('Successfully connected to Discord API.', 'info');
 
-        let botLoadAssets = function() {
+        const botLoadAssets = function() {
             ob.OBUtil.setWindowTitle('Loading Assets...');
 
             ob.Memory.core.root.drive = path.parse(__dirname).root;
@@ -84,15 +84,15 @@ bot.on('ready', () => {
             ob.Memory.core.root.folder = path.parse(__dirname).base;
     
             ob.Assets.load().then((time) => {
-                let now = new Date();
-                let width = 64; //inner width of box
+                const now = new Date();
+                const width = 64; //inner width of box
                 function centerText(text, totalWidth) {
                     text = text.substring(0, totalWidth-8);
 
-                    let leftMargin = Math.floor((totalWidth - (text.length)) / 2);
-                    let rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
+                    const leftMargin = Math.floor((totalWidth - (text.length)) / 2);
+                    const rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
 
-                    return `│` + (` `.repeat(leftMargin)) + text + (` `.repeat(rightMargin)) + `│`;
+                    return '│' + (' '.repeat(leftMargin)) + text + (' '.repeat(rightMargin)) + '│';
                 }
 
                 let splash = ob.Memory.assets.splash[~~(Math.random() * ob.Memory.assets.splash.length)];
@@ -103,31 +103,31 @@ bot.on('ready', () => {
 
                 log(splash, 'debug');
 
-                log(`╭${'─'.repeat(width)}╮`, `info`); 
-                log(centerText(`  `, width), `info`);
-                log(centerText(`OptiBot ${bot.version}`, width), `info`);
-                log(centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2020`, width), `info`);
-                log(centerText(`  `, width), `info`);
-                log(centerText(splash, width), `info`);
-                log(centerText(`  `, width), `info`);
-                log(centerText(`Finished initialization in ${process.uptime().toFixed(3)} seconds.`, width), `info`);
-                log(centerText(`Assets loaded in ${time / 1000} seconds.`, width), `info`);
-                log(centerText(`  `, width), `info`);
-                log(`╰${'─'.repeat(width)}╯`, `info`);
+                log(`╭${'─'.repeat(width)}╮`, 'info'); 
+                log(centerText('  ', width), 'info');
+                log(centerText(`OptiBot ${bot.version}`, width), 'info');
+                log(centerText('(c) Kyle Edwards <wingedasterisk@gmail.com>, 2020', width), 'info');
+                log(centerText('  ', width), 'info');
+                log(centerText(splash, width), 'info');
+                log(centerText('  ', width), 'info');
+                log(centerText(`Finished initialization in ${process.uptime().toFixed(3)} seconds.`, width), 'info');
+                log(centerText(`Assets loaded in ${time / 1000} seconds.`, width), 'info');
+                log(centerText('  ', width), 'info');
+                log(`╰${'─'.repeat(width)}╯`, 'info');
 
-                var logEntry = new ob.LogEntry({time: now, console: false})
-                .setColor(bot.cfg.embed.default)
-                .setIcon(ob.Assets.getEmoji('ICO_info').url)
-                .setThumbnail(bot.user.displayAvatarURL({format: 'png'}))
-                .setTitle(`OptiBot Initialized`, `OptiBot Initalization Time Report`)
-                .setHeader(`Version: ${bot.version}`)
-                .setDescription(`Boot Time: ${process.uptime().toFixed(3)} second(s)`)
-                .addSection(`Next Scheduled Restart`, bot.exitTime)
-                .addSection(`The following message was brought to you by Math.random()®`, {
-                    data: `\`\`\`${splash}\`\`\``,
-                    raw: splash
-                })
-                .submit("misc")
+                const logEntry = new ob.LogEntry({time: now, console: false})
+                    .setColor(bot.cfg.embed.default)
+                    .setIcon(ob.Assets.getEmoji('ICO_info').url)
+                    .setThumbnail(bot.user.displayAvatarURL({format: 'png'}))
+                    .setTitle('OptiBot Initialized', 'OptiBot Initalization Time Report')
+                    .setHeader(`Version: ${bot.version}`)
+                    .setDescription(`Boot Time: ${process.uptime().toFixed(3)} second(s)`)
+                    .addSection('Next Scheduled Restart', bot.exitTime)
+                    .addSection('The following message was brought to you by Math.random()®', {
+                        data: `\`\`\`${splash}\`\`\``,
+                        raw: splash
+                    })
+                    .submit('misc');
 
                 process.send({
                     type: 'ready'
@@ -141,11 +141,11 @@ bot.on('ready', () => {
             });
             
             if(ob.Memory.core.bootFunc) delete ob.Memory.core.bootFunc;
-        }
+        };
 
         if(!bot.mainGuild.available) {
             ob.OBUtil.setWindowTitle('Waiting for primary guild...');
-            log('Primary guild unavailable.\nAssets will be loaded once the guild is available again.', 'warn')
+            log('Primary guild unavailable.\nAssets will be loaded once the guild is available again.', 'warn');
             ob.Memory.core.bootFunc = botLoadAssets();
         } else {
             botLoadAssets();
@@ -170,68 +170,68 @@ bot.on('message', (m) => {
             if(profile) {
                 profile.edata.lastSeen = new Date().getTime();
 
-                ob.OBUtil.updateProfile(profile)
+                ob.OBUtil.updateProfile(profile);
             }
         });
     }
 
     if(m.channel.type !== 'dm' && m.guild.id === bot.cfg.guilds.optifine) {
         // update moderator's last message for !modping
-        for(let i in ob.Memory.mods) {
+        for(const i in ob.Memory.mods) {
             if(ob.Memory.mods[i].id === m.author.id) {
-                ob.Memory.mods[i].status = m.author.presence.status
-                ob.Memory.mods[i].last_message = m.createdTimestamp
+                ob.Memory.mods[i].status = m.author.presence.status;
+                ob.Memory.mods[i].last_message = m.createdTimestamp;
             }
         }
     }
 
     bot.mainGuild.members.fetch({ user: m.author.id, cache: true }).then(member => {
-        let authlvl = ob.OBUtil.getAuthlvl(member);
+        const authlvl = ob.OBUtil.getAuthlvl(member);
 
-        if(authlvl < 4 && bot.mode === 0 && m.author.id !== "271760054691037184") return;
-        if(authlvl < 1 && bot.mode === 1 && m.author.id !== "271760054691037184") return;
+        if(authlvl < 4 && bot.mode === 0 && m.author.id !== '271760054691037184') return;
+        if(authlvl < 1 && bot.mode === 1 && m.author.id !== '271760054691037184') return;
 
-        let input = ob.OBUtil.parseInput(m.content);
+        const input = ob.OBUtil.parseInput(m.content);
 
         if(input.valid) {
             /////////////////////////////////////////////////////////////
             // COMMAND HANDLER
             /////////////////////////////////////////////////////////////
 
-            ob.Memory.li = new Date().getTime()
+            ob.Memory.li = new Date().getTime();
 
             log(authlvl);
 
             ob.Assets.fetchCommand(input.cmd).then(cmd => {
-                let unknownCMD = () => {
-                    let ratings = [];
+                const unknownCMD = () => {
+                    const ratings = [];
                                 
                     ob.Memory.assets.commands.filter((thisCmd) => thisCmd.metadata.authlvl <= authlvl && !thisCmd.metadata.flags['HIDDEN'])
-                    .forEach((thisCmd) => {
-                        let rating = {
-                            command: thisCmd.metadata.name,
-                            alias: null,
-                            distance: wink(input.cmd, thisCmd.metadata.name)
-                        }
+                        .forEach((thisCmd) => {
+                            const rating = {
+                                command: thisCmd.metadata.name,
+                                alias: null,
+                                distance: wink(input.cmd, thisCmd.metadata.name)
+                            };
     
-                        for(let alias of thisCmd.metadata.aliases) {
-                            let adist = wink(input.cmd, alias);
-                            if(adist > rating.distance) {
-                                rating.distance = adist;
-                                rating.alias = alias;
+                            for(const alias of thisCmd.metadata.aliases) {
+                                const adist = wink(input.cmd, alias);
+                                if(adist > rating.distance) {
+                                    rating.distance = adist;
+                                    rating.alias = alias;
+                                }
                             }
-                        }
     
-                        ratings.push(rating);
-                    });
+                            ratings.push(rating);
+                        });
     
                     ratings.sort((a, b) => b.distance - a.distance);
     
-                    let closest = ratings[0];
+                    const closest = ratings[0];
     
-                    let embed = new djs.MessageEmbed()
-                    .setAuthor('Unknown command.', ob.Assets.getEmoji('ICO_info').url)
-                    .setColor(bot.cfg.embed.default)
+                    const embed = new djs.MessageEmbed()
+                        .setAuthor('Unknown command.', ob.Assets.getEmoji('ICO_info').url)
+                        .setColor(bot.cfg.embed.default);
     
                     if (closest.distance > 0.8) {
                         embed.setFooter(`${(closest.distance * 100).toFixed(1)}% match`);
@@ -246,18 +246,18 @@ bot.on('message', (m) => {
                     }
     
                     m.channel.send({embed: embed}).then(bm => ob.OBUtil.afterSend(bm, m.author.id));
-                }
+                };
     
-                let checkMisuse = (msg, image) => {
-                    let embed = new djs.MessageEmbed()
-                    .setAuthor(msg, ob.Assets.getEmoji('ICO_error').url)
-                    .setColor(bot.cfg.embed.error)
+                const checkMisuse = (msg, image) => {
+                    const embed = new djs.MessageEmbed()
+                        .setAuthor(msg, ob.Assets.getEmoji('ICO_error').url)
+                        .setColor(bot.cfg.embed.error);
     
                     let content = '';
 
                     if(image) {
                         embed.attachFiles([image])
-                        .setImage('attachment://image.png')
+                            .setImage('attachment://image.png');
                     }
     
                     if(cmd.metadata.flags['DELETE_ON_MISUSE']) {
@@ -268,13 +268,13 @@ bot.on('message', (m) => {
                     }
 
                     m.channel.send(content, {embed: embed}).then(bm => {
-                        ob.OBUtil.afterSend(bm, m.author.id)
+                        ob.OBUtil.afterSend(bm, m.author.id);
                     });
-                }
+                };
     
                 if(cmd) {
                     let loc = `#${m.channel.name}`;
-                    let logargs = (cmd.metadata.flags['CONFIDENTIAL']) ? m.content.replace(/\S/gi, '*') : m.content;
+                    const logargs = (cmd.metadata.flags['CONFIDENTIAL']) ? m.content.replace(/\S/gi, '*') : m.content;
 
                     if(m.channel.type === 'dm') {
                         loc = 'DM';
@@ -286,7 +286,7 @@ bot.on('message', (m) => {
                         loc = `DR:#${m.channel.name}`;
                     }
 
-                    log(`[${loc}] [L${authlvl}] ${m.author.tag} (${m.author.id}) Command issued: ${logargs}`, 'info')
+                    log(`[${loc}] [L${authlvl}] ${m.author.tag} (${m.author.id}) Command issued: ${logargs}`, 'info');
                 }
     
                 if(!cmd) {
@@ -317,10 +317,10 @@ bot.on('message', (m) => {
                             cmd.exec(m, input.args, {member, authlvl, input});
                         }
                         catch (err) {
-                            if(!cmd.metadata.flags['NO_TYPER']) m.channel.stopTyping()
-                            ob.OBUtil.err(err, {m: m})
+                            if(!cmd.metadata.flags['NO_TYPER']) m.channel.stopTyping();
+                            ob.OBUtil.err(err, {m: m});
                         }
-                    }, (cmd.metadata.flags['NO_TYPER']) ? 10 : Math.round(bot.ws.ping)+250)
+                    }, (cmd.metadata.flags['NO_TYPER']) ? 10 : Math.round(bot.ws.ping)+250);
                 }
     
             }).catch(err => {
@@ -331,9 +331,9 @@ bot.on('message', (m) => {
             // TIDBIT HANDLER
             /////////////////////////////////////////////////////////////
 
-            let validbits = [];
+            const validbits = [];
 
-            for(let optibit of ob.Memory.assets.optibits) {
+            for(const optibit of ob.Memory.assets.optibits) {
                 if(authlvl < optibit.metadata.authlvl) continue;
                 if(optibit.metadata.flags['NO_DM'] && m.channel.type === 'dm') continue;
                 if(optibit.metadata.flags['DM_ONLY'] && m.channel.type !== 'dm') continue;
@@ -344,12 +344,12 @@ bot.on('message', (m) => {
             }
 
             if(validbits.length > 0) {
-                ob.Memory.li = new Date().getTime()
+                ob.Memory.li = new Date().getTime();
                 
-                validbits.sort((a,b) => { a.metadata.priority - b.metadata.priority });
+                validbits.sort((a,b) => { a.metadata.priority - b.metadata.priority; });
                 validbits.reverse();
 
-                log(util.inspect(validbits))
+                log(util.inspect(validbits));
 
                 for(optibit of validbits) {
                     if(validbits[0].metadata.concurrent && !optibit.metadata.concurrent) continue;
@@ -367,11 +367,11 @@ bot.on('message', (m) => {
                             loc = `DR:#${m.channel.name}`;
                         }
 
-                        log(`[${loc}] [L${authlvl}] ${m.author.tag} (${m.author.id}) OptiBit Executed: "${optibit.metadata.name}"`, 'info')
-                        optibit.exec(m, member, authlvl)
+                        log(`[${loc}] [L${authlvl}] ${m.author.tag} (${m.author.id}) OptiBit Executed: "${optibit.metadata.name}"`, 'info');
+                        optibit.exec(m, member, authlvl);
                     }
                     catch(err) {
-                        ob.OBUtil.err(err, {m: m})
+                        ob.OBUtil.err(err, {m: m});
                     }
 
                     if(!validbits[0].metadata.concurrent) break;
@@ -395,7 +395,7 @@ process.on('message', (m) => {
     if(m.crashlog) {
         log('got crash data');
         bot.mainGuild.members.fetch({user: '181214529340833792', cache: true}).then(jack => {
-            jack.send(`**=== OptiBot Crash Recovery Report ===**`, new djs.MessageAttachment(`./logs/${m.crashlog}`));
+            jack.send('**=== OptiBot Crash Recovery Report ===**', new djs.MessageAttachment(`./logs/${m.crashlog}`));
         }).catch(err => {
             ob.OBUtil.err(err);
         });
@@ -403,13 +403,13 @@ process.on('message', (m) => {
     if(m.restart) {
         log('got restart data');
         bot.guilds.cache.get(m.restart.guild).channels.cache.get(m.restart.channel).messages.fetch(m.restart.message).then(msg => {
-            let embed = new djs.MessageEmbed()
-            .setAuthor(`Restarted in ${((new Date().getTime() - msg.createdTimestamp) / 1000).toFixed(1)} seconds.`, ob.Assets.getEmoji('ICO_okay').url)
-            .setColor(bot.cfg.embed.okay);
+            const embed = new djs.MessageEmbed()
+                .setAuthor(`Restarted in ${((new Date().getTime() - msg.createdTimestamp) / 1000).toFixed(1)} seconds.`, ob.Assets.getEmoji('ICO_okay').url)
+                .setColor(bot.cfg.embed.okay);
 
             msg.edit({embed: embed}).then(msgF => {
-                ob.OBUtil.afterSend(msgF, m.author)
-            })
+                ob.OBUtil.afterSend(msgF, m.author);
+            });
         }).catch(err => {
             ob.OBUtil.err(err);
         });
@@ -425,18 +425,18 @@ bot.on('presenceUpdate', (old, mem) => {
     if (mem.guild.id !== bot.cfg.guilds.optifine) return;
     if (mem.user.bot) return;
 
-    for(let i in ob.Memory.mods) {
-        let mod = ob.Memory.mods[i];
+    for(const i in ob.Memory.mods) {
+        const mod = ob.Memory.mods[i];
         if(mod.id === mem.id) {
             if(mod.status !== mem.presence.status || (mem.lastMessage && mem.lastMessage.createdTimestamp !== mod.last_message)) {
                 log('moderator updated');
-                log('OLD')
-                log(mod.status)
-                log('NEW')
-                log(mem.presence.status)
+                log('OLD');
+                log(mod.status);
+                log('NEW');
+                log(mem.presence.status);
 
-                ob.Memory.mods[i].status = mem.presence.status
-                ob.Memory.mods[i].last_message = (mem.lastMessage) ? mem.lastMessage.createdTimestamp : mod.last_message
+                ob.Memory.mods[i].status = mem.presence.status;
+                ob.Memory.mods[i].last_message = (mem.lastMessage) ? mem.lastMessage.createdTimestamp : mod.last_message;
             }
         }
     }
@@ -447,7 +447,7 @@ bot.on('presenceUpdate', (old, mem) => {
 ////////////////////////////////////////
 
 bot.on('messageDelete', m => {
-    let now = new Date();
+    const now = new Date();
     if (bot.pause) return;
     if (m.channel.type === 'dm') return;
     if (m.type !== 'DEFAULT' || m.system || m.author.system) return;
@@ -458,14 +458,14 @@ bot.on('messageDelete', m => {
 
     ob.Memory.rdel.push(m.id);
 
-    var logEntry = new ob.LogEntry({time: now, channel: "delete"})
-    .preLoad()
+    const logEntry = new ob.LogEntry({time: now, channel: 'delete'})
+        .preLoad();
 
     bot.setTimeout(() => {
-        log('begin calculation of executor', 'trace')
+        log('begin calculation of executor', 'trace');
         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MESSAGE_DELETE' }).then((audit) => {
 
-            let ad = [...audit.entries.values()];
+            const ad = [...audit.entries.values()];
 
             let dlog = null;
             let clog = null;
@@ -515,46 +515,46 @@ bot.on('messageDelete', m => {
                 ob.Memory.audit.log = [...audit.entries.values()];
                 ob.Memory.audit.time = new Date();
 
-                let desc = [
+                const desc = [
                     `Message originally posted on ${m.createdAt.toUTCString()}`,
                     `(${timeago.format(m.createdAt)})`
                 ];
                 
                 logEntry.setColor(bot.cfg.embed.error)
-                .setIcon(ob.Assets.getEmoji('ICO_trash').url)
-                .setTitle(`Message Deleted`, `Message Deletion Report`)
-                .setDescription(desc.join('\n'), desc.join(' '))
-                .addSection(`Author`, m.author)
+                    .setIcon(ob.Assets.getEmoji('ICO_trash').url)
+                    .setTitle('Message Deleted', 'Message Deletion Report')
+                    .setDescription(desc.join('\n'), desc.join(' '))
+                    .addSection('Author', m.author);
 
                 if(dType === 1) {
-                    logEntry.addSection(`(Likely) Deleted By`, dlog.executor)
+                    logEntry.addSection('(Likely) Deleted By', dlog.executor);
                 } else
                 if((m.member !== null && m.member.deleted) || (!m.member)) {
-                    logEntry.addSection(`(Likely) Deleted By`, `Unknown (Possibly deleted during a ban)`)
+                    logEntry.addSection('(Likely) Deleted By', 'Unknown (Possibly deleted during a ban)');
                 } else {
-                    logEntry.addSection(`(Likely) Deleted By`, `Author`)
+                    logEntry.addSection('(Likely) Deleted By', 'Author');
                 }
 
-                logEntry.addSection(`Message Location`, m)
+                logEntry.addSection('Message Location', m);
 
                 if(m.content.length > 0) {
-                    logEntry.addSection(`Message Contents`, m.content);
+                    logEntry.addSection('Message Contents', m.content);
                 }
 
-                let att = [];
-                let att_raw = [];
+                const att = [];
+                const att_raw = [];
                 if (m.attachments.size > 0) {
                     m.attachments.each(a => {
-                        att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`)
-                        att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`)
+                        att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`);
+                        att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`);
                     });
                 }
 
                 if(att.length > 0) {
-                    logEntry.addSection(`Message Attachments`, {
+                    logEntry.addSection('Message Attachments', {
                         data: att.join('\n'),
                         raw: att_raw.join('\n')
-                    })
+                    });
                 }
 
                 if(m.embeds.length > 0) {
@@ -569,10 +569,10 @@ bot.on('messageDelete', m => {
                         }
                     }
 
-                    logEntry.addSection(`Message Embeds`, {
-                        data: `[${m.embeds.length} Embed${(m.embeds.length > 1) ? "s" : ""}]`,
+                    logEntry.addSection('Message Embeds', {
+                        data: `[${m.embeds.length} Embed${(m.embeds.length > 1) ? 's' : ''}]`,
                         raw: rawEmbeds
-                    })
+                    });
                 }
 
                 logEntry.submit();
@@ -586,18 +586,18 @@ bot.on('messageDelete', m => {
 });
 
 bot.on('messageDeleteBulk', ms => {
-    let now = new Date();
+    const now = new Date();
 
     if (bot.pause) return;
 
     bot.setTimeout(() => {
-        let messages = [...ms.values()];
+        const messages = [...ms.values()];
 
         let i = 0;
         (function postNext() {
             if(i >= messages.length) return;
 
-            let m = messages[i];
+            const m = messages[i];
             log(util.inspect(m));
 
             if (m.type !== 'DEFAULT' || m.system || m.author.system || m.author.bot || m.author.id === bot.user.id || bot.cfg.channels.nolog.some(id => [m.channel.id, m.channel.parentID].includes(id))) {
@@ -605,38 +605,38 @@ bot.on('messageDeleteBulk', ms => {
                 return postNext();
             }
 
-            var logEntry = new ob.LogEntry({time: now, channel: "delete"})
+            const logEntry = new ob.LogEntry({time: now, channel: 'delete'});
 
-            let desc = [
+            const desc = [
                 `Message originally posted on ${m.createdAt.toUTCString()}`,
                 `(${timeago.format(m.createdAt)})`
             ];
             
             logEntry.setColor(bot.cfg.embed.error)
-            .setIcon(ob.Assets.getEmoji('ICO_trash').url)
-            .setTitle(`(Bulk ${i+1}/${messages.length}) Message Deleted`, `Bulk Message ${i+1}-${messages.length} Deletion Report`)
-            .setDescription(desc.join('\n'), desc.join(' '))
-            .addSection(`Author`, m.author)
-            .addSection(`Message Location`, m)
+                .setIcon(ob.Assets.getEmoji('ICO_trash').url)
+                .setTitle(`(Bulk ${i+1}/${messages.length}) Message Deleted`, `Bulk Message ${i+1}-${messages.length} Deletion Report`)
+                .setDescription(desc.join('\n'), desc.join(' '))
+                .addSection('Author', m.author)
+                .addSection('Message Location', m);
 
             if(m.content.length > 0) {
-                logEntry.addSection(`Message Contents`, m.content);
+                logEntry.addSection('Message Contents', m.content);
             }
 
-            let att = [];
-            let att_raw = [];
+            const att = [];
+            const att_raw = [];
             if (m.attachments.size > 0) {
                 m.attachments.each(a => {
-                    att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`)
-                    att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`)
+                    att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`);
+                    att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`);
                 });
             }
 
             if(att.length > 0) {
-                logEntry.addSection(`Message Attachments`, {
+                logEntry.addSection('Message Attachments', {
                     data: att.join('\n'),
                     raw: att_raw.join('\n')
-                })
+                });
             }
 
             if(m.embeds.length > 0) {
@@ -652,22 +652,22 @@ bot.on('messageDeleteBulk', ms => {
                     }
                 }
 
-                logEntry.addSection(`Message Embeds`, {
-                    data: `[${m.embeds.length} Embed${(m.embeds.length > 1) ? "s" : ""}]`,
+                logEntry.addSection('Message Embeds', {
+                    data: `[${m.embeds.length} Embed${(m.embeds.length > 1) ? 's' : ''}]`,
                     raw: rawEmbeds
-                })
+                });
             }
 
             logEntry.submit().then(() => {
                 i++;
                 postNext();
             })
-            .catch(err => {
-                ob.OBUtil.err(err);
+                .catch(err => {
+                    ob.OBUtil.err(err);
 
-                i++;
-                postNext();
-            })
+                    i++;
+                    postNext();
+                });
         })();
     }, 5000);
 });
@@ -677,7 +677,7 @@ bot.on('messageDeleteBulk', ms => {
 ////////////////////////////////////////
 
 bot.on('messageUpdate', (m, mNew) => {
-    let now = new Date();
+    const now = new Date();
 
     if (bot.pause) return;
     if (m.channel.type === 'dm') return;
@@ -686,19 +686,19 @@ bot.on('messageUpdate', (m, mNew) => {
     if (ob.OBUtil.parseInput(mNew).cmd === 'dr') return;
     if (bot.cfg.channels.nolog.some(id => [m.channel.id, m.channel.parentID].includes(id))) return;
 
-    var logEntry = new ob.LogEntry({time: now, channel: "edit"})
+    const logEntry = new ob.LogEntry({time: now, channel: 'edit'});
 
-    let desc = [
+    const desc = [
         `Message originally posted on ${m.createdAt.toUTCString()}`,
         `(${timeago.format(m.createdAt)})`
     ];
     
     logEntry.setColor(bot.cfg.embed.default)
-    .setIcon(ob.Assets.getEmoji('ICO_edit').url)
-    .setTitle(`Message Updated`, `Message Update Report`)
-    .setDescription(desc.join('\n'), desc.join(' '))
-    .addSection(`Author`, m.author)
-    .addSection(`Message Location`, m)
+        .setIcon(ob.Assets.getEmoji('ICO_edit').url)
+        .setTitle('Message Updated', 'Message Update Report')
+        .setDescription(desc.join('\n'), desc.join(' '))
+        .addSection('Author', m.author)
+        .addSection('Message Location', m);
 
     /////////////////////////////
     // text content
@@ -706,45 +706,45 @@ bot.on('messageUpdate', (m, mNew) => {
 
     if(m.content !== mNew.content) {
         if(m.content.length !== 0) {
-            logEntry.addSection(`Old Message Contents`, m.content);
+            logEntry.addSection('Old Message Contents', m.content);
         } else {
-            logEntry.addSection(`Old Message Contents`, {
-                data: `\u200B`,
+            logEntry.addSection('Old Message Contents', {
+                data: '\u200B',
                 raw: ''
             });
         }
 
         if(mNew.content.length !== 0) {
-            logEntry.addSection(`New Message Contents`, mNew.content);
+            logEntry.addSection('New Message Contents', mNew.content);
         } else {
-            logEntry.addSection(`New Message Contents`, {
-                data: `\u200B`,
+            logEntry.addSection('New Message Contents', {
+                data: '\u200B',
                 raw: ''
             });
         }  
     } else
     if(m.content.length !== 0) {
-        logEntry.addSection(`Message Contents`, m.content);
+        logEntry.addSection('Message Contents', m.content);
     }
 
     /////////////////////////////
     // attachments
     /////////////////////////////
 
-    let att = [];
-    let att_raw = [];
+    const att = [];
+    const att_raw = [];
     if (m.attachments.size > 0) {
         m.attachments.each(a => {
-            att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`)
-            att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`)
+            att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`);
+            att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`);
         });
     }
 
     if(att.length > 0) {
-        logEntry.addSection(`Message Attachments`, {
+        logEntry.addSection('Message Attachments', {
             data: att.join('\n'),
             raw: att_raw.join('\n')
-        })
+        });
     }
 
     /////////////////////////////
@@ -762,7 +762,7 @@ bot.on('messageUpdate', (m, mNew) => {
         }
     }
 
-    let embedsUpdated = JSON.stringify(m.embeds) !== JSON.stringify(mNew.embeds);
+    const embedsUpdated = JSON.stringify(m.embeds) !== JSON.stringify(mNew.embeds);
 
     if(embedsUpdated) {
         let rawEmbedsNew = [];
@@ -776,18 +776,18 @@ bot.on('messageUpdate', (m, mNew) => {
             }
         }
 
-        logEntry.addSection(`Old Message Embeds`, {
-            data: `[${m.embeds.length} Embed${(m.embeds.length !== 1) ? "s" : ""}]`,
+        logEntry.addSection('Old Message Embeds', {
+            data: `[${m.embeds.length} Embed${(m.embeds.length !== 1) ? 's' : ''}]`,
             raw: rawEmbeds
         })
-        .addSection(`New Message Embeds`, {
-            data: `[${mNew.embeds.length} Embed${(mNew.embeds.length !== 1) ? "s" : ""}]`,
-            raw: rawEmbedsNew
-        });
+            .addSection('New Message Embeds', {
+                data: `[${mNew.embeds.length} Embed${(mNew.embeds.length !== 1) ? 's' : ''}]`,
+                raw: rawEmbedsNew
+            });
     } else
     if(m.embeds.length > 0) {
-        logEntry.addSection(`Message Embeds`, {
-            data: `[${m.embeds.length} Embed${(m.embeds.length !== 1) ? "s" : ""}]`,
+        logEntry.addSection('Message Embeds', {
+            data: `[${m.embeds.length} Embed${(m.embeds.length !== 1) ? 's' : ''}]`,
             raw: rawEmbeds
         });
     }
@@ -800,7 +800,7 @@ bot.on('messageUpdate', (m, mNew) => {
 ////////////////////////////////////////
 
 bot.on('channelUpdate', (oldc, newc) => {
-    let now = new Date();
+    const now = new Date();
     if (bot.pause) return;
     if (oldc.type !== 'text') return;
     if (oldc.guild.id !== bot.cfg.guilds.optifine) return;
@@ -808,43 +808,43 @@ bot.on('channelUpdate', (oldc, newc) => {
 
     if(oldc.topic === newc.topic && oldc.name === newc.name) return;
 
-    var logEntry = new ob.LogEntry({time: now, channel: "other"})
-    .setColor(bot.cfg.embed.default)
-    .setIcon(ob.Assets.getEmoji('ICO_edit').url)
-    .setTitle(`Channel Updated`, `Channel Update Report`)
-    .addSection(`Channel`, newc)
+    const logEntry = new ob.LogEntry({time: now, channel: 'other'})
+        .setColor(bot.cfg.embed.default)
+        .setIcon(ob.Assets.getEmoji('ICO_edit').url)
+        .setTitle('Channel Updated', 'Channel Update Report')
+        .addSection('Channel', newc);
 
-    let embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
-    .setAuthor(`Channel Updated`, ob.Assets.getEmoji('ICO_edit').url)
+    const embed = new djs.MessageEmbed()
+        .setColor(bot.cfg.embed.default)
+        .setAuthor('Channel Updated', ob.Assets.getEmoji('ICO_edit').url);
 
     if(oldc.topic !== newc.topic) {
         logEntry.addSection('Old Topic', {
-            data: (oldc.topic) ? oldc.topic : `\u200B`,
-            raw: (oldc.topic) ? oldc.topic : ``
+            data: (oldc.topic) ? oldc.topic : '\u200B',
+            raw: (oldc.topic) ? oldc.topic : ''
         });
 
         logEntry.addSection('New Topic', {
-            data: (newc.topic) ? newc.topic : `\u200B`,
-            raw: (newc.topic) ? newc.topic : ``
+            data: (newc.topic) ? newc.topic : '\u200B',
+            raw: (newc.topic) ? newc.topic : ''
         });
 
-        embed.addField(`Old Topic`, (oldc.topic) ? oldc.topic : `\u200B`)
-        embed.addField(`New Topic`, (newc.topic) ? newc.topic : `\u200B`)
+        embed.addField('Old Topic', (oldc.topic) ? oldc.topic : '\u200B');
+        embed.addField('New Topic', (newc.topic) ? newc.topic : '\u200B');
     }
 
     if(oldc.name !== newc.name) {
-        logEntry.addSection('Old Channel Name', `\`\`\`#${oldc.name}\`\`\``)
-        logEntry.addSection('New Channel Name', `\`\`\`#${newc.name}\`\`\``)
+        logEntry.addSection('Old Channel Name', `\`\`\`#${oldc.name}\`\`\``);
+        logEntry.addSection('New Channel Name', `\`\`\`#${newc.name}\`\`\``);
 
-        embed.addField(`Old Channel Name`, `\`\`\`#${oldc.name}\`\`\``)
-        embed.addField(`New Channel Name`, `\`\`\`#${newc.name}\`\`\``)
+        embed.addField('Old Channel Name', `\`\`\`#${oldc.name}\`\`\``);
+        embed.addField('New Channel Name', `\`\`\`#${newc.name}\`\`\``);
     }
 
-    logEntry.submit()
+    logEntry.submit();
 
     if(!([newc.id, newc.parentID].some(e => bot.cfg.channels.blacklist.includes(e)))) {
-        newc.send(embed)
+        newc.send(embed);
     }
     
 });
@@ -854,7 +854,7 @@ bot.on('channelUpdate', (oldc, newc) => {
 ////////////////////////////////////////
 
 bot.on('guildMemberAdd', member => {
-    let now = new Date();
+    const now = new Date();
     if (bot.pause) return;
 
     if (member.guild.id === bot.cfg.guilds.optifine) {
@@ -880,31 +880,31 @@ bot.on('guildMemberAdd', member => {
         });
 
         function logEvent(muted) {
-            var logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
-            .setColor(bot.cfg.embed.okay)
-            .setIcon(ob.Assets.getEmoji('ICO_join').url)
-            .setThumbnail(member.user.displayAvatarURL({format:'png'}))
-            .setTitle(`Member Joined`, `New Member Report`)
-            .addSection(`Member`, member)
-            .addSection(`Account Creation Date`, member.user.createdAt)
-            .addSection(`New Server Member Count`, bot.mainGuild.memberCount)
+            const logEntry = new ob.LogEntry({time: now, channel: 'joinleave'})
+                .setColor(bot.cfg.embed.okay)
+                .setIcon(ob.Assets.getEmoji('ICO_join').url)
+                .setThumbnail(member.user.displayAvatarURL({format:'png'}))
+                .setTitle('Member Joined', 'New Member Report')
+                .addSection('Member', member)
+                .addSection('Account Creation Date', member.user.createdAt)
+                .addSection('New Server Member Count', bot.mainGuild.memberCount);
 
             if(muted) {
-                logEntry.setDescription(`This user attempted to circumvent an on-going mute. The role has been automatically re-applied.`)
+                logEntry.setDescription('This user attempted to circumvent an on-going mute. The role has been automatically re-applied.');
             }
 
             if((member.user.createdAt.getTime() + (1000 * 60 * 60 * 24 * 7)) > now.getTime()) {
                 // account is less than 1 week old
-                logEntry.setHeader('Warning: New Discord Account')
+                logEntry.setHeader('Warning: New Discord Account');
             }
 
-            logEntry.submit()
+            logEntry.submit();
         }
     } else
     if(member.guild.id === bot.cfg.guilds.donator) {
         ob.OBUtil.verifyDonator(member).catch(err => {
             ob.OBUtil.err(err);
-        })
+        });
     }
 });
 
@@ -913,12 +913,12 @@ bot.on('guildMemberAdd', member => {
 ////////////////////////////////////////
 
 bot.on('guildMemberRemove', member => {
-    let now = new Date();
+    const now = new Date();
     if (bot.pause) return;
     if (member.guild.id !== bot.cfg.guilds.optifine) return;
 
-    for(let i in ob.Memory.mutes) {
-        let mute = ob.Memory.mutes[i];
+    for(const i in ob.Memory.mutes) {
+        const mute = ob.Memory.mutes[i];
         if(mute.id === member.user.id) {
             bot.clearTimeout(mute.time);
             ob.Memory.mutes.splice(i, 1);
@@ -928,33 +928,33 @@ bot.on('guildMemberRemove', member => {
 
     bot.setTimeout(() => {
         bot.mainGuild.fetchAuditLogs({ limit: 10 }).then((audit) => {
-            let ad = [...audit.entries.values()];
+            const ad = [...audit.entries.values()];
 
             for(let i = 0; i < ad.length; i++) {
                 if ((ad[i].action === 'MEMBER_KICK' || ad[i].action === 'MEMBER_BAN_ADD') && ad[i].target.id === member.user.id) {
                     if(ad[i].action === 'MEMBER_KICK') {
-                        var logEntry = new ob.LogEntry({time: now, channel: "moderation"})
-                        .setColor(bot.cfg.embed.error)
-                        .setIcon(ob.Assets.getEmoji('ICO_leave').url)
-                        .setThumbnail(member.user.displayAvatarURL({format:'png'}))
-                        .setTitle(`Member Kicked`, `Member Kick Report`)
-                        .setHeader((ad[i].reason) ? "Reason: "+ad[i].reason : "No reason provided.")
-                        .addSection(`Member`, member)
-                        .addSection(`Moderator Responsible`, ad[i].executor)
-                        .submit()
+                        var logEntry = new ob.LogEntry({time: now, channel: 'moderation'})
+                            .setColor(bot.cfg.embed.error)
+                            .setIcon(ob.Assets.getEmoji('ICO_leave').url)
+                            .setThumbnail(member.user.displayAvatarURL({format:'png'}))
+                            .setTitle('Member Kicked', 'Member Kick Report')
+                            .setHeader((ad[i].reason) ? 'Reason: '+ad[i].reason : 'No reason provided.')
+                            .addSection('Member', member)
+                            .addSection('Moderator Responsible', ad[i].executor)
+                            .submit();
                     }
                     break;
                 } else
                 if (i+1 >= ad.length) {
-                    var logEntry = new ob.LogEntry({time: now, channel: "joinleave"})
-                    .setColor(bot.cfg.embed.error)
-                    .setIcon(ob.Assets.getEmoji('ICO_leave').url)
-                    .setThumbnail(member.user.displayAvatarURL({format:'png'}))
-                    .setTitle(`Member Left`, `Member Leave Report`)
-                    .addSection(`Member`, member)
-                    .addSection(`Join Date`, (member.joinedAt !== null) ? member.joinedAt : 'Unknown.')
-                    .addSection(`New Server Member Count`, bot.mainGuild.memberCount)
-                    .submit()
+                    var logEntry = new ob.LogEntry({time: now, channel: 'joinleave'})
+                        .setColor(bot.cfg.embed.error)
+                        .setIcon(ob.Assets.getEmoji('ICO_leave').url)
+                        .setThumbnail(member.user.displayAvatarURL({format:'png'}))
+                        .setTitle('Member Left', 'Member Leave Report')
+                        .addSection('Member', member)
+                        .addSection('Join Date', (member.joinedAt !== null) ? member.joinedAt : 'Unknown.')
+                        .addSection('New Server Member Count', bot.mainGuild.memberCount)
+                        .submit();
                 }
             }
         }).catch(err => ob.OBUtil.err(err));
@@ -966,25 +966,25 @@ bot.on('guildMemberRemove', member => {
 ////////////////////////////////////////
 
 bot.on('guildBanAdd', (guild, user) => {
-    let now = new Date();
+    const now = new Date();
     if (bot.pause) return;
     if (guild.id !== bot.cfg.guilds.optifine) return;
 
-    var logEntry = new ob.LogEntry({time: now, channel: "moderation"})
-    .preLoad()
+    const logEntry = new ob.LogEntry({time: now, channel: 'moderation'})
+        .preLoad();
 
     log(util.inspect(guild));
 
     log(util.inspect(user));
 
-    log('ban: got here')
+    log('ban: got here');
 
     bot.setTimeout(() => {
-        log('ban: got here')
+        log('ban: got here');
         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_ADD' }).then((audit) => {
-            log('ban: got here')
+            log('ban: got here');
 
-            let ad = [...audit.entries.values()];
+            const ad = [...audit.entries.values()];
 
             let mod = ob.Memory.rban[user.id];
             let reason = null;
@@ -996,68 +996,68 @@ bot.on('guildBanAdd', (guild, user) => {
                 }
             }
 
-            log('ban: got here')
-            logEntry.setColor(bot.cfg.embed.error)
-            log('ban: got here')
-            logEntry.setIcon(ob.Assets.getEmoji('ICO_ban').url)
-            log('ban: got here')
-            logEntry.setThumbnail(user.displayAvatarURL({format:'png'}))
-            log('ban: got here')
-            logEntry.setTitle(`Member Banned`, `Member Ban Report`)
-            log('ban: got here')
-            logEntry.addSection(`Banned Member`, user)
+            log('ban: got here');
+            logEntry.setColor(bot.cfg.embed.error);
+            log('ban: got here');
+            logEntry.setIcon(ob.Assets.getEmoji('ICO_ban').url);
+            log('ban: got here');
+            logEntry.setThumbnail(user.displayAvatarURL({format:'png'}));
+            log('ban: got here');
+            logEntry.setTitle('Member Banned', 'Member Ban Report');
+            log('ban: got here');
+            logEntry.addSection('Banned Member', user);
 
-            log('ban: got here')
+            log('ban: got here');
 
             if(reason) {
-                logEntry.setHeader(`Reason: ${reason}`)
+                logEntry.setHeader(`Reason: ${reason}`);
             } else {
-                logEntry.setHeader(`No reason provided.`)
+                logEntry.setHeader('No reason provided.');
             }
 
-            log('ban: got here')
+            log('ban: got here');
 
             if(mod) {
-                logEntry.addSection(`Moderator Responsible`, mod);
+                logEntry.addSection('Moderator Responsible', mod);
             } else {
-                logEntry.addSection(`Moderator Responsible`, `Error: Unable to determine.`)
+                logEntry.addSection('Moderator Responsible', 'Error: Unable to determine.');
             }
 
-            log('ban: got here')
+            log('ban: got here');
 
             ob.OBUtil.getProfile(user.id, true).then(profile => {
                 if(!profile.edata.record) profile.edata.record = [];
 
-                log('ban: got here 3')
+                log('ban: got here 3');
 
-                let recordEntry = new ob.RecordEntry({ date: now })
-                log('ban: got here 4')
-                recordEntry.setAction('ban')
-                log('ban: got here 4')
-                recordEntry.setActionType('add')
+                const recordEntry = new ob.RecordEntry({ date: now });
+                log('ban: got here 4');
+                recordEntry.setAction('ban');
+                log('ban: got here 4');
+                recordEntry.setActionType('add');
 
-                log('ban: got here 3')
+                log('ban: got here 3');
                 
                 if(reason !== null) {
-                    recordEntry.setReason(bot.user, reason)
+                    recordEntry.setReason(bot.user, reason);
                 }
 
-                log('ban: got here 3')
+                log('ban: got here 3');
 
                 if(mod !== null) {
                     recordEntry.setMod(mod.id);
                 }
 
-                log('ban: got here 3')
+                log('ban: got here 3');
 
                 profile.edata.record.push(recordEntry.raw);
 
-                log('ban: got here')
+                log('ban: got here');
 
                 ob.OBUtil.updateProfile(profile).then(() => {
-                    log('ban: got here')
-                    log(`ban addition record successfully saved`)
-                    logEntry.submit()
+                    log('ban: got here');
+                    log('ban addition record successfully saved');
+                    logEntry.submit();
                 }).catch(err => {
                     logEntry.error(err);
                 });
@@ -1075,16 +1075,16 @@ bot.on('guildBanAdd', (guild, user) => {
 ////////////////////////////////////////
 
 bot.on('guildBanRemove', (guild, user) => {
-    let now = new Date();
+    const now = new Date();
     if (bot.pause) return;
     if (guild.id !== bot.cfg.guilds.optifine) return;
 
-    var logEntry = new ob.LogEntry({time: now, channel: "moderation"})
-    .preLoad()
+    const logEntry = new ob.LogEntry({time: now, channel: 'moderation'})
+        .preLoad();
 
     bot.setTimeout(() => {
         bot.mainGuild.fetchAuditLogs({ limit: 10, type: 'MEMBER_BAN_REMOVE' }).then((audit) => {
-            let ad = [...audit.entries.values()];
+            const ad = [...audit.entries.values()];
 
             let mod = null;
             for(let i = 0; i < ad.length; i++) {
@@ -1095,15 +1095,15 @@ bot.on('guildBanRemove', (guild, user) => {
             }
             
             logEntry.setColor(bot.cfg.embed.default)
-            .setIcon(ob.Assets.getEmoji('ICO_unban').url)
-            .setThumbnail(user.displayAvatarURL({format:'png'}))
-            .setTitle(`Member Ban Revoked`, `Member Ban Removal Report`)
-            .addSection(`Unbanned Member`, user)
+                .setIcon(ob.Assets.getEmoji('ICO_unban').url)
+                .setThumbnail(user.displayAvatarURL({format:'png'}))
+                .setTitle('Member Ban Revoked', 'Member Ban Removal Report')
+                .addSection('Unbanned Member', user);
 
             if(mod) {
-                logEntry.addSection(`Moderator Responsible`, mod);
+                logEntry.addSection('Moderator Responsible', mod);
             } else {
-                logEntry.addSection(`Moderator Responsible`, `Error: Unable to determine.`)
+                logEntry.addSection('Moderator Responsible', 'Error: Unable to determine.');
             }
 
             ob.OBUtil.getProfile(user.id, true).then(profile => {
@@ -1111,16 +1111,16 @@ bot.on('guildBanRemove', (guild, user) => {
 
                 let parent = null;
                 for(let i = 0; i < profile.edata.record.length; i++) {
-                    let entry = profile.edata.record[i];
+                    const entry = profile.edata.record[i];
                     if (entry.action === 4 && entry.actionType === 1) {
                         parent = entry;
                     }
                 }
 
-                let recordEntry = new ob.RecordEntry({ date: now })
-                .setAction('ban')
-                .setActionType('remove')
-                .setReason(mod, `No reason provided.`)
+                const recordEntry = new ob.RecordEntry({ date: now })
+                    .setAction('ban')
+                    .setActionType('remove')
+                    .setReason(mod, 'No reason provided.');
                 
                 if(parent !== null) {
                     recordEntry.setParent(mod, parent.date);
@@ -1133,8 +1133,8 @@ bot.on('guildBanRemove', (guild, user) => {
                 profile.edata.record.push(recordEntry.raw);
 
                 ob.OBUtil.updateProfile(profile).then(() => {
-                    log(`ban removal record successfully saved`)
-                    logEntry.submit()
+                    log('ban removal record successfully saved');
+                    logEntry.submit();
                 }).catch(err => {
                     logEntry.error(err);
                 });
@@ -1154,17 +1154,17 @@ bot.on('guildBanRemove', (guild, user) => {
 ////////////////////////////////////////
 
 bot.on('raw', packet => {
-    let now = new Date();
+    const now = new Date();
     if (bot.pause) return;
     if(packet.t === 'MESSAGE_REACTION_ADD') {
-        let channel = bot.channels.cache.get(packet.d.channel_id);
+        const channel = bot.channels.cache.get(packet.d.channel_id);
         if (channel.messages.cache.has(packet.d.message_id)) return; // stops if the message exists in the bot's cache.
 
         log(util.inspect(packet));
 
         channel.messages.fetch(packet.d.message_id, true).then(m => {
-            let emoji = packet.d.emoji.id ? packet.d.emoji.id : packet.d.emoji.name;
-            let reaction = m.reactions.cache.get(emoji);
+            const emoji = packet.d.emoji.id ? packet.d.emoji.id : packet.d.emoji.name;
+            const reaction = m.reactions.cache.get(emoji);
             let user = bot.users.cache.get(packet.d.user_id);
 
             function s2() {
@@ -1180,16 +1180,16 @@ bot.on('raw', packet => {
 
             if(!user || user.partial) {
                 if (channel.guild !== null && channel.guild !== undefined && channel.type === 'text') {
-                    log('fetch manual')
+                    log('fetch manual');
                     channel.guild.members.fetch({ user: packet.d.user_id }).then(mem => {
                         user = mem.user;
-                        s2()
+                        s2();
                     });
                 } else {
                     return;
                 }
             } else {
-                s2()
+                s2();
             }
         }).catch(err => {
             ob.OBUtil.err(err);
@@ -1199,14 +1199,14 @@ bot.on('raw', packet => {
         // this packet does not contain the actual message data, unfortunately.
         // as of writing, this only contains the message ID, the channel ID, and the guild ID.
         bot.setTimeout(() => {
-            var logEntry = new ob.LogEntry({time: now, channel: "delete", embed: false})
+            const logEntry = new ob.LogEntry({time: now, channel: 'delete', embed: false});
 
             ob.Memory.db.msg.remove({message: packet.d.id}, {}, (err, num) => {
                 if (err) {
                     logEntry.error(err);
                 } else 
                 if (num > 0) {
-                    log(`Bot message deleted natively.`);
+                    log('Bot message deleted natively.');
                 }
             });
 
@@ -1214,19 +1214,19 @@ bot.on('raw', packet => {
             if (packet.d.guild_id !== bot.cfg.guilds.optifine) return;
             if (bot.cfg.channels.nolog.includes(packet.d.channel_id)) return;
 
-            let mt = djs.SnowflakeUtil.deconstruct(packet.d.id).date;
+            const mt = djs.SnowflakeUtil.deconstruct(packet.d.id).date;
 
-            let desc = [
+            const desc = [
                 `Message originally posted on ${mt.toUTCString()}`,
                 `(${timeago.format(mt)})`
             ];
             
             logEntry.setColor(bot.cfg.embed.error)
-            .setIcon(ob.Assets.getEmoji('ICO_trash').url)
-            .setTitle(`(Uncached) Message Deleted`, `Uncached Message Deletion Report`)
-            .setDescription(desc.join('\n'), desc.join(' '))
-            .addSection(`Message Location`, `${bot.channels.cache.get(packet.d.channel_id).toString()} | [Direct URL](https://discordapp.com/channels/${packet.d.guild_id}/${packet.d.channel_id}/${packet.d.id}) (deleted)`)
-            .submit()
+                .setIcon(ob.Assets.getEmoji('ICO_trash').url)
+                .setTitle('(Uncached) Message Deleted', 'Uncached Message Deletion Report')
+                .setDescription(desc.join('\n'), desc.join(' '))
+                .addSection('Message Location', `${bot.channels.cache.get(packet.d.channel_id).toString()} | [Direct URL](https://discordapp.com/channels/${packet.d.guild_id}/${packet.d.channel_id}/${packet.d.id}) (deleted)`)
+                .submit();
         }, 100);
     }
 });
@@ -1236,60 +1236,60 @@ bot.on('raw', packet => {
 ////////////////////////////////////////
 
 bot.on('messageReactionAdd', (mr, user) => {
-    let now = new Date();
+    const now = new Date();
     if (bot.pause) return;
     if (mr.message.channel.type === 'dm') return;
     if (user.id === bot.user.id) return;
 
     if (mr.emoji.id === bot.cfg.emoji.deleter) {
-        let del = (docs, mod, orguser) => {
+        const del = (docs, mod, orguser) => {
             if(mr.message.content.indexOf(bot.cfg.messages.confirmDelete) > -1) {
-                var logEntry = new ob.LogEntry({time: now, channel: "delete"})
-                .preLoad()
+                const logEntry = new ob.LogEntry({time: now, channel: 'delete'})
+                    .preLoad();
                 mr.message.delete().then((bm) => {
                     ob.Memory.db.msg.remove(docs[0], {}, (err) => {
                         if (err) {
                             logEntry.error(err);
                         } else {
-                            let desc = [
+                            const desc = [
                                 `Message originally posted on ${bm.createdAt.toUTCString()}`,
                                 `(${timeago.format(bm.createdAt)})`
                             ];
 
                             logEntry.setColor(bot.cfg.embed.error)
-                            .setIcon(ob.Assets.getEmoji('ICO_trash').url)
-                            .setTitle(`OptiBot Message Deleted`, `OptiBot Message Deletion Report`)
-                            .setDescription(desc.join('\n'), desc.join(' '))
-                            .addSection(`Deleted by`, user)
+                                .setIcon(ob.Assets.getEmoji('ICO_trash').url)
+                                .setTitle('OptiBot Message Deleted', 'OptiBot Message Deletion Report')
+                                .setDescription(desc.join('\n'), desc.join(' '))
+                                .addSection('Deleted by', user);
 
                             if(mod) {
                                 if(orguser) {
-                                    logEntry.addSection(`Original Author`, orguser)
+                                    logEntry.addSection('Original Author', orguser);
                                 } else {
-                                    logEntry.addSection(`Original Author`, `Unknown.`)
+                                    logEntry.addSection('Original Author', 'Unknown.');
                                 }
                             }
 
-                            logEntry.addSection(`Message Location`, bm)
+                            logEntry.addSection('Message Location', bm);
 
                             if(bm.content.length > 0 && bm.content !== '_ _' && bm.content !== bot.cfg.messages.confirmDelete) {
-                                logEntry.addSection(`Message Contents`, bm.content);
+                                logEntry.addSection('Message Contents', bm.content);
                             }
             
-                            let att = [];
-                            let att_raw = [];
+                            const att = [];
+                            const att_raw = [];
                             if (bm.attachments.size > 0) {
                                 bm.attachments.each(a => {
-                                    att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`)
-                                    att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`)
+                                    att.push(`[${a.name || a.url.match(/[^\/]+$/)}](${a.url})`);
+                                    att_raw.push(`${a.name || a.url.match(/[^\/]+$/)} (${a.url})`);
                                 });
                             }
             
                             if(att.length > 0) {
-                                logEntry.addSection(`Message Attachments`, {
+                                logEntry.addSection('Message Attachments', {
                                     data: att.join('\n'),
                                     raw: att_raw.join('\n')
-                                })
+                                });
                             }
             
                             if(bm.embeds.length > 0) {
@@ -1304,10 +1304,10 @@ bot.on('messageReactionAdd', (mr, user) => {
                                     }
                                 }
             
-                                logEntry.addSection(`Message Embeds`, {
-                                    data: `[${bm.embeds.length} Embed${(bm.embeds.length > 1) ? "s" : ""}]`,
+                                logEntry.addSection('Message Embeds', {
+                                    data: `[${bm.embeds.length} Embed${(bm.embeds.length > 1) ? 's' : ''}]`,
                                     raw: rawEmbeds
-                                })
+                                });
                             }
 
                             logEntry.submit();
@@ -1326,7 +1326,7 @@ bot.on('messageReactionAdd', (mr, user) => {
                     ob.OBUtil.err(err);
                 });
             }
-        }
+        };
 
         ob.Memory.db.msg.find({message: mr.message.id}, (err, docs) => {
             if(err) {
@@ -1335,10 +1335,10 @@ bot.on('messageReactionAdd', (mr, user) => {
             if(docs[0] && docs[0].user === user.id) {
                 del(docs);
             } else {
-                let mem = bot.mainGuild.members.cache.get(user.id);
+                const mem = bot.mainGuild.members.cache.get(user.id);
                 if(mem && mem.roles.cache.has(bot.cfg.roles.moderator)) {
                     if (docs[0]) {
-                        let org = bot.mainGuild.members.cache.get(docs[0].user);
+                        const org = bot.mainGuild.members.cache.get(docs[0].user);
 
                         if(!org) {
                             bot.users.fetch(docs[0].user).then((org) => {
@@ -1361,7 +1361,7 @@ bot.on('messageReactionAdd', (mr, user) => {
 ////////////////////////////////////////
 
 bot.on('rateLimit', rl => {
-    let rlInfo = [
+    const rlInfo = [
         `Timeout: ${rl.timeout}`,
         `Request Limit: ${rl.limit}`,
         `HTTP Method: ${rl.method}`,
@@ -1369,7 +1369,7 @@ bot.on('rateLimit', rl => {
         `Route: ${rl.route}`
     ].join('\n');
 
-    log("OptiBot is being ratelimited! \n" + rlInfo, 'warn');
+    log('OptiBot is being ratelimited! \n' + rlInfo, 'warn');
 });
 
 ////////////////////////////////////////
@@ -1400,7 +1400,7 @@ bot.on('guildUpdate', (oldg, newg) => {
 bot.on('shardReady', (id, guilds) => {
     log(`Shard WebSocket ready. \nShard ID: ${id} \nUnavailable Guilds: ${(guilds) ? '\n'+[...guilds].join('\n') : 'None.'}`, 'info');
     log(util.inspect(bot.ws));
-    ob.OBUtil.setWindowTitle()
+    ob.OBUtil.setWindowTitle();
     ob.Memory.presenceRetry = 0;
 });
 
@@ -1508,12 +1508,12 @@ bot.on('shardDisconnect', (event, id) => {
         if(code === 4014) {
             return 'DISCORD: Disallowed Intent';
         } else {
-            return 'Unknown'
+            return 'Unknown';
         }
     }
 
     log(`Shard WebSocket disconnected. \nShard ID: ${id} \nEvent Code: ${event.code} (${getCodeName(event.code)})`, 'warn');
-    ob.OBUtil.setWindowTitle()
+    ob.OBUtil.setWindowTitle();
 });
 
 ////////////////////////////////////////
@@ -1523,7 +1523,7 @@ bot.on('shardDisconnect', (event, id) => {
 bot.on('shardReconnecting', id => {
     log(`Shard WebSocket reconnecting... \nShard ID: ${id}`, 'warn');
     log(util.inspect(bot.ws));
-    ob.OBUtil.setWindowTitle()
+    ob.OBUtil.setWindowTitle();
 });
 
 ////////////////////////////////////////
@@ -1533,7 +1533,7 @@ bot.on('shardReconnecting', id => {
 bot.on('shardResume', (id, replayed) => {
     log(`Shard WebSocket resumed. \nShard ID: ${id} \nEvents replayed: ${replayed}`, 'info');
     log(util.inspect(bot.ws));
-    ob.OBUtil.setWindowTitle()
+    ob.OBUtil.setWindowTitle();
     ob.Memory.presenceRetry = 0;
 });
 
@@ -1544,7 +1544,7 @@ bot.on('shardResume', (id, replayed) => {
 bot.on('shardError', (err, id) => {
     log(`Shard WebSocket connection error. \nShard ID: ${id} \nStack: ${err.stack || err}`, 'error');
     log(util.inspect(bot.ws));
-    ob.OBUtil.setWindowTitle()
+    ob.OBUtil.setWindowTitle();
 });
 
 ////////////////////////////////////////
@@ -1553,7 +1553,7 @@ bot.on('shardError', (err, id) => {
 
 bot.on('invalidated', () => {
     log('Session Invalidated.', 'fatal');
-    setWindowTitle('Session invalidated.')
+    setWindowTitle('Session invalidated.');
     process.exit(1);
 });
 

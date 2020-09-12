@@ -1,7 +1,7 @@
-const path = require(`path`);
-const util = require(`util`);
-const djs = require(`discord.js`);
-const Memory = require(`./OptiBotMemory.js`);
+const path = require('path');
+const util = require('util');
+const djs = require('discord.js');
+const Memory = require('./OptiBotMemory.js');
 
 /**
  * OptiBot Core: OptiBit Class
@@ -22,7 +22,7 @@ module.exports = class OptiBit {
 
     static parseMetadata({
         name =  null,
-        description = `This OptiBit has no set description.`,
+        description = 'This OptiBit has no set description.',
         usage = null,
         image = null,
         priority = 0,
@@ -36,34 +36,34 @@ module.exports = class OptiBit {
         const log = bot.log;
 
         if(typeof name !== 'string') {
-            throw new TypeError(`Invalid or unspecified OptiBit property: name`)
+            throw new TypeError('Invalid or unspecified OptiBit property: name');
         }
         if(typeof description !== 'string') {
-            throw new TypeError(`Invalid OptiBit property: description`)
+            throw new TypeError('Invalid OptiBit property: description');
         }
-        if(typeof usage !== 'string' && usage != null) {
-            throw new TypeError(`Invalid OptiBit property: usage`)
+        if(typeof usage !== 'string' && usage !== null) {
+            throw new TypeError('Invalid OptiBit property: usage');
         }
-        if(typeof image !== 'string' && image != null) {
-            throw new TypeError(`Invalid OptiBit property: description`)
+        if(typeof image !== 'string' && image !== null) {
+            throw new TypeError('Invalid OptiBit property: description');
         }
         if(typeof priority !== 'number') {
-            throw new TypeError(`Invalid OptiBit property: priority`)
+            throw new TypeError('Invalid OptiBit property: priority');
         }
         if(typeof concurrent !== 'boolean') {
-            throw new TypeError(`Invalid OptiBit property: concurrent`)
+            throw new TypeError('Invalid OptiBit property: concurrent');
         }
         if(typeof authlvl !== 'number') {
-            throw new TypeError(`Invalid or unspecified OptiBit property: authlvl`)
+            throw new TypeError('Invalid or unspecified OptiBit property: authlvl');
         }
-        if(!Array.isArray(flags) && flags != null) {
-            throw new TypeError(`Invalid OptiBit property: flags`)
+        if(!Array.isArray(flags) && flags !== null) {
+            throw new TypeError('Invalid OptiBit property: flags');
         }
         if(typeof validator !== 'function') {
-            throw new TypeError(`Invalid or unspecified OptiBit property: validator`)
+            throw new TypeError('Invalid or unspecified OptiBit property: validator');
         }
         if(typeof executable !== 'function') {
-            throw new TypeError(`Invalid or unspecified OptiBit property: executable`)
+            throw new TypeError('Invalid or unspecified OptiBit property: executable');
         }
 
         const metadata = {
@@ -110,7 +110,7 @@ module.exports = class OptiBit {
                 // Preserve OptiBit during Modes 1 and 2.
                 LITE: false
             }
-        }
+        };
 
         if(Array.isArray(flags) && flags.length > 0) {
             flags = [...new Set(flags)];
@@ -118,7 +118,7 @@ module.exports = class OptiBit {
 
             flags.forEach(t => {
                 if(typeof t !== 'string') {
-                    throw new TypeError(`Flags must be specified as strings.`);
+                    throw new TypeError('Flags must be specified as strings.');
                 } else
                 if(typeof metadata.flags[t.toUpperCase()] === 'boolean') {
                     metadata.flags[t.toUpperCase()] = true;
@@ -127,22 +127,22 @@ module.exports = class OptiBit {
             });
 
             if(found === 0) {
-                throw new Error(`All given flags are invalid.`);
+                throw new Error('All given flags are invalid.');
             }
 
-            if(metadata.flags[`NO_DM`] && metadata.authlvl === -1) {
+            if(metadata.flags['NO_DM'] && metadata.authlvl === -1) {
                 throw new Error(`OptiBit "${name}": Flag NO_DM and authlvl -1 are mutually exclusive.`);
             }
 
-            if(metadata.flags[`NO_DM`] && metadata.flags[`DM_OPTIONAL`]) {
+            if(metadata.flags['NO_DM'] && metadata.flags['DM_OPTIONAL']) {
                 throw new Error(`OptiBit "${name}": Flags NO_DM and DM_OPTIONAL are mutually exclusive.`);
             }
 
-            if(metadata.flags[`DM_OPTIONAL`] && metadata.flags[`DM_ONLY`]) {
+            if(metadata.flags['DM_OPTIONAL'] && metadata.flags['DM_ONLY']) {
                 throw new Error(`OptiBit "${name}": Flags DM_OPTIONAL and DM_ONLY are mutually exclusive.`);
             }
 
-            if(metadata.flags[`NO_DM`] && metadata.flags[`DM_ONLY`]) {
+            if(metadata.flags['NO_DM'] && metadata.flags['DM_ONLY']) {
                 throw new Error(`OptiBit "${name}": Flags NO_DM and DM_ONLY are mutually exclusive.`);
             }
         } else {
@@ -151,4 +151,4 @@ module.exports = class OptiBit {
 
         return metadata;
     }
-}
+};

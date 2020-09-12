@@ -1,44 +1,44 @@
-const path = require(`path`);
-const util = require(`util`);
+const path = require('path');
+const util = require('util');
 const request = require('request');
-const djs = require(`discord.js`);
-const { OptiBit, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
+const djs = require('discord.js');
+const { OptiBit, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
 const log = bot.log;
 
 const metadata = {
     name: 'GitHub Issue Detector',
-    description: `todo`,
-    usage: `Type a hash \` # \` immediately followed by a series of numbers, like so: \` #1234 \`. Does not work if the overall number is NOT surrounded by empty space, periods, or any other word-ending characters (e.g, brackets \` [] \` and parenthesis \` () \`). Additionally, this outright ignores all issues from #1 to #100.`,
+    description: 'todo',
+    usage: 'Type a hash ` # ` immediately followed by a series of numbers, like so: ` #1234 `. Does not work if the overall number is NOT surrounded by empty space, periods, or any other word-ending characters (e.g, brackets ` [] ` and parenthesis ` () `). Additionally, this outright ignores all issues from #1 to #100.',
     priority: 2,
     concurrent: true,
     authlvl: 0,
     flags: ['DM_OPTIONAL'],
     validator: null,
     run: null
-}
+};
 
 metadata.validator = (m, member, authlvl) => {
     return m.content.includes('#');
-}
+};
 
 metadata.executable = (m, member, authlvl) => {
     //remove everything in quotes ("), single-line codeblocks, multi-line codeblocks, and strikethroughs.
-    let filtered = m.content.replace(/"[^"]+"|`{3}[^```]+`{3}|~{2}[^~~]+~{2}|`{1}[^`]+`{1}|<[^<>]+>/gi, "");
+    const filtered = m.content.replace(/"[^"]+"|`{3}[^```]+`{3}|~{2}[^~~]+~{2}|`{1}[^`]+`{1}|<[^<>]+>/gi, '');
     
     // get issues from filtered message using regex, remove duplicates by using a set, and finally convert back to an array.
     // ignores issues prefixed with a backwards slash (\) or just any word character
     let issues = [...new Set(filtered.match(/(?<![^.(<[{\s]#|\\#)(?<=#)(\d+)\b/gi))];
 
-    issues = issues.filter((issue) => { if(parseInt(issue) > 100) return true; })
+    issues = issues.filter((issue) => { if(parseInt(issue) > 100) return true; });
 
     if (issues == null || issues.length === 0) return;
 
-    let issueLinks = [];
-    let limit = (authlvl > 0) ? 8 : 4;
+    const issueLinks = [];
+    const limit = (authlvl > 0) ? 8 : 4;
     let attempts = 0;
-    let requestLimit = 12;
+    const requestLimit = 12;
     let i = 0;
 
     (function searchGH() {
@@ -48,10 +48,10 @@ metadata.executable = (m, member, authlvl) => {
             if(issueLinks.length === 0) return;
 
             log('finalizing GH refs', 'trace');
-            let embed = new djs.MessageEmbed()
-            .setColor(bot.cfg.embed.default)
-            .setAuthor('OptiFine Issue Tracker', Assets.getEmoji('ICO_git').url)
-            .setDescription(`In response to [this](${m.url}) message...\n\n${issueLinks.join('\n\n')}`)
+            const embed = new djs.MessageEmbed()
+                .setColor(bot.cfg.embed.default)
+                .setAuthor('OptiFine Issue Tracker', Assets.getEmoji('ICO_git').url)
+                .setDescription(`In response to [this](${m.url}) message...\n\n${issueLinks.join('\n\n')}`);
     
             if (issueLinks.length === limit && issues.length > limit) {
                 embed.setFooter('Other issues were omitted to prevent spam.');
@@ -85,10 +85,10 @@ metadata.executable = (m, member, authlvl) => {
                 return next(true, err || new Error('Failed to get a response from the GitHub API.'));
             }
             if (res.statusCode === 403) {
-                return next(false, new Error('403 Forbidden (OptiBot may be ratelimited)'))
+                return next(false, new Error('403 Forbidden (OptiBot may be ratelimited)'));
             }
 
-            let title = JSON.parse(data).title;
+            const title = JSON.parse(data).title;
 
             if (title) {
                 issueLinks.push(`**#${issues[i]}** - [${title}](https://github.com/sp614x/optifine/issues/${issues[i]})`);
@@ -97,6 +97,6 @@ metadata.executable = (m, member, authlvl) => {
             next(true);
         });
     })();
-}
+};
 
 module.exports = new OptiBit(metadata);

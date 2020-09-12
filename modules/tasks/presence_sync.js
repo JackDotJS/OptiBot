@@ -1,4 +1,4 @@
-const ob = require(`../core/OptiBot.js`);
+const ob = require('../core/OptiBot.js');
 
 module.exports = {
     repeat: true,
@@ -9,10 +9,10 @@ module.exports = {
         const log = bot.log;
         
         if (!bot.pause && bot.ws.shards.size > 0 && bot.ws.shards.first().status === 0 && (ob.Memory.presenceRetry < 3 || ob.Memory.presenceHour !== new Date().getHours())) {
-            log('presence sync: updating')
+            log('presence sync: updating');
             bot.user.setPresence(ob.Memory.presence);
             ob.Memory.presenceRetry++;
             ob.Memory.presenceHour = new Date().getHours();
         }
     }
-}
+};

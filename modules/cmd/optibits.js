@@ -1,9 +1,9 @@
-const path = require(`path`);
-const util = require(`util`);
+const path = require('path');
+const util = require('util');
 const wink = require('jaro-winkler');
 const cstr = require('string-similarity');
-const djs = require(`discord.js`);
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
+const djs = require('discord.js');
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -11,52 +11,52 @@ const log = bot.log;
 const metadata = {
     name: path.parse(__filename).name,
     aliases: ['optibit', 'bits', 'bit'],
-    short_desc: `Display OptiBits.`,
-    long_desc: `Displays all OptiBits.`,
-    args: `[page number|query]`,
+    short_desc: 'Display OptiBits.',
+    long_desc: 'Displays all OptiBits.',
+    args: '[page number|query]',
     authlvl: 0,
     flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY'],
     run: null
-}
+};
 
 metadata.run = (m, args, data) => {
-    let list = Memory.assets.optibits;
+    const list = Memory.assets.optibits;
 
     if(args[0] && !Number.isInteger(parseInt(args[0]))) {
-        m.channel.send('todo').then(msg => OBUtil.afterSend(msg, m.author.id))
+        m.channel.send('todo').then(msg => OBUtil.afterSend(msg, m.author.id));
     } else {
         let filtered = list;
         let ftext = '';
-        let selectPage = parseInt(args[0]);
-        let isModChannel = (m.channel.type === 'dm' || [m.channel.id, m.channel.parentID].some(e => bot.cfg.channels.mod.includes(e)));
+        const selectPage = parseInt(args[0]);
+        const isModChannel = (m.channel.type === 'dm' || [m.channel.id, m.channel.parentID].some(e => bot.cfg.channels.mod.includes(e)));
 
         if(!isModChannel && data.authlvl > 0) {
             filtered = list.filter((bit) => (bit.metadata.authlvl === 0 && bit.metadata.flags['HIDDEN'] === false));
-            ftext = `Note: Some OptiBits have been hidden because you're in a public channel.`;
+            ftext = 'Note: Some OptiBits have been hidden because you\'re in a public channel.';
         } else {
             filtered = list.filter((bit) => (bit.metadata.authlvl <= data.authlvl && bit.metadata.flags['HIDDEN'] === false));
         }
 
-        let pageNum = 0
+        let pageNum = 0;
         if (selectPage > 0 && selectPage <= filtered.length) {
             pageNum = selectPage-1;
         }
 
-        let bit = filtered[pageNum].metadata;
+        const bit = filtered[pageNum].metadata;
 
-        let embed = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.default)
-        .setAuthor(`OptiBot Bits | Page ${pageNum+1}/${filtered.length}`, Assets.getEmoji('ICO_docs').url)
-        .setTitle(bit.name)
-        .setDescription(bit.description)
+        const embed = new djs.MessageEmbed()
+            .setColor(bot.cfg.embed.default)
+            .setAuthor(`OptiBot Bits | Page ${pageNum+1}/${filtered.length}`, Assets.getEmoji('ICO_docs').url)
+            .setTitle(bit.name)
+            .setDescription(bit.description);
 
-        if(bit.usage != null) embed.addField('Usage', bit.usage)
+        if(bit.usage !== null) embed.addField('Usage', bit.usage);
 
         if(ftext.length > 0) embed.setFooter(ftext);
 
         if (bit.image) {
             embed.attachFiles([Assets.getImage(bit.image).attachment])
-            .setThumbnail('attachment://image.png');
+                .setThumbnail('attachment://image.png');
         }
 
         if (data.authlvl >= 5 && isModChannel) {
@@ -66,15 +66,15 @@ metadata.run = (m, args, data) => {
                 if(bit.flags[tag] === true) taglist.push(tag);
             });
 
-            if(taglist.length === 0) taglist = 'This OptiBit has no active flags.'
+            if(taglist.length === 0) taglist = 'This OptiBit has no active flags.';
 
             embed.addField('(DEV) Permission Level', `\`\`\`javascript\n${bit.authlvl}\`\`\``, true)
-            .addField('(DEV) Execution Priority', `\`\`\`javascript\n${bit.priority}\`\`\``, true)
-            .addField('(DEV) Execute Concurrent', `\`\`\`javascript\n${bit.concurrent}\`\`\``, true)
-            .addField('(DEV) Flags', `\`\`\`javascript\n${util.inspect(taglist)}\`\`\``, true)
+                .addField('(DEV) Execution Priority', `\`\`\`javascript\n${bit.priority}\`\`\``, true)
+                .addField('(DEV) Execute Concurrent', `\`\`\`javascript\n${bit.concurrent}\`\`\``, true)
+                .addField('(DEV) Flags', `\`\`\`javascript\n${util.inspect(taglist)}\`\`\``, true);
         }
 
-        let restrictions = [];
+        const restrictions = [];
 
         if (bit.flags['NO_DM']) {
             if(bit.flags['BOT_CHANNEL_ONLY']) {
@@ -112,8 +112,8 @@ metadata.run = (m, args, data) => {
 
         embed.addField('Restrictions', restrictions.join('\n'));
 
-        m.channel.send({embed: embed}).then(msg => OBUtil.afterSend(msg, m.author.id))
+        m.channel.send({embed: embed}).then(msg => OBUtil.afterSend(msg, m.author.id));
     }
-}
+};
 
 module.exports = new Command(metadata);

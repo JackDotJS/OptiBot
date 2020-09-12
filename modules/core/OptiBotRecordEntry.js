@@ -1,7 +1,7 @@
-const util = require(`util`);
-const djs = require(`discord.js`);
+const util = require('util');
+const djs = require('discord.js');
 
-const Memory = require(`./OptiBotMemory.js`);
+const Memory = require('./OptiBotMemory.js');
 
 module.exports = class RecordEntry {
     constructor(raw = {}) {
@@ -9,14 +9,14 @@ module.exports = class RecordEntry {
             Memory.core.client.log(util.inspect(raw));
 
             // please kill me
-            this.date = (raw.date != null) ? raw.date : new Date().getTime();
-            this.moderator = (raw.moderator != null) ? raw.moderator : null;
-            this.url = (raw.url != null) ? raw.url : null;
-            this.action = (raw.action != null) ? raw.action : null;
-            this.actionType = (raw.actionType != null) ? raw.actionType : null;
-            this.reason = (raw.reason != null) ? raw.reason : null;
-            this.details = (raw.details != null) ? raw.details : null;
-            this.parent = (raw.parent != null) ? raw.parent : null;
+            this.date = (raw.date !== null) ? raw.date : new Date().getTime();
+            this.moderator = (raw.moderator !== null) ? raw.moderator : null;
+            this.url = (raw.url !== null) ? raw.url : null;
+            this.action = (raw.action !== null) ? raw.action : null;
+            this.actionType = (raw.actionType !== null) ? raw.actionType : null;
+            this.reason = (raw.reason !== null) ? raw.reason : null;
+            this.details = (raw.details !== null) ? raw.details : null;
+            this.parent = (raw.parent !== null) ? raw.parent : null;
             this.children = [];
             this.display = {
                 id: null,
@@ -36,13 +36,13 @@ module.exports = class RecordEntry {
             Object.defineProperty(this, 'raw', {
                 get: () => {
 
-                    let pardonTemp = this.pardon;
+                    const pardonTemp = this.pardon;
 
                     if(pardonTemp && pardonTemp.admin.constructor === djs.User) {
                         pardonTemp.admin = pardonTemp.admin.id;
                     }
 
-                    let rawData = {
+                    const rawData = {
                         date: this.date,
                         moderator: (this.moderator.constructor === djs.User) ? this.moderator.id : this.moderator,
                         url: this.url,
@@ -53,23 +53,23 @@ module.exports = class RecordEntry {
                         parent: this.parent,
                         pardon: pardonTemp,
                         edits: this.edits
-                    }
+                    };
             
                     return rawData;
                 }
-            })
+            });
 
             this._def();
         }
         catch(err) {
             Memory.core.client.log(err);
-            Memory.core.client.log('WHAT THE FUCK')
+            Memory.core.client.log('WHAT THE FUCK');
         }
     }
 
     _def() {
-        const Assets = require(`./OptiBotAssetsManager.js`);
-        const OBUtil = require(`./OptiBotUtil.js`);
+        const Assets = require('./OptiBotAssetsManager.js');
+        const OBUtil = require('./OptiBotUtil.js');
         const bot = Memory.core.client;
 
         let action = '';
@@ -80,39 +80,39 @@ module.exports = class RecordEntry {
         switch(this.action) {
             case 0:
                 this.display.icon = `${Assets.getEmoji('ICO_docs')}`;
-                action = `Note`;
+                action = 'Note';
                 break;
             case 1:
                 this.display.icon = `${Assets.getEmoji('ICO_warn')}`;
-                action = `Warning`;
+                action = 'Warning';
                 break;
             case 2:
                 this.display.icon = `${Assets.getEmoji('ICO_mute')}`;
-                action = `Mute`;
+                action = 'Mute';
                 break;
             case 3:
                 this.display.icon = `${Assets.getEmoji('ICO_kick')}`;
-                action = `Kick`;
+                action = 'Kick';
                 break;
             case 4:
                 this.display.icon = `${Assets.getEmoji('ICO_ban')}`;
-                action = `Ban`;
+                action = 'Ban';
                 break;
             case 5:
                 this.display.icon = `${Assets.getEmoji('ICO_points')}`;
-                action = `Points`;
+                action = 'Points';
                 break;
         }
 
         switch(this.actionType) {
             case -1:
-                type = (this.action == 4) ? `Revoke` : `Remove`;
+                type = (this.action == 4) ? 'Revoke' : 'Remove';
                 break;
             case 0:
-                type = `Update`;
+                type = 'Update';
                 break;
             case 1:
-                if (![3, 4].includes(this.action)) type = `Add`;
+                if (![3, 4].includes(this.action)) type = 'Add';
                 break;
         }
 
@@ -122,15 +122,15 @@ module.exports = class RecordEntry {
             this.display.parent = this.parent.toString(36).toUpperCase();
         }
 
-        if(this.action === 5 && this.actionType === 1 && this.details != null) {
+        if(this.action === 5 && this.actionType === 1 && this.details !== null) {
             this.display.pointsTotal = parseInt(this.details.match(/(?<=\[)\d+(?=\])/));
             this.display.pointsNow = OBUtil.calculatePoints(this.date, this.display.pointsTotal);
         } 
 
         if(this.children.length > 0) {
             this.display.children = [];
-            for(let child of this.children) {
-                this.display.children.push(child.toString(36).toUpperCase())
+            for(const child of this.children) {
+                this.display.children.push(child.toString(36).toUpperCase());
             }
             return this;
         } else {
@@ -142,7 +142,7 @@ module.exports = class RecordEntry {
         if(this.edits === null) this.edits = {
             original: {},
             history: []
-        }
+        };
 
         
         if(this.edits.original[key] === undefined) {
@@ -171,13 +171,13 @@ module.exports = class RecordEntry {
 
     setMod(id) {
         if(this.moderator) {
-            throw new Error(`Cannot update entry moderator.`)
+            throw new Error('Cannot update entry moderator.');
         } else
         if(!Number.isInteger(Number(id))) {
-            throw new Error('Moderator ID must resolve as a complete integer.')
+            throw new Error('Moderator ID must resolve as a complete integer.');
         } else
         if (parseInt(id) <= 1420070400000) {
-            throw new Error('Invalid moderator ID.')
+            throw new Error('Invalid moderator ID.');
         } else {
             this.moderator = String(id);
             return this;
@@ -186,7 +186,7 @@ module.exports = class RecordEntry {
 
     setURL(url) {
         if(this.url) {
-            throw new Error(`Cannot update entry URL.`)
+            throw new Error('Cannot update entry URL.');
         }
 
         new URL(url);
@@ -197,7 +197,7 @@ module.exports = class RecordEntry {
 
     setAction(type) {
         if(this.action) {
-            throw new Error(`Cannot update entry action.`)
+            throw new Error('Cannot update entry action.');
         }
 
         switch(type.toLowerCase()) {
@@ -228,7 +228,7 @@ module.exports = class RecordEntry {
 
     setActionType(type) {
         if(this.actionType) {
-            throw new Error(`Cannot update entry actionType.`)
+            throw new Error('Cannot update entry actionType.');
         }
 
         switch(type.toLowerCase()) {
@@ -249,11 +249,11 @@ module.exports = class RecordEntry {
 
     setReason(author, text) {
         if(text.length === 0) {
-            throw new Error('Invalid reason string.')
+            throw new Error('Invalid reason string.');
         }
 
         if(this.reason) {
-            this._addUpdate('reason', String(text), author)
+            this._addUpdate('reason', String(text), author);
         } else {
             this.reason = String(text);
         }
@@ -263,11 +263,11 @@ module.exports = class RecordEntry {
 
     setDetails(author, text) {
         if(text.length === 0) {
-            throw new Error('Invalid details string.')
+            throw new Error('Invalid details string.');
         }
 
         if(this.details) {
-            this._addUpdate('details', String(text), author)
+            this._addUpdate('details', String(text), author);
         } else {
             this.details = String(text);
         }
@@ -283,10 +283,10 @@ module.exports = class RecordEntry {
         }
 
         if(isNaN(target) || caseID < 1420070400000 || caseID > new Date().getTime()) {
-            throw new Error('Invalid case ID.')
+            throw new Error('Invalid case ID.');
         } else
         if(this.parent) {
-            this._addUpdate('parent', parseInt(caseID), author)
+            this._addUpdate('parent', parseInt(caseID), author);
         } else {
             this.parent = parseInt(caseID);
         }
@@ -296,24 +296,24 @@ module.exports = class RecordEntry {
 
     setPardon(m, reason) {
         if(!reason) {
-            throw new Error(`Missing reason for pardon.`)
+            throw new Error('Missing reason for pardon.');
         }
 
         if(reason.length === 0) {
-            throw new Error('Invalid pardon reason string.')
+            throw new Error('Invalid pardon reason string.');
         }
 
         if(this.pardon) {
-            this._addUpdate('pardon', String(reason), m.author)
+            this._addUpdate('pardon', String(reason), m.author);
         } else {
             this.pardon = {
                 date: new Date().getTime(),
                 admin: m.author.id,
                 url: m.url,
                 reason: String(reason)
-            }
+            };
         }
 
         return this;
     }
-}
+};

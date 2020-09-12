@@ -1,26 +1,26 @@
-const path = require(`path`);
-const djs = require(`discord.js`);
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
+const path = require('path');
+const djs = require('discord.js');
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
 const log = bot.log;
 
 const metadata = {
     name: path.parse(__filename).name,
-    short_desc: `MoCkInG tOnE translator.`,
-    long_desc: `Rewrites a message with a mOcKiNg tOnE. In other words, this will pseudo-randomize the capitalization of each letter in the given text.`,
-    args: `<text | discord message>`,
+    short_desc: 'MoCkInG tOnE translator.',
+    long_desc: 'Rewrites a message with a mOcKiNg tOnE. In other words, this will pseudo-randomize the capitalization of each letter in the given text.',
+    args: '<text | discord message>',
     authlvl: 1,
     flags: ['DM_OPTIONAL', 'NO_TYPER'],
     run: null
-}
+};
 
 
 metadata.run = (m, args, data) => {
     if (!args[0]) {
         OBUtil.missingArgs(m, metadata);
     } else {
-        let translate = function(message) {
+        const translate = function(message) {
             if((Math.random() * 100) < 1) {
                 // 1% chance of UwU
                 m.channel.send(OBUtil.uwu(message)).then(bm => OBUtil.afterSend(bm, m.author.id));
@@ -49,11 +49,11 @@ metadata.run = (m, args, data) => {
                     newStr += thisChar;
 
                     if (i+1 === message.length) {
-                        m.channel.send(newStr).then(bm => OBUtil.afterSend(bm, m.author.id))
+                        m.channel.send(newStr).then(bm => OBUtil.afterSend(bm, m.author.id));
                     }
                 }
             }
-        }
+        };
 
         OBUtil.parseTarget(m, 1, args[0], data.member).then(result => {
             if(result && result.type === 'message') {
@@ -65,6 +65,6 @@ metadata.run = (m, args, data) => {
             OBUtil.err(err, {m:m});
         });
     }
-}
+};
 
 module.exports = new Command(metadata);

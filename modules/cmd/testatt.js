@@ -1,8 +1,8 @@
-const path = require(`path`);
-const util = require(`util`);
-const crypto = require(`crypto`);
-const djs = require(`discord.js`);
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
+const path = require('path');
+const util = require('util');
+const crypto = require('crypto');
+const djs = require('discord.js');
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -11,37 +11,37 @@ const metadata = {
     name: path.parse(__filename).name,
     short_desc: `Short description. Shows in \`${bot.prefix}list\``,
     long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
-    args: `[args]`,
+    args: '[args]',
     image: 'IMG_args',
     authlvl: 5,
     flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
     run: null
-}
+};
 
 metadata.run = (m, args, data) => {
-    let embed1 = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
-    .setTitle(`Loading...`);
+    const embed1 = new djs.MessageEmbed()
+        .setColor(bot.cfg.embed.default)
+        .setTitle('Loading...');
 
     m.channel.send(embed1).then(entry => {
         bot.setTimeout(() => {
-            let randomText = crypto.randomBytes(1234).toString('hex');
+            const randomText = crypto.randomBytes(1234).toString('hex');
 
             bot.guilds.cache.get(bot.cfg.guilds.optibot).channels.cache.get(bot.cfg.channels.logFiles).send({
                 files: [new djs.MessageAttachment(Buffer.from(randomText), 'exampleFile.txt')]
             }).then(att => {
-                let attachment = [...att.attachments.values()][0];
+                const attachment = [...att.attachments.values()][0];
 
-                let embed2 = new djs.MessageEmbed()
-                .setColor(bot.cfg.embed.default)
-                .setAuthor('blah', Assets.getEmoji('ICO_jarfix').url, attachment.url)
-                .setTitle(`Something Cool`)
+                const embed2 = new djs.MessageEmbed()
+                    .setColor(bot.cfg.embed.default)
+                    .setAuthor('blah', Assets.getEmoji('ICO_jarfix').url, attachment.url)
+                    .setTitle('Something Cool');
 
                 entry.edit(embed2);
-            })
+            });
 
-        }, 5000)
-    })
-}
+        }, 5000);
+    });
+};
 
 module.exports = new Command(metadata);

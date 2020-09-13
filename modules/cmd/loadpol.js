@@ -175,7 +175,7 @@ metadata.run = (m, args, data) => {
         } else
         if(policies[i].title != null) {
           // underscores with a zero width character in-between to prevent trimming
-          itext.push(`_​_　• [${policies[i].title}](${pm.url})<:space:704617016774098967>`); // blank emoji used for spacing
+          itext.push(`__ • [${policies[i].title}](${pm.url})<:space:704617016774098967>`); // blank emoji used for spacing
         }
 
         if(policies[i].kw && deleteOld) {

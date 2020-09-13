@@ -8,45 +8,13 @@ const Assets = require('./OptiBotAssetsManager.js');
 
 module.exports = {
   setWindowTitle: require('./OptiBotUtil/setWindowTitle'),
-  parseInput: require('./OptiBotUtil/parseInput')
+  parseInput: require('./OptiBotUtil/parseInput'),
+  getAuthlvl: require('./OptiBotUtil/getAuthLevel')
 };
 
 module.exports = class OptiBotUtilities {
   constructor() {
     throw new Error('Why are you doing this? (Cannot instantiate this class.)');
-  }
-
-  static getAuthlvl(member, ignoreElevated) {
-    /**
-         * Authorization Level
-         * 
-         * -1 = Muted Member (DM ONLY)
-         * 0 = Normal Member
-         * 1 = Advisor
-         * 2 = Jr. Moderator
-         * 3 = Moderator
-         * 4 = Administrator
-         * 5 = Bot Developer
-         */
-
-    const bot = Memory.core.client;
-    const log = bot.log;
-
-    if (member.constructor === djs.User) {
-      log('expected object type member, got user instead', 'warn');
-      if (bot.cfg.superusers.includes(member.id) && !ignoreElevated) {
-        return 5;
-      }
-    } else if (member != null && member.constructor === djs.GuildMember) {
-      if (member.roles.cache.has(bot.cfg.roles.botdev) && !ignoreElevated) return 5;
-      if (member.permissions.has('ADMINISTRATOR')) return 4;
-      if (member.roles.cache.has(bot.cfg.roles.moderator)) return 3;
-      if (member.roles.cache.has(bot.cfg.roles.jrmod)) return 2;
-      if (member.roles.cache.has(bot.cfg.roles.advisor)) return 1;
-      if (member.roles.cache.has(bot.cfg.roles.muted)) return -1;
-    }
-
-    return 0;
   }
 
   static missingArgs(m, metadata) {

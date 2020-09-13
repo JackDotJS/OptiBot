@@ -18,14 +18,8 @@ const metadata = {
   run: null
 };
 
-metadata.validator = (m, member, authlvl) => {
-  return (m.content.toLowerCase().trim() === 'f');
-};
+metadata.validator = (m, member, authlvl) => m.content.toLowerCase().trim() === 'f';
 
-metadata.executable = (m, member, authlvl) => {
-  m.react('🇫').catch((err) => {
-    OBUtil.err(err);
-  });
-};
+metadata.executable = (m, member, authlvl) => m.react('🇫').catch(OBUtil.err);
 
 module.exports = new OptiBit(metadata);

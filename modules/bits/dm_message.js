@@ -18,9 +18,7 @@ const metadata = {
   run: null
 };
 
-metadata.validator = (m, member, authlvl) => {
-  return true;
-};
+metadata.validator = () => true;
 
 metadata.executable = (m, member, authlvl) => {
   const embed = new djs.MessageEmbed()
@@ -29,7 +27,7 @@ metadata.executable = (m, member, authlvl) => {
     .setTitle('Hi there!')
     .setDescription(`For a list of commands, type \`${bot.prefix}list\`. If you've donated and you'd like to receive your donator role, type \`${bot.prefix}help dr\` for instructions.`);
 
-  m.channel.send({ embed: embed });
+  m.channel.send({ embed });
 };
 
 module.exports = new OptiBit(metadata);

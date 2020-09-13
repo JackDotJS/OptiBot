@@ -1,11 +1,8 @@
 const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
 const sim = require('string-similarity');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -18,7 +15,7 @@ const metadata = {
 };
 
 
-metadata.run = (m, args, data) => {
+metadata.run = (m, args) => {
   if (!args[0]) {
     OBUtil.missingArgs(m, metadata);
   } else {

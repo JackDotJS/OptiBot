@@ -1,12 +1,9 @@
 const path = require('path');
-const util = require('util');
 const djs = require('discord.js');
 const request = require('request');
-const timeago = require('timeago.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -21,9 +18,9 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m, args, data) => {
-  if(m.attachments.size === 0 || (m.attachments.first().height !== null && m.attachments.first().height !== undefined) || !m.attachments.first().url.endsWith('.js')) {
-    return OBUtil.err('You must upload a new set of policies as a valid file attachment.', {m:m});
+metadata.run = (m, args) => {
+  if (m.attachments.size === 0 || (m.attachments.first().height !== null && m.attachments.first().height !== undefined) || !m.attachments.first().url.endsWith('.js')) {
+    return OBUtil.err('You must upload a new set of policies as a valid file attachment.', { m });
   }
 
   let policies = [];
@@ -39,35 +36,34 @@ metadata.run = (m, args, data) => {
     .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
     .setColor(bot.cfg.embed.default);
 
-  if(args[0] && args[0].toLowerCase() === 'test') {
+  if (args[0] && args[0].toLowerCase() === 'test') {
     channel = m.channel;
     deleteOld = false;
     embed.setDescription('(TEST) The given policies will be loaded in this channel. This action may take several minutes.');
   } else {
     embed.setDescription(`The <#${bot.cfg.channels.policies}> channel will be completely reset and replaced with the given file. This action may take several minutes, and **cannot be undone.**`);
   }
-    
 
-  m.channel.send('_ _', {embed: embed}).then(msg => {
+  m.channel.send(embed).then(msg => {
     OBUtil.confirm(m, msg).then(res => {
-      if(res === 1) {
+      if (res === 1) {
         request(m.attachments.first().url, (err, res, data) => {
-          if(err || !res || !data) {
-            OBUtil.err(err || new Error('Unable to download attachment.'), {m:m});
+          if (err || !res || !data) {
+            OBUtil.err(err || new Error('Unable to download attachment.'), { m });
           } else {
             const update = new djs.MessageEmbed()
               .setColor(bot.cfg.embed.default)
               .setAuthor('Reloading staff policies...', Assets.getEmoji('ICO_load').url);
 
-            msg.edit({embed: update}).then((msg) => {
+            msg.edit({ embed: update }).then((msg) => {
               time = new Date();
 
               policies = eval(data);
 
-              if(deleteOld) {
+              if (deleteOld) {
                 Memory.db.pol.remove({}, {}, (err) => {
-                  if(err) {
-                    OBUtil.err(err, {m:m});
+                  if (err) {
+                    OBUtil.err(err, { m });
                   } else {
                     channel.bulkDelete(100).then(() => {
                       finallyPostShit(msg);
@@ -80,27 +76,26 @@ metadata.run = (m, args, data) => {
               } else {
                 finallyPostShit(msg);
               }
-            }).catch((err) => OBUtil.err(err, {m:m}));
+            }).catch((err) => OBUtil.err(err, { m }));
           }
         });
-      } else
-      if(res === 0) {
+      } else if (res === 0) {
         const update = new djs.MessageEmbed()
           .setAuthor('Cancelled', Assets.getEmoji('ICO_load').url)
           .setColor(bot.cfg.embed.default)
           .setDescription('Staff policies has not been changed.');
 
-        msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
       } else {
         const update = new djs.MessageEmbed()
           .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
           .setColor(bot.cfg.embed.default)
           .setDescription('Sorry, you didn\'t respond in time. Please try again.');
 
-        msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
       }
     }).catch(err => {
-      OBUtil.err(err, {m:m});
+      OBUtil.err(err, { m });
     });
   });
 
@@ -125,41 +120,40 @@ metadata.run = (m, args, data) => {
       let im = 0;
       (function delmsg() {
         msgs[im].delete().then(() => {
-          if(im+1 >= msgs.length) {
+          if (im + 1 >= msgs.length) {
             finallyPostShit(msg);
           } else {
             im++;
             delmsg();
           }
-        }).catch((err) => OBUtil.err(err, {m:m}));
+        }).catch((err) => OBUtil.err(err, { m }));
       })();
-    }).catch((err) => OBUtil.err(err, {m:m}));
+    }).catch((err) => OBUtil.err(err, { m }));
   }
 
   function finallyPostShit(msg) {
     // NOW we can post the new policies
     let i = 0;
     (function postPol() {
-      channel.send({embed: policies[i].embed, files: policies[i].files}).then((pm) => {
+      channel.send({ embed: policies[i].embed, files: policies[i].files }).then((pm) => {
         function cont() {
-          if(i+1 === policies.length) {
+          if (i + 1 === policies.length) {
             let temp = '';
-            for(let it = 0; it < itext.length; it++) {
-              temp += itext[it]+'\n';
-                            
-              if(itext[it+1]) {
+            for (let it = 0; it < itext.length; it++) {
+              temp += itext[it] + '\n';
+
+              if (itext[it + 1]) {
                 // check if next line is longer than the room we have left
-                if(itext[it+1].length > (2000-temp.length)) {
+                if (itext[it + 1].length > (2000 - temp.length)) {
                   itext_trimmed.push(temp);
                   temp = '';
                 }
-              } else 
-              if (temp.length > 0) {
+              } else if (temp.length > 0) {
                 // no more lines left, push whatever we have now
                 itext_trimmed.push(temp);
               }
-    
-              if(it+1 === itext.length) {
+
+              if (it + 1 === itext.length) {
                 postIndex();
               }
             }
@@ -169,19 +163,18 @@ metadata.run = (m, args, data) => {
           }
         }
 
-        if(policies[i].files != null && policies[i].title != null) {
+        if (policies[i].files != null && policies[i].title != null) {
           hcount++;
           itext.push(`${hcount}. [${policies[i].title}](${pm.url})<:space:704617016774098967>`); // blank emoji used for spacing
-        } else
-        if(policies[i].title != null) {
+        } else if (policies[i].title != null) {
           // underscores with a zero width character in-between to prevent trimming
           itext.push(`__ • [${policies[i].title}](${pm.url})<:space:704617016774098967>`); // blank emoji used for spacing
         }
 
-        if(policies[i].kw && deleteOld) {
-          Memory.db.pol.insert({ id: pm.id, kw: policies[i].kw}, (err) => {
-            if(err) {
-              OBUtil.err(err, {m:m});
+        if (policies[i].kw && deleteOld) {
+          Memory.db.pol.insert({ id: pm.id, kw: policies[i].kw }, (err) => {
+            if (err) {
+              OBUtil.err(err, { m });
             } else {
               cont();
             }
@@ -189,7 +182,7 @@ metadata.run = (m, args, data) => {
         } else {
           cont();
         }
-      }).catch((err) => OBUtil.err(err, {m:m}));
+      }).catch((err) => OBUtil.err(err, { m }));
     })();
 
     let pi = 0;
@@ -197,28 +190,28 @@ metadata.run = (m, args, data) => {
       const lastEmbed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
         .setDescription(itext_trimmed[pi]);
-            
-      if(pi === 0) {
+
+      if (pi === 0) {
         lastEmbed.setTitle('Table of Contents');
       }
 
-      if(pi+1 === itext_trimmed.length) {
+      if (pi + 1 === itext_trimmed.length) {
         lastEmbed.setFooter(`Last Modified Date: ${time.toUTCString()}`)
           .setTimestamp(time);
-      } 
+      }
 
-      channel.send({embed: lastEmbed}).then(() => {
-        if(pi+1 === itext_trimmed.length) {
+      channel.send({ embed: lastEmbed }).then(() => {
+        if (pi + 1 === itext_trimmed.length) {
           embed = new djs.MessageEmbed()
             .setColor(bot.cfg.embed.okay)
             .setAuthor(`Policies successfully updated in ${((new Date().getTime() - time.getTime()) / 1000).toFixed(2)} seconds.`, Assets.getEmoji('ICO_okay').url);
 
-          msg.edit({embed: embed}).then((msg) => OBUtil.afterSend(msg, m.author.id)).catch((err) => OBUtil.err(err, {m:m}));
+          msg.edit(embed).then((msg) => OBUtil.afterSend(msg, m.author.id)).catch((err) => OBUtil.err(err, { m }));
         } else {
           pi++;
           postIndex();
         }
-      }).catch((err) => OBUtil.err(err, {m:m}));
+      }).catch((err) => OBUtil.err(err, { m }));
     }
   }
 };

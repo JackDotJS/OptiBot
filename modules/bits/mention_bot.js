@@ -17,12 +17,8 @@ const metadata = {
   run: null
 };
 
-metadata.validator = (m, member, authlvl) => {
-  return m.mentions.has(bot.user);
-};
+metadata.validator = (m, member, authlvl) => m.mentions.has(bot.user);
 
-metadata.executable = (m, member, authlvl) => {
-  m.react(bot.mainGuild.emojis.cache.get('663409134644887572'));
-};
+metadata.executable = (m, member, authlvl) => m.react(bot.mainGuild.emojis.cache.get('663409134644887572'));
 
 module.exports = new OptiBit(metadata);

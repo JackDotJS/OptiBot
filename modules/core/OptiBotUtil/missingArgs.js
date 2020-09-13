@@ -1,7 +1,7 @@
-const Memory = require('./OptiBotMemory.js');
+const Memory = require('../OptiBotMemory.js');
 const djs = require('discord.js');
-const Assets = require('./OptiBotAssetsManager.js');
-const Command = require('./OptiBotCommand.js');
+const Assets = require('../OptiBotAssetsManager.js');
+const Command = require('../OptiBotCommand.js');
 const OptiBotUtilities = require('../OptiBotUtil');
 
 module.exports = (m, metadata) => {

@@ -1,5 +1,5 @@
-const Memory = require('./OptiBotMemory.js');
-const Profile = require('./OptiBotProfile.js');
+const Memory = require('../OptiBotMemory.js');
+const Profile = require('../OptiBotProfile.js');
 
 /**
      * @param {OptiBot} bot OptiBot client.

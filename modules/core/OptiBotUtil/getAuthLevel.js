@@ -1,5 +1,5 @@
 const djs = require('discord.js');
-const Memory = require('./OptiBotMemory.js');
+const Memory = require('../OptiBotMemory.js');
 
 module.exports = (member, ignoreElevated) => {
   /**

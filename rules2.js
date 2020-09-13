@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+
 // do NOT use setAuthor() or setFooter()
 // these are added automatically when used with the !rule command. (TODO)
 

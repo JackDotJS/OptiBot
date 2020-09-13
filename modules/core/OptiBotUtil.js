@@ -13,57 +13,13 @@ module.exports = {
   updateProfile: require('./OptiBotUtil/updateProfile'),
   parseTarget: require('./OptiBotUtil/parseTarget'),
   confirm: require('./OptiBotUtil/confirm'),
-  err: require('./OptiBotUtil/err')
+  err: require('./OptiBotUtil/err'),
+  parseTime: require('./OptiBotUtil/parseTime')
 };
 
 module.exports = class OptiBotUtilities {
   constructor() {
     throw new Error('Why are you doing this? (Cannot instantiate this class.)');
-  }
-
-  static parseTime(input) {
-    const result = {
-      valid: false,
-      string: '1 hour',
-      ms: 1000 * 60 * 60
-    };
-
-    if (typeof input !== 'string' || input.length === 0) {
-      return result;
-    }
-
-    const split = input.split(/(?<=\d)(?=\D)/g);
-    const num = parseInt(split[0]);
-    const measure = (split[1]) ? split[1].toLowerCase() : 'h';
-    let tm = 'hour';
-
-    if (isNaN(num)) {
-      return result;
-    }
-
-    result.valid = true;
-
-    if (measure === 's') {
-      tm = 'second';
-      result.ms = 1000 * num;
-    } else if (measure === 'm') {
-      tm = 'minute';
-      result.ms = 1000 * 60 * num;
-    } else if (measure === 'd') {
-      tm = 'day';
-      result.ms = 1000 * 60 * 60 * 24 * num;
-    } else if (measure === 'w') {
-      tm = 'week';
-      result.ms = 1000 * 60 * 60 * 24 * 7 * num;
-    } else {
-      tm = 'hour';
-      result.ms = 1000 * 60 * 60 * num;
-    }
-
-    result.string = `${num} ${tm}${(num !== 1) ? 's' : ''}`;
-    result.split = split;
-
-    return result;
   }
 
   /**

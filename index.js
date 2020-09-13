@@ -1386,7 +1386,7 @@ bot.on('guildUnavailable', (guild) => {
 
 bot.on('guildUpdate', (oldg, newg) => {
   if (oldg.available === false && newg.available === true) {
-    log(`Guild available! \n"${newg.name}" has recovered. \nGuild ID: ${guild.id}`, 'warn');
+    log(`Guild available! \n"${newg.name}" has recovered. \nGuild ID: ${newg.id}`, 'warn');
     if (newg.id === bot.cfg.guilds.optifine) {
       ob.Memory.core.bootFunc();
     }

@@ -1,4 +1,4 @@
-const Memory = require('./OptiBotMemory.js');
+const Memory = require('../OptiBotMemory.js');
 
 module.exports = (member) => {
   const bot = Memory.core.client;

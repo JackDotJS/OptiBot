@@ -1553,7 +1553,6 @@ bot.on('shardError', (err, id) => {
 
 bot.on('invalidated', () => {
   log('Session Invalidated.', 'fatal');
-  setWindowTitle('Session invalidated.');
   process.exit(1);
 });
 

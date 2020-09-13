@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+// That is disabled so that eval can access them without requiring them in the eval statement itself
 const path = require('path');
 const timeago = require('timeago.js');
 const util = require('util');
@@ -22,7 +24,7 @@ const metadata = {
 metadata.run = (m, args, data) => {
   bot.setTimeout(() => {
     try {
-      const code = m.content.substring( `${bot.prefix}${path.parse(__filename).name} `.length );
+      const code = m.content.substring(`${bot.prefix}${path.parse(__filename).name} `.length);
       const execStart = new Date().getTime();
       const output = eval(code);
       const execEnd = new Date().getTime();
@@ -36,17 +38,16 @@ metadata.run = (m, args, data) => {
       let result = [];
       let contents = [];
 
-      if(output != null) {
+      if (output != null) {
         info.push(`Constructor: ${output.constructor.name}`);
 
-        if(Array.isArray(output)) {
+        if (Array.isArray(output)) {
           const itemTypes = [];
 
-          for(item of output) {
-            if(item === null) {
+          for (const item of output) {
+            if (item === null) {
               itemTypes.push('null');
-            } else
-            if(item === undefined) {
+            } else if (item === undefined) {
               itemTypes.push('undefined');
             } else {
               itemTypes.push(`${item.constructor.name}`);
@@ -57,19 +58,17 @@ metadata.run = (m, args, data) => {
             `Array Length: ${output.length}`,
             `Array Item Types: ${[...new Set(itemTypes)].join(', ')}`,
           );
-        } else
-        if(output.constructor === Object) {
+        } else if (output.constructor === Object) {
           const keys = Object.keys(output);
 
           const itemTypes = [];
 
-          for(let i = 0; i < keys.length; i++) {
+          for (let i = 0; i < keys.length; i++) {
             const value = output[keys[i]];
 
-            if(value === null) {
+            if (value === null) {
               itemTypes.push('null');
-            } else
-            if(value === undefined) {
+            } else if (value === undefined) {
               itemTypes.push('undefined');
             } else {
               itemTypes.push(`${value.constructor.name}`);
@@ -83,18 +82,19 @@ metadata.run = (m, args, data) => {
         }
       }
 
+      // eslint-disable-next-line no-inner-declarations
       function compileContents() {
         contents.push(
           'Result Information:',
-          `\`\`\`yaml\n${info.join('\n')} \`\`\``, 
+          `\`\`\`yaml\n${info.join('\n')} \`\`\``,
           ...result
         );
         contents = contents.join('\n');
       }
 
-      if(Buffer.isBuffer(output)) {
+      if (Buffer.isBuffer(output)) {
         const ft = fileType(output);
-        if(ft !== null && ft !== undefined) {
+        if (ft !== null && ft !== undefined) {
           result = [
             'File Output:'
           ];
@@ -106,17 +106,18 @@ metadata.run = (m, args, data) => {
 
           compileContents();
           m.channel.stopTyping(true);
-          m.channel.send(contents, {files: [new djs.MessageAttachment(output, 'output.'+ft.ext)]});
+          m.channel.send(contents, { files: [new djs.MessageAttachment(output, 'output.' + ft.ext)] });
         } else {
           defaultRes();
         }
       } else {
         defaultRes();
       }
-            
 
+
+      // eslint-disable-next-line no-inner-declarations
       function defaultRes() {
-        if(raw === inspect) {
+        if (raw === inspect) {
           result.push(
             'Output:',
             `\`\`\`javascript\n${djs.Util.escapeCodeBlock(inspect)} \`\`\``
@@ -139,7 +140,7 @@ metadata.run = (m, args, data) => {
 
         compileContents();
 
-        if(contents.length > 2000) {
+        if (contents.length > 2000) {
           const oldlength = contents.length;
           contents = [
             '////////////////////////////////////////////////////////////////',
@@ -158,7 +159,7 @@ metadata.run = (m, args, data) => {
             '',
           ];
 
-          if(raw === inspect) {
+          if (raw === inspect) {
             contents = contents.concat([
               '////////////////////////////////////////////////////////////////',
               '// Output',
@@ -196,7 +197,7 @@ metadata.run = (m, args, data) => {
         }
       }
     }
-    catch (err) {    
+    catch (err) {
       m.channel.stopTyping(true);
       m.channel.send(`\`\`\`diff\n-${err.stack || err}\`\`\``);
     }

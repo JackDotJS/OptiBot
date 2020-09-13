@@ -1,11 +1,9 @@
 const path = require('path');
-const util = require('util');
 const crypto = require('crypto');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -18,13 +16,14 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m, args, data) => {
+metadata.run = m => {
   const embed1 = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
     .setTitle('Loading...');
 
   m.channel.send(embed1).then(entry => {
     bot.setTimeout(() => {
+      // You'll likely never need this many bytes.
       const randomText = crypto.randomBytes(1234).toString('hex');
 
       bot.guilds.cache.get(bot.cfg.guilds.optibot).channels.cache.get(bot.cfg.channels.logFiles).send({

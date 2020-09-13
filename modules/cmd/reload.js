@@ -15,10 +15,10 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m, args, data) => {
+metadata.run = m => {
   log(`${m.author.tag} (${m.author.id}) requested asset update.`, 'info');
 
-  const logEntry = new LogEntry()
+  new LogEntry()
     .setColor(bot.cfg.embed.default)
     .setIcon(Assets.getEmoji('ICO_info').url)
     .setTitle('OptiBot Assets Reloaded', 'OptiBot Assets Reload Report')
@@ -29,23 +29,23 @@ metadata.run = (m, args, data) => {
         .setAuthor('Reloading assets...', Assets.getEmoji('ICO_load').url)
         .setColor(bot.cfg.embed.default);
 
-      m.channel.send('_ _', {embed: embed}).then(bm => {
+      m.channel.send(embed).then(bm => {
         const embed2 = new djs.MessageEmbed()
           .setColor(bot.cfg.embed.okay);
-    
+
         Assets.load(1).then((time) => {
           embed2.setAuthor(`Commands successfully reset in ${time / 1000} seconds.`, Assets.getEmoji('ICO_okay').url);
           log(`Commands successfully reset in ${time / 1000} seconds.`, 'info');
 
           bot.setTimeout(() => {
-            bm.edit({embed: embed2})
+            bm.edit({ embed: embed2 })
               .then(bm => OBUtil.afterSend(bm, m.author.id))
               .catch(err => {
-                OBUtil.err(err, {m:m});
+                OBUtil.err(err, { m });
               });
           }, 250);
         }).catch(err => {
-          OBUtil.err(err, {m:m});
+          OBUtil.err(err, { m });
         });
       });
     });

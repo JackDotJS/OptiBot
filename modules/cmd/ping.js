@@ -20,51 +20,43 @@ metadata.run = (m, args, data) => {
     .setDescription('API Latency: ... \nMessage Latency: ...');
 
   const timeStart = new Date().getTime();
-  m.channel.send('_ _', {embed: embed}).then(msg => {
+  m.channel.send('_ _', { embed: embed }).then(msg => {
     const timeTaken = new Date().getTime() - timeStart;
     bot.setTimeout(() => {
       const desc = [];
       const api = Math.round(bot.ws.ping);
       const message = timeTaken;
 
-      if(api < 100) {
+      if (api < 100) {
         desc.push(`API Latency: ${api.toLocaleString()}ms (Great)`);
-      } else
-      if(api < 200) {
+      } else if (api < 200) {
         desc.push(`API Latency: ${api.toLocaleString()}ms (Good)`);
-      } else
-      if(api < 700) {
+      } else if (api < 700) {
         desc.push(`API Latency: ${api.toLocaleString()}ms (Okay)`);
-      } else
-      if(api < 2000) {
+      } else if (api < 2000) {
         desc.push(`API Latency: ${api.toLocaleString()}ms (Bad)`);
-      } else
-      if(api >= 2000) {
+      } else if (api >= 2000) {
         desc.push(`API Latency: ${api.toLocaleString()}ms (Awful)`);
       }
 
-      if(message < 100) {
+      if (message < 100) {
         desc.push(`Message Latency: ${message.toLocaleString()}ms (Great)`);
-      } else
-      if(message < 200) {
+      } else if (message < 200) {
         desc.push(`Message Latency: ${message.toLocaleString()}ms (Good)`);
-      } else
-      if(message < 700) {
+      } else if (message < 700) {
         desc.push(`Message Latency: ${message.toLocaleString()}ms (Okay)`);
-      } else
-      if(message < 2000) {
+      } else if (message < 2000) {
         desc.push(`Message Latency: ${message.toLocaleString()}ms (Bad)`);
-      } else
-      if(message >= 2000) {
+      } else if (message >= 2000) {
         desc.push(`Message Latency: ${message.toLocaleString()}ms (Awful)`);
       }
 
       embed.author.name = (data.input.cmd === 'pong') ? 'Ping!' : 'Pong!';
       embed.description = desc.join('\n');
-      msg.edit('_ _', {embed:embed}).then(() => {
+      msg.edit(embed).then(() => {
         OBUtil.afterSend(msg, m.author.id);
       }).catch(err => {
-        OBUtil.err(err, {m: m});
+        OBUtil.err(err, { m });
       });
     }, 1000);
   });

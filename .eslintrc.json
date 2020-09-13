@@ -11,7 +11,7 @@
     "no-console": "off",
     "indent": [
       "warn",
-      4,
+      2,
       {
         "SwitchCase": 1
       }
@@ -43,7 +43,6 @@
     "no-var": "warn",
     "require-atomic-updates": "off",
     "no-empty": "off",
-    "eqeqeq": "error",
     "no-use-before-define": [
       "error",
       {

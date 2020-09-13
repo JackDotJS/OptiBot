@@ -278,11 +278,9 @@ bot.on('message', (m) => {
 
           if (m.channel.type === 'dm') {
             loc = 'DM';
-          } else
-          if (m.guild.id === bot.cfg.guilds.optibot) {
+          } else if (m.guild.id === bot.cfg.guilds.optibot) {
             loc = `OB:#${m.channel.name}`;
-          } else
-          if (m.guild.id === bot.cfg.guilds.donator) {
+          } else if (m.guild.id === bot.cfg.guilds.donator) {
             loc = `DR:#${m.channel.name}`;
           }
 
@@ -291,24 +289,19 @@ bot.on('message', (m) => {
 
         if (!cmd) {
           unknownCMD();
-        } else
-        if (authlvl < cmd.metadata.authlvl || (cmd.metadata.flags['IGNORE_ELEVATED'] && ob.OBUtil.getAuthlvl(member, true) !== cmd.metadata.authlvl) || (cmd.metadata.flags['STRICT_AUTH'] && authlvl !== cmd.metadata.authlvl)) {
+        } else if (authlvl < cmd.metadata.authlvl || (cmd.metadata.flags['IGNORE_ELEVATED'] && ob.OBUtil.getAuthlvl(member, true) !== cmd.metadata.authlvl) || (cmd.metadata.flags['STRICT_AUTH'] && authlvl !== cmd.metadata.authlvl)) {
           if (cmd.metadata.flags['HIDDEN']) {
             unknownCMD();
           } else {
             checkMisuse('You do not have permission to use this command.');
           }
-        } else
-        if (cmd.metadata.flags['NO_DM'] && m.channel.type === 'dm' && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
+        } else if (cmd.metadata.flags['NO_DM'] && m.channel.type === 'dm' && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
           checkMisuse('This command cannot be used in DMs (Direct Messages).');
-        } else
-        if (cmd.metadata.flags['DM_ONLY'] && m.channel.type !== 'dm' && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
+        } else if (cmd.metadata.flags['DM_ONLY'] && m.channel.type !== 'dm' && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
           checkMisuse('This command can only be used in DMs (Direct Messages).', ob.Assets.getImage('IMG_dm').attachment);
-        } else
-        if (cmd.metadata.flags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && !bot.cfg.channels.bot.some(id => [m.channel.id, m.channel.parentID].includes(id)) && (authlvl === 0 || cmd.metadata.flags['STRICT'])) {
+        } else if (cmd.metadata.flags['BOT_CHANNEL_ONLY'] && m.channel.type !== 'dm' && !bot.cfg.channels.bot.some(id => [m.channel.id, m.channel.parentID].includes(id)) && (authlvl === 0 || cmd.metadata.flags['STRICT'])) {
           checkMisuse('This command can only be used in DMs (Direct Messages) OR the #optibot channel.');
-        } else
-        if (cmd.metadata.flags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && !bot.cfg.channels.mod.some(id => [m.channel.id, m.channel.parentID].includes(id)) && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
+        } else if (cmd.metadata.flags['MOD_CHANNEL_ONLY'] && m.channel.type !== 'dm' && !bot.cfg.channels.mod.some(id => [m.channel.id, m.channel.parentID].includes(id)) && (authlvl < 5 || cmd.metadata.flags['STRICT'])) {
           checkMisuse('This command can only be used in moderator-only channels.');
         } else {
           if (!cmd.metadata.flags['NO_TYPER']) m.channel.startTyping();
@@ -359,11 +352,9 @@ bot.on('message', (m) => {
 
             if (m.channel.type === 'dm') {
               loc = 'DM';
-            } else
-            if (m.guild.id === bot.cfg.guilds.optibot) {
+            } else if (m.guild.id === bot.cfg.guilds.optibot) {
               loc = `OB:#${m.channel.name}`;
-            } else
-            if (m.guild.id === bot.cfg.guilds.donator) {
+            } else if (m.guild.id === bot.cfg.guilds.donator) {
               loc = `DR:#${m.channel.name}`;
             }
 
@@ -399,8 +390,7 @@ process.on('message', (m) => {
     }).catch(err => {
       ob.OBUtil.err(err);
     });
-  } else
-  if (m.restart) {
+  } else if (m.restart) {
     log('got restart data');
     bot.guilds.cache.get(m.restart.guild).channels.cache.get(m.restart.channel).messages.fetch(m.restart.message).then(msg => {
       const embed = new djs.MessageEmbed()
@@ -486,14 +476,11 @@ bot.on('messageDelete', m => {
               if (dlog !== null && clog === null) {
                 dType = 1;
                 finalLog();
-              } else
-              if (dlog === null && clog === null) {
+              } else if (dlog === null && clog === null) {
                 finalLog();
-              } else
-              if (dlog === null && clog !== null) {
+              } else if (dlog === null && clog !== null) {
                 finalLog();
-              } else
-              if (dlog !== null && clog !== null) {
+              } else if (dlog !== null && clog !== null) {
                 if (dlog.extra.count > clog.extra.count) {
                   dType = 1;
                   finalLog();
@@ -504,8 +491,7 @@ bot.on('messageDelete', m => {
             }
           }
           break;
-        } else
-        if (i + 1 === ad.length) {
+        } else if (i + 1 === ad.length) {
           // deleted message does not exist in audit log, therefore it was deleted by the author
           finalLog();
         }
@@ -528,8 +514,7 @@ bot.on('messageDelete', m => {
 
         if (dType === 1) {
           logEntry.addSection('(Likely) Deleted By', dlog.executor);
-        } else
-        if ((m.member !== null && m.member.deleted) || (!m.member)) {
+        } else if ((m.member !== null && m.member.deleted) || (!m.member)) {
           logEntry.addSection('(Likely) Deleted By', 'Unknown (Possibly deleted during a ban)');
         } else {
           logEntry.addSection('(Likely) Deleted By', 'Author');
@@ -641,7 +626,8 @@ bot.on('messageDeleteBulk', ms => {
 
       if (m.embeds.length > 0) {
         let rawEmbeds = [];
-        const doRaw = true;
+        // Was this meant to do something?
+        const doRaw = true; // eslint-disable-line no-unused-vars
 
         for (let i = 0; i < m.embeds.length; i++) {
           rawEmbeds.push(util.inspect(m.embeds[i], { showHidden: true, getters: true }));
@@ -722,8 +708,7 @@ bot.on('messageUpdate', (m, mNew) => {
         raw: ''
       });
     }
-  } else
-  if (m.content.length !== 0) {
+  } else if (m.content.length !== 0) {
     logEntry.addSection('Message Contents', m.content);
   }
 
@@ -784,8 +769,7 @@ bot.on('messageUpdate', (m, mNew) => {
         data: `[${mNew.embeds.length} Embed${(mNew.embeds.length !== 1) ? 's' : ''}]`,
         raw: rawEmbedsNew
       });
-  } else
-  if (m.embeds.length > 0) {
+  } else if (m.embeds.length > 0) {
     logEntry.addSection('Message Embeds', {
       data: `[${m.embeds.length} Embed${(m.embeds.length !== 1) ? 's' : ''}]`,
       raw: rawEmbeds
@@ -879,6 +863,7 @@ bot.on('guildMemberAdd', member => {
       logEvent();
     });
 
+    // eslint-disable-next-line no-inner-declarations
     function logEvent(muted) {
       const logEntry = new ob.LogEntry({ time: now, channel: 'joinleave' })
         .setColor(bot.cfg.embed.okay)
@@ -900,8 +885,7 @@ bot.on('guildMemberAdd', member => {
 
       logEntry.submit();
     }
-  } else
-  if (member.guild.id === bot.cfg.guilds.donator) {
+  } else if (member.guild.id === bot.cfg.guilds.donator) {
     ob.OBUtil.verifyDonator(member).catch(err => {
       ob.OBUtil.err(err);
     });
@@ -944,8 +928,7 @@ bot.on('guildMemberRemove', member => {
               .submit();
           }
           break;
-        } else
-        if (i + 1 >= ad.length) {
+        } else if (i + 1 >= ad.length) {
           new ob.LogEntry({ time: now, channel: 'joinleave' })
             .setColor(bot.cfg.embed.error)
             .setIcon(ob.Assets.getEmoji('ICO_leave').url)
@@ -1194,8 +1177,7 @@ bot.on('raw', packet => {
     }).catch(err => {
       ob.OBUtil.err(err);
     });
-  } else
-  if (packet.t === 'MESSAGE_DELETE') {
+  } else if (packet.t === 'MESSAGE_DELETE') {
     // this packet does not contain the actual message data, unfortunately.
     // as of writing, this only contains the message ID, the channel ID, and the guild ID.
     bot.setTimeout(() => {
@@ -1204,8 +1186,7 @@ bot.on('raw', packet => {
       ob.Memory.db.msg.remove({ message: packet.d.id }, {}, (err, num) => {
         if (err) {
           logEntry.error(err);
-        } else
-        if (num > 0) {
+        } else if (num > 0) {
           log('Bot message deleted natively.');
         }
       });
@@ -1331,8 +1312,7 @@ bot.on('messageReactionAdd', (mr, user) => {
     ob.Memory.db.msg.find({ message: mr.message.id }, (err, docs) => {
       if (err) {
         ob.OBUtil.err(err);
-      } else
-      if (docs[0] && docs[0].user === user.id) {
+      } else if (docs[0] && docs[0].user === user.id) {
         del(docs);
       } else {
         const mem = bot.mainGuild.members.cache.get(user.id);

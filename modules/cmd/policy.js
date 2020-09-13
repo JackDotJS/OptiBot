@@ -21,7 +21,7 @@ metadata.run = (m, args) => {
   } else {
     Memory.db.pol.find({}, (err, docs) => {
       if (err) {
-        OBUtil.err(err, { m: m });
+        OBUtil.err(err, { m });
       } else {
         let allkw = [];
 
@@ -46,7 +46,7 @@ metadata.run = (m, args) => {
           }
         }
 
-        OBUtil.err('Unable to find a policy.', { m: m });
+        OBUtil.err('Unable to find a policy.', { m });
       }
     });
   }

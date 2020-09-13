@@ -1,9 +1,9 @@
 const Memory = require('../OptiBotMemory.js');
 
-module.exports = (member) => {
-  const bot = Memory.core.client;
-  const log = bot.log;
+const bot = Memory.core.client;
+const log = bot.log;
 
+module.exports = (member) => {
   return new Promise((resolve, reject) => {
     log(`${member.user.tag} (${member.user.id}) joined OptiFine Donator server!`, 'info');
 

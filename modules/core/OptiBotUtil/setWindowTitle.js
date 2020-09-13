@@ -1,8 +1,7 @@
 const Memory = require('../OptiBotMemory.js');
+const bot = Memory.core.client;
 
 module.exports = (text) => {
-  const bot = Memory.core.client;
-
   if (text !== undefined) Memory.wintitle = text;
 
   function statusName(code) {

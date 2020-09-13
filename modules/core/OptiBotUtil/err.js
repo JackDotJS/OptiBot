@@ -3,6 +3,12 @@ const djs = require('discord.js');
 const Assets = require('../OptiBotAssetsManager.js');
 const OptiBotUtilities = require('../OptiBotUtil');
 
+const bot = Memory.core.client;
+const log = bot.log;
+
+const embed = new djs.MessageEmbed()
+  .setColor(bot.cfg.embed.error);
+
 /**
      * Creates a simple, pre-formatted error message.
      *
@@ -10,12 +16,6 @@ const OptiBotUtilities = require('../OptiBotUtil');
      * @param {OptiBot} [bot] OptiBot
      */
 module.exports = (err, data = {}) => {
-  const bot = Memory.core.client;
-  const log = bot.log;
-
-  const embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.error);
-
   if (err instanceof Error) {
     log(err.stack, 'error');
 

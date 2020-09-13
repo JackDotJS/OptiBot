@@ -31,14 +31,14 @@ module.exports = class RecordEntry {
             this.edits = (raw.edits) ? raw.edits : null;
             this.index = (raw.index) ? raw.index : null;
 
-            if(this.date.constructor === Date) this.date = this.date.getTime();
+            if (this.date.constructor === Date) this.date = this.date.getTime();
 
             Object.defineProperty(this, 'raw', {
                 get: () => {
 
                     let pardonTemp = this.pardon;
 
-                    if(pardonTemp && pardonTemp.admin.constructor === djs.User) {
+                    if (pardonTemp && pardonTemp.admin.constructor === djs.User) {
                         pardonTemp.admin = pardonTemp.admin.id;
                     }
 
@@ -53,15 +53,15 @@ module.exports = class RecordEntry {
                         parent: this.parent,
                         pardon: pardonTemp,
                         edits: this.edits
-                    }
-            
+                    };
+
                     return rawData;
                 }
             })
 
             this._def();
         }
-        catch(err) {
+        catch (err) {
             Memory.core.client.log(err);
             Memory.core.client.log('WHAT THE FUCK')
         }
@@ -77,7 +77,7 @@ module.exports = class RecordEntry {
 
         this.display.id = this.date.toString(36).toUpperCase();
 
-        switch(this.action) {
+        switch (this.action) {
             case 0:
                 this.display.icon = `${Assets.getEmoji('ICO_docs')}`;
                 action = `Note`;
@@ -104,9 +104,9 @@ module.exports = class RecordEntry {
                 break;
         }
 
-        switch(this.actionType) {
+        switch (this.actionType) {
             case -1:
-                type = (this.action == 4) ? `Revoke` : `Remove`;
+                type = (this.action === 4) ? 'Revoke' : 'Remove';
                 break;
             case 0:
                 type = `Update`;
@@ -118,19 +118,19 @@ module.exports = class RecordEntry {
 
         this.display.action = `${type} ${action}`.trim();
 
-        if(this.parent) {
+        if (this.parent) {
             this.display.parent = this.parent.toString(36).toUpperCase();
         }
 
-        if(this.action === 5 && this.actionType === 1 && this.details != null) {
+        if (this.action === 5 && this.actionType === 1 && this.details !== null) {
             this.display.pointsTotal = parseInt(this.details.match(/(?<=\[)\d+(?=\])/));
             this.display.pointsNow = OBUtil.calculatePoints(this.date, this.display.pointsTotal);
-        } 
+        }
 
-        if(this.children.length > 0) {
+        if (this.children.length > 0) {
             this.display.children = [];
-            for(let child of this.children) {
-                this.display.children.push(child.toString(36).toUpperCase())
+            for (const child of this.children) {
+                this.display.children.push(child.toString(36).toUpperCase());
             }
             return this;
         } else {
@@ -139,14 +139,14 @@ module.exports = class RecordEntry {
     }
 
     _addUpdate(key, value, author) {
-        if(this.edits === null) this.edits = {
+        if (this.edits === null) this.edits = {
             original: {},
             history: []
         }
 
-        
-        if(this.edits.original[key] === undefined) {
-            if(key === 'pardon') {
+
+        if (this.edits.original[key] === undefined) {
+            if (key === 'pardon') {
                 this.edits.original.pardon = this.pardon.reason;
             } else {
                 this.edits.original[key] = this[key];
@@ -160,7 +160,7 @@ module.exports = class RecordEntry {
             change: value
         });
 
-        if(key === 'pardon') {
+        if (key === 'pardon') {
             this.pardon.reason = value;
         } else {
             this[key] = value;
@@ -170,11 +170,11 @@ module.exports = class RecordEntry {
     }
 
     setMod(id) {
-        if(this.moderator) {
-            throw new Error(`Cannot update entry moderator.`)
+        if (this.moderator) {
+            throw new Error('Cannot update entry moderator.');
         } else
-        if(!Number.isInteger(Number(id))) {
-            throw new Error('Moderator ID must resolve as a complete integer.')
+        if (!Number.isInteger(Number(id))) {
+            throw new Error('Moderator ID must resolve as a complete integer.');
         } else
         if (parseInt(id) <= 1420070400000) {
             throw new Error('Invalid moderator ID.')
@@ -185,8 +185,8 @@ module.exports = class RecordEntry {
     }
 
     setURL(url) {
-        if(this.url) {
-            throw new Error(`Cannot update entry URL.`)
+        if (this.url) {
+            throw new Error('Cannot update entry URL.');
         }
 
         new URL(url);
@@ -196,27 +196,27 @@ module.exports = class RecordEntry {
     }
 
     setAction(type) {
-        if(this.action) {
-            throw new Error(`Cannot update entry action.`)
+        if (this.action) {
+            throw new Error('Cannot update entry action.');
         }
 
-        switch(type.toLowerCase()) {
-            case 'note': 
+        switch (type.toLowerCase()) {
+            case 'note':
                 this.action = 0;
                 break;
-            case 'warn': 
+            case 'warn':
                 this.action = 1;
                 break;
-            case 'mute': 
+            case 'mute':
                 this.action = 2;
                 break;
-            case 'kick': 
+            case 'kick':
                 this.action = 3;
                 break;
-            case 'ban': 
+            case 'ban':
                 this.action = 4;
                 break;
-            case 'points': 
+            case 'points':
                 this.action = 5;
                 break;
             default:
@@ -227,18 +227,18 @@ module.exports = class RecordEntry {
     }
 
     setActionType(type) {
-        if(this.actionType) {
-            throw new Error(`Cannot update entry actionType.`)
+        if (this.actionType) {
+            throw new Error('Cannot update entry actionType.');
         }
 
-        switch(type.toLowerCase()) {
-            case 'remove': 
+        switch (type.toLowerCase()) {
+            case 'remove':
                 this.actionType = -1;
                 break;
-            case 'update': 
+            case 'update':
                 this.actionType = 0;
                 break;
-            case 'add': 
+            case 'add':
                 this.actionType = 1;
                 break;
             default:
@@ -248,26 +248,26 @@ module.exports = class RecordEntry {
     }
 
     setReason(author, text) {
-        if(text.length === 0) {
-            throw new Error('Invalid reason string.')
+        if (text.length === 0) {
+            throw new Error('Invalid reason string.');
         }
 
-        if(this.reason) {
-            this._addUpdate('reason', String(text), author)
+        if (this.reason) {
+            this._addUpdate('reason', String(text), author);
         } else {
             this.reason = String(text);
         }
-        
+
         return this;
     }
 
     setDetails(author, text) {
-        if(text.length === 0) {
-            throw new Error('Invalid details string.')
+        if (text.length === 0) {
+            throw new Error('Invalid details string.');
         }
 
-        if(this.details) {
-            this._addUpdate('details', String(text), author)
+        if (this.details) {
+            this._addUpdate('details', String(text), author);
         } else {
             this.details = String(text);
         }
@@ -278,15 +278,15 @@ module.exports = class RecordEntry {
     setParent(author, caseID) {
         let target = caseID;
 
-        if(!Number.isInteger(parseInt(caseID))) {
+        if (!Number.isInteger(parseInt(caseID))) {
             target = parseInt(caseID, 36);
         }
 
-        if(isNaN(target) || caseID < 1420070400000 || caseID > new Date().getTime()) {
-            throw new Error('Invalid case ID.')
+        if (isNaN(target) || caseID < 1420070400000 || caseID > new Date().getTime()) {
+            throw new Error('Invalid case ID.');
         } else
-        if(this.parent) {
-            this._addUpdate('parent', parseInt(caseID), author)
+        if (this.parent) {
+            this._addUpdate('parent', parseInt(caseID), author);
         } else {
             this.parent = parseInt(caseID);
         }
@@ -295,16 +295,16 @@ module.exports = class RecordEntry {
     }
 
     setPardon(m, reason) {
-        if(!reason) {
-            throw new Error(`Missing reason for pardon.`)
+        if (!reason) {
+            throw new Error('Missing reason for pardon.');
         }
 
-        if(reason.length === 0) {
-            throw new Error('Invalid pardon reason string.')
+        if (reason.length === 0) {
+            throw new Error('Invalid pardon reason string.');
         }
 
-        if(this.pardon) {
-            this._addUpdate('pardon', String(reason), m.author)
+        if (this.pardon) {
+            this._addUpdate('pardon', String(reason), m.author);
         } else {
             this.pardon = {
                 date: new Date().getTime(),

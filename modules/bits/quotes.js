@@ -95,8 +95,8 @@ metadata.executable = (m, member, authlvl) => {
                     if(image != null) {
                         embed.setImage(image);
 
-                        if(contents.length == 0) {
-                            title = `Image posted`
+                        if(contents.length === 0) {
+                            title = 'Image posted';
                         }
                     }
 

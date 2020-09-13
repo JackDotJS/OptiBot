@@ -15,10 +15,10 @@ module.exports = class OptiBotProfile {
             }
         };
 
-        if(raw) {
-            if(raw.id) pd.id = raw.id;
-            if(raw.ndata) pd.ndata = raw.ndata;
-            if(raw.edata) pd.edata = raw.edata;
+        if (raw) {
+            if (raw.id) pd.id = raw.id;
+            if (raw.ndata) pd.ndata = raw.ndata;
+            if (raw.edata) pd.edata = raw.edata;
         }
 
         this.raw = pd;
@@ -32,11 +32,11 @@ module.exports = class OptiBotProfile {
         const log = bot.log;
 
         return new Promise((resolve, reject) => {
-            if(!this.edata.record) resolve(null);
+            if (!this.edata.record) resolve(null);
 
             let target = id;
 
-            if(!Number.isInteger(parseInt(id))) {
+            if (!Number.isInteger(parseInt(id))) {
                 target = parseInt(id, 36);
             }
 
@@ -45,31 +45,31 @@ module.exports = class OptiBotProfile {
             let index = null;
             let record = this.edata.record;
 
-            for(let i = 0; i < record.length; i++) {
-                let entry = record[i]
+            for (let i = 0; i < record.length; i++) {
+                const entry = record[i];
 
-                if(entry.parent === target) {
+                if (entry.parent === target) {
                     children.push(entry.date);
                 } else
-                if(entry.date === target) {
+                if (entry.date === target) {
                     index = i;
                     found = entry;
                     // not using break here because we still need to find any children of this entry
                 }
             }
 
-            if(!found) {
-                resolve(null)
+            if (!found) {
+                resolve(null);
             } else {
                 found.index = index;
-                
-                if(children.length > 0) {
+
+                if (children.length > 0) {
                     found.children = children;
                 }
-                
+
                 bot.users.fetch(found.moderator).then(moderator => {
                     found.moderator = moderator;
-                    if(found.pardon) {
+                    if (found.pardon) {
                         bot.users.fetch(found.pardon.admin).then(admin => {
                             found.pardon.admin = admin;
                             resolve(new RecordEntry(found));
@@ -85,9 +85,9 @@ module.exports = class OptiBotProfile {
     updateRecord(data) {
         const bot = Memory.core.client;
         const log = bot.log;
-        
+
         return new Promise((resolve, reject) => {
-            if(!this.edata.record) reject(new Error('This user does not have a record.'));
+            if (!this.edata.record) reject(new Error('This user does not have a record.'));
 
             log(util.inspect(data));
             log(data.constructor === RecordEntry);
@@ -98,12 +98,12 @@ module.exports = class OptiBotProfile {
 
             log(util.inspect(newEntry))
 
-            for(let i = 0; i < record.length; i++) {
-                if(record[i].date === newEntry.date) {
+            for (let i = 0; i < record.length; i++) {
+                if (record[i].date === newEntry.date) {
                     record[i] = newEntry;
                     resolve(newEntry);
                 } else
-                if(i+1 >= record.length) {
+                if (i + 1 >= record.length) {
                     reject(new Error('Invalid case ID.'));
                 }
             }
@@ -124,11 +124,11 @@ module.exports = class OptiBotProfile {
         let record = this.edata.record;
         if (!record) return final;
 
-        for(let i = 0; i < record.length; i++) {
-            let entry = record[i]
+        for (let i = 0; i < record.length; i++) {
+            const entry = record[i];
 
-            if(entry.action === 5 && !entry.pardon) {
-                let points = parseInt(entry.details.match(/(?<=points assigned: \[)\d+(?=\])/i)[0]);
+            if (entry.action === 5 && !entry.pardon) {
+                const points = parseInt(entry.details.match(/(?<=points assigned: \[)\d+(?=\])/i)[0]);
 
                 final.maximum += points;
                 final.current += points; // temp
@@ -137,7 +137,7 @@ module.exports = class OptiBotProfile {
                 // todo: calculate point decay (#154)
             }
 
-            if(i+1 >= record.length) {
+            if (i + 1 >= record.length) {
                 return final;
             }
         }

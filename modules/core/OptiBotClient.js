@@ -8,9 +8,9 @@ const Memory = require('./OptiBotMemory.js');
 const OBUtil = require('./OptiBotUtil.js');
 
 module.exports = class OptiBot extends djs.Client {
-    constructor (options, mode, log) {
+    constructor(options, mode, log) {
         super(options);
-        
+
         const keys = require(path.resolve('./cfg/keys.json'));
         const cfg = (mode === 0) ? require(path.resolve('./cfg/debug_config.json')) : require(path.resolve('./cfg/config.json'));
         const version = require(path.resolve('./package.json')).version;
@@ -19,8 +19,8 @@ module.exports = class OptiBot extends djs.Client {
         let exit = new Date()
         exit.setUTCHours(8, 0, 0, 0); // 8 AM = 1 AM US Pacific, 4 AM US Eastern
 
-        if(exit.getTime() - new Date().getTime() < 0) {
-            exit.setUTCDate(exit.getUTCDate()+1)
+        if (exit.getTime() - new Date().getTime() < 0) {
+            exit.setUTCDate(exit.getUTCDate() + 1);
         }
 
         this.keys = keys;
@@ -33,7 +33,7 @@ module.exports = class OptiBot extends djs.Client {
         this.prefix = prefix;
         this.prefixes = cfg.prefixes;
         this.version = version;
-        
+
         Memory.core.client = this;
 
         Object.defineProperty(this, 'mainGuild', {
@@ -63,15 +63,15 @@ module.exports = class OptiBot extends djs.Client {
 
     setBotStatus(type) {
         const bot = this;
-        
-        let pr = {
+
+        const pr = {
             status: 'online',
             activity: {
                 name: null,
                 type: null
             }
-        }
-    
+        };
+
         if (type === -1) {
             // shutting down
             pr.status = 'invisible';
@@ -84,18 +84,18 @@ module.exports = class OptiBot extends djs.Client {
         } else
         if (type === 1) {
             // default state
-            if(bot.mode === 0) {
+            if (bot.mode === 0) {
                 // code mode
                 pr.status = 'dnd';
                 pr.activity.type = 'PLAYING';
                 pr.activity.name = 'Code Mode 💻';
-            } else 
-            if(bot.mode === 1 || bot.locked) {
+            } else
+            if (bot.mode === 1 || bot.locked) {
                 // ultralight mode and mod mode
                 pr.status = 'dnd';
                 pr.activity.type = 'PLAYING';
                 pr.activity.name = 'Mod Mode 🔒';
-            } else 
+            } else
             if (bot.mode === 2) {
                 // lite mode
                 pr.status = 'idle';
@@ -112,11 +112,11 @@ module.exports = class OptiBot extends djs.Client {
             // cooldown active
             pr.status = 'idle';
         }
-    
-        if(pr.activity.name === null || pr.activity.type === null) {
+
+        if (pr.activity.name === null || pr.activity.type === null) {
             delete pr.activity;
         }
-    
+
         Memory.presence = pr;
         bot.user.setPresence(pr);
     }

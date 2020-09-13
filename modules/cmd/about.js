@@ -1,7 +1,7 @@
-const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const path = require(`path`);
+const util = require(`util`);
+const djs = require(`discord.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -10,43 +10,43 @@ const donators = require(path.resolve('./cfg/donators.json'));
 
 const metadata = {
     name: path.parse(__filename).name,
-    short_desc: 'About OptiBot.',
+    short_desc: `About OptiBot.`,
     authlvl: 0,
     flags: ['DM_OPTIONAL', 'NO_TYPER', 'BOT_CHANNEL_ONLY'],
     run: null
-};
+}
 
 metadata.run = (m, args, data) => {
     function uptime(ut) {
-        const seconds = (ut / 1000).toFixed(1);
-        const minutes = (ut / (1000 * 60)).toFixed(1);
-        const hours = (ut / (1000 * 60 * 60)).toFixed(1);
-        const days = (ut / (1000 * 60 * 60 * 24)).toFixed(1);
+        let seconds = (ut / 1000).toFixed(1);
+        let minutes = (ut / (1000 * 60)).toFixed(1);
+        let hours = (ut / (1000 * 60 * 60)).toFixed(1);
+        let days = (ut / (1000 * 60 * 60 * 24)).toFixed(1);
 
         if (seconds < 60) {
-            return seconds + ' Seconds';
+            return seconds + " Seconds";
         } else if (minutes < 60) {
-            return minutes + ' Minutes';
+            return minutes + " Minutes";
         } else if (hours < 24) {
-            return hours + ' Hours';
+            return hours + " Hours";
         } else {
-            return days + ' Days';
+            return days + " Days"
         }
     }
 
-    const embed = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.default)
-        .setAuthor('About', Assets.getEmoji('ICO_info').url)
-        .setThumbnail(bot.user.displayAvatarURL({ format: 'png', size: 64 }))
-        .setTitle('The official OptiFine Discord server bot. \n\n')
-        .setDescription('Developed and maintained by <@181214529340833792>, <@251778569397600256>, and <@225738946661974017> out of love for a great community.')
-        .addField('Version', bot.version, true)
-        .addField('Session Uptime', uptime(process.uptime() * 1000), true)
-        .addField('Contributors', contributors.join(' '))
-        .addField('Ko-fi Supporters', donators.join(' '));
+    let embed = new djs.MessageEmbed()
+    .setColor(bot.cfg.embed.default)
+    .setAuthor('About', Assets.getEmoji('ICO_info').url)
+    .setThumbnail(bot.user.displayAvatarURL({ format: 'png', size: 64 }))
+    .setTitle(`The official OptiFine Discord server bot. \n\n`)
+    .setDescription(`Developed and maintained by <@181214529340833792>, <@251778569397600256>, and <@225738946661974017> out of love for a great community.`)
+    .addField('Version', bot.version, true)
+    .addField('Session Uptime', uptime(process.uptime() * 1000), true)
+    .addField(`Contributors`, contributors.join(' '))
+    .addField(`Ko-fi Supporters`, donators.join(' '))
 
 
-    m.channel.send('_ _', {embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
-};
+    m.channel.send('_ _', {embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id))
+}
 
 module.exports = new Command(metadata);

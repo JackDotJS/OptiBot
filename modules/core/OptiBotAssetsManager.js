@@ -1,15 +1,15 @@
-const fs = require('fs');
-const util = require('util');
-const djs = require('discord.js');
-const path = require('path');
+const fs = require(`fs`);
+const util = require(`util`);
+const djs = require(`discord.js`);
+const path = require(`path`);
 
 const Memory = require('./OptiBotMemory.js');
-let Command = require('./OptiBotCommand.js');
-let OptiBit = require('./OptiBotBit.js');
+var Command = require('./OptiBotCommand.js');
+var OptiBit = require('./OptiBotBit.js');
 
 module.exports = class OptiBotAssetsManager {
     constructor() {
-        throw new Error('Why are you doing this? (Cannot instantiate this class.)');
+        throw new Error('Why are you doing this? (Cannot instantiate this class.)')
     }
 
     static load(tier = 0) {
@@ -23,16 +23,16 @@ module.exports = class OptiBotAssetsManager {
 
         const bot = Memory.core.client;
         const log = bot.log;
-        let OBUtil = require('./OptiBotUtil.js');
+        var OBUtil = require('./OptiBotUtil.js');
 
         return new Promise((success, failure) => {
             log('Loading assets...', 'info');
 
             bot.pause = true;
 
-            const timeStart = new Date().getTime();
-            const stages = [];
-            const stagesAsync = [];
+            let timeStart = new Date().getTime();
+            let stages = [];
+            let stagesAsync = [];
             let totals = 0;
             let errors = 0;
             let errorsAsync = 0;
@@ -48,7 +48,7 @@ module.exports = class OptiBotAssetsManager {
                         bot.mainGuild.members.fetch().then(() => {
                             resolve();
                         });
-                    });
+                    })
                 }
             });
 
@@ -77,7 +77,7 @@ module.exports = class OptiBotAssetsManager {
                         OBUtil = require('./OptiBotUtil.js');
 
                         resolve();
-                    });
+                    })
                 }
             });
 
@@ -86,8 +86,8 @@ module.exports = class OptiBotAssetsManager {
                 tiers: [true, true, false],
                 load: () => {
                     return new Promise((resolve, reject) => {
-                        const commands = fs.readdirSync(path.resolve('./modules/cmd'));
-                        const registered = [];
+                        let commands = fs.readdirSync(path.resolve(`./modules/cmd`));
+                        let registered = [];
                         let clear = false;
 
                         if (Memory.assets.commands.length > 0) {
@@ -128,7 +128,7 @@ module.exports = class OptiBotAssetsManager {
                                         let i3 = 0;
                                         let i4 = 0;
                                         (function reglist() {
-                                            const register = registered[i2];
+                                            let register = registered[i2];
                                             (function newAliases() {
                                                 const alias = newcmd.metadata.aliases[i3];
 
@@ -190,7 +190,7 @@ module.exports = class OptiBotAssetsManager {
 
                                     function finalRegister() {
                                         OptiBotAssetsManager.registerCommand(newcmd).then((reg) => {
-                                            log(`Command registered: ${reg.metadata.name}`, 'debug');
+                                            log(`Command registered: ${reg.metadata.name}`, `debug`);
                                             registered.push({
                                                 cmd: newcmd.metadata.name,
                                                 aliases: newcmd.metadata.aliases
@@ -215,7 +215,7 @@ module.exports = class OptiBotAssetsManager {
                                 loadCmd();
                             }
                         })();
-                    });
+                    })
                 }
             });
 
@@ -228,7 +228,7 @@ module.exports = class OptiBotAssetsManager {
                             Memory.audit.log = [...audit.entries.values()];
                             resolve();
                         });
-                    });
+                    })
                 }
             });
 
@@ -285,7 +285,7 @@ module.exports = class OptiBotAssetsManager {
                                 })();
                             }
                         });
-                    });
+                    })
                 }
             });
 
@@ -319,7 +319,7 @@ module.exports = class OptiBotAssetsManager {
                         });
 
                         resolve();
-                    });
+                    })
                 }
             });
 
@@ -328,7 +328,7 @@ module.exports = class OptiBotAssetsManager {
                 tiers: [true, true, false],
                 load: () => {
                     return new Promise((resolve, reject) => {
-                        const optibits = fs.readdirSync(path.resolve('./modules/bits'));
+                        let optibits = fs.readdirSync(path.resolve(`./modules/bits`));
                         let clear = false;
 
                         if (Memory.assets.optibits.length > 0) {
@@ -362,7 +362,7 @@ module.exports = class OptiBotAssetsManager {
                                     } else
                                     if (newbit.constructor === OptiBit) {
                                         Memory.assets.optibits.push(newbit);
-                                        log(`OptiBit registered: ${newbit.metadata.name}`, 'debug');
+                                        log(`OptiBit registered: ${newbit.metadata.name}`, `debug`);
                                         i1++;
                                         loadBit();
                                     } else {
@@ -381,7 +381,7 @@ module.exports = class OptiBotAssetsManager {
                                 loadBit();
                             }
                         })();
-                    });
+                    })
                 }
             });
 
@@ -413,7 +413,7 @@ module.exports = class OptiBotAssetsManager {
                             }
                         }
                         resolve();
-                    });
+                    })
                 }
             });
 
@@ -454,7 +454,7 @@ module.exports = class OptiBotAssetsManager {
                                 loadTask();
                             }
                         })();
-                    });
+                    })
                 }
             });
 
@@ -464,14 +464,14 @@ module.exports = class OptiBotAssetsManager {
                 load: () => {
                     return new Promise((resolve, reject) => {
                         bot.guilds.cache.get(bot.cfg.guilds.donator).members.fetch().then((mem) => {
-                            const members = [...mem.values()];
+                            let members = [...mem.values()];
 
                             let i = -1;
                             (function nextMember() {
                                 i++;
                                 if (i >= members.length) return resolve();
 
-                                const member = members[i];
+                                let member = members[i];
 
                                 if (member.roles.cache.size === 1) {
                                     OBUtil.verifyDonator(member).then(() => {
@@ -479,12 +479,12 @@ module.exports = class OptiBotAssetsManager {
                                     }).catch(err => {
                                         OBUtil.err(err);
                                         nextMember();
-                                    });
+                                    })
                                 }
                             })();
 
                         });
-                    });
+                    })
                 }
             });
 
@@ -518,12 +518,12 @@ module.exports = class OptiBotAssetsManager {
                                 }).catch(err => {
                                     OBUtil.err(err);
                                     next();
-                                });
+                                })
                             } else {
                                 next();
                             }
                         })();
-                    });
+                    })
                 }
             });
 
@@ -547,36 +547,36 @@ module.exports = class OptiBotAssetsManager {
                     log(`Starting stage "${stages[i].name}"`, 'info');
 
                     stages[i].load().then(() => {
-                        const stageTime = (new Date().getTime() - stageStart) / 333;
+                        let stageTime = (new Date().getTime() - stageStart) / 333;
                         log(`"${stages[i].name}" cleared in ${stageTime} second(s).`, 'debug');
 
                         done++;
                         log(`Loading assets... ${Math.round((100 * done) / totals)}%`, 'info');
 
-                        afterStage();
+                        afterStage()
                     }).catch(err => {
                         OBUtil.err(err);
 
                         done++;
                         errors++;
-                        afterStage();
+                        afterStage()
                     });
                 } else {
-                    log(`Skipping stage "${stages[i].name}"`, 'debug');
+                    log(`Skipping stage "${stages[i].name}"`, 'debug')
                     done++;
                     skipped++;
-                    afterStage();
+                    afterStage()
                 }
             })();
 
             function assetsFinal() {
-                log(`Primary Assets loaded with ${errors} error(s)!`, 'info');
+                log(`Primary Assets loaded with ${errors} error(s)!`, 'info')
                 log([
-                    'Primary Asset Loader finished.',
+                    `Primary Asset Loader finished.`,
                     `Stages: ${stages.length}`,
                     `Skipped: ${skipped}`,
                     `Errors: ${errors}`
-                ].join('\n'), 'debug');
+                ].join('\n'), 'debug')
 
                 bot.pause = false;
                 success(new Date().getTime() - timeStart);
@@ -588,14 +588,14 @@ module.exports = class OptiBotAssetsManager {
                             log(`Secondary Assets loaded with ${errorsAsync} error(s)!`, 'info');
                             log(`Encountered ${errors + errorsAsync} total error(s) during setup.`, 'info');
                             log([
-                                'Secondary Asset Loader finished.',
+                                `Secondary Asset Loader finished.`,
                                 `Stages: ${stagesAsync.length}`,
                                 `Skipped: ${skippedAsync}`,
                                 `Errors: ${errorsAsync}`,
                                 `Total Stages: ${totals}`,
                                 `Total Skipped: ${skipped + skippedAsync}`,
                                 `Total Errors: ${errors + errorsAsync}`
-                            ].join('\n'), 'debug');
+                            ].join('\n'), 'debug')
                         }
                     }
 
@@ -605,23 +605,23 @@ module.exports = class OptiBotAssetsManager {
                         const stageStart = new Date().getTime();
 
                         stage.load().then(() => {
-                            const stageTime = (new Date().getTime() - stageStart) / 1000;
+                            let stageTime = (new Date().getTime() - stageStart) / 1000;
                             log(`"${stage.name}" cleared in ${stageTime} second(s).`, 'debug');
 
                             done++;
-                            stagesAsyncFinal();
+                            stagesAsyncFinal()
                         }).catch(err => {
                             OBUtil.err(err);
 
                             done++;
                             errorsAsync++;
-                            stagesAsyncFinal();
-                        });
+                            stagesAsyncFinal()
+                        })
                     } else {
-                        log(`Skipping async stage "${stage.name}"`, 'debug');
+                        log(`Skipping async stage "${stage.name}"`, 'debug')
                         done++;
                         skippedAsync++;
-                        stagesAsyncFinal();
+                        stagesAsyncFinal()
                     }
                 }
             }
@@ -687,7 +687,7 @@ module.exports = class OptiBotAssetsManager {
         if (Number.isInteger(parseInt(query))) {
             result = bot.emojis.cache.get(query);
         } else {
-            result = bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === query.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)));
+            result = bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === query.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)))
         }
 
         if (result) return result;
@@ -702,4 +702,4 @@ module.exports = class OptiBotAssetsManager {
         }
         return Memory.assets.images.default;
     }
-};
+}

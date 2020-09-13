@@ -1,9 +1,9 @@
-const util = require('util');
-const djs = require('discord.js');
+const util = require(`util`);
+const djs = require(`discord.js`);
 const cid = require('caller-id');
-const timeago = require('timeago.js');
-const Memory = require('./OptiBotMemory.js');
-const RecordEntry = require('./OptiBotRecordEntry.js');
+const timeago = require("timeago.js");
+const Memory = require(`./OptiBotMemory.js`);
+const RecordEntry = require(`./OptiBotRecordEntry.js`);
 
 module.exports = class LogEntry {
     constructor(opts = { time: new Date(), console: true, embed: true, channel: 'misc' }) {
@@ -12,7 +12,7 @@ module.exports = class LogEntry {
         const data = {
             embed: new djs.MessageEmbed(),
             ptd: {
-                report: 'Untitled Report',
+                report: `Untitled Report`,
                 title: null,
                 header: null,
                 description: null,
@@ -20,11 +20,11 @@ module.exports = class LogEntry {
             },
             truncated: false,
             publishing: {
-                console: (opts.console !== null) ? opts.console : true,
-                embed: (opts.embed !== null) ? opts.embed : true
+                console: (opts.console != null) ? opts.console : true,
+                embed: (opts.embed != null) ? opts.embed : true
             },
-            time: (opts.time !== null) ? opts.time : new Date(),
-            channel: (opts.channel !== null) ? opts.channel : 'misc',
+            time: (opts.time != null) ? opts.time : new Date(),
+            channel: (opts.channel != null) ? opts.channel : "misc",
             caller: new Error().stack.split('\n')[2].match(/\w+\.js:\d+:\d+/i),
             icon: null,
             message: null
@@ -39,7 +39,7 @@ module.exports = class LogEntry {
         data.channel = bot.guilds.cache.get(bot.cfg.guilds.log).channels.cache.get(data.channel);
 
         data.embed.setFooter(`Click on embed title to download plaintext report.\nEvent logged on ${data.time.toUTCString()}`)
-            .setTimestamp(data.time);
+        .setTimestamp(data.time)
 
         this.data = data;
         this.embed = data.embed;
@@ -47,7 +47,7 @@ module.exports = class LogEntry {
     }
 
     _truncate(text, limit) {
-        let str = String(text);
+        let str = String(text)
 
         if (text.length > limit) {
             str = text.substring(0, limit - 3).trim() + '...';
@@ -65,9 +65,9 @@ module.exports = class LogEntry {
     }
 
     _compilePlaintext() {
-        const plaintext = [];
-        const w = 64;
-        const div = '#'.repeat(w);
+        let plaintext = [];
+        let w = 64;
+        let div = `#`.repeat(w);
 
         const center = (text, width) => {
             if (text.length > width) return text;
@@ -75,31 +75,31 @@ module.exports = class LogEntry {
             const left = Math.floor((width - (text.length)) / 2);
             const right = Math.ceil((width - (text.length)) / 2);
 
-            return `${' '.repeat(left)}${text}${' '.repeat(right)}`;
-        };
+            return `${" ".repeat(left)}${text}${` `.repeat(right)}`;
+        }
 
         plaintext.push(
             center(this.ptd.report, w),
             center(`${this.data.time.toUTCString()}`, w),
             center(`${this.data.caller} (approx.)`, w),
-            '',
+            ``,
             div,
-            '',
-            this.ptd.title || '<Untitled>',
-            '',
-        );
+            ``,
+            this.ptd.title || `<Untitled>`,
+            ``,
+        )
 
         if (this.ptd.header) {
             plaintext.push(
                 `------ ${this.ptd.header} ------`,
-                '',
+                ``,
             );
         }
 
         if (this.ptd.description) {
             plaintext.push(
                 this.ptd.description,
-                '',
+                ``,
             );
         }
 
@@ -110,8 +110,8 @@ module.exports = class LogEntry {
                 plaintext.push(
                     `--- ${section.title} ---`,
                     section.content,
-                    '',
-                );
+                    ``,
+                )
 
                 if (i + 1 < this.ptd.sections.length) {
                     plaintext.push('');
@@ -140,32 +140,32 @@ module.exports = class LogEntry {
 
     error(err) {
         return new Promise((resolve, reject) => {
-            const OBUtil = require('./OptiBotUtil.js');
+            const OBUtil = require(`./OptiBotUtil.js`)
             const bot = Memory.core.client;
             const log = bot.log;
 
-            const embed = OBUtil.err(err);
-            const plaintext = this._compilePlaintext();
+            let embed = OBUtil.err(err);
+            let plaintext = this._compilePlaintext();
 
             embed.setFooter([
-                'Click on embed title to download plaintext report.',
-                'Some log data may be corrupt or missing due to this error.',
+                `Click on embed title to download plaintext report.`,
+                `Some log data may be corrupt or missing due to this error.`,
                 `Event logged on ${this.data.time.toUTCString()}`
             ].join('\n'))
-                .setTimestamp(this.data.time);
+            .setTimestamp(this.data.time)
 
             if (this.data.publishing.embed) {
                 bot.guilds.cache.get(bot.cfg.guilds.optibot).channels.cache.get(bot.cfg.channels.logFiles).send({
                     files: [new djs.MessageAttachment(Buffer.from(plaintext), `${this.ptd.report.toLowerCase().replace(/[/\\?%*:|"<> ]/g, '_')}.txt`)]
                 }).then(att => {
-                    embed.author.url = [...att.attachments.values()][0].url;
+                    embed.author.url = [...att.attachments.values()][0].url
 
                     if (this.data.message) {
                         this.data.message.edit(embed).then(msg => {
                             resolve(msg);
                         }).catch(err => {
                             OBUtil.err(err);
-                        });
+                        })
                     } else {
                         this.data.channel.send(embed).then(msg => {
                             resolve(msg);
@@ -222,8 +222,8 @@ module.exports = class LogEntry {
         const bot = Memory.core.client;
         const log = bot.log;
 
-        const title = this._truncate(_title, 256);
-        const title_r = title;
+        let title = this._truncate(_title, 256);
+        let title_r = title;
 
         let final_content = _content;
         let final_content_raw = _content;
@@ -234,8 +234,8 @@ module.exports = class LogEntry {
                     final_content = _content.data;
                     final_content_raw = _content.raw;
                 } else {
-                    final_content = 'undefined';
-                    final_content_raw = 'undefined';
+                    final_content = "undefined";
+                    final_content_raw = "undefined";
                 }
             }
 
@@ -251,7 +251,7 @@ module.exports = class LogEntry {
             if (final_content.constructor === djs.Message) {
                 if (final_content === final_content_raw) final_content_raw = [
                     `CHANNEL: #${final_content.channel.name} (${final_content.channel.id})`,
-                    `DIRECT URL${(final_content.deleted) ? ' (DELETED):' : ':'} ${final_content.url}`
+                    `DIRECT URL${(final_content.deleted) ? " (DELETED):" : ":"} ${final_content.url}`
                 ].join('\n');
 
                 final_content = `${final_content.channel.toString()} | [Direct URL](${final_content.url} "${final_content.url}") ${(final_content.deleted) ? '(deleted)' : ''}`;
@@ -260,7 +260,7 @@ module.exports = class LogEntry {
                 if (final_content === final_content_raw) final_content_raw = `CHANNEL${(final_content.deleted) ? ' (DELETED):' : ':'} #${final_content.name} (${final_content.id})`;
 
                 final_content = [
-                    `${final_content.toString()} ${(final_content.deleted) ? '(deleted)' : ''}`,
+                    `${final_content.toString()} ${(final_content.deleted) ? "(deleted)" : ""}`,
                     `\`\`\`yaml\nID: ${final_content.id}\`\`\``
                 ].join('\n');
             } else
@@ -308,7 +308,7 @@ module.exports = class LogEntry {
             const bot = Memory.core.client;
             const log = bot.log;
 
-            const plaintext = this._compilePlaintext();
+            let plaintext = this._compilePlaintext();
 
             if (this.data.publishing.console) {
                 log(`\n\n\n${plaintext}\n\n\n`, 'info');
@@ -321,7 +321,7 @@ module.exports = class LogEntry {
                     if (this.embed.author) {
                         this.embed.author.url = [...att.attachments.values()][0].url;
                     } else {
-                        this.embed.setAuthor('<Untitled>', undefined, [...att.attachments.values()][0].url);
+                        this.embed.setAuthor('<Untitled>', undefined, [...att.attachments.values()][0].url)
                     }
 
                     if (this.data.message) {
@@ -331,7 +331,7 @@ module.exports = class LogEntry {
                             this.error(err).then((msg) => {
                                 resolve(msg);
                             });
-                        });
+                        })
                     } else {
                         this.data.channel.send(this.embed).then(msg => {
                             resolve(msg);
@@ -349,4 +349,4 @@ module.exports = class LogEntry {
             }
         });
     }
-};
+}

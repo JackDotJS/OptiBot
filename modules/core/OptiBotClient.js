@@ -1,8 +1,8 @@
-const fs = require('fs');
-const util = require('util');
+const fs = require(`fs`);
+const util = require(`util`);
 
-const djs = require('discord.js');
-const path = require('path');
+const djs = require(`discord.js`);
+const path = require(`path`);
 
 const Memory = require('./OptiBotMemory.js');
 const OBUtil = require('./OptiBotUtil.js');
@@ -16,7 +16,7 @@ module.exports = class OptiBot extends djs.Client {
         const version = require(path.resolve('./package.json')).version;
         const prefix = cfg.prefixes[0]; // first in array is always default, but all others will be accepted during real usage.
 
-        const exit = new Date();
+        let exit = new Date()
         exit.setUTCHours(8, 0, 0, 0); // 8 AM = 1 AM US Pacific, 4 AM US Eastern
 
         if (exit.getTime() - new Date().getTime() < 0) {
@@ -53,8 +53,8 @@ module.exports = class OptiBot extends djs.Client {
          * 18 = scheduled restart
          */
 
-        this.destroy();
-        OBUtil.setWindowTitle('Shutting down...');
+        this.destroy()
+        OBUtil.setWindowTitle('Shutting down...')
 
         setTimeout(() => {
             process.exit(code);
@@ -120,4 +120,4 @@ module.exports = class OptiBot extends djs.Client {
         Memory.presence = pr;
         bot.user.setPresence(pr);
     }
-};
+}

@@ -1,16 +1,16 @@
-const util = require('util');
-const djs = require('discord.js');
+const util = require(`util`);
+const djs = require(`discord.js`);
 const cid = require('caller-id');
-const OptiBot = require('./OptiBotClient.js');
-const Profile = require('./OptiBotProfile.js');
-const Command = require('./OptiBotCommand.js');
-const LogEntry = require('./OptiBotLogEntry.js');
-const Memory = require('./OptiBotMemory.js');
-const Assets = require('./OptiBotAssetsManager.js');
+const OptiBot = require(`./OptiBotClient.js`);
+const Profile = require(`./OptiBotProfile.js`);
+const Command = require(`./OptiBotCommand.js`);
+const LogEntry = require(`./OptiBotLogEntry.js`);
+const Memory = require(`./OptiBotMemory.js`);
+const Assets = require(`./OptiBotAssetsManager.js`);
 
 module.exports = class OptiBotUtilities {
     constructor() {
-        throw new Error('Why are you doing this? (Cannot instantiate this class.)');
+        throw new Error('Why are you doing this? (Cannot instantiate this class.)')
     }
 
     static setWindowTitle(text) {
@@ -28,10 +28,10 @@ module.exports = class OptiBotUtilities {
             if (code === 5) return 'DISCONNECTED';
         }
 
-        const wintitle = [
+        let wintitle = [
             `OptiBot ${bot.version}`,
             `OP Mode ${bot.mode}`,
-        ];
+        ]
 
         if (bot.ws) {
             let code = bot.ws.status;
@@ -41,12 +41,12 @@ module.exports = class OptiBotUtilities {
             wintitle.push(
                 `${Math.round(bot.ws.ping)}ms`,
                 `WS Code ${code} (${statusName(code)})`
-            );
+            )
         } else {
             wintitle.push(
-                '-0ms',
+                `-0ms`,
                 `WS Code 3 (${statusName(3)})`
-            );
+            )
         }
 
         if (typeof Memory.wintitle === 'string') wintitle.push(Memory.wintitle);
@@ -62,9 +62,9 @@ module.exports = class OptiBotUtilities {
         const input = text.trim().split('\n', 1)[0]; // first line of the message
         const data = {
             valid: input.match(new RegExp(`^(\\${bot.prefixes.join('|\\')})(?![^a-zA-Z0-9])[a-zA-Z0-9]+(?=\\s|$)`)), // checks if the input starts with the command prefix, immediately followed by valid characters.
-            cmd: input.toLowerCase().split(' ')[0].substr(1),
-            args: input.split(' ').slice(1).filter(function (e) { return e.length !== 0; })
-        };
+            cmd: input.toLowerCase().split(" ")[0].substr(1),
+            args: input.split(" ").slice(1).filter(function (e) { return e.length !== 0 })
+        }
 
         if (input.match(/^(\$)(?![^0-9])[0-9]+(?=\s|$)/)) {
             // fixes "$[numbers]" resulting in false command inputs
@@ -96,7 +96,7 @@ module.exports = class OptiBotUtilities {
                 return 5;
             }
         } else
-        if (member !== null && member.constructor === djs.GuildMember) {
+        if (member != null && member.constructor === djs.GuildMember) {
             if (bot.cfg.superusers.includes(member.user.id) && !ignoreElevated) return 5;
             if (member.permissions.has('ADMINISTRATOR'))                        return 4;
             if (member.roles.cache.has(bot.cfg.roles.moderator))                return 3;
@@ -105,17 +105,17 @@ module.exports = class OptiBotUtilities {
             if (member.roles.cache.has(bot.cfg.roles.muted))                    return -1;
         }
 
-        return 0;
+        return 0
     }
 
     static missingArgs(m, metadata) {
         const bot = Memory.core.client;
         const log = bot.log;
 
-        const embed = new djs.MessageEmbed()
-            .setAuthor('Missing Arguments', Assets.getEmoji('ICO_warn').url)
-            .setColor(bot.cfg.embed.default)
-            .addField('Usage', Command.parseMetadata(metadata).args);
+        let embed = new djs.MessageEmbed()
+        .setAuthor(`Missing Arguments`, Assets.getEmoji('ICO_warn').url)
+        .setColor(bot.cfg.embed.default)
+        .addField('Usage', Command.parseMetadata(metadata).args)
 
         m.channel.send({ embed: embed }).then(bm => OptiBotUtilities.afterSend(bm, m.author.id));
     }
@@ -200,7 +200,7 @@ module.exports = class OptiBotUtilities {
                         target = Memory.targets[m.author.id].m;
                     }
                 } else {
-                    log('does not exist');
+                    log('does not exist')
                 }
             }
 
@@ -255,21 +255,21 @@ module.exports = class OptiBotUtilities {
                         if (mem.lastMessage) {
                             remember({ type: 'message', target: mem.lastMessage });
                         } else {
-                            remember({ type: 'notfound', target: null });
+                            remember({ type: "notfound", target: null });
                         }
                     }
                 }).catch(err => {
                     if (err.message.match(/invalid or uncached|unknown member|unknown user/i)) {
                         if (type === 0) {
                             bot.users.fetch(id).then(user => {
-                                remember({ type: 'user', target: user });
+                                remember({ type: "user", target: user });
                             }).catch(err => {
                                 if (err.message.match(/invalid or uncached|unknown member|unknown user/i)) {
                                     remember({ type: 'id', target: id });
                                 } else {
                                     reject(err);
                                 }
-                            });
+                            })
                         } else
                         if (type === 1) {
                             remember({ type: 'notfound', target: null });
@@ -289,7 +289,7 @@ module.exports = class OptiBotUtilities {
                     if (member.lastMessage) {
                         remember({ type: 'message', target: member.lastMessage });
                     } else {
-                        remember({ type: 'notfound', target: null });
+                        remember({ type: "notfound", target: null });
                     }
                 }
             } else
@@ -303,7 +303,7 @@ module.exports = class OptiBotUtilities {
                         if (member.lastMessage) {
                             remember({ type: 'message', target: member.lastMessage });
                         } else {
-                            remember({ type: 'notfound', target: null });
+                            remember({ type: "notfound", target: null });
                         }
                     }
                 } else
@@ -348,7 +348,7 @@ module.exports = class OptiBotUtilities {
                                 remember({ type: 'message', target: final_msg });
                             } else
                             if (attempts === 3) {
-                                remember({ type: 'notfound', target: null });
+                                remember({ type: "notfound", target: null });
                             } else {
                                 roll();
                             }
@@ -380,9 +380,9 @@ module.exports = class OptiBotUtilities {
                         log(`skip target: ${skip_t}`);
 
                         (function search() {
-                            const thisID = itr.next();
+                            let thisID = itr.next();
                             if (thisID.done) {
-                                remember({ type: 'notfound', target: null });
+                                remember({ type: "notfound", target: null });
                             } else
                             if (![m.author.id, bot.user.id].includes(thisID.value.author.id) && !thisID.value.author.bot) {
                                 // valid msg
@@ -404,7 +404,7 @@ module.exports = class OptiBotUtilities {
                                         }
                                     }
                                 } else {
-                                    log(`valid skip ${skipped}`);
+                                    log(`valid skip ${skipped}`)
                                     skipped++;
                                     search();
                                 }
@@ -423,41 +423,40 @@ module.exports = class OptiBotUtilities {
                 if (type === 1) {
                     remember();
                 }
-            } else
-            if (target.match(/discordapp\.com|discord\.com/i)) {
-                log('url');
-                /* eslint-disable-next-line no-useless-escape */
-                const urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
-
-                if (urls !== null) {
-                    const seg = urls[0].split(/(?<!\/)\/(?!\/)|(?<!\\)\\(?!\\)/g).reverse();
-
+            } else 
+            if(target.match(/discordapp\.com|discord.com/i)) {
+                log('url')
+                let urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
+    
+                if(urls !== null) {
+                    let seg = urls[0].split(/(?<!\/)\/(?!\/)|(?<!\\)\\(?!\\)/g).reverse();
+    
                     log(seg.length);
-
-                    if (seg.length === 5 && !isNaN(parseInt(seg[0])) && !isNaN(parseInt(seg[1])) && !isNaN(parseInt(seg[2]))) {
-                        const rg = seg[2];
-                        const rc = seg[1];
-                        const rm = seg[0];
-
+    
+                    if(seg.length === 5 && !isNaN(parseInt(seg[0])) && !isNaN(parseInt(seg[1])) && !isNaN(parseInt(seg[2]))) {
+                        let rg = seg[2];
+                        let rc = seg[1];
+                        let rm = seg[0];
+    
                         bot.guilds.cache.get(rg).channels.cache.get(rc).messages.fetch(rm).then(msg => {
-                            if (type === 0) {
-                                remember({ type: 'member', target: msg.member });
+                            if(type === 0) {
+                                remember({ type: "member", target: msg.member });
                             } else
-                            if (type === 1) {
-                                remember({ type: 'message', target: msg });
+                            if(type === 1) {
+                                remember({ type: "message", target: msg });
                             }
                         }).catch(err => {
                             reject(err);
                         });
                     } else {
-                        remember({ type: 'notfound', target: null });
+                        remember({ type: "notfound", target: null });
                     }
                 } else {
-                    log('invalid target');
+                    log('invalid target')
                     remember();
                 }
             } else {
-                log('invalid target');
+                log('invalid target')
                 remember();
             }
         });
@@ -494,7 +493,7 @@ module.exports = class OptiBotUtilities {
                         } else {
                             log(reason, 'error');
                         }
-                    });
+                    })
                 }
             });
 
@@ -520,18 +519,18 @@ module.exports = class OptiBotUtilities {
     static err(err, data = {}) {
         const bot = Memory.core.client;
         const log = bot.log;
-
-        const embed = new djs.MessageEmbed()
-            .setColor(bot.cfg.embed.error);
-
-        if (err instanceof Error) {
+    
+        let embed = new djs.MessageEmbed()
+        .setColor(bot.cfg.embed.error)
+    
+        if(err instanceof Error) {
             log(err.stack, 'error');
 
-            const lines = err.stack.split('\n');
+            let lines = err.stack.split('\n');
 
             let formatted = [
                 err.toString()
-            ];
+            ]
 
             if (bot.mode < 2) {
                 for (const line of lines) {
@@ -574,10 +573,10 @@ module.exports = class OptiBotUtilities {
             }
 
             embed.setAuthor('Something went wrong.', Assets.getEmoji('ICO_error').url)
-                .setTitle(bot.cfg.messages.error[~~(Math.random() * bot.cfg.messages.error.length)])
-                .setDescription(`\`\`\`diff\n- ${formatted.join('\n-   at ')}\`\`\``);
+            .setTitle(bot.cfg.messages.error[~~(Math.random() * bot.cfg.messages.error.length)])
+            .setDescription(`\`\`\`diff\n- ${formatted.join('\n-   at ')}\`\`\``);
         } else {
-            embed.setAuthor(err, Assets.getEmoji('ICO_error').url);
+            embed.setAuthor(err, Assets.getEmoji('ICO_error').url)
         }
 
         // log(util.inspect(data));
@@ -632,7 +631,7 @@ module.exports = class OptiBotUtilities {
             tm = 'week';
             result.ms = 1000 * 60 * 60 * 24 * 7 * num;
         } else {
-            tm = 'hour';
+            tm = `hour`;
             result.ms = 1000 * 60 * 60 * num;
         }
 
@@ -660,12 +659,12 @@ module.exports = class OptiBotUtilities {
 
         log('message sent, adding to cache', 'debug');
         bm.react(bot.guilds.cache.get(bot.cfg.guilds.optibot).emojis.cache.get(bot.cfg.emoji.deleter)).then(() => {
-            const cacheData = {
+            let cacheData = {
                 guild: bm.guild.id,
                 channel: bm.channel.id,
                 message: bm.id,
                 user: author
-            };
+            }
 
             Memory.db.msg.insert(cacheData, (err) => {
                 if (err) {
@@ -675,13 +674,13 @@ module.exports = class OptiBotUtilities {
                     log('checking cache limit', 'debug');
                     Memory.db.msg.find({}).sort({ message: 1 }).exec((err, docs) => {
                         if (err) {
-                            OptiBotUtilities.err(err);
+                            OptiBotUtilities.err(err);;
                         } else
                         if (docs.length > bot.cfg.db.limit) {
                             log('reached cache limit, removing first element from cache.', 'debug');
                             Memory.db.msg.remove(docs[0], {}, (err) => {
                                 if (err) {
-                                    OptiBotUtilities.err(err);
+                                    OptiBotUtilities.err(err);;
                                 } else {
                                     try {
                                         bot.guilds.cache.get(docs[0].guild).channels.cache.get(docs[0].channel).messages.fetch(docs[0].message).then((msg) => {
@@ -691,11 +690,11 @@ module.exports = class OptiBotUtilities {
                                                 reaction.remove().then(() => {
                                                     log('Time expired for message deletion.', 'trace');
                                                 }).catch(err => {
-                                                    OptiBotUtilities.err(err);
-                                                });
+                                                    OptiBotUtilities.err(err);;
+                                                })
                                             }
                                         }).catch(err => {
-                                            OptiBotUtilities.err(err);
+                                            OptiBotUtilities.err(err);;
                                         });
                                     }
                                     catch (err) {
@@ -706,9 +705,9 @@ module.exports = class OptiBotUtilities {
                         }
                     });
                 }
-            });
+            })
         }).catch(err => {
-            OptiBotUtilities.err(err);
+            OptiBotUtilities.err(err);;
         });
     }
 
@@ -734,7 +733,7 @@ module.exports = class OptiBotUtilities {
                     logEntry.addSection('Member', (type === 'user') ? user : user.user)
                         .setThumbnail(((type === 'user') ? user : user.user).displayAvatarURL({ format: 'png' }));
                 } else {
-                    logEntry.addSection('Member', 'Unknown. (Error occurred before or during fetch operation)');
+                    logEntry.addSection(`Member`, `Unknown. (Error occurred before or during fetch operation)`)
                 }
 
                 logEntry.submit().then(() => {
@@ -742,8 +741,8 @@ module.exports = class OptiBotUtilities {
                 }).catch(err => {
                     OptiBotUtilities.err(err);
                     resolve();
-                });
-            };
+                })
+            }
 
             bot.mainGuild.members.fetch(id).then(mem => {
                 removeRole(mem);
@@ -763,7 +762,7 @@ module.exports = class OptiBotUtilities {
                 if (user.constructor === djs.User) {
                     removeProfileData(user, 'user');
                 } else {
-                    user.roles.remove(bot.cfg.roles.muted, 'Mute period expired.').then(() => {
+                    user.roles.remove(bot.cfg.roles.muted, `Mute period expired.`).then(() => {
                         removeProfileData(user, 'member');
                     }).catch(err => {
                         log(util.inspect(user));
@@ -916,13 +915,13 @@ module.exports = class OptiBotUtilities {
             if (word.match(url) === null) {
                 if (exceptions.indexOf(word) === -1) {
                     word = word.replace(/[rl]/g, 'w')
-                        .replace(/[RL]/g, 'W')
-                        .replace(/n([aeiou])(?=\S)/g, 'ny$1')
-                        .replace(/N([aeiou])(?=\S)/g, 'Ny$1')
-                        .replace(/N([AEIOU])(?=\S)/g, 'Ny$1')
-                        .replace(/ove/g, 'uv')
-                        .replace(/OVE/g, 'UV')
-                        .replace(/[!?]+$/g, exclamation);
+                    .replace(/[RL]/g, 'W')
+                    .replace(/n([aeiou])(?=\S)/g, `ny$1`)
+                    .replace(/N([aeiou])(?=\S)/g, `Ny$1`)
+                    .replace(/N([AEIOU])(?=\S)/g, `Ny$1`)
+                    .replace(/ove/g, `uv`)
+                    .replace(/OVE/g, `UV`)
+                    .replace(/[!?]+$/g, exclamation);
                 }
 
                 for (let i2 = 0; i2 < replacements.length; i2++) {
@@ -949,26 +948,26 @@ module.exports = class OptiBotUtilities {
         const log = bot.log;
 
         return new Promise((resolve, reject) => {
-            log(`${member.user.tag} (${member.user.id}) joined OptiFine Donator server!`, 'info');
+            log(`${member.user.tag} (${member.user.id}) joined OptiFine Donator server!`, 'info')
 
             function grantRole() {
                 member.roles.add(bot.cfg.roles.donatorServer, 'Verified Donator via OptiFine Server.').then(() => {
-                    log(`${member.user.tag} (${member.user.id}) has been successfully verified as a donator.`, 'info');
-                    resolve();
+                    log(`${member.user.tag} (${member.user.id}) has been successfully verified as a donator.`, 'info')
+                    resolve()
                 }).catch(err => {
-                    log(`Error occurred while verifying ${member.user.tag} (${member.user.id}) as a donator.`, 'error');
+                    log(`Error occurred while verifying ${member.user.tag} (${member.user.id}) as a donator.`, 'error')
                     reject(err);
-                });
+                })
             }
 
             function kick() {
                 member.kick('Unverified Donator.').then(() => {
-                    log(`Kicked ${member.user.tag} (${member.user.id}) for not being a verified donator.`, 'info');
-                    resolve();
+                    log(`Kicked ${member.user.tag} (${member.user.id}) for not being a verified donator.`, 'info')
+                    resolve()
                 }).catch(err => {
-                    log(`Error occurred while kicking ${member.user.tag} (${member.user.id}) from donator server.`, 'error');
+                    log(`Error occurred while kicking ${member.user.tag} (${member.user.id}) from donator server.`, 'error')
                     reject(err);
-                });
+                })
             }
 
             bot.mainGuild.members.fetch(member.user.id).then((ofm) => {
@@ -982,34 +981,34 @@ module.exports = class OptiBotUtilities {
                     kick();
                 }
             }).catch(err => {
-                if (err.message.match(/invalid or uncached|unknown member|unknown user/i) !== null) {
-                    kick();
+                if(err.message.match(/invalid or uncached|unknown member|unknown user/i) != null) {
+                    kick()
                 } else {
-                    log(`Error occurred while verifying ${member.user.tag} (${member.user.id}) as a donator.`, 'error');
+                    log(`Error occurred while verifying ${member.user.tag} (${member.user.id}) as a donator.`, 'error')
                     reject(err);
                 }
-            });
-        });
+            })
+        })
     }
 
     static calculatePoints(date, total) {
         const bot = Memory.core.client;
         const log = bot.log;
 
-        const daysSince = Math.round((Date.now() - date) / (1000 * 60 * 60 * 24));
+        let daysSince = Math.round((Date.now() - date) / (1000 * 60 * 60 * 24));
 
         log(`days since: ${daysSince}`);
 
         if (daysSince > bot.cfg.points.decayDelay) {
-            const decay = total - (bot.cfg.points.dailyDecay * (daysSince - bot.cfg.points.decayDelay));
-            const minimum = (bot.cfg.points.minPercentDecay / 100) * total;
+            let decay = total - (bot.cfg.points.dailyDecay * (daysSince - bot.cfg.points.decayDelay));
+            let minimum = (bot.cfg.points.minPercentDecay / 100) * total;
 
-            log(`decay: ${decay}`);
-            log(`minimum: ${minimum}`);
+            log(`decay: ${decay}`)
+            log(`minimum: ${minimum}`)
 
             return Math.max(decay, minimum);
         }
 
         return total;
     }
-};
+}

@@ -1,6 +1,6 @@
-const path = require('path');
-const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const path = require(`path`);
+const djs = require(`discord.js`);
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -8,13 +8,13 @@ const log = bot.log;
 const metadata = {
     name: path.parse(__filename).name,
     aliases: ['owo'],
-    short_desc: 'UwU',
-    long_desc: 'UwU OwO UwU',
-    args: '<text | discord message>',
+    short_desc: `UwU`,
+    long_desc: `UwU OwO UwU`,
+    args: `<text | discord message>`,
     authlvl: 1,
     flags: ['DM_OPTIONAL', 'NO_TYPER'],
     run: null
-};
+}
 
 metadata.run = (m, args, data) => {
     if (!args[0]) {
@@ -34,6 +34,6 @@ metadata.run = (m, args, data) => {
             OBUtil.err(err, {m:m});
         });
     }
-};
+}
 
 module.exports = new Command(metadata);

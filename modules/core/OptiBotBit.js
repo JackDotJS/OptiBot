@@ -1,7 +1,7 @@
-const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const Memory = require('./OptiBotMemory.js');
+const path = require(`path`);
+const util = require(`util`);
+const djs = require(`discord.js`);
+const Memory = require(`./OptiBotMemory.js`);
 
 /**
  * OptiBot Core: OptiBit Class
@@ -110,7 +110,7 @@ module.exports = class OptiBit {
                 // Preserve OptiBit during Modes 1 and 2.
                 LITE: false
             }
-        };
+        }
 
         if (Array.isArray(flags) && flags.length > 0) {
             flags = [...new Set(flags)];
@@ -151,4 +151,4 @@ module.exports = class OptiBit {
 
         return metadata;
     }
-};
+}

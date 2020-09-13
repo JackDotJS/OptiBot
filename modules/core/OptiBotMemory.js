@@ -1,5 +1,5 @@
-const path = require('path');
-const fs = require('fs');
+const path = require(`path`);
+const fs = require(`fs`);
 const database = require('nedb');
 
 const memory = {
@@ -60,7 +60,7 @@ const memory = {
     rdel: [], // recent deletions
     rban: {}, // recent bans
     donatorInvites: {}, // donator invite cache
-};
+}
 
 /**
  * OptiBot Memory Module

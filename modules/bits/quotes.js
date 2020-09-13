@@ -1,68 +1,68 @@
-const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const { OptiBit, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const path = require(`path`);
+const util = require(`util`);
+const djs = require(`discord.js`);
+const { OptiBit, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
 
 const metadata = {
     name: 'Message Quotes',
-    description: 'todo',
-    usage: 'Simply post any Discord message URL.',
+    description: `todo`,
+    usage: `Simply post any Discord message URL.`,
     priority: 1,
     concurrent: false,
     authlvl: 0,
     flags: ['DM_OPTIONAL'],
     validator: null,
     run: null
-};
+}
 
 metadata.validator = (m, member, authlvl) => {
     if(m.content.match(/discord(?:app)?\.com/i)) {
-        const urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
+        let urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
 
         if(urls !== null) {
             return true;
         }
     }
-};
+}
 
 metadata.executable = (m, member, authlvl) => {
-    Memory.li = new Date().getTime();
-    const urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
+    Memory.li = new Date().getTime()
+    let urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
 
-    for(const link of urls) {
-        const seg = link.split(/(?<!\/)\/(?!\/)|(?<!\\)\\(?!\\)/g).reverse();
+    for(let link of urls) {
+        let seg = link.split(/(?<!\/)\/(?!\/)|(?<!\\)\\(?!\\)/g).reverse();
 
         if(link.match(/discordapp\.com|discord.com/i) && seg.length === 5 && !isNaN(parseInt(seg[0])) && !isNaN(parseInt(seg[1])) && !isNaN(parseInt(seg[2]))) {
-            const rg = seg[2];
-            const rc = seg[1];
-            const rm = seg[0];
+            let rg = seg[2];
+            let rc = seg[1];
+            let rm = seg[0];
 
-            const guild = bot.guilds.cache.get(rg);
+            let guild = bot.guilds.cache.get(rg);
             let channel;
-            if(guild !== null) channel = guild.channels.cache.get(rc);
+            if(guild != null) channel = guild.channels.cache.get(rc);
 
-            if(channel !== null) {
+            if(channel != null) {
                 channel.messages.fetch(rm).then(msg => {
                     let contents = msg.content;
                     let image = null;
-                    let title = 'Message posted';
-                    const embed = new djs.MessageEmbed()
-                        .setColor(bot.cfg.embed.default)
-                    //.setTitle((msg.member.nickname !== null) ? `${msg.member.nickname} [${msg.author.tag}]` : msg.author.tag)
-                        .setThumbnail(msg.author.displayAvatarURL({ format: 'png', size: 64, dynamic: true}))
-                        .setFooter(`Quoted by ${m.author.tag}`);
+                    let title = `Message posted`;
+                    let embed = new djs.MessageEmbed()
+                    .setColor(bot.cfg.embed.default)
+                    //.setTitle((msg.member.nickname != null) ? `${msg.member.nickname} [${msg.author.tag}]` : msg.author.tag)
+                    .setThumbnail(msg.author.displayAvatarURL({ format: 'png', size: 64, dynamic: true}))
+                    .setFooter(`Quoted by ${m.author.tag}`)
 
                     if(msg.content.length === 0) {
-                        contents = [];
+                        contents = []
                         if(msg.embeds.length > 0) {
                             contents.push(`\`[${msg.embeds.length} Embed(s)]\``);
                         }
 
                         if(msg.attachments.size > 0) {
-                            const attURL = msg.attachments.first().url;
+                            let attURL = msg.attachments.first().url;
                             if(attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
                                 image = attURL;
 
@@ -78,10 +78,10 @@ metadata.executable = (m, member, authlvl) => {
                             contents = contents.join('\n');
                         }
                     } else {
-                        if (OBUtil.parseInput(msg.content).valid) title = 'Command issued';
+                        if (OBUtil.parseInput(msg.content).valid) title = `Command issued`;
 
                         if(msg.attachments.size > 0) {
-                            const attURL = msg.attachments.first().url;
+                            let attURL = msg.attachments.first().url;
                             if(attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
                                 image = attURL;
                             }
@@ -92,7 +92,7 @@ metadata.executable = (m, member, authlvl) => {
                         embed.setDescription(contents);
                     }
 
-                    if(image !== null) {
+                    if(image != null) {
                         embed.setImage(image);
 
                         if(contents.length === 0) {
@@ -100,7 +100,7 @@ metadata.executable = (m, member, authlvl) => {
                         }
                     }
 
-                    embed.setAuthor(`${title} by ${msg.author.tag}`, Assets.getEmoji('ICO_quote').url);
+                    embed.setAuthor(`${title} by ${msg.author.tag}`, Assets.getEmoji('ICO_quote').url)
 
                     m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
                 }).catch(err => {
@@ -113,6 +113,6 @@ metadata.executable = (m, member, authlvl) => {
             break;
         }
     }
-};
+}
 
 module.exports = new OptiBit(metadata);

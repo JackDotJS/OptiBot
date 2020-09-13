@@ -1,7 +1,7 @@
-const util = require('util');
-const djs = require('discord.js');
+const util = require(`util`);
+const djs = require(`discord.js`);
 
-const Memory = require('./OptiBotMemory.js');
+const Memory = require(`./OptiBotMemory.js`);
 
 module.exports = class RecordEntry {
     constructor(raw = {}) {
@@ -9,14 +9,14 @@ module.exports = class RecordEntry {
             Memory.core.client.log(util.inspect(raw));
 
             // please kill me
-            this.date = (raw.date !== null) ? raw.date : new Date().getTime();
-            this.moderator = (raw.moderator !== null) ? raw.moderator : null;
-            this.url = (raw.url !== null) ? raw.url : null;
-            this.action = (raw.action !== null) ? raw.action : null;
-            this.actionType = (raw.actionType !== null) ? raw.actionType : null;
-            this.reason = (raw.reason !== null) ? raw.reason : null;
-            this.details = (raw.details !== null) ? raw.details : null;
-            this.parent = (raw.parent !== null) ? raw.parent : null;
+            this.date = (raw.date != null) ? raw.date : new Date().getTime();
+            this.moderator = (raw.moderator != null) ? raw.moderator : null;
+            this.url = (raw.url != null) ? raw.url : null;
+            this.action = (raw.action != null) ? raw.action : null;
+            this.actionType = (raw.actionType != null) ? raw.actionType : null;
+            this.reason = (raw.reason != null) ? raw.reason : null;
+            this.details = (raw.details != null) ? raw.details : null;
+            this.parent = (raw.parent != null) ? raw.parent : null;
             this.children = [];
             this.display = {
                 id: null,
@@ -36,13 +36,13 @@ module.exports = class RecordEntry {
             Object.defineProperty(this, 'raw', {
                 get: () => {
 
-                    const pardonTemp = this.pardon;
+                    let pardonTemp = this.pardon;
 
                     if (pardonTemp && pardonTemp.admin.constructor === djs.User) {
                         pardonTemp.admin = pardonTemp.admin.id;
                     }
 
-                    const rawData = {
+                    let rawData = {
                         date: this.date,
                         moderator: (this.moderator.constructor === djs.User) ? this.moderator.id : this.moderator,
                         url: this.url,
@@ -57,19 +57,19 @@ module.exports = class RecordEntry {
 
                     return rawData;
                 }
-            });
+            })
 
             this._def();
         }
         catch (err) {
             Memory.core.client.log(err);
-            Memory.core.client.log('WHAT THE FUCK');
+            Memory.core.client.log('WHAT THE FUCK')
         }
     }
 
     _def() {
-        const Assets = require('./OptiBotAssetsManager.js');
-        const OBUtil = require('./OptiBotUtil.js');
+        const Assets = require(`./OptiBotAssetsManager.js`);
+        const OBUtil = require(`./OptiBotUtil.js`);
         const bot = Memory.core.client;
 
         let action = '';
@@ -80,27 +80,27 @@ module.exports = class RecordEntry {
         switch (this.action) {
             case 0:
                 this.display.icon = `${Assets.getEmoji('ICO_docs')}`;
-                action = 'Note';
+                action = `Note`;
                 break;
             case 1:
                 this.display.icon = `${Assets.getEmoji('ICO_warn')}`;
-                action = 'Warning';
+                action = `Warning`;
                 break;
             case 2:
                 this.display.icon = `${Assets.getEmoji('ICO_mute')}`;
-                action = 'Mute';
+                action = `Mute`;
                 break;
             case 3:
                 this.display.icon = `${Assets.getEmoji('ICO_kick')}`;
-                action = 'Kick';
+                action = `Kick`;
                 break;
             case 4:
                 this.display.icon = `${Assets.getEmoji('ICO_ban')}`;
-                action = 'Ban';
+                action = `Ban`;
                 break;
             case 5:
                 this.display.icon = `${Assets.getEmoji('ICO_points')}`;
-                action = 'Points';
+                action = `Points`;
                 break;
         }
 
@@ -109,10 +109,10 @@ module.exports = class RecordEntry {
                 type = (this.action === 4) ? 'Revoke' : 'Remove';
                 break;
             case 0:
-                type = 'Update';
+                type = `Update`;
                 break;
             case 1:
-                if (![3, 4].includes(this.action)) type = 'Add';
+                if (![3, 4].includes(this.action)) type = `Add`;
                 break;
         }
 
@@ -142,7 +142,7 @@ module.exports = class RecordEntry {
         if (this.edits === null) this.edits = {
             original: {},
             history: []
-        };
+        }
 
 
         if (this.edits.original[key] === undefined) {
@@ -177,7 +177,7 @@ module.exports = class RecordEntry {
             throw new Error('Moderator ID must resolve as a complete integer.');
         } else
         if (parseInt(id) <= 1420070400000) {
-            throw new Error('Invalid moderator ID.');
+            throw new Error('Invalid moderator ID.')
         } else {
             this.moderator = String(id);
             return this;
@@ -311,9 +311,9 @@ module.exports = class RecordEntry {
                 admin: m.author.id,
                 url: m.url,
                 reason: String(reason)
-            };
+            }
         }
 
         return this;
     }
-};
+}

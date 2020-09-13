@@ -1,12 +1,12 @@
-const util = require('util');
-const djs = require('discord.js');
+const util = require(`util`);
+const djs = require(`discord.js`);
 
-const RecordEntry = require('./OptiBotRecordEntry.js');
-const Memory = require('./OptiBotMemory.js');
+const RecordEntry = require(`./OptiBotRecordEntry.js`);
+const Memory = require(`./OptiBotMemory.js`);
 
 module.exports = class OptiBotProfile {
     constructor(raw) {
-        const pd = {
+        var pd = {
             id: null,
             format: 3,
             ndata: {}, // normal data
@@ -40,10 +40,10 @@ module.exports = class OptiBotProfile {
                 target = parseInt(id, 36);
             }
 
-            const children = [];
+            let children = [];
             let found = null;
             let index = null;
-            const record = this.edata.record;
+            let record = this.edata.record;
 
             for (let i = 0; i < record.length; i++) {
                 const entry = record[i];
@@ -93,10 +93,10 @@ module.exports = class OptiBotProfile {
             log(data.constructor === RecordEntry);
             log(util.inspect(data.raw));
 
-            const newEntry = (data.constructor === RecordEntry) ? data.raw : data;
-            const record = this.edata.record;
+            let newEntry = (data.constructor === RecordEntry) ? data.raw : data;
+            let record = this.edata.record;
 
-            log(util.inspect(newEntry));
+            log(util.inspect(newEntry))
 
             for (let i = 0; i < record.length; i++) {
                 if (record[i].date === newEntry.date) {
@@ -115,13 +115,13 @@ module.exports = class OptiBotProfile {
         const log = bot.log;
         const now = new Date().getTime();
 
-        const final = {
+        let final = {
             maximum: 0,
             current: 0,
             minimum: 0
-        };
+        }
 
-        const record = this.edata.record;
+        let record = this.edata.record;
         if (!record) return final;
 
         for (let i = 0; i < record.length; i++) {
@@ -142,4 +142,4 @@ module.exports = class OptiBotProfile {
             }
         }
     }
-};
+}

@@ -1,9 +1,9 @@
-const path = require('path');
+const path = require(`path`);
 const util = require('util');
-const djs = require('discord.js');
+const djs = require(`discord.js`);
 const Jimp = require('jimp');
 const request = require('request');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require(`../core/OptiBot.js`);
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -11,17 +11,17 @@ const log = bot.log;
 const metadata = {
     name: path.parse(__filename).name,
     aliases: ['cloak', 'elytra'],
-    short_desc: 'Show off an OptiFine donator cape.',
-    long_desc: 'Displays a given user\'s OptiFine cape and elytra, assuming they\'ve donated and have their cape activated.',
-    args: '<minecraft username | discord member>',
+    short_desc: `Show off an OptiFine donator cape.`,
+    long_desc: `Displays a given user's OptiFine cape and elytra, assuming they've donated and have their cape activated.`,
+    args: `<minecraft username | discord member>`,
     authlvl: 0,
     flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY', 'LITE'],
     run: null
-};
+}
 
 metadata.run = (m, args, data) => {
 
-    let capeOwner;
+    let capeOwner
 
     if(!args[0]) {
         OBUtil.missingArgs(m, metadata);
@@ -37,7 +37,7 @@ metadata.run = (m, args, data) => {
                     if(profile.ndata.cape) {
                         getMCname(profile.ndata.cape.uuid, profile.id);
                     } else {
-                        OBUtil.err(`${result.tag} does not have a verified cape on their profile.`, {m:m});
+                        OBUtil.err(`${result.tag} does not have a verified cape on their profile.`, {m:m})
                     }
                 });
             }
@@ -47,33 +47,33 @@ metadata.run = (m, args, data) => {
             if(uuid) {
                 request({ url: `https://api.mojang.com/user/profiles/${uuid}/names`, encoding: null }, (err, res, data) => {
                     if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-                        OBUtil.err(err || new Error('Failed to get a response from the Mojang API.'), {m:m});
+                        OBUtil.err(err || new Error('Failed to get a response from the Mojang API.'), {m:m})
                     } else
                     if (res.statusCode === 204) {
-                        OBUtil.err(new Error('Failed to get Minecraft UUID from the Mojang API.'), {m:m});
+                        OBUtil.err(new Error('Failed to get Minecraft UUID from the Mojang API.'), {m:m})
                     } else {
-                        const dp = JSON.parse(data);
-                        const dataNormalized = {
-                            name: dp[dp.length - 1]['name'],
+                        let dp = JSON.parse(data);
+                        let dataNormalized = {
+                            name: dp[dp.length - 1]["name"],
                             id: uuid
-                        };
+                        }
                         getCape(dataNormalized, discord);
                     }
                 });
             } else
             if (args[0].match(/\W+/) !== null) {
-                OBUtil.err('Minecraft usernames can only contain letters, numbers, and underscores (_)', {m:m});
+                OBUtil.err(`Minecraft usernames can only contain letters, numbers, and underscores (_)`, {m:m})
             } else
             if (args[0].length > 16) {
-                OBUtil.err('Minecraft usernames cannot exceed 16 characters in length.', {m:m});
+                OBUtil.err(`Minecraft usernames cannot exceed 16 characters in length.`, {m:m})
             } else {
                 request({ url: 'https://api.mojang.com/users/profiles/minecraft/' + args[0], encoding: null }, (err, res, data) => {
                     if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-                        OBUtil.err(err || new Error('Failed to get a response from the Mojang API'), {m:m});
+                        OBUtil.err(err || new Error('Failed to get a response from the Mojang API'), {m:m})
                     } else
                     if (res.statusCode === 204) {
-                        const embed = OBUtil.err(`Player "${args[0]}" does not exist.`)
-                            .setDescription('Maybe check your spelling?');
+                        let embed = OBUtil.err(`Player "${args[0]}" does not exist.`)
+                        .setDescription('Maybe check your spelling?');
 
                         m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
                     } else {
@@ -88,10 +88,10 @@ metadata.run = (m, args, data) => {
 
             request({ url: 'https://optifine.net/capes/' + player.name + '.png', encoding: null }, (err, res, data) => {
                 if (err || !res || !data || [200, 404].indexOf(res.statusCode) === -1) {
-                    OBUtil.err(err || new Error('Failed to get a response from the OptiFine API'), {m:m});
+                    OBUtil.err(err || new Error('Failed to get a response from the OptiFine API'), {m:m})
                 } else
                 if (res.statusCode === 404) {
-                    OBUtil.err(`Player "${player.name}" does not have an OptiFine cape.`, {m:m});
+                    OBUtil.err(`Player "${player.name}" does not have an OptiFine cape.`, {m:m})
                 } else {
                     processCape(data, player, discord);
                 }
@@ -108,7 +108,7 @@ metadata.run = (m, args, data) => {
         function processCape(capeTex, player, discord) {
             Jimp.read(capeTex, (err, image) => {
                 if (err) {
-                    OBUtil.err(err, {m:m});
+                    OBUtil.err(err, {m:m})
                 } else 
                 if(args[1] && args[1].toLowerCase() === 'full') {
                     imageData.type = 'full';
@@ -121,32 +121,32 @@ metadata.run = (m, args, data) => {
 
                     final(imageData, player, discord);
                 } else {
-                    const imageData = {
+                    let imageData = {
                         jimp: image,
                         type: null
-                    };
+                    }
 
                     let baseW = 46;
                     let baseH = 22;
 
                     // cape cropping
-                    const cc = {
+                    let cc = {
                         x: null,
                         y: null,
                         w: null,
                         h: null
-                    };
+                    }
 
                     // elytra cropping
-                    const ec = {
+                    let ec = {
                         x: null,
                         y: null,
                         w: null,
                         h: null
-                    };
+                    }
 
-                    const scanHeight = Math.floor((image.bitmap.height / 10) * 3);
-                    const scanRoot = Math.ceil(image.bitmap.height - scanHeight);
+                    let scanHeight = Math.floor((image.bitmap.height / 10) * 3);
+                    let scanRoot = Math.ceil(image.bitmap.height - scanHeight);
                     let colored = 0;
 
                     image.scan(0, scanRoot, image.bitmap.width, scanHeight, (x, y, idx) => {
@@ -158,7 +158,7 @@ metadata.run = (m, args, data) => {
                     if(colored < 5) {
                         baseW = 64;
                         baseH = 32;
-                    }
+                    };
 
                     cc.x = image.bitmap.width / baseW;
                     cc.y = image.bitmap.height / baseH;
@@ -170,18 +170,18 @@ metadata.run = (m, args, data) => {
                     ec.w = (image.bitmap.width / baseW) * 10;
                     ec.h = (image.bitmap.height / baseH) * 20;
 
-                    const cape = image.clone().crop(cc.x, cc.y, cc.w, cc.h);
-                    const elytra = image.clone().crop(ec.x, ec.y, ec.w, ec.h);
+                    let cape = image.clone().crop(cc.x, cc.y, cc.w, cc.h);
+                    let elytra = image.clone().crop(ec.x, ec.y, ec.w, ec.h);
 
                     new Jimp((image.bitmap.width / baseW) * 21, (image.bitmap.height / baseH) * 20, (err, full) => {
                         if(err) {
-                            OBUtil.err(err, {m:m});
+                            OBUtil.err(err, {m:m})
                         } else {
-                            const filterMode = (full.bitmap.width < 256) ? Jimp.RESIZE_NEAREST_NEIGHBOR : Jimp.RESIZE_BEZIER;
+                            let filterMode = (full.bitmap.width < 256) ? Jimp.RESIZE_NEAREST_NEIGHBOR : Jimp.RESIZE_BEZIER;
                             
                             full.blit(cape, 0, 0)
-                                .blit(elytra, (image.bitmap.width / baseW) * 11, 0)
-                                .resize(Jimp.AUTO, 256, filterMode);
+                            .blit(elytra, (image.bitmap.width / baseW) * 11, 0)
+                            .resize(Jimp.AUTO, 256, filterMode);
 
                             imageData.jimp = full;
                             imageData.type = 'cropped';
@@ -197,12 +197,12 @@ metadata.run = (m, args, data) => {
             image.jimp.getBuffer(Jimp.AUTO, (err, img) => {
                 if (err) return OBUtil.err(err, {m:m});
 
-                const embed = new djs.MessageEmbed()
-                    .setColor(bot.cfg.embed.default)
-                    .attachFiles([new djs.MessageAttachment(img, 'cape.png')])
-                    .setImage('attachment://cape.png')
-                    .setTitle(djs.Util.escapeMarkdown(player.name))
-                    .setURL(`https://namemc.com/profile/${player.name}`);
+                let embed = new djs.MessageEmbed()
+                .setColor(bot.cfg.embed.default)
+                .attachFiles([new djs.MessageAttachment(img, "cape.png")])
+                .setImage('attachment://cape.png')
+                .setTitle(djs.Util.escapeMarkdown(player.name))
+                .setURL(`https://namemc.com/profile/${player.name}`)
 
                 if (image.type !== 'cropped') {
                     embed.setAuthor('OptiFine Donator Cape (Full Texture)', Assets.getEmoji('ICO_cape').url);
@@ -211,12 +211,12 @@ metadata.run = (m, args, data) => {
                 }
 
                 if (discord) embed.setDescription(`<:okay:642112445997121536> Cape owned by <@${discord}>`);
-                if (image.type === 'default') embed.setFooter('This image could not be cropped because the cape texture has an unusual resolution.');
+                if (image.type === 'default') embed.setFooter(`This image could not be cropped because the cape texture has an unusual resolution.`);
 
                 m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
             });
         }
     }
-};
+}
 
 module.exports = new Command(metadata);

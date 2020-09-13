@@ -185,13 +185,13 @@ bot.on('message', (m) => {
     }
   }
 
+  const input = ob.OBUtil.parseInput(m.content);
+
   bot.mainGuild.members.fetch({ user: m.author.id, cache: true }).then(member => {
     const authlvl = ob.OBUtil.getAuthlvl(member);
 
     if(authlvl < 4 && bot.mode === 0 && m.author.id !== '271760054691037184') return;
     if(authlvl < 1 && bot.mode === 1 && m.author.id !== '271760054691037184') return;
-
-    const input = ob.OBUtil.parseInput(m.content);
 
     if(input.valid) {
       /////////////////////////////////////////////////////////////
@@ -1553,7 +1553,7 @@ bot.on('shardError', (err, id) => {
 
 bot.on('invalidated', () => {
   log('Session Invalidated.', 'fatal');
-  setWindowTitle('Session invalidated.');
+  ob.OBUtil.setWindowTitle('Session invalidated.');
   process.exit(1);
 });
 

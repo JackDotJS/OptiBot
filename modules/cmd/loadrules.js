@@ -1,12 +1,9 @@
 const path = require('path');
-const util = require('util');
 const djs = require('discord.js');
 const request = require('request');
-const timeago = require('timeago.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -21,9 +18,9 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m, args, data) => {
+metadata.run = (m, args) => {
   if (m.attachments.size === 0 || (m.attachments.first().height !== null && m.attachments.first().height !== undefined) || !m.attachments.first().url.endsWith('.js')) {
-    return OBUtil.err('You must upload a new set of rules as a valid file attachment.', { m: m });
+    return OBUtil.err('You must upload a new set of rules as a valid file attachment.', { m });
   }
 
   let rules = [];
@@ -50,7 +47,7 @@ metadata.run = (m, args, data) => {
       if (res === 1) {
         request(m.attachments.first().url, (err, res, data) => {
           if (err || !res || !data) {
-            OBUtil.err(err || new Error('Unable to download attachment.'), { m: m });
+            OBUtil.err(err || new Error('Unable to download attachment.'), { m });
           } else {
             const update = new djs.MessageEmbed()
               .setColor(bot.cfg.embed.default)
@@ -64,7 +61,7 @@ metadata.run = (m, args, data) => {
               if (deleteOld) {
                 Memory.db.rules.remove({}, {}, (err) => {
                   if (err) {
-                    OBUtil.err(err, { m: m });
+                    OBUtil.err(err, { m });
                   } else {
                     channel.bulkDelete(100).then(() => {
                       finallyPostShit(msg);
@@ -77,11 +74,10 @@ metadata.run = (m, args, data) => {
               } else {
                 finallyPostShit(msg);
               }
-            }).catch((err) => OBUtil.err(err, { m: m }));
+            }).catch((err) => OBUtil.err(err, { m }));
           }
         });
-      } else
-      if (res === 0) {
+      } else if (res === 0) {
         const update = new djs.MessageEmbed()
           .setAuthor('Cancelled', Assets.getEmoji('ICO_load').url)
           .setColor(bot.cfg.embed.default)
@@ -97,7 +93,7 @@ metadata.run = (m, args, data) => {
         msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
       }
     }).catch(err => {
-      OBUtil.err(err, { m: m });
+      OBUtil.err(err, { m });
     });
   });
 
@@ -128,9 +124,9 @@ metadata.run = (m, args, data) => {
             im++;
             delmsg();
           }
-        }).catch((err) => OBUtil.err(err, { m: m }));
+        }).catch((err) => OBUtil.err(err, { m }));
       })();
-    }).catch((err) => OBUtil.err(err, { m: m }));
+    }).catch((err) => OBUtil.err(err, { m }));
   }
 
   function finallyPostShit(msg) {
@@ -154,7 +150,7 @@ metadata.run = (m, args, data) => {
         if (rules[i].kw && deleteOld) {
           Memory.db.rules.insert({ id: rm.id, kw: rules[i].kw }, (err) => {
             if (err) {
-              OBUtil.err(err, { m: m });
+              OBUtil.err(err, { m });
             } else {
               cont();
             }
@@ -162,7 +158,7 @@ metadata.run = (m, args, data) => {
         } else {
           cont();
         }
-      }).catch((err) => OBUtil.err(err, { m: m }));
+      }).catch((err) => OBUtil.err(err, { m }));
     })();
 
     function postIndex() {
@@ -177,8 +173,8 @@ metadata.run = (m, args, data) => {
           .setColor(bot.cfg.embed.okay)
           .setAuthor(`Server rules successfully updated in ${((new Date().getTime() - time.getTime()) / 1000).toFixed(2)} seconds.`, Assets.getEmoji('ICO_okay').url);
 
-        msg.edit({ embed: embed }).then((msg) => OBUtil.afterSend(msg, m.author.id)).catch((err) => OBUtil.err(err, { m: m }));
-      }).catch((err) => OBUtil.err(err, { m: m }));
+        msg.edit(embed).then((msg) => OBUtil.afterSend(msg, m.author.id)).catch((err) => OBUtil.err(err, { m }));
+      }).catch((err) => OBUtil.err(err, { m }));
     }
   }
 };

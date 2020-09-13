@@ -1,7 +1,5 @@
 const util = require('util');
 const djs = require('discord.js');
-const cid = require('caller-id');
-const OptiBot = require('./OptiBotClient.js');
 const Profile = require('./OptiBotProfile.js');
 const Command = require('./OptiBotCommand.js');
 const LogEntry = require('./OptiBotLogEntry.js');
@@ -15,7 +13,6 @@ module.exports = class OptiBotUtilities {
 
   static setWindowTitle(text) {
     const bot = Memory.core.client;
-    const log = bot.log;
 
     if (text !== undefined) Memory.wintitle = text;
 
@@ -56,7 +53,6 @@ module.exports = class OptiBotUtilities {
 
   static parseInput(text) {
     const bot = Memory.core.client;
-    const log = bot.log;
 
     if (typeof text !== 'string') text = new String(text);
     const input = text.trim().split('\n', 1)[0]; // first line of the message
@@ -95,14 +91,13 @@ module.exports = class OptiBotUtilities {
       if (bot.cfg.superusers.includes(member.id) && !ignoreElevated) {
         return 5;
       }
-    } else
-    if (member != null && member.constructor === djs.GuildMember) {
+    } else if (member != null && member.constructor === djs.GuildMember) {
       if (member.roles.cache.has(bot.cfg.roles.botdev) && !ignoreElevated) return 5;
-      if (member.permissions.has('ADMINISTRATOR'))                         return 4;
-      if (member.roles.cache.has(bot.cfg.roles.moderator))                 return 3;
-      if (member.roles.cache.has(bot.cfg.roles.jrmod))                     return 2;
-      if (member.roles.cache.has(bot.cfg.roles.advisor))                   return 1;
-      if (member.roles.cache.has(bot.cfg.roles.muted))                     return -1;
+      if (member.permissions.has('ADMINISTRATOR')) return 4;
+      if (member.roles.cache.has(bot.cfg.roles.moderator)) return 3;
+      if (member.roles.cache.has(bot.cfg.roles.jrmod)) return 2;
+      if (member.roles.cache.has(bot.cfg.roles.advisor)) return 1;
+      if (member.roles.cache.has(bot.cfg.roles.muted)) return -1;
     }
 
     return 0;
@@ -110,7 +105,6 @@ module.exports = class OptiBotUtilities {
 
   static missingArgs(m, metadata) {
     const bot = Memory.core.client;
-    const log = bot.log;
 
     const embed = new djs.MessageEmbed()
       .setAuthor('Missing Arguments', Assets.getEmoji('ICO_warn').url)
@@ -135,11 +129,9 @@ module.exports = class OptiBotUtilities {
       Memory.db.profiles.find({ id: id, format: 3 }, (err, docs) => {
         if (err) {
           reject(err);
-        } else
-        if (docs[0]) {
+        } else if (docs[0]) {
           resolve(new Profile(docs[0]));
-        } else
-        if (create) {
+        } else if (create) {
           resolve(new Profile({ id: id }));
         } else {
           resolve();
@@ -149,9 +141,6 @@ module.exports = class OptiBotUtilities {
   }
 
   static updateProfile(data) {
-    const bot = Memory.core.client;
-    const log = bot.log;
-
     return new Promise((resolve, reject) => {
       let raw = data;
 
@@ -195,8 +184,7 @@ module.exports = class OptiBotUtilities {
           log('exists');
           if (type === 0) {
             target = Memory.targets[m.author.id].u;
-          } else
-          if (type === 1) {
+          } else if (type === 1) {
             target = Memory.targets[m.author.id].m;
           }
         } else {
@@ -229,8 +217,7 @@ module.exports = class OptiBotUtilities {
             userid = final.target.id;
             username = final.target.tag;
             mention = final.target.toString();
-          } else
-          if (final.type === 'member') {
+          } else if (final.type === 'member') {
             userid = final.target.user.id;
             username = final.target.user.tag;
             mention = final.target.user.toString();
@@ -250,8 +237,7 @@ module.exports = class OptiBotUtilities {
         bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({ user: id, cache: true }).then(mem => {
           if (type === 0) {
             remember({ type: 'member', target: mem });
-          } else
-          if (type === 1) {
+          } else if (type === 1) {
             if (mem.lastMessage) {
               remember({ type: 'message', target: mem.lastMessage });
             } else {
@@ -270,8 +256,7 @@ module.exports = class OptiBotUtilities {
                   reject(err);
                 }
               });
-            } else
-            if (type === 1) {
+            } else if (type === 1) {
               remember({ type: 'notfound', target: null });
             }
           } else {
@@ -284,30 +269,26 @@ module.exports = class OptiBotUtilities {
         log('self');
         if (type === 0) {
           remember({ type: 'member', target: member });
-        } else
-        if (type === 1) {
+        } else if (type === 1) {
           if (member.lastMessage) {
             remember({ type: 'message', target: member.lastMessage });
           } else {
             remember({ type: 'notfound', target: null });
           }
         }
-      } else
-      if (['someone', 'somebody', 'random', 'something'].includes(target.toLowerCase())) {
+      } else if (['someone', 'somebody', 'random', 'something'].includes(target.toLowerCase())) {
         log('random');
         if (m.channel.type === 'dm') {
           if (type === 0) {
             remember({ type: 'member', target: member });
-          } else
-          if (type === 1) {
+          } else if (type === 1) {
             if (member.lastMessage) {
               remember({ type: 'message', target: member.lastMessage });
             } else {
               remember({ type: 'notfound', target: null });
             }
           }
-        } else
-        if (type === 0) {
+        } else if (type === 0) {
           let users = [];
           if (m.guild.id !== bot.cfg.guilds.optifine) {
             users = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).members.cache.values()];
@@ -319,8 +300,7 @@ module.exports = class OptiBotUtilities {
 
           const someone = users[~~(Math.random() * users.length)];
           remember({ type: 'member', target: someone });
-        } else
-        if (type === 1) {
+        } else if (type === 1) {
           const channels_unfiltered = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).channels.cache.values()];
           const channels = [];
           const blacklist = bot.cfg.channels.mod.concat(bot.cfg.channels.blacklist);
@@ -346,8 +326,7 @@ module.exports = class OptiBotUtilities {
 
               if (final_msg.content.length !== 0) {
                 remember({ type: 'message', target: final_msg });
-              } else
-              if (attempts === 3) {
+              } else if (attempts === 3) {
                 remember({ type: 'notfound', target: null });
               } else {
                 roll();
@@ -355,8 +334,7 @@ module.exports = class OptiBotUtilities {
             })();
           }
         }
-      } else
-      if (target.match(/<@!?\d{13,}>/) !== null) {
+      } else if (target.match(/<@!?\d{13,}>/) !== null) {
         log('@mention');
 
         const id = target.match(/\d{13,}/)[0];
@@ -366,8 +344,7 @@ module.exports = class OptiBotUtilities {
         } else {
           remember();
         }
-      } else
-      if (target.match(/^\^{1,10}$/) !== null) {
+      } else if (target.match(/^\^{1,10}$/) !== null) {
         log('arrow shortcut');
         if (m.channel.type === 'dm') {
           remember({ type: 'notfound', target: null });
@@ -383,8 +360,7 @@ module.exports = class OptiBotUtilities {
               const thisID = itr.next();
               if (thisID.done) {
                 remember({ type: 'notfound', target: null });
-              } else
-              if (![m.author.id, bot.user.id].includes(thisID.value.author.id) && !thisID.value.author.bot) {
+              } else if (![m.author.id, bot.user.id].includes(thisID.value.author.id) && !thisID.value.author.bot) {
                 // valid msg
                 log(`skip: ${skip_t} === ${skipped} (${skip_t === skipped})`);
                 if (skip_t === skipped) {
@@ -392,14 +368,12 @@ module.exports = class OptiBotUtilities {
                   if (thisID.value.createdTimestamp + 1000 > m.createdTimestamp) {
                     log('extremely recent message skipped', 'debug');
                     search();
-                  } else
-                  if (m.guild.id !== bot.cfg.guilds.optifine && type === 0) {
+                  } else if (m.guild.id !== bot.cfg.guilds.optifine && type === 0) {
                     checkServer(thisID.value.member.id);
                   } else {
                     if (type === 0) {
                       remember({ type: 'member', target: thisID.value.member });
-                    } else
-                    if (type === 1) {
+                    } else if (type === 1) {
                       remember({ type: 'message', target: thisID.value });
                     }
                   }
@@ -414,36 +388,32 @@ module.exports = class OptiBotUtilities {
             })();
           }).catch(err => reject(err));
         }
-      } else
-      if (!isNaN(target) && parseInt(target) >= 1420070400000) {
+      } else if (!isNaN(target) && parseInt(target) >= 1420070400000) {
         log('id');
         if (type === 0) {
           checkServer(target);
-        } else
-        if (type === 1) {
+        } else if (type === 1) {
           remember();
         }
-      } else 
-      if(target.match(/discordapp\.com|discord.com/i)) {
+      } else if (target.match(/discordapp\.com|discord.com/i)) {
         log('url');
         // eslint-disable-next-line no-useless-escape
         const urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi);
 
-        if(urls !== null) {
+        if (urls !== null) {
           const seg = urls[0].split(/(?<!\/)\/(?!\/)|(?<!\\)\\(?!\\)/g).reverse();
-    
+
           log(seg.length);
-    
-          if(seg.length === 5 && !isNaN(parseInt(seg[0])) && !isNaN(parseInt(seg[1])) && !isNaN(parseInt(seg[2]))) {
+
+          if (seg.length === 5 && !isNaN(parseInt(seg[0])) && !isNaN(parseInt(seg[1])) && !isNaN(parseInt(seg[2]))) {
             const rg = seg[2];
             const rc = seg[1];
             const rm = seg[0];
-    
+
             bot.guilds.cache.get(rg).channels.cache.get(rc).messages.fetch(rm).then(msg => {
-              if(type === 0) {
+              if (type === 0) {
                 remember({ type: 'member', target: msg.member });
-              } else
-              if(type === 1) {
+              } else if (type === 1) {
                 remember({ type: 'message', target: msg });
               }
             }).catch(err => {
@@ -488,8 +458,7 @@ module.exports = class OptiBotUtilities {
           bm.reactions.removeAll().then(() => {
             if (reason === 'done') {
               return;
-            } else
-            if (reason === 'time') {
+            } else if (reason === 'time') {
               resolve(-1);
             } else {
               log(reason, 'error');
@@ -520,11 +489,11 @@ module.exports = class OptiBotUtilities {
   static err(err, data = {}) {
     const bot = Memory.core.client;
     const log = bot.log;
-    
+
     const embed = new djs.MessageEmbed()
       .setColor(bot.cfg.embed.error);
-    
-    if(err instanceof Error) {
+
+    if (err instanceof Error) {
       log(err.stack, 'error');
 
       const lines = err.stack.split('\n');
@@ -556,8 +525,7 @@ module.exports = class OptiBotUtilities {
               str += trace + evalTrace;
               formatted.push(str);
               formatted.push(fileshort);
-            } else
-            if (evalTrace) {
+            } else if (evalTrace) {
               str += `${trace} (at eval${evalTrace}, ${fileshort})`;
               formatted.push(str);
             } else {
@@ -592,9 +560,6 @@ module.exports = class OptiBotUtilities {
   }
 
   static parseTime(input) {
-    const bot = Memory.core.client;
-    const log = bot.log;
-
     const result = {
       valid: false,
       string: '1 hour',
@@ -619,16 +584,13 @@ module.exports = class OptiBotUtilities {
     if (measure === 's') {
       tm = 'second';
       result.ms = 1000 * num;
-    } else
-    if (measure === 'm') {
+    } else if (measure === 'm') {
       tm = 'minute';
       result.ms = 1000 * 60 * num;
-    } else
-    if (measure === 'd') {
+    } else if (measure === 'd') {
       tm = 'day';
       result.ms = 1000 * 60 * 60 * 24 * num;
-    } else
-    if (measure === 'w') {
+    } else if (measure === 'w') {
       tm = 'week';
       result.ms = 1000 * 60 * 60 * 24 * 7 * num;
     } else {
@@ -676,8 +638,7 @@ module.exports = class OptiBotUtilities {
           Memory.db.msg.find({}).sort({ message: 1 }).exec((err, docs) => {
             if (err) {
               OptiBotUtilities.err(err);
-            } else
-            if (docs.length > bot.cfg.db.limit) {
+            } else if (docs.length > bot.cfg.db.limit) {
               log('reached cache limit, removing first element from cache.', 'debug');
               Memory.db.msg.remove(docs[0], {}, (err) => {
                 if (err) {
@@ -716,6 +677,7 @@ module.exports = class OptiBotUtilities {
     const bot = Memory.core.client;
     const log = bot.log;
 
+    // eslint-disable-next-line no-unused-vars
     return new Promise((resolve, reject) => {
       const errHandler = (err, user) => {
         OptiBotUtilities.err(err);
@@ -808,7 +770,7 @@ module.exports = class OptiBotUtilities {
           }
         }
 
-        const logEntry = new LogEntry({ channel: 'moderation' })
+        new LogEntry({ channel: 'moderation' })
           .setColor(bot.cfg.embed.default)
           .setIcon(Assets.getEmoji('ICO_unmute').url)
           .setTitle('Member Unmuted', 'Member Mute Removal Report')
@@ -982,7 +944,7 @@ module.exports = class OptiBotUtilities {
           kick();
         }
       }).catch(err => {
-        if(err.message.match(/invalid or uncached|unknown member|unknown user/i) != null) {
+        if (err.message.match(/invalid or uncached|unknown member|unknown user/i) != null) {
           kick();
         } else {
           log(`Error occurred while verifying ${member.user.tag} (${member.user.id}) as a donator.`, 'error');

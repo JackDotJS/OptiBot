@@ -1,7 +1,6 @@
 const path = require('path');
-const util = require('util');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -19,7 +18,7 @@ const metadata = {
 metadata.run = (m, args, data) => {
   const channels = [...bot.mainGuild.channels.cache
     .filter((channel) => channel.type === 'text' && !bot.cfg.channels.nomodify.some(id => [channel.id, channel.parentID].includes(id)))
-    .sort((a,b) => a.rawPosition - b.rawPosition)
+    .sort((a, b) => a.rawPosition - b.rawPosition)
     .values()
   ];
 
@@ -28,15 +27,15 @@ metadata.run = (m, args, data) => {
     .setColor(bot.cfg.embed.default)
     .setDescription(`ALL of the following channels will be unlocked: \n> ${channels.join('\n> ')}`);
 
-  m.channel.send('_ _', {embed: embed}).then(msg => {
+  m.channel.send(embed).then(msg => {
     OBUtil.confirm(m, msg).then(res => {
-      if(res === 1) {
+      if (res === 1) {
         embed = new djs.MessageEmbed()
           .setAuthor('Unlocking all channels...', Assets.getEmoji('ICO_wait').url)
           .setColor(bot.cfg.embed.default);
 
-        msg.edit({embed:embed}).then((msg) => {
-          const logEntry = new LogEntry({channel: 'moderation'})
+        msg.edit(embed).then(() => {
+          const logEntry = new LogEntry({ channel: 'moderation' })
             .preLoad();
 
           let i = 0;
@@ -51,10 +50,10 @@ metadata.run = (m, args, data) => {
               return nextChannel();
             }
 
-            channel.updateOverwrite(bot.mainGuild.id, {SEND_MESSAGES:null}, `Channel unlocked by ${m.author.tag} (${m.author.id}) via ${bot.prefix}${data.input.cmd}`).then(() => {
+            channel.updateOverwrite(bot.mainGuild.id, { SEND_MESSAGES: null }, `Channel unlocked by ${m.author.tag} (${m.author.id}) via ${bot.prefix}${data.input.cmd}`).then(() => {
               success++;
 
-              if(i+1 >= channels.length) {
+              if (i + 1 >= channels.length) {
                 logEntry.setColor(bot.cfg.embed.default)
                   .setIcon(Assets.getEmoji('ICO_unlock').url)
                   .setTitle('All Channels Unlocked', 'Channel Unlock Report')
@@ -62,15 +61,15 @@ metadata.run = (m, args, data) => {
                   .addSection('Failed Unlocks', fail, true)
                   .addSection('Moderator Responsible', m.author)
                   .addSection('Command Location', m);
-                        
+
                 const embed = new djs.MessageEmbed()
                   .setAuthor('All channels unlocked.', Assets.getEmoji('ICO_okay').url)
                   .setColor(bot.cfg.embed.okay)
                   .addField('Successful Unlocks', success, true)
                   .addField('Failed Unlocks', fail, true);
-                        
+
                 m.channel.stopTyping(true);
-                m.channel.send({embed: embed});//.then(bm => OBUtil.afterSend(bm, m.author.id));
+                m.channel.send({ embed: embed });//.then(bm => OBUtil.afterSend(bm, m.author.id));
                 logEntry.submit();
               } else {
                 i++;
@@ -85,24 +84,23 @@ metadata.run = (m, args, data) => {
             });
           })();
         });
-      } else
-      if(res === 0) {
+      } else if (res === 0) {
         const update = new djs.MessageEmbed()
           .setAuthor('Cancelled', Assets.getEmoji('ICO_load').url)
           .setColor(bot.cfg.embed.default)
           .setDescription('No channels have been changed.');
 
-        msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
       } else {
         const update = new djs.MessageEmbed()
           .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
           .setColor(bot.cfg.embed.default)
           .setDescription('Sorry, you didn\'t respond in time. Please try again.');
 
-        msg.edit({embed: update}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
       }
     }).catch(err => {
-      OBUtil.err(err, {m:m});
+      OBUtil.err(err, { m });
     });
   });
 };

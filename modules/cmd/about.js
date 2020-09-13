@@ -46,7 +46,8 @@ metadata.run = (m, args, data) => {
     .addField('Ko-fi Supporters', donators.join(' '));
 
 
-  m.channel.send('_ _', {embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
+  // You can send a straight embed without the content. Discord.js will do the heavy lifting
+  m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
 };
 
 module.exports = new Command(metadata);

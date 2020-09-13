@@ -1,7 +1,6 @@
 const util = require('util');
 const djs = require('discord.js');
 const Profile = require('./OptiBotProfile.js');
-const Command = require('./OptiBotCommand.js');
 const LogEntry = require('./OptiBotLogEntry.js');
 const Memory = require('./OptiBotMemory.js');
 const Assets = require('./OptiBotAssetsManager.js');
@@ -9,23 +8,13 @@ const Assets = require('./OptiBotAssetsManager.js');
 module.exports = {
   setWindowTitle: require('./OptiBotUtil/setWindowTitle'),
   parseInput: require('./OptiBotUtil/parseInput'),
-  getAuthlvl: require('./OptiBotUtil/getAuthLevel')
+  getAuthlvl: require('./OptiBotUtil/getAuthLevel'),
+  missingArgs: require('./OptiBotUtil/missingArgs')
 };
 
 module.exports = class OptiBotUtilities {
   constructor() {
     throw new Error('Why are you doing this? (Cannot instantiate this class.)');
-  }
-
-  static missingArgs(m, metadata) {
-    const bot = Memory.core.client;
-
-    const embed = new djs.MessageEmbed()
-      .setAuthor('Missing Arguments', Assets.getEmoji('ICO_warn').url)
-      .setColor(bot.cfg.embed.default)
-      .addField('Usage', Command.parseMetadata(metadata).args);
-
-    m.channel.send({ embed: embed }).then(bm => OptiBotUtilities.afterSend(bm, m.author.id));
   }
 
   /**

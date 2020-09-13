@@ -1,4 +1,3 @@
-
 module.exports = {
   setWindowTitle: require('./OptiBotUtil/setWindowTitle'),
   parseInput: require('./OptiBotUtil/parseInput'),

@@ -1,10 +1,7 @@
 const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -17,8 +14,8 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m, args, data) => {
-  const logEntry = new LogEntry()
+metadata.run = () => {
+  new LogEntry()
     .setColor(bot.cfg.embed.default)
     .setIcon(Assets.getEmoji('ICO_load').url)
     .setTitle('Embed Title', 'Report Title')

@@ -5,9 +5,6 @@ module.exports = {
   interval: 500,
   lite: true,
   fn: () => {
-    const bot = ob.Memory.core.client;
-    const log = bot.log;
-
     ob.OBUtil.setWindowTitle();
   }
 };

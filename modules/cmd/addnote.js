@@ -18,30 +18,23 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if(!args[1]) {
+  if (!args[1]) {
     OBUtil.missingArgs(m, metadata);
   } else {
     const now = new Date().getTime();
     OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
-      if (!result) {
-        OBUtil.err('You must specify a valid user.', {m:m});
-      } else 
-      if (result.type === 'notfound') {
-        OBUtil.err('Unable to find a user.', {m:m});
-      } else
-      if (OBUtil.getAuthlvl(result.target) > data.authlvl) {
-        OBUtil.err('You are not strong enough to add notes to this user.', {m:m});
-      } else 
-      if (result.id === m.author.id || result.id === bot.user.id) {
-        OBUtil.err('Nice try.', {m:m});
-      } else {
-        const reason = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} `.length );
-        if(reason.length > 1000) {
-          return OBUtil.err('Note cannot exceed 1000 characters in length.', {m:m});
+      if (!result) OBUtil.err('You must specify a valid user.', { m });
+      else if (result.type === 'notfound') OBUtil.err('Unable to find a user.', { m });
+      else if (OBUtil.getAuthlvl(result.target) > data.authlvl) OBUtil.err('You are not strong enough to add notes to this user.', { m});
+      else if (result.id === m.author.id || result.id === bot.user.id) OBUtil.err('Nice try.', { m });
+      else {
+        const reason = m.content.substring(`${bot.prefix}${data.input.cmd} ${args[0]} `.length);
+        if (reason.length > 1000) {
+          return OBUtil.err('Note cannot exceed 1000 characters in length.', { m: m });
         }
 
         OBUtil.getProfile(result.id, true).then(profile => {
-          if(!profile.edata.record) profile.edata.record = [];
+          if (!profile.edata.record) profile.edata.record = [];
 
           const entry = new RecordEntry()
             .setMod(m.author.id)
@@ -56,7 +49,7 @@ metadata.run = (m, args, data) => {
           profile.edata.record.push(entry.raw);
 
           OBUtil.updateProfile(profile).then(() => {
-            const logEntry = new LogEntry({channel: 'moderation'})
+            new LogEntry({ channel: 'moderation' })
               .setColor(bot.cfg.embed.default)
               .setIcon(Assets.getEmoji('ICO_docs').url)
               .setTitle('Moderation Note Created', 'Moderation Note Report')
@@ -74,12 +67,12 @@ metadata.run = (m, args, data) => {
 
             m.channel.stopTyping(true);
 
-            m.channel.send({embed: embed});//.then(bm => OBUtil.afterSend(bm, m.author.id));
-          }).catch(err => OBUtil.err(err, {m:m}));
-        }).catch(err => OBUtil.err(err, {m:m}));
+            m.channel.send({ embed: embed });//.then(bm => OBUtil.afterSend(bm, m.author.id));
+          }).catch(err => OBUtil.err(err, { m: m }));
+        }).catch(err => OBUtil.err(err, { m: m }));
       }
-    }).catch(err => OBUtil.err(err, {m:m}));
-  } 
+    }).catch(err => OBUtil.err(err, { m: m }));
+  }
 };
 
 module.exports = new Command(metadata);

@@ -1,9 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -20,7 +19,7 @@ metadata.run = (m, args, data) => {
     .setAuthor('Successfully beaned user', Assets.getEmoji('ICO_okay').url)
     .setColor(bot.cfg.embed.okay);
 
-  if(!args[0]) {
+  if (!args[0]) {
     const msgs = [
       'Somebody has been beaned. Probably.',
       'you\'r mom was beaned. \n\\*dabs epicaly\\*',
@@ -34,35 +33,34 @@ metadata.run = (m, args, data) => {
     ];
     embed.setDescription(msgs[Math.floor(Math.random() * msgs.length)]);
 
-    m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(m.author.id, bm, bot));
+    m.channel.send(embed).then(bm => OBUtil.afterSend(m.author.id, bm, bot));
   } else {
     let target = args[0];
-    const reason = (args[1]) ? m.content.substring( `${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length ) : null;
+    const reason = (args[1]) ? m.content.substring(`${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length) : null;
     let botTarget = false;
     let selfTarget = false;
 
     OBUtil.parseTarget(m, 0, target, data.member).then((result) => {
-      if(args[0] && result && result.type !== 'notfound') {
+      if (args[0] && result && result.type !== 'notfound') {
         target = result.target.toString();
 
-        if(result.id === bot.user.id) {
+        if (result.id === bot.user.id) {
           botTarget = true;
-        } else
-        if(result.id === m.author.id) {
+        } else if (result.id === m.author.id) {
           selfTarget = true;
         }
       }
 
-      if(botTarget) {
+      if (botTarget) {
         m.channel.send('bruh');
       } else {
-        embed.setDescription(`${selfTarget ? 'You have' : `User ${target} has` } been beaned.`);
+        embed.setDescription(`${selfTarget ? 'You have' : `User ${target} has`} been beaned.`);
 
-        if(reason) {
+        if (reason) {
           embed.addField('Reason', reason);
         }
 
-        m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(m.author.id, bm, bot));
+        m.channel.send(embed).then(bm => OBUtil.afterSend(m.author.id, bm, bot));
       }
     });
   }

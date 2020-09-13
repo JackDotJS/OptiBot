@@ -60,11 +60,11 @@ metadata.run = (m, args, data) => {
     function s2(result) {
       log('s2');
       const time = OBUtil.parseTime(args[1]);
-            
+
 
       if(!args[1]) {
         s3(result, time);
-      } else 
+      } else
       if (!time.valid) {
         s3(result, time); // assume rest of input is part of the reason
       } else {
@@ -223,7 +223,7 @@ metadata.run = (m, args, data) => {
               if (muteData.end === null) {
                 embed.setDescription(`${result.mention} has been muted until hell freezes over.`, Assets.getEmoji('ICO_okay').url);
               } else {
-                embed.setDescription(`${result.mention} has been muted for ${timeData.string}.`, Assets.getEmoji('ICO_okay').url); 
+                embed.setDescription(`${result.mention} has been muted for ${timeData.string}.`, Assets.getEmoji('ICO_okay').url);
               }
             }
 

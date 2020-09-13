@@ -1,8 +1,5 @@
-const path = require('path');
-const util = require('util');
-const request = require('request');
 const djs = require('discord.js');
-const { OptiBit, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { OptiBit, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -18,13 +15,13 @@ const metadata = {
   run: null
 };
 
-metadata.validator = (m, member, authlvl) => {
+metadata.validator = m => {
   const urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi); // eslint-disable-line no-useless-escape
 
-  return (urls != null);
+  return urls != null;
 };
 
-metadata.executable = (m, member, authlvl) => {
+metadata.executable = m => {
   //remove everything in single and multi-line codeblocks.
   const filtered = m.content.replace(/`{3}[^```]+`{3}|`{1}[^`]+`{1}/gi, '');
 

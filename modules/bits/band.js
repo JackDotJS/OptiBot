@@ -1,10 +1,4 @@
-const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const { OptiBit, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
-
-const bot = Memory.core.client;
-const log = bot.log;
+const { OptiBit, OBUtil } = require('../core/OptiBot.js');
 
 const metadata = {
   name: 'Band Emojis',
@@ -18,9 +12,9 @@ const metadata = {
   run: null
 };
 
-metadata.validator = (m, member, authlvl) => m.content.toLowerCase() === 'band';
+metadata.validator = m => m.content.toLowerCase() === 'band';
 
-metadata.executable = async (m, member, authlvl) => {
+metadata.executable = async m => {
   Promise.all([
     m.react('🎺'),
     m.react('🎸'),

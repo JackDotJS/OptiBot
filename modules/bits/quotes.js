@@ -1,10 +1,7 @@
-const path = require('path');
-const util = require('util');
 const djs = require('discord.js');
-const { OptiBit, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { OptiBit, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: 'Message Quotes',
@@ -18,17 +15,17 @@ const metadata = {
   run: null
 };
 
-metadata.validator = (m, member, authlvl) => {
+metadata.validator = m => {
   if (m.content.match(/discord(?:app)?\.com/i)) {
     const urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi); // eslint-disable-line no-useless-escape
 
-    if (urls !== null) {
+    if (urls != null) {
       return true;
-    }
-  }
+    } else return false;
+  } else return false;
 };
 
-metadata.executable = (m, member, authlvl) => {
+metadata.executable = m => {
   Memory.li = new Date().getTime();
   const urls = m.content.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi); // eslint-disable-line no-useless-escape
 
@@ -88,9 +85,7 @@ metadata.executable = (m, member, authlvl) => {
             }
           }
 
-          if (contents.length !== 0) {
-            embed.setDescription(contents);
-          }
+          if (contents.length !== 0) embed.setDescription(contents);
 
           if (image != null) {
             embed.setImage(image);

@@ -1,8 +1,6 @@
-const path = require('path');
-const util = require('util');
 const request = require('request');
 const djs = require('discord.js');
-const { OptiBit, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { OptiBit, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -19,9 +17,7 @@ const metadata = {
   run: null
 };
 
-metadata.validator = (m, member, authlvl) => {
-  return m.content.includes('#');
-};
+metadata.validator = m => m.content.includes('#');
 
 metadata.executable = (m, member, authlvl) => {
   // remove everything in quotes ("), single-line codeblocks, multi-line codeblocks, and strikethroughs.
@@ -37,7 +33,6 @@ metadata.executable = (m, member, authlvl) => {
 
   const issueLinks = [];
   const limit = (authlvl > 0) ? 8 : 4;
-  let attempts = 0;
   const requestLimit = 12;
   let i = 0;
 
@@ -77,7 +72,6 @@ metadata.executable = (m, member, authlvl) => {
       }
     }
 
-    attempts++;
     request(`https://github.com/sp614x/optifine/issues/${issues[i]}.json`, (err, res, data) => {
       log('response', 'trace');
       if (err || !res || !data) {

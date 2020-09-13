@@ -18,18 +18,15 @@ const metadata = {
   run: null
 };
 
-metadata.validator = (m, member, authlvl) => {
-  return (m.content.toLowerCase() === 'band');
-};
+metadata.validator = (m, member, authlvl) => m.content.toLowerCase() === 'band';
 
-metadata.executable = (m, member, authlvl) => {
-  m.react('🎺').then(()=>{
-    m.react('🎸').then(()=>{
-      m.react('🥁').then(()=>{
-        m.react('🎤').catch(err => OBUtil.err(err));
-      }).catch(err => OBUtil.err(err));
-    }).catch(err => OBUtil.err(err));
-  }).catch(err => OBUtil.err(err));
+metadata.executable = async (m, member, authlvl) => {
+  Promise.all([
+    m.react('🎺'),
+    m.react('🎸'),
+    m.react('🥁'),
+    m.react('🎤')
+  ]).catch(err => OBUtil.err(err));
 };
 
 module.exports = new OptiBit(metadata);

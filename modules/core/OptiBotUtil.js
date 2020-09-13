@@ -1,6 +1,5 @@
 const util = require('util');
 const djs = require('discord.js');
-const Profile = require('./OptiBotProfile.js');
 const LogEntry = require('./OptiBotLogEntry.js');
 const Memory = require('./OptiBotMemory.js');
 const Assets = require('./OptiBotAssetsManager.js');
@@ -10,7 +9,8 @@ module.exports = {
   parseInput: require('./OptiBotUtil/parseInput'),
   getAuthlvl: require('./OptiBotUtil/getAuthLevel'),
   missingArgs: require('./OptiBotUtil/missingArgs'),
-  getProfile: require('./OptiBotUtil/getProfile')
+  getProfile: require('./OptiBotUtil/getProfile'),
+  updateProfile: require('./OptiBotUtil/updateProfile')
 };
 
 module.exports = class OptiBotUtilities {
@@ -18,21 +18,6 @@ module.exports = class OptiBotUtilities {
     throw new Error('Why are you doing this? (Cannot instantiate this class.)');
   }
 
-  static updateProfile(data) {
-    return new Promise((resolve, reject) => {
-      let raw = data;
-
-      if (data instanceof Profile) raw = data.raw;
-
-      Memory.db.profiles.update({ id: raw.id }, raw, { upsert: true }, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(data);
-        }
-      });
-    });
-  }
 
   /**
      * Gets a user, member, or message based on various text-based shortcuts.

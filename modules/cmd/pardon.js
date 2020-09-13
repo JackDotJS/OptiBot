@@ -43,7 +43,7 @@ metadata.run = (m, args, data) => {
       } else {
         OBUtil.getProfile(result.id, false).then(profile => {
           if(!profile || (profile && !profile.edata.record)) {
-            OBUtil.err(`${target.tag} has no record.`, {m:m});
+            OBUtil.err(`${result.tag} has no record.`, {m:m});
           } else {
             profile.getRecord(caseid).then(entry => {
               if(!entry) {

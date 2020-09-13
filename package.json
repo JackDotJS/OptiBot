@@ -18,6 +18,7 @@
         "adm-zip": "^0.4.13",
         "caller-id": "^0.1.0",
         "discord.js": "^12.2.0",
+        "eslint": "^7.9.0",
         "file-type": "^12.4.2",
         "iso-639-1": "^2.1.0",
         "jaro-winkler": "^0.2.8",

@@ -1,9 +1,7 @@
 const path = require('path');
-const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -20,6 +18,7 @@ metadata.run = (m, args, data) => {
   if (!args[0]) {
     OBUtil.missingArgs(m, metadata);
   } else {
+    // eslint-disable-next-line no-inner-declarations
     function translate(message) {
       m.channel.send(OBUtil.uwu(message)).then(bm => OBUtil.afterSend(bm, m.author.id));
     }

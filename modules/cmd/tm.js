@@ -1,9 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -14,7 +13,7 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m, args, data) => {
+metadata.run = m => {
   const embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
     .setAuthor('The Thanos Method!™️', Assets.getEmoji('ICO_snap').url)
@@ -22,7 +21,7 @@ metadata.run = (m, args, data) => {
     .addField('How does it work?', '*The Thanos Method!™️* is simple. To find conflicting mods, split your mods folder into 2 groups. Remove one group, and test in-game. Keep the group that has the problem, and repeat until no more mods can be removed without the issue disappearing. Thanks to *The Thanos Method!™️*, you can now report the incompatible mods on GitHub!')
     .setFooter('* "The Thanos Method!" is not actually trademarked or even remotely considered an official name. \nplease don\'t sue me i just thought it was funny');
 
-  m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+  m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
 };
 
 module.exports = new Command(metadata);

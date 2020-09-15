@@ -6,9 +6,6 @@ const OptiBotUtilities = require('../core/OptiBotUtil');
 const bot = Memory.core.client;
 const log = bot.log;
 
-const embed = new djs.MessageEmbed()
-  .setColor(bot.cfg.embed.error);
-
 /**
      * Creates a simple, pre-formatted error message.
      *
@@ -16,6 +13,9 @@ const embed = new djs.MessageEmbed()
      * @param {OptiBot} [bot] OptiBot
      */
 module.exports = (err, data = {}) => {
+  const embed = new djs.MessageEmbed()
+    .setColor(bot.cfg.embed.error);
+
   if (err instanceof Error) {
     log(err.stack, 'error');
 

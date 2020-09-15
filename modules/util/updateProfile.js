@@ -1,5 +1,5 @@
-const Profile = require('../OptiBotProfile.js');
-const Memory = require('../OptiBotMemory.js');
+const Profile = require('../core/OptiBotProfile.js');
+const Memory = require('../core/OptiBotMemory.js');
 
 module.exports = (data) => {
   return new Promise((resolve, reject) => {

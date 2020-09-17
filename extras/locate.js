@@ -4,9 +4,10 @@ const util = require('util');
 
 const locateTD = /to(-)?do|wip|work[- ]in[- ]progress/gi;
 const locateCM = /(^| )(\/{2,}|\/\*)/gim;
+const root = '../';
 
 const folders = [
-  './'
+  root
 ];
 
 const scanned = [];

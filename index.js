@@ -879,6 +879,7 @@ bot.on('guildMemberAdd', member => {
       logEvent();
     });
 
+    // eslint-disable-next-line no-inner-declarations
     function logEvent(muted) {
       const logEntry = new ob.LogEntry({ time: now, channel: 'joinleave' })
         .setColor(bot.cfg.embed.okay)

@@ -1,8 +1,6 @@
 const djs = require('discord.js');
 const Memory = require('../core/OptiBotMemory.js');
 
-const bot = Memory.core.client;
-const log = bot.log;
 
 module.exports = (member, ignoreElevated) => {
   /**
@@ -16,6 +14,9 @@ module.exports = (member, ignoreElevated) => {
          * 4 = Administrator
          * 5 = Bot Developer
          */
+
+  const bot = Memory.core.client;
+  const log = bot.log;
 
   if (member.constructor === djs.User) {
     log('expected object type member, got user instead', 'warn');

@@ -1,14 +1,13 @@
 const Memory = require('../core/OptiBotMemory.js');
-
-const bot = Memory.core.client;
-const log = bot.log;
-
 /**
      * end my fucking life
      *
      * @param {String} str text to uwuify
      */
 module.exports = (str) => {
+  const bot = Memory.core.client;
+  const log = bot.log;
+
   const words = str.split(' ');
   let newStr = '';
   /* eslint-disable-next-line no-useless-escape */

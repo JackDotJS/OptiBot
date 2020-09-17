@@ -1,9 +1,6 @@
 const Memory = require('../core/OptiBotMemory.js');
 const util = require('util');
 
-const bot = Memory.core.client;
-const log = bot.log;
-
 /**
      * Gets a user, member, or message based on various text-based shortcuts.
      *
@@ -14,6 +11,9 @@ const log = bot.log;
      * @returns {Promise<Object>}
      */
 module.exports = (m, type, target, member) => {
+  const bot = Memory.core.client;
+  const log = bot.log;
+
   return new Promise((resolve, reject) => {
     log(`get target from ${target}`);
     log(`select type ${type}`);

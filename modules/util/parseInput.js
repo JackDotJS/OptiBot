@@ -1,8 +1,8 @@
 const Memory = require('../core/OptiBotMemory.js');
 
-const bot = Memory.core.client;
-
 module.exports = (text) => {
+  const bot = Memory.core.client;
+
   if (typeof text !== 'string') text = new String(text);
   const input = text.trim().split('\n', 1)[0]; // first line of the message
   const data = {

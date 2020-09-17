@@ -1,9 +1,9 @@
 const Memory = require('../core/OptiBotMemory.js');
 
-const bot = Memory.core.client;
-const log = bot.log;
-
 module.exports = (date, total) => {
+  const bot = Memory.core.client;
+  const log = bot.log;
+
   const daysSince = Math.round((Date.now() - date) / (1000 * 60 * 60 * 24));
 
   log(`days since: ${daysSince}`);

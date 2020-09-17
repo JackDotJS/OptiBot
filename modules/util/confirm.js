@@ -1,9 +1,9 @@
 const Memory = require('../core/OptiBotMemory.js');
 
-const bot = Memory.core.client;
-const log = bot.log;
-
 module.exports = (m, bm) => {
+  const bot = Memory.core.client;
+  const log = bot.log;
+
   return new Promise((resolve, reject) => {
     m.channel.stopTyping(true);
 

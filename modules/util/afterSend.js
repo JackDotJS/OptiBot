@@ -2,8 +2,7 @@ const Memory = require('../core/OptiBotMemory.js');
 const OptiBotUtilities = require('../core/OptiBotUtil');
 const djs = require('discord.js'); // eslint-disable-line no-unused-vars
 
-const bot = Memory.core.client;
-const log = bot.log;
+
 
 /**
      * Performs various actions after sending a message.
@@ -15,6 +14,9 @@ const log = bot.log;
      *
      */
 module.exports = (bm, author) => {
+  const bot = Memory.core.client;
+  const log = bot.log;
+
   bm.channel.stopTyping(true);
   if (bm.channel.type === 'dm') return;
 

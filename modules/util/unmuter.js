@@ -5,10 +5,10 @@ const LogEntry = require('../core/OptiBotLogEntry.js');
 const djs = require('discord.js');
 const util = require('util');
 
-const bot = Memory.core.client;
-const log = bot.log;
-
 module.exports = (id) => {
+  const bot = Memory.core.client;
+  const log = bot.log;
+
   // eslint-disable-next-line no-unused-vars
   return new Promise((resolve, reject) => {
     const errHandler = (err, user) => {

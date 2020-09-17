@@ -188,6 +188,7 @@ module.exports = class OptiBotAssetsManager {
                     finalRegister();
                   }
 
+                  // eslint-disable-next-line no-inner-declarations
                   function finalRegister() {
                     OptiBotAssetsManager.registerCommand(newcmd).then((reg) => {
                       log(`Command registered: ${reg.metadata.name}`, 'debug');
@@ -581,25 +582,25 @@ module.exports = class OptiBotAssetsManager {
         bot.pause = false;
         success(new Date().getTime() - timeStart);
 
-        for (const stage of stagesAsync) {
-          function stagesAsyncFinal() {
-            log(`Loading assets... ${Math.round((100 * done) / totals)}%`, 'info');
-            if (done === totals) {
-              log(`Secondary Assets loaded with ${errorsAsync} error(s)!`, 'info');
-              log(`Encountered ${errors + errorsAsync} total error(s) during setup.`, 'info');
-              log([
-                'Secondary Asset Loader finished.',
-                `Stages: ${stagesAsync.length}`,
-                `Skipped: ${skippedAsync}`,
-                `Errors: ${errorsAsync}`,
-                `Total Stages: ${totals}`,
-                `Total Skipped: ${skipped + skippedAsync}`,
-                `Total Errors: ${errors + errorsAsync}`
-              ].join('\n'), 'debug');
-            }
+        function stagesAsyncFinal() {
+          log(`Loading assets... ${Math.round((100 * done) / totals)}%`, 'info');
+          if (done === totals) {
+            log(`Secondary Assets loaded with ${errorsAsync} error(s)!`, 'info');
+            log(`Encountered ${errors + errorsAsync} total error(s) during setup.`, 'info');
+            log([
+              'Secondary Asset Loader finished.',
+              `Stages: ${stagesAsync.length}`,
+              `Skipped: ${skippedAsync}`,
+              `Errors: ${errorsAsync}`,
+              `Total Stages: ${totals}`,
+              `Total Skipped: ${skipped + skippedAsync}`,
+              `Total Errors: ${errors + errorsAsync}`
+            ].join('\n'), 'debug');
           }
+        }
 
-          log(`stage.tiers[tier] = ${stage.tiers[tier]}`);
+        for (const stage of stagesAsync) {
+          log(`stage.tiers[${tier}] = ${stage.tiers[tier]}`);
 
           if (stage.tiers[tier]) {
             const stageStart = new Date().getTime();

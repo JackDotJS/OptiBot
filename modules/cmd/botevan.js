@@ -1,10 +1,8 @@
 const path = require('path');
-const util = require('util');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -19,11 +17,11 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  let target = (args[0] || '*Someone(TM)*');
+  let target = (args[0] || '*Someone™*');
   let reason = (args[1]) ? m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} `.length ) : null;
 
   if(!reason) {
-    someReason = [
+    const someReason = [
       '<no reason>',
       'Oh, no reason...',
       'who cares lmao',
@@ -51,7 +49,7 @@ metadata.run = (m, args, data) => {
       .setDescription(`Banning: ${target} \nWaiting for ${bot.mainGuild.memberCount.toLocaleString()} votes...`)
       .addField('Reason', reason);
 
-    m.channel.send('_ _', {embed: embed}).then(bm => (
+    m.channel.send(embed).then(bm => (
       bm.react(bot.guilds.cache.get(bot.cfg.guilds.optibot).emojis.cache.get(bot.cfg.emoji.confirm)).then(() => {
         bot.setTimeout(() => {
           const total = bm.reactions.cache.get(bot.cfg.emoji.confirm);
@@ -81,7 +79,7 @@ metadata.run = (m, args, data) => {
             ].join('\n'));
           }
 
-          bm.edit('_ _', {embed:embed}).then(bm2 => {
+          bm.edit(embed).then(bm2 => {
             bm2.reactions.removeAll().then(() => {
               OBUtil.afterSend(bm2, m.author.id);
             });

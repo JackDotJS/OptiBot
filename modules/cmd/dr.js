@@ -2,7 +2,7 @@ const util = require('util');
 const path = require('path');
 const djs = require('discord.js');
 const request = require('request');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -25,10 +25,10 @@ metadata.run = (m, args, data) => {
     member: null,
     ban: null,
   };
-  const inviteSettings = { 
-    temporary: true, 
-    maxUses: 1, 
-    unique: true, 
+  const inviteSettings = {
+    temporary: true,
+    maxUses: 1,
+    unique: true,
     reason: `Created for ${m.author.tag} (${m.author.id})`
   };
 
@@ -36,37 +36,37 @@ metadata.run = (m, args, data) => {
     donator.member = dmem;
     checkBan();
   }).catch(err => {
-    if(err.message.match(/invalid or uncached|unknown member|unknown user/i)) {
+    if (err.message.match(/invalid or uncached|unknown member|unknown user/i)) {
       checkBan();
     } else {
-      OBUtil.err(err, {m:m});
+      OBUtil.err(err, { m: m });
     }
   });
-    
-  const checkBan = () => {
+
+  function checkBan() {
     donator.guild.fetchBan(m.author.id).then(ban => {
       donator.ban = ban;
       final();
     }).catch(err => {
-      if(err.message.match(/unknown ban/i)) {
+      if (err.message.match(/unknown ban/i)) {
         final();
       } else {
-        OBUtil.err(err, {m:m});
+        OBUtil.err(err, { m: m });
       }
     });
-  };
+  }
 
   const getDonatorInvite = () => {
     return new Promise((resolve, reject) => {
       const cached = Memory.donatorInvites[m.author.id];
 
-      if(cached) {
+      if (cached) {
         donator.guild.fetchInvites().then(invites => {
           const invite = invites.get(cached.code);
 
           log(util.inspect(invite));
 
-          if(!invite || invite.uses === invite.maxUses) {
+          if (!invite || invite.uses === invite.maxUses) {
             resolve(null);
           } else {
             resolve(invite);
@@ -84,15 +84,14 @@ metadata.run = (m, args, data) => {
     });
   };
 
-  const final = () => {
-    if(data.member.roles.cache.has(bot.cfg.roles.donator)) {
-      if(donator.member) { 
+  function final() {
+    if (data.member.roles.cache.has(bot.cfg.roles.donator)) {
+      if (donator.member) {
         const embed = OBUtil.err('You already have the Donator role!')
           .setDescription('Additionally, you cannot get an invite to the Donator Discord server because you\'re already a member.');
 
         m.channel.send({ embed: embed });
-      } else
-      if(donator.ban) {
+      } else if (donator.ban) {
         const embed = OBUtil.err('You already have the Donator role!')
           .setDescription('Additionally, you cannot get an invite to the Donator Discord server because you\'ve been banned.');
 
@@ -103,10 +102,10 @@ metadata.run = (m, args, data) => {
             .setColor(bot.cfg.embed.default)
             .setAuthor('You already have the Donator role!', Assets.getEmoji('ICO_info').url);
 
-          if(invite) {
+          if (invite) {
             embed.setDescription(`However, it seems you're not yet a member of the Donator Discord server. Here's an invite!\n${invite.url}`);
 
-            if(donator.guild.icon) {
+            if (donator.guild.icon) {
               embed.setThumbnail(donator.guild.iconURL({ format: 'png' }));
             }
           } else {
@@ -116,36 +115,31 @@ metadata.run = (m, args, data) => {
           m.channel.send({ embed: embed });
         });
       }
-    } else
-    if(!args[0]) {
+    } else if (!args[0]) {
       OBUtil.missingArgs(m, metadata);
-    } else
-    if (args[0].indexOf('@') < 0 && args[0].indexOf('.') < 0) {
-      OBUtil.err('You must specify a valid e-mail address.', {m:m});
-    } else
-    if(!args[1]) {
-      OBUtil.err('You must specify your donator token.', {m:m});
+    } else if (args[0].indexOf('@') < 0 && args[0].indexOf('.') < 0) {
+      OBUtil.err('You must specify a valid e-mail address.', { m: m });
+    } else if (!args[1]) {
+      OBUtil.err('You must specify your donator token.', { m: m });
     } else {
       request({ url: 'https://optifine.net/validateToken?e=' + encodeURIComponent(args[0]) + '&t=' + encodeURIComponent(args[1]), headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
         if (err || !res || !body || res.statusCode !== 200) {
-          OBUtil.err(err || new Error('Failed to get a response from the OptiFine API'), {m:m});
-        } else 
-        if (body === 'true') {
+          OBUtil.err(err || new Error('Failed to get a response from the OptiFine API'), { m: m });
+        } else if (body === 'true') {
           data.member.roles.add(bot.cfg.roles.donator, 'Donator status verified.').then(() => {
-            if(donator.member) { 
+            if (donator.member) {
               const embed = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.okay)
                 .setAuthor('Thank you for your contribution! Your donator role has been granted.', Assets.getEmoji('ICO_okay').url)
                 .setDescription('Please note, your token has been reset. Additionally, you cannot get an invite to the Donator Discord server because you\'re already a member.');
-        
+
               m.channel.send({ embed: embed });
-            } else
-            if(donator.ban) {
+            } else if (donator.ban) {
               const embed = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.okay)
                 .setAuthor('Thank you for your contribution! Your donator role has been granted.', Assets.getEmoji('ICO_okay').url)
                 .setDescription('Please note, your token has been reset. Additionally, you cannot get an invite to the Donator Discord server because you\'ve been banned.');
-        
+
               m.channel.send({ embed: embed });
             } else {
               getDonatorInvite().then(invite => {
@@ -153,31 +147,31 @@ metadata.run = (m, args, data) => {
                   .setColor(bot.cfg.embed.okay)
                   .setAuthor('Thank you for your contribution! Your donator role has been granted.', Assets.getEmoji('ICO_okay').url);
 
-                if(invite) {
+                if (invite) {
                   embed.setDescription(`You're now qualified to join the Donator Discord server. If you're interested, here's an invite!\n${invite.url}`);
 
-                  if(donator.guild.icon) {
+                  if (donator.guild.icon) {
                     embed.setThumbnail(donator.guild.iconURL({ format: 'png' }));
                   }
 
                 } else {
                   embed.setDescription('You\'re now qualified to join the Donator Discord server. Unfortunately, it seems you\'ve already used your invite link for the day. If you believe this is a mistake, please contact an administrator. Thank you!');
                 }
-            
+
                 m.channel.send({ embed: embed });
               });
             }
-                        
+
           });
         } else {
           const embed = OBUtil.err('Invalid credentials.')
             .setDescription('Make sure that your token and e-mail are the same as what you see on https://optifine.net/login.');
-    
-          m.channel.send({embed: embed});
+
+          m.channel.send({ embed: embed });
         }
       });
     }
-  };
+  }
 };
 
 module.exports = new Command(metadata);

@@ -1,10 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const request = require('request');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -18,28 +16,27 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if(data.member.roles.cache.has(bot.cfg.roles.donator)) {
-    // has donator
-    if(data.member.roles.cache.has(bot.cfg.roles.donatorColor)) {
-      data.member.roles.remove(bot.cfg.roles.donatorColor, 'Color toggled by user.').then(() => {
-        const embed = new djs.MessageEmbed()
-          .setColor(bot.cfg.embed.okay)
-          .setAuthor('Donator color disabled.', Assets.getEmoji('ICO_okay').url);
+  if (!data.member.roles.cache.has(bot.cfg.roles.donator)) return OBUtil.err('You are not a verified donator.', { m });
 
-        m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
-      });
-    } else {
-      data.member.roles.add(bot.cfg.roles.donatorColor, 'Color toggled by user.').then(() => {
-        const embed = new djs.MessageEmbed()
-          .setColor(bot.cfg.embed.okay)
-          .setAuthor('Donator color enabled.', Assets.getEmoji('ICO_okay').url);
+  // has donator
+  if (data.member.roles.cache.has(bot.cfg.roles.donatorColor)) {
+    data.member.roles.remove(bot.cfg.roles.donatorColor, 'Color toggled by user.').then(() => {
+      const embed = new djs.MessageEmbed()
+        .setColor(bot.cfg.embed.okay)
+        .setAuthor('Donator color disabled.', Assets.getEmoji('ICO_okay').url);
 
-        m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
-      });
-    }
+      m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+    });
   } else {
-    OBUtil.err('You are not a verified donator.', {m:m});
+    data.member.roles.add(bot.cfg.roles.donatorColor, 'Color toggled by user.').then(() => {
+      const embed = new djs.MessageEmbed()
+        .setColor(bot.cfg.embed.okay)
+        .setAuthor('Donator color enabled.', Assets.getEmoji('ICO_okay').url);
+
+      m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+    });
   }
+
 };
 
 module.exports = new Command(metadata);

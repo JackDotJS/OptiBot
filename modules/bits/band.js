@@ -1,10 +1,4 @@
-const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const { OptiBit, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
-
-const bot = Memory.core.client;
-const log = bot.log;
+const { OptiBit, OBUtil } = require('../core/OptiBot.js');
 
 const metadata = {
   name: 'Band Emojis',
@@ -18,18 +12,15 @@ const metadata = {
   run: null
 };
 
-metadata.validator = (m, member, authlvl) => {
-  return (m.content.toLowerCase() === 'band');
-};
+metadata.validator = m => m.content.toLowerCase() === 'band';
 
-metadata.executable = (m, member, authlvl) => {
-  m.react('🎺').then(()=>{
-    m.react('🎸').then(()=>{
-      m.react('🥁').then(()=>{
-        m.react('🎤').catch(err => OBUtil.err(err));
-      }).catch(err => OBUtil.err(err));
-    }).catch(err => OBUtil.err(err));
-  }).catch(err => OBUtil.err(err));
+metadata.executable = async m => {
+  Promise.all([
+    m.react('🎺'),
+    m.react('🎸'),
+    m.react('🥁'),
+    m.react('🎤')
+  ]).catch(err => OBUtil.err(err));
 };
 
 module.exports = new OptiBit(metadata);

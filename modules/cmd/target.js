@@ -1,11 +1,7 @@
 const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
-const timeago = require('timeago.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
-
-const bot = Memory.core.client;
-const log = bot.log;
+const { Command, OBUtil } = require('../core/OptiBot.js');
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -22,7 +18,7 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if(!Number.isInteger(parseInt(args[0]))) {
+  if (!Number.isInteger(parseInt(args[0]))) {
     return OBUtil.missingArgs(m, metadata);
   }
 
@@ -34,7 +30,7 @@ metadata.run = (m, args, data) => {
     }
 
     m.channel.send(`\`\`\`javascript\n${util.inspect(result)}\`\`\``).then(bm => OBUtil.afterSend(bm, m.author.id));
-  }).catch(err => OBUtil.err(err, {m:m}));
+  }).catch(err => OBUtil.err(err, { m }));
 };
 
 module.exports = new Command(metadata);

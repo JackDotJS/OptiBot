@@ -1,10 +1,8 @@
 const path = require('path');
-const util = require('util');
 const djs = require('discord.js');
 const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,

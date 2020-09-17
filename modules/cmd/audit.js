@@ -1,8 +1,7 @@
 const path = require('path');
-const util = require('util');
 const djs = require('discord.js');
 const timeago = require('timeago.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, RecordEntry, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -22,7 +21,7 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if(!args[0]) {
+  if (!args[0]) {
     OBUtil.missingArgs(m, metadata);
   } else {
     let selectPage = 1;
@@ -33,22 +32,22 @@ metadata.run = (m, args, data) => {
       viewAll = true;
     }
 
-    if(args[1] && !isNaN(args[1])) {
+    if (args[1] && !isNaN(args[1])) {
       selectPage = parseInt(args[1]);
     } else
-    if(args[2] && !isNaN(args[2])) {
+    if (args[2] && !isNaN(args[2])) {
       selectPage = parseInt(args[2]);
     }
-        
+
     OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
       if (!result) {
-        OBUtil.err('You must specify a valid user.', {m:m});
+        OBUtil.err('You must specify a valid user.', { m: m });
       } else
       if (result.type === 'notfound') {
-        OBUtil.err('Unable to find a user.', {m:m});
+        OBUtil.err('Unable to find a user.', { m: m });
       } else
       if (result.id === bot.user.id) {
-        OBUtil.err('Nice try.', {m:m});
+        OBUtil.err('Nice try.', { m: m });
       } else {
         function getLogs() {
           // TODO: this MAY be a temporary solution.
@@ -65,19 +64,19 @@ metadata.run = (m, args, data) => {
           return new Promise((resolve, reject) => {
             const logs = [];
             Memory.db.profiles.find({ format: 3, 'edata.record': { $exists: true } }, (err, docs) => {
-              if(err) return OBUtil.err(err, {m:m});
+              if (err) return OBUtil.err(err, { m: m });
 
               let i = 0;
               (function checkRecord() {
-                for(const entry of docs[i].edata.record) {
-                  if(entry.moderator === result.id) {
+                for (const entry of docs[i].edata.record) {
+                  if (entry.moderator === result.id) {
                     entry.userid = docs[i].id;
                     logs.push(entry);
                   }
                 }
                 i++;
-                if(i === docs.length) {
-                  logs.sort((a,b) => a.date - b.date);
+                if (i === docs.length) {
+                  logs.sort((a, b) => a.date - b.date);
 
                   log(logs);
                   resolve(logs);
@@ -99,25 +98,25 @@ metadata.run = (m, args, data) => {
             .setColor(bot.cfg.embed.default)
             .setTitle(result.tag);
 
-          if(result.type !== 'id') {
+          if (result.type !== 'id') {
             embed.setDescription([
               `Mention: ${result.mention}`,
               `\`\`\`yaml\nID: ${result.id}\`\`\``
             ].join('\n'));
           }
 
-          if(result.type !== 'id') {
-            embed.setThumbnail(((result.type === 'user') ? result.target : result.target.user).displayAvatarURL({format:'png'}));
+          if (result.type !== 'id') {
+            embed.setThumbnail(((result.type === 'user') ? result.target : result.target.user).displayAvatarURL({ format: 'png' }));
           }
 
           let title = 'Moderator Audit Log';
 
-          if(modlog.length === 0) {
+          if (modlog.length === 0) {
             embed.setAuthor(title, Assets.getEmoji('ICO_docs').url)
               .addField('Record Statistics', 'This user has no moderation actions on record.')
               .setFooter(footer.join('\n'));
 
-            return m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
+            return m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
           }
 
           let pageNum = selectPage;
@@ -137,8 +136,8 @@ metadata.run = (m, args, data) => {
 
           let pardonedCount = 0;
 
-          for(const entry of modlog) {
-            if(entry.pardon) {
+          for (const entry of modlog) {
+            if (entry.pardon) {
               pardonedCount++;
             }
           }
@@ -157,12 +156,12 @@ metadata.run = (m, args, data) => {
             ];
 
             function next() {
-              if(added >= perPage || i+1 >= modlog.length) {
-                if(hidden > 0) {
+              if (added >= perPage || i + 1 >= modlog.length) {
+                if (hidden > 0) {
                   stats[1] += ` (${hidden} on this page)`;
                 }
 
-                if(pardonedCount === modlog.length) {
+                if (pardonedCount === modlog.length) {
                   stats.push(
                     `**[NOTICE: All of this moderator's actions have been pardoned.](${m.url.replace(/\/\d+$/, '')})**`
                   );
@@ -172,26 +171,26 @@ metadata.run = (m, args, data) => {
                   .setFooter(footer.join('\n'))
                   .fields.unshift({
                     name: 'Audit Log Information',
-                    value: stats.join(`${Assets.getEmoji('ICO_space')}\n`)+`${Assets.getEmoji('ICO_space')}`
+                    value: stats.join(`${Assets.getEmoji('ICO_space')}\n`) + `${Assets.getEmoji('ICO_space')}`
                   });
 
-                m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
+                m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
               } else {
                 i++;
                 addEntry();
               }
             }
 
-            if(entry.edits && footer.length < 3) {
+            if (entry.edits && footer.length < 3) {
               footer.push(
                 '',
                 'Edited entries prefixed with an asterisk (*)',
               );
             }
 
-            if(entry.pardon) {
-              if(!viewAll) {
-                if((added + hidden) < perPage) {
+            if (entry.pardon) {
+              if (!viewAll) {
+                if ((added + hidden) < perPage) {
                   hidden++;
                 }
                 return next();
@@ -204,8 +203,8 @@ metadata.run = (m, args, data) => {
                 `**When:** ${timeago.format(entry.pardon.date)}`
               );
 
-              if(entry.pardon.reason.length > 128) {
-                details.push(reason.substring(0, 128).trim()+'...');
+              if (entry.pardon.reason.length > 128) {
+                details.push(reason.substring(0, 125).trim() + '...'); // 125 because the "..." takes up three characters
               } else {
                 details.push(reason);
               }
@@ -217,12 +216,12 @@ metadata.run = (m, args, data) => {
                 `**When:** ${timeago.format(entry.date)}`
               );
 
-              if(entry.action === 5) {
+              if (entry.action === 5) {
                 details.push(`**Amount:** ${entry.display.pointsTotal.toLocaleString()}` + ((entry.display.pointsTotal != entry.display.pointsNow) ? `(now: ${entry.display.pointsNow})` : ''));
               }
 
-              if(entry.reason.length > 128) {
-                details.push(reason.substring(0, 128).trim()+'...');
+              if (entry.reason.length > 128) {
+                details.push(reason.substring(0, 128).trim() + '...');
               } else {
                 details.push(reason);
               }
@@ -236,8 +235,8 @@ metadata.run = (m, args, data) => {
           })();
         });
       }
-    }).catch(err => OBUtil.err(err, {m:m}));
-  } 
+    }).catch(err => OBUtil.err(err, { m: m }));
+  }
 };
 
 module.exports = new Command(metadata);

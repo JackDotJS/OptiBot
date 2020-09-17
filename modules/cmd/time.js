@@ -1,11 +1,6 @@
 const path = require('path');
 const util = require('util');
-const djs = require('discord.js');
-const timeago = require('timeago.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
-
-const bot = Memory.core.client;
-const log = bot.log;
+const { Command, OBUtil } = require('../core/OptiBot.js');
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -18,8 +13,8 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m, args, data) => {
-  if(!args[0]) {
+metadata.run = (m, args) => {
+  if (!args[0]) {
     OBUtil.missingArgs(m, metadata);
   } else {
     const time = OBUtil.parseTime(args[0]);

@@ -1,11 +1,8 @@
 const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
 const sim = require('string-similarity');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -18,13 +15,13 @@ const metadata = {
 };
 
 
-metadata.run = (m, args, data) => {
+metadata.run = (m, args) => {
   if (!args[0]) {
     OBUtil.missingArgs(m, metadata);
   } else {
     Memory.db.pol.find({}, (err, docs) => {
       if (err) {
-        OBUtil.err(err, { m: m });
+        OBUtil.err(err, { m });
       } else {
         let allkw = [];
 
@@ -49,7 +46,7 @@ metadata.run = (m, args, data) => {
           }
         }
 
-        OBUtil.err('Unable to find a policy.', { m: m });
+        OBUtil.err('Unable to find a policy.', { m });
       }
     });
   }

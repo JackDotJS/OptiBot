@@ -1,3 +1,6 @@
+/* eslint-disable */
+// REMEMBER TO REMOVE THESE LINES WHEN COPYING FILE
+
 const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
@@ -28,7 +31,7 @@ metadata.executable = (m, member, authlvl) => {
     .setAuthor('Example MessageEmbed')
     .setColor(bot.cfg.embed.default);
 
-  m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
+  m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
 };
 
 module.exports = new OptiBit(metadata);

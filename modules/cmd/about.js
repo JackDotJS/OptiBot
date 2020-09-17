@@ -1,10 +1,8 @@
 const path = require('path');
-const util = require('util');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 const contributors = require(path.resolve('./cfg/contributors.json'));
 const donators = require(path.resolve('./cfg/donators.json'));
 
@@ -16,24 +14,7 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m, args, data) => {
-  function uptime(ut) {
-    const seconds = (ut / 1000).toFixed(1);
-    const minutes = (ut / (1000 * 60)).toFixed(1);
-    const hours = (ut / (1000 * 60 * 60)).toFixed(1);
-    const days = (ut / (1000 * 60 * 60 * 24)).toFixed(1);
-
-    if (seconds < 60) {
-      return seconds + ' Seconds';
-    } else if (minutes < 60) {
-      return minutes + ' Minutes';
-    } else if (hours < 24) {
-      return hours + ' Hours';
-    } else {
-      return days + ' Days';
-    }
-  }
-
+metadata.run = (m) => {
   const embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
     .setAuthor('About', Assets.getEmoji('ICO_info').url)
@@ -46,7 +27,25 @@ metadata.run = (m, args, data) => {
     .addField('Ko-fi Supporters', donators.join(' '));
 
 
-  m.channel.send('_ _', {embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
+  // You can send a straight embed without the content. Discord.js will do the heavy lifting
+  m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
 };
+
+function uptime(ut) {
+  const seconds = (ut / 1000).toFixed(1);
+  const minutes = (ut / (1000 * 60)).toFixed(1);
+  const hours = (ut / (1000 * 60 * 60)).toFixed(1);
+  const days = (ut / (1000 * 60 * 60 * 24)).toFixed(1);
+
+  if (seconds < 60) {
+    return seconds + ' Seconds';
+  } else if (minutes < 60) {
+    return minutes + ' Minutes';
+  } else if (hours < 24) {
+    return hours + ' Hours';
+  } else {
+    return days + ' Days';
+  }
+}
 
 module.exports = new Command(metadata);

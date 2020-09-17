@@ -1,9 +1,5 @@
 const path = require('path');
-const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
-
-const bot = Memory.core.client;
-const log = bot.log;
+const { Command, OBUtil } = require('../core/OptiBot.js');
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -13,8 +9,6 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m, args, data) => {
-  m.channel.send(OBUtil.calculatePoints(parseInt(args[0]), parseInt(args[1])));
-};
+metadata.run = (m, args) => m.channel.send(OBUtil.calculatePoints(parseInt(args[0]), parseInt(args[1])));
 
 module.exports = new Command(metadata);

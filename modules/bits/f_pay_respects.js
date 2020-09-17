@@ -1,10 +1,4 @@
-const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const { OptiBit, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
-
-const bot = Memory.core.client;
-const log = bot.log;
+const { OptiBit, OBUtil } = require('../core/OptiBot.js');
 
 const metadata = {
   name: 'F in the chat',
@@ -18,14 +12,8 @@ const metadata = {
   run: null
 };
 
-metadata.validator = (m, member, authlvl) => {
-  return (m.content.toLowerCase().trim() === 'f');
-};
+metadata.validator = m => m.content.toLowerCase().trim() === 'f';
 
-metadata.executable = (m, member, authlvl) => {
-  m.react('🇫').catch((err) => {
-    OBUtil.err(err);
-  });
-};
+metadata.executable = m => m.react('🇫').catch(OBUtil.err);
 
 module.exports = new OptiBit(metadata);

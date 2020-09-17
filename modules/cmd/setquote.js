@@ -1,9 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -15,17 +14,16 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if(!args[0]) {
-    OBUtil.missingArgs(m, metadata);
-  } else 
-  if(m.content.substring(`${bot.prefix}${data.input.cmd} `.length).length > 256) {
-    OBUtil.err('Message cannot exceed 256 characters in length.', {m:m});
+  if (!args[0]) return OBUtil.missingArgs(m, metadata);
+
+  if (m.content.substring(`${bot.prefix}${data.input.cmd} `.length).length > 256) {
+    OBUtil.err('Message cannot exceed 256 characters in length.', { m });
   } else {
     OBUtil.getProfile(m.author.id, true).then(profile => {
-      const lines = m.content.substring(`${bot.prefix}${data.input.cmd} `.length).replace(/\>/g, '\\>').split('\n');
+      const lines = m.content.substring(`${bot.prefix}${data.input.cmd} `.length).replace(/\>/g, '\\>').split('\n'); // eslint-disable-line no-useless-escape
       const quote = [];
-            
-      for(const line of lines) {
+
+      for (const line of lines) {
         quote.push(line.trim());
       }
 
@@ -36,12 +34,12 @@ metadata.run = (m, args, data) => {
           .setAuthor('Your profile has been updated', Assets.getEmoji('ICO_okay').url)
           .setColor(bot.cfg.embed.okay);
 
-        m.channel.send({embed: embed}).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        m.channel.send(embed).then(msg => { OBUtil.afterSend(msg, m.author.id); });
       }).catch(err => {
-        OBUtil.err(err, {m:m});
+        OBUtil.err(err, { m });
       });
     }).catch(err => {
-      OBUtil.err(err, {m:m});
+      OBUtil.err(err, { m });
     });
   }
 };

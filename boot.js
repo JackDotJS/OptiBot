@@ -11,7 +11,6 @@ const child = require('child_process');
 const readline = require('readline');
 const fs = require('fs');
 const util = require('util');
-const crypto = require('crypto');
 const callerId = require('caller-id');
 const AZip = require('adm-zip');
 const pkg = require('./package.json');
@@ -37,7 +36,7 @@ const env = {
     hour: 0,
     interval: setInterval(() => {
       const now = new Date().getHours();
-      if(now !== env.autostart.hour) {
+      if (now !== env.autostart.hour) {
         env.autostart.rph = 0;
         env.autostart.hour = now;
       }
@@ -67,7 +66,7 @@ const log = (m, lvl, file) => {
       color: '\x1b[0m'
     },
     file: {
-      content: `${call.filePath.substring(call.filePath.lastIndexOf('\\')+1)}:${call.lineNumber}`,
+      content: `${call.filePath.substring(call.filePath.lastIndexOf('\\') + 1)}:${call.lineNumber}`,
       color: '\x1b[33m'
     },
     level: {
@@ -80,74 +79,67 @@ const log = (m, lvl, file) => {
     }
   };
 
-  if(lvl) {
-    if(lvl.toLowerCase() === 'fatal') {
+  if (lvl) {
+    if (lvl.toLowerCase() === 'fatal') {
       entry.level.content = 'FATAL';
       entry.level.color = '\x1b[7;91m';
       entry.message.color = '\x1b[91m';
-    } else
-    if(lvl.toLowerCase() === 'error') {
+    } else if (lvl.toLowerCase() === 'error') {
       if (env.log.level > 4) return;
       entry.level.content = 'ERROR';
       entry.level.color = '\x1b[91m';
       entry.message.color = '\x1b[91m';
-    } else
-    if(lvl.toLowerCase() === 'warn') {
+    } else if (lvl.toLowerCase() === 'warn') {
       if (env.log.level > 3) return;
       entry.level.content = 'WARN';
       entry.level.color = '\x1b[93m';
       entry.message.color = '\x1b[93m';
-    } else
-    if(lvl.toLowerCase() === 'info') {
+    } else if (lvl.toLowerCase() === 'info') {
       if (env.log.level > 2) return;
       entry.level.content = 'INFO';
       entry.level.color = '\x1b[0m';
       entry.message.color = '\x1b[97m';
-    } else
-    if(lvl.toLowerCase() === 'debug') {
+    } else if (lvl.toLowerCase() === 'debug') {
       if (env.log.level > 1) return;
       entry.level.content = 'DEBUG';
       entry.level.color = '\x1b[35m';
       entry.message.color = '\x1b[35m';
-    } else
-    if (env.log.level > 0) return;
-  } else
-  if (env.log.level > 0) return;
+    } else if (env.log.level > 0) return;
+  } else if (env.log.level > 0) return;
 
-  if(typeof m !== 'string') {
+  if (typeof m !== 'string') {
     entry.message.color = '\x1b[33m';
-    if(m instanceof Error) {
+    if (m instanceof Error) {
       entry.message.content = m.stack;
-    } else 
-    if(Buffer.isBuffer(m)) {
+    } else if (Buffer.isBuffer(m)) {
       entry.message.content = m.toString();
     } else {
       try {
-        entry.message.content = util.inspect(m, {getters: true, showHidden: true});
+        entry.message.content = util.inspect(m, { getters: true, showHidden: true });
       }
-      catch(e) {
+      catch (e) {
         try {
           entry.message.content = m.toString();
         }
-        catch(e) {
+        catch (e) {
           log('failed interp of log entry', 'error');
         }
       }
     }
   }
 
-  if(file) {
+  if (file) {
     entry.file.content = file;
   }
 
   const m1c = `[${entry.timestamp.content}] [${entry.file.content}] [${entry.level.content}] : `;
-  const m2c = entry.message.content.replace(/\n/g, `\n${(' '.repeat(m1c.length))}`)+'\n';
+  const m2c = entry.message.content.replace(/\n/g, `\n${(' '.repeat(m1c.length))}`) + '\n';
 
   const m1 = `[${entry.timestamp.color}${entry.timestamp.content}\x1b[0m] [${entry.file.color}${entry.file.content}\x1b[0m] ${entry.level.color}[${entry.level.content}]\x1b[0m : `;
-  const m2 = entry.message.color+entry.message.content.replace(/\n/g, `\n${(' '.repeat(m1c.length))}`)+'\x1b[0m';
+  const m2 = entry.message.color + entry.message.content.replace(/\n/g, `\n${(' '.repeat(m1c.length))}`) + '\x1b[0m';
 
-  console.log(m1+m2);
-  if(env.log.stream) env.log.stream.write(m1c+m2c);
+  console.log(m1 + m2);
+  if (env.log.stream) env.log.stream.write(m1c + m2c);
 };
 
 // check and setup required directories and files
@@ -172,7 +164,7 @@ if (!fs.existsSync('./cfg/keys.json')) {
   throw new Error('./cfg/keys.json file not found.');
 }
 
-if(typeof require('./cfg/keys.json').discord !== 'string') {
+if (typeof require('./cfg/keys.json').discord !== 'string') {
   throw new Error('./cfg/keys.json - Missing Discord API token.');
 }
 
@@ -221,7 +213,7 @@ process.title = `OptiBot ${pkg.version}`;
 (function q1() {
   process.stdout.write('\033c');
   process.stdout.write('\u001b[2J\u001b[0;0H');
-  if(process.argv.indexOf('--skipsetup') > -1) {
+  if (process.argv.indexOf('--skipsetup') > -1) {
     env.mode = parseInt(process.argv.indexOf('--skipsetup') + 1);
     init();
   } else {
@@ -231,10 +223,9 @@ process.title = `OptiBot ${pkg.version}`;
     });
 
     env.rl.question('START OPTIBOT [Y/N]\n', (res) => {
-      if(res.trim().toLowerCase() === 'y') {
+      if (res.trim().toLowerCase() === 'y') {
         q2();
-      } else
-      if(res.trim().toLowerCase() === 'n') {
+      } else if (res.trim().toLowerCase() === 'n') {
         process.exit();
       } else {
         q1();
@@ -249,7 +240,7 @@ function q2() {
   env.rl.question('SET OPERATING MODE [0-3]\n', (res) => {
     const mode = parseInt(res);
 
-    if(isNaN(mode) || mode < 0 || mode > 3) {
+    if (isNaN(mode) || mode < 0 || mode > 3) {
       q2();
     } else {
       /**
@@ -259,7 +250,7 @@ function q2() {
              * MODE 3 - FULL FEATURE SET, PUBLIC ACCESS | NORMAL
              */
       env.mode = mode;
-      if(mode === 0) env.log.level = 0;
+      if (mode === 0) env.log.level = 0;
 
       env.rl.close();
       init();
@@ -274,14 +265,14 @@ function init() {
   // 🦀
 
   process.title = `OptiBot ${pkg.version} | Spawning Process...`;
-    
+
   env.log.filename = new Date().toUTCString().replace(/[/\\?%*:|"<>]/g, '.');
   env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);
-    
+
   function preinit() {
-    if(env.autostart.rph > 5 && env.mode != 0) {
+    if (env.autostart.rph > 5 && env.mode != 0) {
       log(`Pre-Init: Unusually high client reset count: ${env.autostart.rph}`, 'warn');
-      if(env.autostart.rph > 50) {
+      if (env.autostart.rph > 50) {
         log('Pre-Init: Potential boot loop detected, shutting down for safety.', 'warn');
         return end(19, true, 'FATAL');
       }
@@ -292,26 +283,26 @@ function init() {
     pzip.addLocalFile('./data/profiles.db');
 
     pzip.writeZip(`./archive/data/profiles_before_${env.log.filename}.zip`, (err) => {
-      if(err) throw err;
+      if (err) throw err;
 
       log('Pre-Init: OptiBot profiles successfully archived.', 'info');
 
-      if(new Date().getUTCDate() === 1) {
+      if (new Date().getUTCDate() === 1) {
         log('Pre-Init: Archiving log files...', 'info');
         const logs = fs.readdirSync('./logs');
 
         const zipData = {};
         const current = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
 
-        for(const log of logs) {
-          if(!log.endsWith('.log')) continue;
-          const creation = new Date(Math.min(fs.statSync(`./logs/${log}`).mtime.getTime(), Date.parse(log.substring(0, log.lastIndexOf('GMT')+3).replace(/\./g, ':'))));
+        for (const log of logs) {
+          if (!log.endsWith('.log')) continue;
+          const creation = new Date(Math.min(fs.statSync(`./logs/${log}`).mtime.getTime(), Date.parse(log.substring(0, log.lastIndexOf('GMT') + 3).replace(/\./g, ':'))));
 
-          if(creation.toLocaleString('default', { month: 'long', year: 'numeric' }) === current) continue;
+          if (creation.toLocaleString('default', { month: 'long', year: 'numeric' }) === current) continue;
 
           const target = `${creation.getUTCMonth()}_${creation.getUTCFullYear()}`;
 
-          if(zipData[target] != null) {
+          if (zipData[target] != null) {
             zipData[target].files.push(log);
           } else {
             zipData[target] = {
@@ -323,7 +314,7 @@ function init() {
 
         const keys = Object.keys(zipData);
 
-        if(keys.length === 0) {
+        if (keys.length === 0) {
           spawn();
         } else {
           log(`Pre-Init: Preparing to write ${keys.length} ZIP archive(s)...`, 'info');
@@ -340,14 +331,14 @@ function init() {
             const path = `./archive/logs/${data.name}.zip`;
             const zip = (fs.existsSync(path)) ? new AZip(path) : new AZip();
 
-            for(const file of data.files) {
+            for (const file of data.files) {
               archived++;
               zip.addLocalFile(`./logs/${file}`);
               fs.unlinkSync(`./logs/${file}`);
             }
 
             zip.writeZip(path, (err) => {
-              if(err) log(err.stack, 'error');
+              if (err) log(err.stack, 'error');
 
               i++;
               nextZip();
@@ -389,16 +380,15 @@ function init() {
     });
 
     bot.on('message', (data) => {
-      if(data.type === 'log') {
+      if (data.type === 'log') {
         log(data.message, data.level, data.misc);
-      } else
-      if(data.type === 'ready') {
+      } else if (data.type === 'ready') {
         log('Bot ready');
-        if(env.cr.logfile !== null) {
+        if (env.cr.logfile !== null) {
           // send crash data
           bot.send({ crashlog: env.cr.logfile }, (err) => {
-            if(err) {
-              log('Failed to send crashlog data: '+err.stack, 'error');
+            if (err) {
+              log('Failed to send crashlog data: ' + err.stack, 'error');
             } else {
               // once finished, clear crash data so it's not sent again during next scheduled restart.
               env.cr.logfile = null;
@@ -406,11 +396,11 @@ function init() {
           });
         }
 
-        if(env.r.guild !== null) {
+        if (env.r.guild !== null) {
           // send restart data
           bot.send({ restart: env.r }, (err) => {
-            if(err) {
-              log('Failed to send restart data: '+err.stack, 'error');
+            if (err) {
+              log('Failed to send restart data: ' + err.stack, 'error');
             } else {
               env.r.guild = null;
               env.r.channel = null;
@@ -419,12 +409,10 @@ function init() {
             }
           });
         }
-      } else
-      if(data.type === 'logLvl') {
+      } else if (data.type === 'logLvl') {
         env.log.level = parseInt(data.content);
         log('Log level updated.', 'fatal');
-      } else
-      if(data.type === 'restart') {
+      } else if (data.type === 'restart') {
         env.r.guild = data.guild;
         env.r.channel = data.channel;
         env.r.message = data.message;
@@ -435,18 +423,17 @@ function init() {
     bot.on('exit', (code) => {
       log(`Child process ended with exit code ${code}`, 'info');
 
-      if([18, 1].indexOf(code) > -1) {
+      if ([18, 1].indexOf(code) > -1) {
         env.r.guild = null;
         env.r.channel = null;
         env.r.message = null;
         env.r.author = null;
       }
 
-      if(code === 0) {
+      if (code === 0) {
         log('OptiBot is now shutting down at user request.', 'info');
         end(code, true);
-      } else
-      if(code === 1) {
+      } else if (code === 1) {
         log('OptiBot seems to have crashed. Restarting...', 'info');
         const logSuffix = 'CRASH';
 
@@ -454,73 +441,54 @@ function init() {
         setTimeout(() => {
           end(code, false, logSuffix);
         }, (env.mode === 0) ? 5000 : 10);
-      } else
-      if(code === 2) {
+      } else if (code === 2) {
         log('Bash Error. (How the fuck?)', 'fatal');
         end(code, true);
-      } else
-      if(code === 3) {
+      } else if (code === 3) {
         log('Internal JavaScript parse error.', 'fatal');
         end(code, true);
-      } else
-      if(code === 4) {
+      } else if (code === 4) {
         log('Internal JavaScript Evaluation Failure.', 'fatal');
         end(code, true);
-      } else
-      if(code === 5) {
+      } else if (code === 5) {
         log('Fatal Error.', 'fatal');
         end(code, true);
-      } else
-      if(code === 6) {
+      } else if (code === 6) {
         log('Non-function Internal Exception Handler.', 'fatal');
         end(code, true);
-      } else
-      if(code === 7) {
+      } else if (code === 7) {
         log('Internal Exception Handler Run-Time Failure.', 'fatal');
         end(code, true);
-      } else
-      if(code === 8) {
+      } else if (code === 8) {
         log('Uncaught exception. (Unused in newer NodeJS)', 'fatal');
         end(code, true);
-      } else
-      if(code === 9) {
+      } else if (code === 9) {
         log('Invalid Launch Argument(s).', 'fatal');
         end(code, true);
-      } else
-      if(code === 10) {
+      } else if (code === 10) {
         log('Internal JavaScript Run-Time Failure.', 'fatal');
         end(code, true);
-      } else
-      if(code === 12) {
+      } else if (code === 12) {
         log('Invalid Debug Argument(s).', 'fatal');
         end(code, true);
-      } else
-
-
-      if(code === 16) {
+      } else if (code === 16) {
         log('OptiBot is now restarting at user request...', 'info');
         end(code, false);
-      } else
-      if(code === 17) {
-        if(env.mode === 0) {
+      } else if (code === 17) {
+        if (env.mode === 0) {
           log('OptiBot cannot be updated in mode 0. Restarting...', 'info');
           end(16, false);
         } else {
           log('OptiBot is now being updated...', 'info');
           update();
         }
-      } else
-      if(code === 18) {
+      } else if (code === 18) {
         log('OptiBot is now undergoing scheduled restart.', 'info');
         end(code, false);
-      } else
-      if(code === 19) {
+      } else if (code === 19) {
         log('OptiBot is shutting down automatically.', 'fatal');
         end(code, true, 'FATAL');
-      } else
-
-            
-      if(code > 128) {
+      } else if (code > 128) {
         log(`Signal exit code ${code - 128}.`, 'fatal');
         end(code, true);
       }
@@ -533,11 +501,11 @@ function init() {
     setTimeout(() => {
       env.log.stream.end();
 
-      if(log_suffix) {
+      if (log_suffix) {
         fs.rename(`./logs/${env.log.filename}.log`, `./logs/${env.log.filename}_${log_suffix}.log`, (err) => {
-          if(err) throw err;
+          if (err) throw err;
           else {
-            if(exit) {
+            if (exit) {
               process.exit(code);
             } else {
               setTimeout(() => {
@@ -548,7 +516,7 @@ function init() {
         });
       } else {
         setTimeout(() => {
-          if(exit) {
+          if (exit) {
             process.exit(code);
           } else {
             init();

@@ -1,10 +1,8 @@
 const path = require('path');
-const util = require('util');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -18,16 +16,14 @@ const metadata = {
 };
 
 
-metadata.run = (m, args, data) => {
-  if (!args[0]) {
-    OBUtil.missingArgs(m, metadata);
-  } else
+metadata.run = (m, args) => {
+  if (!args[0]) return OBUtil.missingArgs(m, metadata);
+
   if (args[0].toLowerCase() === 'start') {
     if (Memory.vote.issue !== null) {
-      OBUtil.err('You cannot start a poll while one is already active.', { m: m });
-    } else
-    if (!args[1]) {
-      OBUtil.err('You must specify the details of the poll.', { m: m });
+      OBUtil.err('You cannot start a poll while one is already active.', { m });
+    } else if (!args[1]) {
+      OBUtil.err('You must specify the details of the poll.', { m });
     } else {
       const vote = {
         issue: m.content.substring(`${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length),
@@ -40,7 +36,7 @@ metadata.run = (m, args, data) => {
       };
 
       if (vote.issue.length > 1000) {
-        OBUtil.err('Poll message cannot exceed 1,000 characters.', { m: m });
+        return OBUtil.err('Poll message cannot exceed 1,000 characters.', { m });
       }
 
       const embed = new djs.MessageEmbed()
@@ -48,21 +44,20 @@ metadata.run = (m, args, data) => {
         .setColor(bot.cfg.embed.default)
         .setDescription(`> ${vote.issue}`);
 
-      m.channel.send({ embed: embed }).then(bm => {
+      m.channel.send({ embed: embed }).then(async bm => {
         vote.message.m = bm.id;
         Memory.vote = vote;
 
-        bm.react('👍').then(() => {
-          bm.react('👎');
-        });
+        await bm.react('👍');
+        await bm.react('👎');
+
       }).catch(err => {
-        OBUtil.err(err, { m: m });
+        OBUtil.err(err, { m });
       });
     }
-  } else
-  if (args[0].toLowerCase() === 'view' || args[0].toLowerCase() === 'end') {
+  } else if (args[0].toLowerCase() === 'view' || args[0].toLowerCase() === 'end') {
     if (Memory.vote.issue === null) {
-      OBUtil.err('There is no active poll.', { m: m });
+      OBUtil.err('There is no active poll.', { m });
     } else {
       bot.guilds.cache.get(Memory.vote.message.g).channels.cache.get(Memory.vote.message.c).messages.fetch(Memory.vote.message.m).then(bm => {
         const votes = [...bm.reactions.cache.filter(react => react.me).values()];
@@ -97,11 +92,11 @@ metadata.run = (m, args, data) => {
             .addField('Current Count', counts.join('\n\n'));
         }
 
-        m.channel.send({ embed: embed }).then(bm2 => OBUtil.afterSend(bm2, m.author.id));
+        m.channel.send(embed).then(bm2 => OBUtil.afterSend(bm2, m.author.id));
       });
     }
   } else {
-    OBUtil.err('You must specify a valid action to perform.', { m: m });
+    OBUtil.err('You must specify a valid action to perform.', { m });
   }
 };
 

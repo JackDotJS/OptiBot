@@ -1,3 +1,5 @@
+/* eslint-disable */
+// REMEMBER TO REMOVE THIS LINE WHEN COPYING THIS FILE
 const path = require('path');
 const util = require('util');
 const djs = require('discord.js');

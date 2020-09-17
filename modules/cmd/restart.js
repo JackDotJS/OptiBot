@@ -1,9 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, OBUtil, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -13,8 +12,8 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m, args, data) => {
-  const logEntry = new LogEntry()
+metadata.run = m => {
+  new LogEntry()
     .setColor(bot.cfg.embed.default)
     .setIcon(Assets.getEmoji('ICO_door').url)
     .setTitle('OptiBot is now restarting...', 'OptiBot Restart Report')
@@ -24,7 +23,7 @@ metadata.run = (m, args, data) => {
         .setAuthor('Restarting...', Assets.getEmoji('ICO_load').url)
         .setColor(bot.cfg.embed.default);
 
-      m.channel.send('_ _', {embed: embed}).then((msg) => {
+      m.channel.send(embed).then((msg) => {
         if(msg.channel.type === 'dm') {
           bot.exit(16);
         } else {

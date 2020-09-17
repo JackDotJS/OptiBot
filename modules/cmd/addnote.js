@@ -18,68 +18,55 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if(!args[1]) {
-    OBUtil.missingArgs(m, metadata);
-  } else {
-    const now = new Date().getTime();
-    OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
-      if (!result) {
-        OBUtil.err('You must specify a valid user.', {m:m});
-      } else 
-      if (result.type === 'notfound') {
-        OBUtil.err('Unable to find a user.', {m:m});
-      } else
-      if (OBUtil.getAuthlvl(result.target) > data.authlvl) {
-        OBUtil.err('You are not strong enough to add notes to this user.', {m:m});
-      } else 
-      if (result.id === m.author.id || result.id === bot.user.id) {
-        OBUtil.err('Nice try.', {m:m});
-      } else {
-        const reason = m.content.substring( `${bot.prefix}${data.input.cmd} ${args[0]} `.length );
-        if(reason.length > 1000) {
-          return OBUtil.err('Note cannot exceed 1000 characters in length.', {m:m});
-        }
+  if (!args[1]) return OBUtil.missingArgs(m, metadata);
 
-        OBUtil.getProfile(result.id, true).then(profile => {
-          if(!profile.edata.record) profile.edata.record = [];
+  OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+    if (!result) return OBUtil.err('You must specify a valid user.', { m });
+    if (result.type === 'notfound') return OBUtil.err('Unable to find a user.', { m });
+    if (OBUtil.getAuthlvl(result.target) > data.authlvl) return OBUtil.err('You are not strong enough to add notes to this user.', { m });
+    if (result.id === m.author.id || result.id === bot.user.id) return OBUtil.err('Nice try.', { m });
 
-          const entry = new RecordEntry()
-            .setMod(m.author.id)
-            .setURL(m.url)
-            .setAction('note')
-            .setActionType('add')
-            .setReason(m.author, reason);
+    const reason = m.content.substring(`${bot.prefix}${data.input.cmd} ${args[0]} `.length);
+    if (reason.length > 1000) return OBUtil.err('Note cannot exceed 1000 characters in length.', { m: m });
 
-          log(util.inspect(entry));
-          log(util.inspect(entry.raw));
+    OBUtil.getProfile(result.id, true).then(profile => {
+      if (!profile.edata.record) profile.edata.record = [];
 
-          profile.edata.record.push(entry.raw);
+      const entry = new RecordEntry()
+        .setMod(m.author.id)
+        .setURL(m.url)
+        .setAction('note')
+        .setActionType('add')
+        .setReason(m.author, reason);
 
-          OBUtil.updateProfile(profile).then(() => {
-            const logEntry = new LogEntry({channel: 'moderation'})
-              .setColor(bot.cfg.embed.default)
-              .setIcon(Assets.getEmoji('ICO_docs').url)
-              .setTitle('Moderation Note Created', 'Moderation Note Report')
-              .addSection('Member', result.target)
-              .addSection('Note Author', m.author)
-              .addSection('Note Contents', reason)
-              .submit();
+      log(util.inspect(entry));
+      log(util.inspect(entry.raw));
 
-            const embed = new djs.MessageEmbed()
-              .setAuthor('Note added.', Assets.getEmoji('ICO_okay').url)
-              .setColor(bot.cfg.embed.okay)
-              .setDescription('User record has been updated.')
-              .addField('Member', `${result.mention} | ${result.tag}\n\`\`\`yaml\nID: ${result.id}\`\`\``)
-              .addField('Note', reason);
+      profile.edata.record.push(entry.raw);
 
-            m.channel.stopTyping(true);
+      OBUtil.updateProfile(profile).then(() => {
+        new LogEntry({ channel: 'moderation' })
+          .setColor(bot.cfg.embed.default)
+          .setIcon(Assets.getEmoji('ICO_docs').url)
+          .setTitle('Moderation Note Created', 'Moderation Note Report')
+          .addSection('Member', result.target)
+          .addSection('Note Author', m.author)
+          .addSection('Note Contents', reason)
+          .submit();
 
-            m.channel.send({embed: embed});//.then(bm => OBUtil.afterSend(bm, m.author.id));
-          }).catch(err => OBUtil.err(err, {m:m}));
-        }).catch(err => OBUtil.err(err, {m:m}));
-      }
-    }).catch(err => OBUtil.err(err, {m:m}));
-  } 
+        const embed = new djs.MessageEmbed()
+          .setAuthor('Note added.', Assets.getEmoji('ICO_okay').url)
+          .setColor(bot.cfg.embed.okay)
+          .setDescription('User record has been updated.')
+          .addField('Member', `${result.mention} | ${result.tag}\n\`\`\`yaml\nID: ${result.id}\`\`\``)
+          .addField('Note', reason);
+
+        m.channel.stopTyping(true);
+
+        m.channel.send({ embed: embed });//.then(bm => OBUtil.afterSend(bm, m.author.id));
+      }).catch(err => OBUtil.err(err, { m: m }));
+    }).catch(err => OBUtil.err(err, { m: m }));
+  }).catch(err => OBUtil.err(err, { m: m }));
 };
 
 module.exports = new Command(metadata);

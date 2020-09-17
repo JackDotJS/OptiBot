@@ -1,7 +1,5 @@
 const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, Memory } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
 const log = bot.log;
@@ -16,33 +14,33 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m, args, data) => {
-  const channels = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).channels.cache.values()].filter((c) => c.type === 'text').sort((a,b) => a.rawPosition-b.rawPosition);
+metadata.run = m => {
+  const channels = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).channels.cache.values()].filter((c) => c.type === 'text').sort((a, b) => a.rawPosition - b.rawPosition);
   const lines = [];
 
-  for(const i in channels) {
+  for (const i in channels) {
     const channel = channels[i];
 
     let str = `#${channel.name} (${channel.id})`;
 
-    if(bot.cfg.channels.bot.some(id => [channel.id, channel.parentID].includes(id))) {
-            
+    if (bot.cfg.channels.bot.some(id => [channel.id, channel.parentID].includes(id))) {
+
       str += '\n- bot channel';
     }
 
-    if(bot.cfg.channels.mod.some(id => [channel.id, channel.parentID].includes(id))) {
+    if (bot.cfg.channels.mod.some(id => [channel.id, channel.parentID].includes(id))) {
       str += '\n- mod channel';
     }
 
-    if(bot.cfg.channels.blacklist.some(id => [channel.id, channel.parentID].includes(id))) {
+    if (bot.cfg.channels.blacklist.some(id => [channel.id, channel.parentID].includes(id))) {
       str += '\n- blacklisted';
     }
 
-    if(bot.cfg.channels.nomodify.some(id => [channel.id, channel.parentID].includes(id))) {
+    if (bot.cfg.channels.nomodify.some(id => [channel.id, channel.parentID].includes(id))) {
       str += '\n- no modification';
     }
 
-    if(str === `#${channel.name} (${channel.id})`) {
+    if (str === `#${channel.name} (${channel.id})`) {
       str += '\n-';
     }
 
@@ -50,7 +48,7 @@ metadata.run = (m, args, data) => {
 
     lines.push(str);
 
-    if(parseInt(i)+1 >= channels.length) {
+    if (parseInt(i) + 1 >= channels.length) {
       log(lines.join('\n'), 'info');
       m.channel.send('channels perms calculated');
     }

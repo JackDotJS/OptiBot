@@ -1,6 +1,5 @@
 const fs = require('fs');
 const util = require('util');
-const { patreon, oauth, jsonApiURL } = require('patreon');
 const djs = require('discord.js');
 const path = require('path');
 

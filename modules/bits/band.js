@@ -2,14 +2,14 @@ const { OptiBit, OBUtil } = require('../core/OptiBot.js');
 
 const metadata = {
   name: 'Band Emojis',
-  description: 'todo',
-  usage: 'Just say "band". Not case-sensitive. Does not work if your message contains any more text.',
+  description: '🎺 🎸 🥁 🎤',
+  usage: 'Just type "band". Not case-sensitive. Does not work if your message contains any more text.',
   priority: 0,
   concurrent: true,
   authlvl: 1,
   flags: ['DM_OPTIONAL'],
   validator: null,
-  run: null
+  executable: null
 };
 
 metadata.validator = m => m.content.toLowerCase() === 'band';

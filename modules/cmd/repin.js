@@ -6,11 +6,11 @@ const bot = Memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `Short description. Shows in \`${bot.prefix}list\``,
-  long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
+  short_desc: `Move a pinned message to the top.`,
+  long_desc: `Moves a given pinned message to the top by unpinning and immediately pinning it again. Only works if the given message has already been pinned.`,
   args: '<discord message>',
   authlvl: 2,
-  flags: ['DM_OPTIONAL'],
+  flags: ['DM_OPTIONAL', 'LITE'],
   run: null
 };
 

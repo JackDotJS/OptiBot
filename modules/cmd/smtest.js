@@ -6,9 +6,8 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `Short description. Shows in \`${bot.prefix}list\``,
-  long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
-  args: '[args]',
+  short_desc: `Calculate OptiBot's per-channel mod/posting rules.`,
+  long_desc: `Calculates per-channel custom modification and posting rules as defined in OptiBot's config.json. \n\nDeveloper note: The current implementation of this command was meant to be a temporary testing thing which only posts the result to the bot's console log. While it's still meant for development only, I want to expand on this and have it post a regular message at some point, simply cus it's a bit easier to work with. -Jack`,
   authlvl: 5,
   flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
   run: null

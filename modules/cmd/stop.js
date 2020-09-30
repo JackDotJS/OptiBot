@@ -8,7 +8,7 @@ const metadata = {
   name: path.parse(__filename).name,
   short_desc: 'Shut down OptiBot.',
   authlvl: 4,
-  flags: ['NO_DM', 'NO_TYPER'],
+  flags: ['NO_DM', 'NO_TYPER', 'LITE'],
   run: null
 };
 

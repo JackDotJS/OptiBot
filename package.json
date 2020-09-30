@@ -1,6 +1,6 @@
 {
     "name": "optibot",
-    "version": "3.0.0-RC3",
+    "version": "3.0.0-RC4",
     "description": "Official OptiFine Discord Server bot.",
     "homepage": "https://discord.gg/3mMpcwW",
     "author": {
@@ -23,7 +23,6 @@
         "jaro-winkler": "^0.2.8",
         "jimp": "^0.10.3",
         "nedb": "^1.8.0",
-        "pastebin-js": "^1.0.4",
         "request": "^2.88.0",
         "request-promise": "^4.2.5",
         "string-similarity": "^3.0.0",

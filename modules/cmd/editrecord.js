@@ -21,7 +21,7 @@ const metadata = {
   ].join('\n'),
   args: '<discord member> <case ID> <property> [new value]',
   authlvl: 2,
-  flags: ['NO_DM', 'STRICT', 'NO_TYPER'],
+  flags: ['NO_DM', 'STRICT', 'NO_TYPER', 'LITE'],
   run: null
 };
 

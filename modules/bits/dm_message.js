@@ -12,7 +12,7 @@ const metadata = {
   authlvl: -1,
   flags: ['DM_ONLY', 'HIDDEN'],
   validator: null,
-  run: null
+  executable: null
 };
 
 metadata.validator = () => true;

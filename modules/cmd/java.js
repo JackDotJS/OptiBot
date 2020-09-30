@@ -7,7 +7,8 @@ const bot = Memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: ['jdk', 'jre', 'ojdk', 'openjdk'],
-  short_desc: 'Provides some links to download Java.',
+  short_desc: 'Get some links to download Java.',
+  long_desc: 'Provides various links to download Java.',
   authlvl: 0,
   flags: ['DM_OPTIONAL', 'NO_TYPER'],
   run: null

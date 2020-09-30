@@ -8,9 +8,9 @@ const bot = Memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: ['optibit', 'bits', 'bit'],
-  short_desc: 'Display OptiBits.',
-  long_desc: 'Displays all OptiBits.',
-  args: '[page number|query]',
+  short_desc: 'Show OptiBits.',
+  long_desc: `Displays information for all OptiBits. (This will be moved to \`${bot.prefix}help\` and \`${bot.prefix}list\` in a future update.)`,
+  args: '[page number]',
   authlvl: 0,
   flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY'],
   run: null
@@ -19,16 +19,18 @@ const metadata = {
 metadata.run = (m, args, data) => {
   const list = Memory.assets.optibits;
 
-  if (args[0] && !Number.isInteger(parseInt(args[0]))) return m.channel.send('todo').then(msg => OBUtil.afterSend(msg, m.author.id));
-
   let filtered = list;
   let ftext = '';
-  const selectPage = parseInt(args[0]);
+  const selectPage = parseInt(args[0]) || 0;
   const isModChannel = (m.channel.type === 'dm' || [m.channel.id, m.channel.parentID].some(e => bot.cfg.channels.mod.includes(e)));
 
-  if (!isModChannel && data.authlvl > 0) {
-    filtered = list.filter((bit) => (bit.metadata.authlvl === 0 && bit.metadata.flags['HIDDEN'] === false));
-    ftext = 'Note: Some OptiBits have been hidden because you\'re in a public channel.';
+  if (data.authlvl > 0) {
+    if(isModChannel) {
+      filtered = list.filter((bit) => (bit.metadata.authlvl <= data.authlvl));
+    } else {
+      filtered = list.filter((bit) => (bit.metadata.authlvl === 0 && bit.metadata.flags['HIDDEN'] === false));
+      ftext = 'Note: Some OptiBits have been hidden because you\'re in a public channel.';
+    }
   } else {
     filtered = list.filter((bit) => (bit.metadata.authlvl <= data.authlvl && bit.metadata.flags['HIDDEN'] === false));
   }
@@ -46,7 +48,7 @@ metadata.run = (m, args, data) => {
     .setTitle(bit.name)
     .setDescription(bit.description);
 
-  if (bit.usage != null) embed.addField('Usage', bit.usage);
+  if (bit.usage != null) embed.addField('Usage', `${bit.usage}\n**\`\`\`fix\nRemember: OptiBits aren't commands! \nYou don't need any prefixes to use this!\`\`\`**`);
 
   if (ftext.length > 0) embed.setFooter(ftext);
 

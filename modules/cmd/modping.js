@@ -1,4 +1,6 @@
 const path = require('path');
+const djs = require('discord.js');
+const util = require('util');
 const { Command, OBUtil, Memory } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
@@ -8,9 +10,9 @@ const metadata = {
   name: path.parse(__filename).name,
   aliases: ['pingmods', 'moderator', 'moderators', 'mods'],
   short_desc: 'Ping server moderators.',
-  long_desc: 'Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.** \n\nAdditionally, this command tries to minimize mass pings by only selecting moderators that have sent a message in the past 10 minutes, or those who are simply online. \nThe selection priority works as follows:\n\n**1.** Recent Messages\n**2.** "Online" status\n**3.** All with the <@&467060304145023006> or <@&644668061818945557> roles.',
+  long_desc: 'Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.** \n\nAdditionally, this command tries to minimize mass pings by only selecting moderators that have sent a message in the past 10 minutes, or those who are simply online. \nThe selection priority works as follows:\n\n**1.** Recent Messages\n**2.** Online status\n**3.** All with the <@&467060304145023006> or <@&644668061818945557> roles.',
   authlvl: 0,
-  flags: ['NO_DM', 'NO_TYPER', 'STRICT'],
+  flags: ['NO_DM', 'NO_TYPER', 'STRICT', 'LITE'],
   run: null
 };
 
@@ -19,8 +21,6 @@ metadata.run = m => {
   const pinged = [m.author.id];
 
   let pings = null;
-
-  let pingType = 0;
   let attempts = 0;
   const startMsg = [];
 
@@ -99,6 +99,23 @@ metadata.run = m => {
     return data;
   }
 
+  function getDebugInfo() {
+    const contents = [
+      `attempts: ${attempts}`,
+      ``,
+      `pinged:`,
+      util.inspect(pinged),
+      ``,
+      `getPings():`,
+      util.inspect(pings),
+      ``,
+      `Memory.mods:`,
+      util.inspect(Memory.mods)
+    ].join('\n');
+
+    return new djs.MessageAttachment(Buffer.from(contents), 'debug.txt');
+  }
+
   if (Memory.mpc.includes(m.channel.id)) {
     return m.channel.send(`Sorry ${m.author}, this command is currently on cooldown in this channel. Please wait a few moments before trying this again.`)
       .then(bm => OBUtil.afterSend(bm, m.author.id));
@@ -120,6 +137,12 @@ metadata.run = m => {
     '',
     'Moderators: If you\'re available, please use the reaction button (<:confirm:672309254279135263>) or send a message in this channel to begin resolving this issue.'
   );
+
+  // debugging for #224
+  bot.mainGuild.channels.cache.get('659313704428634172')
+    .send('<@181214529340833792>', { files: [ getDebugInfo() ]}).catch(err => {
+      OBUtil.err(err);
+    });
 
   m.channel.send(startMsg.join('\n')).then(msg => {
     attempts++;
@@ -152,14 +175,14 @@ metadata.run = m => {
 
       mc.on('collect', (mm) => {
         /**
-                 * the only reason we need the bot's own reaction
-                 * is explicitly so this exact function works. the
-                 * reaction is literally never used for anything
-                 * except to prevent D.JS from throwing an error
-                 * here. its fucking stupid i know but it's the
-                 * only way i can make this work right now and im
-                 * tired. fuck you
-                 */
+         * the only reason we need the bot's own reaction
+         * is explicitly so this exact function works. the
+         * reaction is literally never used for anything
+         * except to prevent D.JS from throwing an error
+         * here. its fucking stupid i know but it's the
+         * only way i can make this work right now and im
+         * tired. fuck you
+         */
         df.handleCollect(godfuckingdammit, mm.author);
       });
 
@@ -167,7 +190,7 @@ metadata.run = m => {
         mc.stop();
         if (reason === 'time') {
           // post next level of pings
-          if (pingType !== 2 && pinged.length !== pings.ids.everyone.length) {
+          if (pinged.length !== pings.ids.everyone.length) {
             pings = getPings();
 
             const newtext = [
@@ -186,10 +209,15 @@ metadata.run = m => {
               msg.edit(startMsg[0]);
             }
 
+            // debugging for #224
+            bot.mainGuild.channels.cache.get('659313704428634172')
+              .send('<@181214529340833792>', { files: [ getDebugInfo() ]}).catch(err => {
+                OBUtil.err(err);
+              });
+
             m.channel.send(newtext.join('\n')).then(() => {
               attempts++;
               if (pinged.length !== pings.ids.everyone.length) {
-                if (attempts > 2) pingType++;
                 tryResolution(godfuckingdammit);
               } else {
                 resolve();

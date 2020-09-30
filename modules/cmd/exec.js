@@ -17,7 +17,7 @@ const metadata = {
   short_desc: 'Evaluate JavaScript code.',
   args: '<code>',
   authlvl: 5,
-  flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'HIDDEN', 'DELETE_ON_MISUSE'],
+  flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'HIDDEN', 'DELETE_ON_MISUSE', 'LITE'],
   run: null
 };
 

@@ -105,7 +105,7 @@ module.exports = class OptiBot extends djs.Client {
         // normal
         pr.status = 'online';
         pr.activity.type = 'LISTENING';
-        pr.activity.name = `${bot.prefix}help`;
+        pr.activity.name = `${bot.prefix}about`;
       }
     } else
     if (type === 2) {

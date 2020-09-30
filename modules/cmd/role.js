@@ -10,7 +10,7 @@ const metadata = {
   name: path.parse(__filename).name,
   aliases: ['rank'],
   short_desc: 'Add or remove member roles.',
-  long_desc: 'Adds or removes roles for the specified member.',
+  long_desc: 'Adds or removes roles for the specified member. Note that roles are not retained if the given member leaves the server.',
   args: '<discord member> <role>',
   authlvl: 2,
   flags: ['NO_DM', 'LITE'],

@@ -18,7 +18,10 @@
     ],
     "quotes": [
       "warn",
-      "single"
+      "single",
+      {
+        "allowTemplateLiterals": true
+      }
     ],
     "semi": [
       "warn",

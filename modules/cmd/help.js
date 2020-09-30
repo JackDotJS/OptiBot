@@ -7,9 +7,9 @@ const bot = Memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: 'Getting started with OptiBot.',
-  long_desc: 'Gives a brief introduction to OptiBot.',
-  args: '[command]',
+  short_desc: 'Show command details and information.',
+  long_desc: 'Gives detailed information about a given command.',
+  args: '<command>',
   authlvl: 0,
   flags: ['DM_OPTIONAL', 'NO_TYPER', 'BOT_CHANNEL_ONLY'],
   run: null
@@ -17,40 +17,31 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
   if (!args[0]) {
-    // default help page
-    const desc = [
-      `To use any command, simply type a prefix (\`${bot.prefixes.join('`, `')}\`) immediately followed by the name/alias of the command. Command arguments are separated by spaces, like so: \`${bot.prefix}command <arg1> <arg2> <arg3> ...\``,
-      '',
-      'Necessary arguments are listed in **<**angle brackets**>**, otherwise they\'re listed in **[**square brackets**]**. You can use shortcuts for arguments that require a Discord user/message, such as @mentions, user IDs, message URLs, and the "arrow" shortcut (`^`). Arguments that require a length of time can be specified as a number followed by a time format. Without the format, this will default to hours. For example, 24 hours could be written as "24" or "1d". Supported formats include (__s__)econds, (__m__)inutes, (__h__)ours, (__d__)ays, and (__w__)eeks.',
-      '',
-      `You can find detailed information about any command by typing \`${bot.prefix}help <command name>\`.`,
-      `For more information about the OptiBot project, you can use the \`${bot.prefix}about\` command.`
-    ];
-
-    const embed = new djs.MessageEmbed()
-      .setColor(bot.cfg.embed.default)
-      .setAuthor('Getting Started', Assets.getEmoji('ICO_info').url)
-      .setThumbnail(bot.user.displayAvatarURL({ format: 'png', size: 64 }))
-      .setDescription(desc.join('\n'))
-      .addField('Commands List', `\`\`\`${bot.prefix}list\`\`\``)
-      .addField('Other Features', `\`\`\`${bot.prefix}optibits\`\`\``);
-
-    m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+    OBUtil.err(`You must specify a command.`, { m });
   } else {
     Assets.fetchCommand(args[0]).then((cmd) => {
       if (!cmd || (cmd.metadata.flags['HIDDEN'] && data.authlvl < cmd.metadata.authlvl)) {
         OBUtil.err(`The "${args[0]}" command does not exist.`, { m });
       } else if (data.authlvl < cmd.metadata.authlvl) {
-        OBUtil.err(`You do not have permission to view the "${args[0]}" command.`, bot, { m });
+        OBUtil.err(`You do not have permission to view the "${args[0]}" command.`, { m });
       } else {
         const md = cmd.metadata;
+
+        const advancedUsage = [
+          `Required arguments are listed in <angle brackets>`,
+          `Optional arguments are listed in [square brackets] in addition to being highlighted in blue.`,
+          ``,
+          `You can use "shortcuts" for arguments that require a Discord user or message. This includes @mentions, user IDs, message URLs, and the "arrow" shortcut (^) which refers to the user or message directly above yours.`,
+          ``,
+          `Arguments that require a length of time can be specified as a number followed by a time measurement. Without the measurement, this will default to hours. For example, 24 hours could be written as either "24" or "1d". Supported measurements include (s)econds, (m)inutes, (h)ours, (d)ays, and (w)eeks.`
+        ].join('\n');
 
         const embed = new djs.MessageEmbed()
           .setColor(bot.cfg.embed.default)
           .setAuthor('OptiBot Commands', Assets.getEmoji('ICO_info').url)
           .setTitle(`${bot.prefix}${md.name}`)
           .setDescription(md.long_desc)
-          .addField('Usage', md.args);
+          .addField('Usage', `[(i)](${m.url.replace(/\/\d+$/, '')} "${advancedUsage}") ${md.args}`);
 
         if (md.aliases.length > 0) {
           embed.addField('Alias(es)', `\`\`\`${bot.prefix}${md.aliases.join(`, ${bot.prefix}`)}\`\`\``);

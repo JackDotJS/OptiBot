@@ -10,7 +10,7 @@ const metadata = {
   short_desc: 'Search staff policies.',
   args: '<query>',
   authlvl: 1,
-  flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'DELETE_ON_MISUSE'],
+  flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'DELETE_ON_MISUSE', 'LITE'],
   run: null
 };
 

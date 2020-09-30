@@ -11,7 +11,7 @@ const metadata = {
   short_desc: 'Reload OptiBot assets.',
   long_desc: 'Reloads OptiBot assets, such as commands, OptiBits, core classes, and images.',
   authlvl: 5,
-  flags: ['DM_OPTIONAL', 'NO_TYPER'],
+  flags: ['DM_OPTIONAL', 'NO_TYPER', 'LITE'],
   run: null
 };
 

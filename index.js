@@ -385,11 +385,11 @@ bot.on('message', (m) => {
 process.on('message', (m) => {
   if (m.crashlog) {
     log('got crash data');
-    bot.mainGuild.members.fetch({ user: '181214529340833792', cache: true }).then(jack => {
-      jack.send('**=== OptiBot Crash Recovery Report ===**', new djs.MessageAttachment(`./logs/${m.crashlog}`));
-    }).catch(err => {
-      ob.OBUtil.err(err);
-    });
+    bot.guilds.get(bot.cfg.guilds.log).channels.cache.get(bot.cfg.channels.log.misc)
+      .send(`<@181214529340833792> **=== OptiBot Crash Recovery Report ===**`, new djs.MessageAttachment(`./logs/${m.crashlog}`))
+      .catch(err => {
+        ob.OBUtil.err(err);
+      });
   } else if (m.restart) {
     log('got restart data');
     bot.guilds.cache.get(m.restart.guild).channels.cache.get(m.restart.channel).messages.fetch(m.restart.message).then(msg => {
@@ -1181,6 +1181,10 @@ bot.on('raw', packet => {
     // this packet does not contain the actual message data, unfortunately.
     // as of writing, this only contains the message ID, the channel ID, and the guild ID.
     bot.setTimeout(() => {
+      if (ob.Memory.rdel.includes(packet.d.id)) return; // stops if the message exists in the bot's cache.
+      if (packet.d.guild_id !== bot.cfg.guilds.optifine) return;
+      if (bot.cfg.channels.nolog.includes(packet.d.channel_id)) return;
+
       const logEntry = new ob.LogEntry({ time: now, channel: 'delete', embed: false });
 
       ob.Memory.db.msg.remove({ message: packet.d.id }, {}, (err, num) => {
@@ -1190,10 +1194,6 @@ bot.on('raw', packet => {
           log('Bot message deleted natively.');
         }
       });
-
-      if (ob.Memory.rdel.includes(packet.d.id)) return; // stops if the message exists in the bot's cache.
-      if (packet.d.guild_id !== bot.cfg.guilds.optifine) return;
-      if (bot.cfg.channels.nolog.includes(packet.d.channel_id)) return;
 
       const mt = djs.SnowflakeUtil.deconstruct(packet.d.id).date;
 
@@ -1222,15 +1222,20 @@ bot.on('messageReactionAdd', (mr, user) => {
   if (mr.message.channel.type === 'dm') return;
   if (user.id === bot.user.id) return;
 
+  const isOptiFine = (mr.message.guild.id === bot.cfg.guilds.optifine);
+
   if (mr.emoji.id === bot.cfg.emoji.deleter) {
     const del = (docs, mod, orguser) => {
       if (mr.message.content.indexOf(bot.cfg.messages.confirmDelete) > -1) {
-        const logEntry = new ob.LogEntry({ time: now, channel: 'delete' })
-          .preLoad();
+        const logEntry = new ob.LogEntry({ time: now, channel: 'delete' });
+
+        if (isOptiFine) logEntry.preLoad();
+
         mr.message.delete().then((bm) => {
           ob.Memory.db.msg.remove(docs[0], {}, (err) => {
             if (err) {
-              logEntry.error(err);
+              if (isOptiFine) logEntry.error(err);
+              else ob.OBUtil.err(err);
             } else {
               const desc = [
                 `Message originally posted on ${bm.createdAt.toUTCString()}`,
@@ -1291,11 +1296,12 @@ bot.on('messageReactionAdd', (mr, user) => {
                 });
               }
 
-              logEntry.submit();
+              if (isOptiFine) logEntry.submit();
             }
           });
         }).catch(err => {
-          logEntry.error(err);
+          if (isOptiFine) logEntry.error(err);
+          else ob.OBUtil.err(err);
         });
       } else {
         let nm = `${mr.message.content}\n\n${bot.cfg.messages.confirmDelete}`;

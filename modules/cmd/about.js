@@ -3,31 +3,50 @@ const djs = require('discord.js');
 const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
 
 const bot = Memory.core.client;
-const contributors = require(path.resolve('./cfg/contributors.json'));
-const donators = require(path.resolve('./cfg/donators.json'));
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: 'About OptiBot.',
+  short_desc: 'Show information about OptiBot itself.',
+  long_desc: 'Displays information about OptiBot itself, and how to get started using it.',
   authlvl: 0,
-  flags: ['DM_OPTIONAL', 'NO_TYPER', 'BOT_CHANNEL_ONLY'],
+  flags: ['DM_OPTIONAL', 'NO_TYPER', 'BOT_CHANNEL_ONLY', 'LITE'],
   run: null
 };
 
 metadata.run = (m) => {
+  const devsSorted = bot.mainGuild.roles.cache.get(bot.cfg.roles.botdev).members
+    .sort((a, b) => a.joinedTimestamp - b.joinedTimestamp)
+    .map(member => member.toString());
+
+  const developers = devsSorted.reduce((str, one, i, arr) => {
+    if(i+1 === arr.length) {
+      str += `, and ${one}`;
+    } else {
+      str += `, ${one}`;
+    }
+
+    return str;
+  });
+
+  const desc = [
+    `Developed and maintained by ${developers} out of love for a great community.`,
+    ``,
+    `To use any command, simply type a prefix (\` ${bot.prefixes.join(' `, ` ')} \`) immediately followed by the name/alias of the command. Command arguments are separated by spaces, like so: \` ${bot.prefix}command <arg1> <arg2> <arg3> ... \``
+  ];
+
   const embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor('About', Assets.getEmoji('ICO_info').url)
+    .setAuthor(`OptiBot`, Assets.getEmoji('ICO_info').url)
     .setThumbnail(bot.user.displayAvatarURL({ format: 'png', size: 64 }))
     .setTitle('The official OptiFine Discord server bot. \n\n')
-    .setDescription('Developed and maintained by <@181214529340833792>, <@251778569397600256>, and <@225738946661974017> out of love for a great community.')
-    .addField('Version', bot.version, true)
-    .addField('Session Uptime', uptime(process.uptime() * 1000), true)
-    .addField('Contributors', contributors.join(' '))
-    .addField('Ko-fi Supporters', donators.join(' '));
+    .setDescription(desc.join('\n'))
+    .addField('Commands List', `\`\`\`${bot.prefix}list\`\`\``, true)
+    .addField('Command Details', `\`\`\`${bot.prefix}help <command>\`\`\``, true)
+    .setFooter([
+      `Version: ${bot.version}`,
+      `Session Uptime: ${uptime(process.uptime() * 1000)}`
+    ].join('\n'));
 
-
-  // You can send a straight embed without the content. Discord.js will do the heavy lifting
   m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
 };
 

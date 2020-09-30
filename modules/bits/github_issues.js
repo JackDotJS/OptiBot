@@ -7,14 +7,20 @@ const log = bot.log;
 
 const metadata = {
   name: 'GitHub Issue Detector',
-  description: 'todo',
-  usage: 'Type a hash ` # ` immediately followed by a series of numbers, like so: ` #1234 `. Does not work if the overall number is NOT surrounded by empty space, periods, or any other word-ending characters (e.g, brackets ` [] ` and parenthesis ` () `). Additionally, this outright ignores all issues from #1 to #100.',
+  description: 'Links OptiFine GitHub issues and pull requests when mentioned by their numerical ID.',
+  usage: [
+    `Type a hash \` # \` immediately followed by the given issue ID, like so: \` #1234 \`.`,
+    ``,
+    `Note that IDs are ignored if they are:`,
+    `1. Surrounded by ANYTHING EXCEPT empty space, periods, parenthesis \` () \`, and other similar word-ending characters.`,
+    `2. Issues #100 and older.`
+  ].join('\n'),
   priority: 2,
   concurrent: true,
   authlvl: 0,
   flags: ['DM_OPTIONAL'],
   validator: null,
-  run: null
+  executable: null
 };
 
 metadata.validator = m => m.content.includes('#');

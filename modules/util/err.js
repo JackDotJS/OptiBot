@@ -1,7 +1,7 @@
 const Memory = require('../core/OptiBotMemory.js');
 const djs = require('discord.js');
 const Assets = require('../core/OptiBotAssetsManager.js');
-const OptiBotUtilities = require('../core/OptiBotUtil');
+const afterSend = require('./afterSend.js');
 
 /**
      * Creates a simple, pre-formatted error message.
@@ -75,7 +75,7 @@ module.exports = (err, data = {}) => {
 
   if (data.m) {
     data.m.channel.send({ embed: embed }).then(bm => {
-      OptiBotUtilities.afterSend(bm, data.m.author.id);
+      afterSend(bm, data.m.author.id);
     }).catch(e => log(e.stack, 'error'));
   } else {
     return embed;

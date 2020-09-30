@@ -7,8 +7,8 @@ const bot = Memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: ['addpoint', 'addp', 'ap', 'points'],
-  short_desc: 'Add points to a user.',
-  long_desc: 'Gives a number of points to a given user.',
+  short_desc: 'Add violation points to a user.',
+  long_desc: 'Gives a number of violation points to a given user.',
   args: '<discord member> <points> [reason]',
   authlvl: 2,
   flags: ['NO_DM', 'STRICT', 'LITE'],

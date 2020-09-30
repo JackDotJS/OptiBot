@@ -11,12 +11,12 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   // aliases: ['aliases'],
-  short_desc: `Short description. Shows in \`${bot.prefix}list\``,
-  long_desc: `Long description. Shows in \`${bot.prefix}help\` and tooltips in \`${bot.prefix}list\``,
+  short_desc: `Short description. Shows when viewed with \` ${bot.prefix}list \``,
+  long_desc: `Long description. Shows when using \` ${bot.prefix}help ${path.parse(__filename).name} \` and tooltips in \` ${bot.prefix}list \``,
   args: '[args]',
   image: 'IMG_args',
   authlvl: 5,
-  flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN'],
+  flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN', 'LITE'],
   run: null
 };
 

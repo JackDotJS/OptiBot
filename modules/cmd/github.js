@@ -7,7 +7,8 @@ const bot = Memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: ['issues', 'git', 'issue'],
-  short_desc: 'Provides a link to OptiFine\'s issue tracker.',
+  short_desc: 'Get a link to OptiFine\'s issue tracker.',
+  long_desc: 'Provides a link to OptiFine\'s issue tracker on GitHub.',
   authlvl: 0,
   flags: ['DM_OPTIONAL', 'NO_TYPER'],
   run: null

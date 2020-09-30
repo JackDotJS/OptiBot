@@ -207,7 +207,7 @@ metadata.run = (m, args, data) => {
     pageNum = selectPage;
   }
 
-  const tooltip = '[?]';
+  const tooltip = '(i)';
 
   const embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
@@ -281,7 +281,7 @@ metadata.run = (m, args, data) => {
       hover_text.push('⚠ This is a hidden command. OptiBot will act as if this command does not exist to any user who does not have permission.');
     }
 
-    embed.addField(`${bot.prefix + cmd.name}`, `${cmd.short_desc} [${tooltip}](${m.url.replace(/\/\d+$/, '')} "${hover_text.join('\n')}") ${(filtered[i]._qr != null) ? `\`(${(filtered[i]._qr * 100).toFixed(1)}%)\`` : ''}`);
+    embed.addField(`${bot.prefix + cmd.name}`, `${cmd.short_desc} [${tooltip}](${m.url.replace(/\/\d+$/, '')} "${hover_text.join('\n')}") ${(filtered[i]._qr != null) ? `\` (${(filtered[i]._qr * 100).toFixed(1)}%) \`` : ''}`);
     added++;
 
     if (added >= 10 || i + 1 >= filtered.length) {

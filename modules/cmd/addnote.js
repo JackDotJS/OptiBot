@@ -9,11 +9,11 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: ['addrecord', 'addrecords'],
-  short_desc: 'Add a moderation note to someone\'s record.',
-  long_desc: `Adds a moderation note to someone's record. These notes can be edited with the \`${bot.prefix}editrecord\` command, and removed at any time by using the \`${bot.prefix}rmnote\` command.`,
+  short_desc: 'Add a note to a user\'s record.',
+  long_desc: `Adds a note to a given user's record. These notes can be edited with the \`${bot.prefix}editrecord\` command, and removed at any time by using the \`${bot.prefix}rmnote\` command.`,
   args: '<discord member> <text>',
   authlvl: 2,
-  flags: ['NO_DM', 'STRICT', 'NO_TYPER'],
+  flags: ['NO_DM', 'STRICT', 'NO_TYPER', 'LITE'],
   run: null
 };
 

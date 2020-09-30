@@ -7,7 +7,8 @@ const bot = Memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: ['site', 'optisite', 'website', 'optifine', 'dl'],
-  short_desc: 'Provides a link to download OptiFine.',
+  short_desc: 'Get some links to download OptiFine',
+  long_desc: 'Provides various links to download OptiFine.',
   authlvl: 0,
   flags: ['DM_OPTIONAL', 'NO_TYPER'],
   run: null

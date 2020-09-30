@@ -16,10 +16,10 @@ const metadata = {
   image: 'IMG_args',
   priority: -1,
   concurrent: false,
-  authlvl: 999,
+  authlvl: 1000,
   flags: ['DM_OPTIONAL', 'HIDDEN'],
   validator: null,
-  run: null
+  executable: null
 };
 
 metadata.validator = (m, member, authlvl) => {

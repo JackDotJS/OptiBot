@@ -7,7 +7,8 @@ const bot = Memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   //aliases: [''],
-  short_desc: 'Information about OptiFine donations.',
+  short_desc: 'Show OptiFine donation information.',
+  long_desc: 'Shows information about OptiFine donations.',
   authlvl: 0,
   flags: ['DM_OPTIONAL', 'NO_TYPER'],
   run: null

@@ -7,14 +7,19 @@ const { Command, OBUtil, Memory } = require('../core/OptiBot.js');
 const metadata = {
   name: path.parse(__filename).name,
   aliases: ['logs'],
-  short_desc: 'Download latest log file(s).',
+  short_desc: 'Download OptiBot log(s).',
   long_desc: 'Downloads the latest log file(s) that OptiBot has generated. The "bulk" argument will default to loading 5 log files unless otherwise specified.',
   args: [
     '',
     'bulk [amount|all]'
   ],
+  /* todo
+  args: [
+    '[amount]',
+    'all'
+  ], */
   authlvl: 5,
-  flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY'],
+  flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'LITE'],
   run: null
 };
 

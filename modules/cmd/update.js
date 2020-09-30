@@ -9,7 +9,7 @@ const metadata = {
   short_desc: 'Force update OptiBot',
   args: '[skip]',
   authlvl: 4,
-  flags: ['NO_DM', 'NO_TYPER', 'IGNORE_ELEVATED'],
+  flags: ['NO_DM', 'NO_TYPER', 'IGNORE_ELEVATED', 'LITE'],
   run: null
 };
 

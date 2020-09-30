@@ -7,7 +7,7 @@ const bot = Memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `Force update <#${bot.cfg.channels.rules}> channel.`,
+  short_desc: `Force update <#${bot.cfg.channels.rules}>.`,
   long_desc: `Forcefully updates the <#${bot.cfg.channels.rules}> channel with a given file.`,
   args: [
     '<attachment>',

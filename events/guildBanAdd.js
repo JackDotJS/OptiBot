@@ -1,6 +1,6 @@
 const cid = require('caller-id');
 const util = require('util');
-const ob = require('./modules/core/OptiBot.js');
+const ob = require('../modules/core/OptiBot.js');
 
 const log = (message, level, file, line) => {
   const call = cid.getData();
@@ -64,18 +64,11 @@ module.exports = (bot, guild, user) => {
         }
       }
 
-      log('ban: got here');
       logEntry.setColor(bot.cfg.embed.error);
-      log('ban: got here');
       logEntry.setIcon(ob.Assets.getEmoji('ICO_ban').url);
-      log('ban: got here');
       logEntry.setThumbnail(user.displayAvatarURL({ format: 'png' }));
-      log('ban: got here');
       logEntry.setTitle('Member Banned', 'Member Ban Report');
-      log('ban: got here');
       logEntry.addSection('Banned Member', user);
-
-      log('ban: got here');
 
       if (reason) {
         logEntry.setHeader(`Reason: ${reason}`);
@@ -91,39 +84,26 @@ module.exports = (bot, guild, user) => {
         logEntry.addSection('Moderator Responsible', 'Error: Unable to determine.');
       }
 
-      log('ban: got here');
-
       ob.OBUtil.getProfile(user.id, true).then(profile => {
         if (!profile.edata.record) profile.edata.record = [];
 
         log('ban: got here 3');
 
         const recordEntry = new ob.RecordEntry({ date: now });
-        log('ban: got here 4');
         recordEntry.setAction('ban');
-        log('ban: got here 4');
         recordEntry.setActionType('add');
-
-        log('ban: got here 3');
 
         if (reason !== null) {
           recordEntry.setReason(bot.user, reason);
         }
 
-        log('ban: got here 3');
-
         if (mod !== null) {
           recordEntry.setMod(mod.id);
         }
 
-        log('ban: got here 3');
-
         profile.edata.record.push(recordEntry.raw);
 
-        log('ban: got here');
-
         ob.OBUtil.updateProfile(profile).then(() => {
-          log('ban: got here');
           log('ban addition record successfully saved');
           logEntry.submit();
         }).catch(err => {

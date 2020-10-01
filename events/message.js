@@ -75,7 +75,7 @@ module.exports = (bot, m) => {
 
       ob.Memory.li = new Date().getTime();
 
-      log(authlvl);
+      //log(authlvl);
 
       ob.Assets.fetchCommand(input.cmd).then(cmd => {
         const unknownCMD = () => {

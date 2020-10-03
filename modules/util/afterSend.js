@@ -2,8 +2,6 @@ const Memory = require('../core/OptiBotMemory.js');
 const OptiBotUtilities = require('../core/OptiBotUtil');
 const djs = require('discord.js'); // eslint-disable-line no-unused-vars
 
-
-
 /**
      * Performs various actions after sending a message.
      * This should ONLY be used in the `then()` function of a `channel.send()` promise.

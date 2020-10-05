@@ -14,7 +14,7 @@ const metadata = {
   long_desc: `Adds a tag to the tag database. Can be retrieved by typing \`${bot.prefix}tag <tag name>\``,
   args: '<tag name> <tag content>',
   image: 'IMG_args',
-  authlvl: 3,
+  authlvl: 1,
   flags: ['DM_OPTIONAL', 'LITE'],
   run: null
 };
@@ -28,7 +28,7 @@ metadata.run = (m, args, data) => {
   if (!tagName) return OBUtil.err('Missing tag name', { m });
   if (!tagDescription) return OBUtil.err('Missing tag description', { m });
 
-  tagsDB.insert({ name: tagName, description: tagDescription, username: m.author.username }, (err, doc) => {
+  tagsDB.insert({ name: tagName, description: tagDescription, userID: m.author.id }, (err, doc) => {
     if (err) return OBUtil.err(err, { m });
 
     m.channel.send(`✅ \`|\` :pencil: **Tag \`${doc.name}\` created.**`).then(bm => OBUtil.afterSend(bm, m.author.id));

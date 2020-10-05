@@ -13,7 +13,7 @@ const metadata = {
   short_desc: `Shows all the tags in the database`,
   long_desc: `Shows all the tags in the database`,
   image: 'IMG_args',
-  authlvl: 3,
+  authlvl: 0,
   flags: ['DM_OPTIONAL', 'LITE'],
   run: null
 };

@@ -14,7 +14,7 @@ const metadata = {
   long_desc: `Retrieves a tag from the tag database.`,
   args: '<tag name>',
   image: 'IMG_args',
-  authlvl: 3,
+  authlvl: 0,
   flags: ['DM_OPTIONAL', 'LITE'],
   run: null
 };

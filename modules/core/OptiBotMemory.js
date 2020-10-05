@@ -32,7 +32,8 @@ const memory = {
     bl: new database({ filename: './data/blacklist.db', autoload: true }),
     faq: new database({ filename: './data/faq.db', autoload: true }),
     pol: new database({ filename: './data/policies.db', autoload: true }), // policies search keywords
-    rules: new database({ filename: './data/rules.db', autoload: true }) // rules search keywords
+    rules: new database({ filename: './data/rules.db', autoload: true }), // rules search keywords
+    tags: new database({ filename: './data/tags.db', autoload: true }) // essentially custom commands
   },
   _temp: null, // used to hold boot function when bot cant connect
   sm: {},

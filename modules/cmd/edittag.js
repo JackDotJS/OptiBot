@@ -14,7 +14,7 @@ const metadata = {
   long_desc: `Changes the description of the tag in a database.`,
   args: '<tag name> <new description>',
   image: 'IMG_args',
-  authlvl: 3,
+  authlvl: 1,
   flags: ['DM_OPTIONAL', 'LITE'],
   run: null
 };
@@ -27,10 +27,16 @@ metadata.run = (m, args, data) => {
 
   if (!tagName) return OBUtil.err('Missing tag name', { m });
 
-  tagsDB.update({ name: tagName }, { $set: { description: tagDescription } }, {}, (err, numReplaced) => {
+  tagsDB.find({ name: tagName }, (err, doc) => {
     if (err) return OBUtil.err(err, { m });
 
-    return m.channel.send(`✅ \`|\` :pencil: **Tag \`${tagName}\` edited.**`).then(bm => OBUtil.afterSend(bm, m.author.id));
+    if(m.author.id !== doc[0].userID) return OBUtil.err('You cannot edit this user\'s tag!');
+
+    tagsDB.update({ name: tagName }, { $set: { description: tagDescription } }, {}, (err, numReplaced) => {
+      if (err) return OBUtil.err(err, { m });
+  
+      return m.channel.send(`✅ \`|\` :pencil: **Tag \`${tagName}\` edited.**`).then(bm => OBUtil.afterSend(bm, m.author.id));
+    });
   });
 };
 

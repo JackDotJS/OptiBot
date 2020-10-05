@@ -9,7 +9,7 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  // aliases: ['aliases'],
+  aliases: ['createtag'],
   short_desc: `Adds a tag to the tag database`,
   long_desc: `Adds a tag to the tag database. Can be retrieved by typing \`${bot.prefix}tag <tag name>\``,
   args: '<tag name> <tag content>',

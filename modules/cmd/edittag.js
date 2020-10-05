@@ -9,7 +9,7 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  // aliases: ['aliases'],
+  aliases: ['changetag'],
   short_desc: `Edits a tag in the tag database`,
   long_desc: `Changes the description of the tag in a database.`,
   args: '<tag name> <new description>',

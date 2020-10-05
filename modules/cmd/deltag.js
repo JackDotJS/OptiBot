@@ -9,7 +9,7 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  // aliases: ['aliases'],
+  aliases: ['deletetag', 'removetag'],
   short_desc: `Deletes a tag from the tag database`,
   long_desc: `Deletes a tag from the tag database. This action **CANNOT BE UNDONE**`,
   args: '<tag name>',

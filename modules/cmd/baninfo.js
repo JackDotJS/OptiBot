@@ -10,7 +10,7 @@ const metadata = {
   short_desc: 'Get ban information.',
   long_desc: 'Gets information on a given user\'s ban. Includes information from records, if available.',
   args: '<discord member>',
-  authlvl: 1,
+  authlvl: 2,
   flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'LITE'],
   run: null
 };

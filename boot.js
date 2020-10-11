@@ -244,11 +244,11 @@ function q2() {
       q2();
     } else {
       /**
-             * MODE 0 - FULL FEATURE SET, CLOSED ACCESS | CODE MODE
-             * MODE 1 - LIMITED FEATURE SET, CLOSED ACCESS | ULTRALIGHT MODE
-             * MODE 2 - LIMITED FEATURE SET, PUBLIC ACCESS | LITE MODE
-             * MODE 3 - FULL FEATURE SET, PUBLIC ACCESS | NORMAL
-             */
+       * MODE 0 - FULL FEATURE SET, CLOSED ACCESS | CODE MODE
+       * MODE 1 - LIMITED FEATURE SET, CLOSED ACCESS | ULTRALIGHT MODE
+       * MODE 2 - LIMITED FEATURE SET, PUBLIC ACCESS | LITE MODE
+       * MODE 3 - FULL FEATURE SET, PUBLIC ACCESS | NORMAL
+       */
       env.mode = mode;
       if (mode === 0) env.log.level = 0;
 

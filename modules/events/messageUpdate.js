@@ -1,6 +1,6 @@
 const util = require('util');
 const timeago = require('timeago.js');
-const ob = require('../modules/core/OptiBot.js');
+const ob = require('../core/OptiBot.js');
 
 module.exports = (bot, m, mNew) => {
   const now = new Date();

@@ -11,10 +11,17 @@ module.exports = class OptiBot extends djs.Client {
   constructor(options, mode, log) {
     super(options);
 
-    const keys = require(path.resolve('./cfg/keys.json'));
-    const cfg = (mode === 0) ? require(path.resolve('./cfg/debug_config.json')) : require(path.resolve('./cfg/config.json'));
-    const version = require(path.resolve('./package.json')).version;
-    const prefix = cfg.prefixes[0]; // first in array is always default, but all others will be accepted during real usage.
+    // i dont know why these things wont work without path.resolve (yes, even with the correct path)
+    // fuck you, node
+
+    let cfg = require(path.resolve('./cfg/config.json'));
+
+    if (mode === 0) {
+      // load debug config and overwrite properties
+      const cfg_d = require(path.resolve('./cfg/config_debug.json'));
+
+      cfg = Object.assign(cfg, cfg_d);
+    }
 
     const exit = new Date();
     exit.setUTCHours(8, 0, 0, 0); // 8 AM = 1 AM US Pacific, 4 AM US Eastern
@@ -23,16 +30,16 @@ module.exports = class OptiBot extends djs.Client {
       exit.setUTCDate(exit.getUTCDate() + 1);
     }
 
-    this.keys = keys;
+    this.keys = require(path.resolve('./cfg/keys.json'));
     this.log = log;
     this.cfg = cfg;
     this.mode = mode;
     this.pause = true;
     this.exitTime = exit;
     this.locked = (mode === 0 || mode === 1);
-    this.prefix = prefix;
+    this.prefix = cfg.prefixes[0]; // first in array is always default, but all others will be accepted during real usage.
     this.prefixes = cfg.prefixes;
-    this.version = version;
+    this.version = require(path.resolve('./package.json')).version;
 
     Memory.core.client = this;
 

@@ -1,5 +1,5 @@
 const djs = require('discord.js');
-const ob = require('../modules/core/OptiBot.js');
+const ob = require('../core/OptiBot.js');
 
 module.exports = (bot, oldc, newc) => {
   const now = new Date();

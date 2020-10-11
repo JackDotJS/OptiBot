@@ -9,7 +9,7 @@ const metadata = {
   aliases: ['policies', 'policys'],
   short_desc: 'Search staff policies.',
   args: '<query>',
-  authlvl: 1,
+  authlvl: 2,
   flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'DELETE_ON_MISUSE', 'LITE'],
   run: null
 };

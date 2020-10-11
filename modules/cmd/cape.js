@@ -14,7 +14,7 @@ const metadata = {
   aliases: ['cloak', 'elytra'],
   short_desc: 'Show off an OptiFine donator cape.',
   long_desc: 'Displays a given user\'s OptiFine cape and elytra, assuming they\'ve donated and have their cape activated.',
-  args: '<minecraft username | discord member>',
+  args: '<minecraft username>',
   authlvl: 0,
   flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY', 'LITE'],
   run: null
@@ -23,7 +23,7 @@ const metadata = {
 metadata.run = (m, args, data) => {
   if (!args[0]) return OBUtil.missingArgs(m, metadata);
 
-  OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+  /* OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
     if (!result || result.type === 'notfound') {
       getMCname();
     } else {
@@ -37,9 +37,9 @@ metadata.run = (m, args, data) => {
         }
       });
     }
-  });
+  }); */
 
-  function getMCname(uuid, discord) {
+  (function getMCname(uuid, discord) {
     if (uuid) {
       request({ url: `https://api.mojang.com/user/profiles/${uuid}/names`, encoding: null }, (err, res, data) => {
         if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
@@ -73,7 +73,7 @@ metadata.run = (m, args, data) => {
         }
       });
     }
-  }
+  })();
 
   function getCape(player, discord) {
     log(util.inspect(player));
@@ -89,18 +89,25 @@ metadata.run = (m, args, data) => {
     });
 
     // todo: create filters system (#111)
-    /* if(bot.cfg.uuidFilter.indexOf(player.id) > -1) {
-              OBUtil.err(`Sorry, this player's cape has been blacklisted.`, {m});
-          } else {
+    /* if (bot.cfg.uuidFilter.indexOf(player.id) > -1) {
+      OBUtil.err(`Sorry, this player's cape has been blacklisted.`, { m });
+    } else {
 
-          } */
+    } */
   }
 
   function processCape(capeTex, player, discord) {
     Jimp.read(capeTex, (err, image) => {
       if (err) {
-        OBUtil.err(err, { m });
-      } else if (args[1] && args[1].toLowerCase() === 'full') {
+        return OBUtil.err(err, { m });
+      } 
+
+      const imageData = {
+        jimp: image,
+        type: null
+      };
+      
+      if (args[1] && args[1].toLowerCase() === 'full') {
         imageData.type = 'full';
 
         final(imageData, player, discord);
@@ -110,10 +117,7 @@ metadata.run = (m, args, data) => {
 
         final(imageData, player, discord);
       } else {
-        const imageData = {
-          jimp: image,
-          type: null
-        };
+        
 
         let baseW = 46;
         let baseH = 22;

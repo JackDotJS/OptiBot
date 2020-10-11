@@ -96,7 +96,7 @@ metadata.run = (m, args, data) => {
         if (md.authlvl === 0) {
           restrictions.push('<:unlocked:642112465240588338> Available to all server members.');
         } else if (md.authlvl === 1) {
-          restrictions.push('<:locked:642112455333511178> Advisors, Jr. Moderators, and higher.');
+          restrictions.push('<:locked:642112455333511178> Retired Staff, Jr. Moderators, and higher.');
         } else if (md.authlvl === 2) {
           restrictions.push('<:locked:642112455333511178> Jr. Moderators, Moderators, and higher.');
         } else if (md.authlvl === 3) {

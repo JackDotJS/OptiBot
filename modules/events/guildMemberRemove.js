@@ -1,4 +1,4 @@
-const ob = require('../modules/core/OptiBot.js');
+const ob = require('../core/OptiBot.js');
 
 module.exports = (bot, member) => {
   const now = new Date();

@@ -7,42 +7,14 @@ const bot = Memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   short_desc: 'Force update OptiBot',
-  args: '[skip]',
   authlvl: 4,
   flags: ['NO_DM', 'NO_TYPER', 'IGNORE_ELEVATED', 'LITE'],
   run: null
 };
 
-metadata.run = (m, args) => {
+metadata.run = (m) => {
   if (bot.mode === 0) {
     return OBUtil.err('This command cannot be used in mode 0.', { m });
-  }
-
-  function updateNow(msg) {
-    new LogEntry()
-      .setColor(bot.cfg.embed.default)
-      .setIcon(Assets.getEmoji('ICO_door').url)
-      .setTitle('OptiBot is being updated...', 'OptiBot Force Update Report')
-      .addSection('Command Issuer', m.author)
-      .submit().then(() => {
-        const embed = new djs.MessageEmbed()
-          .setAuthor('Updating. See you soon!', Assets.getEmoji('ICO_door').url)
-          .setColor(bot.cfg.embed.default);
-
-        if (msg) {
-          msg.edit({ embed: embed }).then(() => {
-            bot.exit(17);
-          });
-        } else {
-          m.channel.send({ embed: embed }).then(() => {
-            bot.exit(17);
-          });
-        }
-      });
-  }
-
-  if (args[0] && args[0].toLowerCase() === 'skip') {
-    return updateNow();
   }
 
   const embed = new djs.MessageEmbed()
@@ -53,7 +25,22 @@ metadata.run = (m, args) => {
   m.channel.send(embed).then(msg => {
     OBUtil.confirm(m, msg).then(res => {
       if (res === 1) {
-        updateNow(msg);
+        new LogEntry()
+          .setColor(bot.cfg.embed.default)
+          .setIcon(Assets.getEmoji('ICO_door').url)
+          .setTitle('OptiBot is being updated...', 'OptiBot Force Update Report')
+          .addSection('Command Issuer', m.author)
+          .submit().then(() => {
+            const embed = new djs.MessageEmbed()
+              .setAuthor('Updating. See you soon!', Assets.getEmoji('ICO_door').url)
+              .setColor(bot.cfg.embed.default);
+
+            msg.edit({ embed: embed }).then(() => {
+              bot.exit(17);
+            });
+          }).catch(err => {
+            OBUtil.err(err, { m });
+          });
       } else if (res === 0) {
         const update = new djs.MessageEmbed()
           .setAuthor('Cancelled', Assets.getEmoji('ICO_load').url)

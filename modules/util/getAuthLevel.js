@@ -28,7 +28,7 @@ module.exports = (member, ignoreElevated) => {
     if (member.permissions.has('ADMINISTRATOR')) return 4;
     if (member.roles.cache.has(bot.cfg.roles.moderator)) return 3;
     if (member.roles.cache.has(bot.cfg.roles.jrmod)) return 2;
-    if (member.roles.cache.has(bot.cfg.roles.advisor)) return 1;
+    if (member.roles.cache.has(bot.cfg.roles.retired)) return 1;
     if (member.roles.cache.has(bot.cfg.roles.muted)) return -1;
   }
 

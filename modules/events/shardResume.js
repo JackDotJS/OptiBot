@@ -1,6 +1,6 @@
 const cid = require('caller-id');
 const util = require('util');
-const ob = require('../modules/core/OptiBot.js');
+const ob = require('../core/OptiBot.js');
 
 const log = (message, level, file, line) => {
   const call = cid.getData();
@@ -33,11 +33,9 @@ const log = (message, level, file, line) => {
 
 };
 
-module.exports = (bot, oldg, newg) => {
-  if (oldg.available === false && newg.available === true) {
-    log(`Guild available! \n"${newg.name}" has recovered. \nGuild ID: ${newg.id}`, 'warn');
-    if (newg.id === bot.cfg.guilds.optifine) {
-      ob.Memory.core.bootFunc();
-    }
-  }
+module.exports = (bot, id, replayed) => {
+  log(`Shard WebSocket resumed. \nShard ID: ${id} \nEvents replayed: ${replayed}`, 'info');
+  log(util.inspect(bot.ws));
+  ob.OBUtil.setWindowTitle();
+  ob.Memory.presenceRetry = 0;
 };

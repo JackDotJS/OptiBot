@@ -52,7 +52,6 @@ const memory = {
     log: null, // audit log cache
     time: null,
   },
-  mods: [], // all moderators and their current status
   mutes: [], // all users scheduled to be unmuted today
   mpc: [], // channel ids where modping is on cooldown,
   wintitle: null, // text used for console title

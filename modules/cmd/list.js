@@ -18,7 +18,7 @@ const metadata = {
     '**`has:*`** - Same as the above, but 100% more strict.',
     '',
     '**Role-Based**',
-    '**`advisor`** - Lists all <@&695553561064505345> commands.',
+    '**`retired`** - Lists all <@&757863669055881317> commands.',
     '**`jrmod`** - Lists all <@&644668061818945557> commands.',
     '**`srmod`** - Lists all <@&467060304145023006> commands.',
     '**`mod`** - Lists all <@&644668061818945557> **and** <@&467060304145023006> commands.',
@@ -78,7 +78,7 @@ metadata.run = (m, args, data) => {
     }
   };
 
-  if (['dev', 'admin', 'mod', 'srmod', 'jrmod', 'advisor'].includes(menu)) {
+  if (['dev', 'admin', 'mod', 'srmod', 'jrmod', 'retired'].includes(menu)) {
     const auths = [];
 
     switch (menu) {
@@ -104,7 +104,7 @@ metadata.run = (m, args, data) => {
         break;
       default:
         auths.push(1);
-        stext = 'Search Filter: Advisor Commands';
+        stext = 'Search Filter: Retired Staff Commands';
     }
 
     if (data.authlvl < auths[0]) {
@@ -266,7 +266,7 @@ metadata.run = (m, args, data) => {
     if (cmd.authlvl === 0) {
       hover_text.push('🔓 Available to all server members.');
     } else if (cmd.authlvl === 1) {
-      hover_text.push('🔒 Advisors, Jr. Moderators, and higher.');
+      hover_text.push('🔒 Retired Staff, Jr. Moderators, and higher.');
     } else if (cmd.authlvl === 2) {
       hover_text.push('🔒 Jr. Moderators, Moderators, and higher.');
     } else if (cmd.authlvl === 3) {

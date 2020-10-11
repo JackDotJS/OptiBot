@@ -15,7 +15,7 @@ const metadata = {
     '<discord member> [page #] ["full"]',
     '<discord member> ["full"] [page #]',
   ],
-  authlvl: 1,
+  authlvl: 2,
   flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'LITE'],
   run: null
 };

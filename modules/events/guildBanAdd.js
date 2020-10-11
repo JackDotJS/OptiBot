@@ -1,6 +1,6 @@
 const cid = require('caller-id');
 const util = require('util');
-const ob = require('../modules/core/OptiBot.js');
+const ob = require('../core/OptiBot.js');
 
 const log = (message, level, file, line) => {
   const call = cid.getData();

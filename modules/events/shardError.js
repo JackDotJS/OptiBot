@@ -1,6 +1,6 @@
 const cid = require('caller-id');
 const util = require('util');
-const ob = require('../modules/core/OptiBot.js');
+const ob = require('../core/OptiBot.js');
 
 const log = (message, level, file, line) => {
   const call = cid.getData();
@@ -33,8 +33,8 @@ const log = (message, level, file, line) => {
 
 };
 
-module.exports = () => {
-  log('Session Invalidated.', 'fatal');
-  ob.OBUtil.setWindowTitle('Session invalidated.');
-  process.exit(1);
-};
+module.exports = (bot, err, id) => {
+  log(`Shard WebSocket connection error. \nShard ID: ${id} \nStack: ${err.stack || err}`, 'error');
+  log(util.inspect(bot.ws));
+  ob.OBUtil.setWindowTitle();
+};  

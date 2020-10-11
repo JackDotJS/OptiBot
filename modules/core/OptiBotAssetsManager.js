@@ -291,40 +291,6 @@ module.exports = class OptiBotAssetsManager {
       });
 
       stagesAsync.push({
-        name: 'Moderator Presence Pre-cacher',
-        tiers: [true, false, false],
-        load: () => {
-          return new Promise((resolve, reject) => {
-            Memory.mods = [];
-
-            log(bot.cfg.roles.moderator);
-
-            const getModRole = bot.mainGuild.roles.cache.get(bot.cfg.roles.moderator);
-
-            getModRole.members.each(mod => {
-              if (mod.id !== '202558206495555585') {
-                Memory.mods.push({
-                  id: mod.id,
-                  status: mod.presence.status,
-                  last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
-                });
-              }
-            });
-
-            bot.mainGuild.roles.cache.get(bot.cfg.roles.jrmod).members.each(mod => {
-              Memory.mods.push({
-                id: mod.id,
-                status: mod.presence.status,
-                last_message: (mod.lastMessage) ? mod.lastMessage.createdTimestamp : 0
-              });
-            });
-
-            resolve();
-          });
-        }
-      });
-
-      stagesAsync.push({
         name: 'OptiBit Loader',
         tiers: [true, true, false],
         load: () => {

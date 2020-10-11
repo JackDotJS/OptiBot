@@ -1,4 +1,4 @@
-const ob = require('../modules/core/OptiBot.js');
+const ob = require('../core/OptiBot.js');
 const wink = require('jaro-winkler');
 const djs = require('discord.js');
 const util = require('util');
@@ -48,16 +48,6 @@ module.exports = (bot, m) => {
         ob.OBUtil.updateProfile(profile);
       }
     });
-  }
-
-  if (m.channel.type !== 'dm' && m.guild.id === bot.cfg.guilds.optifine) {
-    // update moderator's last message for !modping
-    for (const i in ob.Memory.mods) {
-      if (ob.Memory.mods[i].id === m.author.id) {
-        ob.Memory.mods[i].status = m.author.presence.status;
-        ob.Memory.mods[i].last_message = m.createdTimestamp;
-      }
-    }
   }
 
   const input = ob.OBUtil.parseInput(m.content);

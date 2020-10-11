@@ -2,7 +2,7 @@ const Memory = require('../core/OptiBotMemory.js');
 const djs = require('discord.js');
 const Assets = require('../core/OptiBotAssetsManager.js');
 const Command = require('../core/OptiBotCommand.js');
-const OptiBotUtilities = require('../core/OptiBotUtil');
+const afterSend = require('./afterSend.js');
 
 module.exports = (m, metadata) => {
   const bot = Memory.core.client;
@@ -12,5 +12,5 @@ module.exports = (m, metadata) => {
     .setColor(bot.cfg.embed.default)
     .addField('Usage', Command.parseMetadata(metadata).args);
 
-  m.channel.send(embed).then(bm => OptiBotUtilities.afterSend(bm, m.author.id));
+  m.channel.send(embed).then(bm => afterSend(bm, m.author.id));
 };

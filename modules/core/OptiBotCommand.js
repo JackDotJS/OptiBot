@@ -89,7 +89,7 @@ module.exports = class Command {
              * 
              * -1 = Muted Member
              * 0 = Normal Member
-             * 1 = Advisor
+             * 1 = Retired Staff
              * 2 = Jr. Moderator
              * 3 = Moderator
              * 4 = Administrator

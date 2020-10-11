@@ -1,6 +1,6 @@
 const cid = require('caller-id');
 const util = require('util');
-const ob = require('../modules/core/OptiBot.js');
+const ob = require('../core/OptiBot.js');
 
 const log = (message, level, file, line) => {
   const call = cid.getData();
@@ -33,9 +33,8 @@ const log = (message, level, file, line) => {
 
 };
 
-module.exports = (bot, id, guilds) => {
-  log(`Shard WebSocket ready. \nShard ID: ${id} \nUnavailable Guilds: ${(guilds) ? '\n' + [...guilds].join('\n') : 'None.'}`, 'info');
+module.exports = (bot, id) => {
+  log(`Shard WebSocket reconnecting... \nShard ID: ${id}`, 'warn');
   log(util.inspect(bot.ws));
   ob.OBUtil.setWindowTitle();
-  ob.Memory.presenceRetry = 0;
 };

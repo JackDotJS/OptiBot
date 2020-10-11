@@ -7,6 +7,7 @@
 if (!process.send) throw new Error('Cannot run standalone. Please use the "init.bat" file.');
 
 const cid = require('caller-id');
+const { readdirSync } = require('fs');
 const util = require('util');
 const djs = require('discord.js');
 const ob = require('./modules/core/OptiBot.js');
@@ -64,15 +65,16 @@ bot.login(bot.keys.discord).catch(err => {
   process.exit(1);
 });
 
-const { readdirSync } = require('fs');
 // Load all of the bot events
-const evtFiles = readdirSync('./events/');
-log(`Loading a total of ${evtFiles.length} events.`);
+const evtFiles = readdirSync('./modules/events/');
+
+log(`Loading ${evtFiles.length} event handlers...`);
+
 evtFiles.forEach(async file => {
   const eventName = file.split('.')[0];
-  const event = require(`./events/${file}`);
+  const event = require(`./modules/events/${file}`);
   bot.on(eventName, event.bind(null, bot));
-  await log(`Loaded ${eventName} event`);
+  await log(`Loaded event handler: ${eventName}`);
 });
 
 ////////////////////////////////////////

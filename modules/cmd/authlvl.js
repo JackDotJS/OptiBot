@@ -13,7 +13,7 @@ const metadata = {
   short_desc: 'Test OptiBot member auth levels.',
   long_desc: 'Gives the auth level of a given member, as well as listing your own to compare.',
   args: '<discord member>',
-  authlvl: 1,
+  authlvl: 2,
   flags: ['DM_OPTIONAL', 'NO_TYPER'],
   run: null
 };

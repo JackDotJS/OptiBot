@@ -2,7 +2,7 @@
 const cid = require('caller-id');
 const util = require('util');
 const timeago = require('timeago.js');
-const ob = require('../modules/core/OptiBot.js');
+const ob = require('../core/OptiBot.js');
 
 const log = (message, level, file, line) => {
   const call = cid.getData();
@@ -31,8 +31,6 @@ const log = (message, level, file, line) => {
       log(e2);
     }
   }
-
-
 };
 
 module.exports = (bot, m) => {

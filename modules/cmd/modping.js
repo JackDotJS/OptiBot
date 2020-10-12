@@ -40,7 +40,10 @@ metadata.run = m => {
       ids: null,
       selectTier: 0,
       mentions: null,
-      tiers: null
+      debug: {
+        tiers: null,
+        presence: []
+      }
     };
 
     for (let i = 0; i < staff.length; i++) {
@@ -50,6 +53,22 @@ metadata.run = m => {
 
       if (!pinged.includes(mod.user.id)) {
         pings.all.push(mod.user.id);
+
+        // simplified presence data just to remove clutter (guild, member, etc)
+        const debugPresence = {
+          user: {
+            username: mod.presence.user.username,
+            discriminator: mod.presence.user.discriminator,
+            id: mod.presence.user.id,
+            lastMessageID: mod.presence.user.lastMessageID,
+            lastMessageChannelID: mod.presence.user.lastMessageChannelID
+          },
+          status: mod.presence.status,
+          clientStatus: mod.presence.clientStatus,
+          activities: mod.presence.activities
+        };
+
+        data.debug.presence.push(debugPresence);
 
         if (mod.presence.status === 'online') {
           pings.online.push(mod.user.id);
@@ -108,7 +127,7 @@ metadata.run = m => {
 
     pinged.push(...data.ids);
     data.mentions = `<@${data.ids.join('> <@')}>`;
-    data.tiers = pings;
+    data.debug.tiers = pings;
 
     log(util.inspect(data));
 
@@ -121,13 +140,13 @@ metadata.run = m => {
       `Attempts: ${attempts}`,
       `Select Tier: ${pings.selectTier}`,
       `Previous Tier: ${prevTier}`,
-      `Pinged: ${pinged.length}/${staff.length}`,
+      `Pinged: ${pinged.length-1}/${staff.length}`,
       ``,
       `Pinged IDs:`,
       util.inspect(pinged),
       ``,
       `getPings():`,
-      util.inspect(pings)
+      util.inspect(pings, true, 5),
     ].join('\n');
 
     return new djs.MessageAttachment(Buffer.from(contents), 'debug.txt');
@@ -151,13 +170,13 @@ metadata.run = m => {
     .setColor(bot.cfg.embed.default)
     .setAuthor('A moderator should be with you soon!', Assets.getEmoji('ICO_bell').url);
 
-  m.channel.send('_ _', { embed: embed }).then(pr => {
+  m.channel.send(`${m.author}`, { embed: embed }).then(pr => {
     function getModEmbed() {
       return new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
         .setAuthor('Moderator Presence Request', Assets.getEmoji('ICO_bell').url)
         .setTitle('To begin resolving: Use the reaction button on the following linked message, or send your own message in the given channel.')
-        .setDescription(pr.url)
+        .setDescription(`${pr.channel} | [Direct URL](${pr.url})`)
         .addField('Issuer', `${m.author} | ${m.author.tag} \n\`\`\`yaml\nID: ${m.author.id}\`\`\``)
         .setThumbnail(m.author.displayAvatarURL({ format: 'png' }))
         .setFooter(`Next attempt in ${30 * (attempts+1)} seconds.`);
@@ -188,7 +207,7 @@ metadata.run = m => {
     function tryResolution(godfuckingdammit) {
       pings = getPings();
 
-      bot.channels.cache.get(bot.cfg.channels.modmail).send(pings.mentions, { embed: getModEmbed(), files: [ getDebugInfo() ] }).then(() => {
+      bot.channels.cache.get(bot.cfg.channels.modmail).send(`${pings.mentions} ${pr.channel}`, { embed: getModEmbed(), files: [ getDebugInfo() ] }).then(() => {
         attempts++;
 
         const timeout = (1000 * 30 * attempts);

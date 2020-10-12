@@ -195,7 +195,7 @@ metadata.run = m => {
           .setDescription(`This is taking longer than usual. We'll get back to you as soon as possible.`);
       }
 
-      pr.edit(finalEmbed);
+      pr.edit(`${m.author}`, { embed: finalEmbed });
 
       Memory.mpc.splice(Memory.mpc.indexOf(m.channel.id), 1);
       

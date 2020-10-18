@@ -9,11 +9,10 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['showtag'],
+  aliases: ['showmemo', 'tag', 'showtag'],
   short_desc: `Retrieves a tag from the tag database`,
   long_desc: `Retrieves a tag from the tag database.`,
   args: '<tag name>',
-  image: 'IMG_args',
   authlvl: 0,
   flags: ['DM_OPTIONAL', 'LITE'],
   run: null

@@ -9,7 +9,7 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['createtag'],
+  aliases: ['createtag', 'addmemo', 'creatememo'],
   short_desc: `Adds a tag to the tag database`,
   long_desc: `Adds a tag to the tag database. Can be retrieved by typing \`${bot.prefix}tag <tag name>\``,
   args: '<tag name> <tag content>',
@@ -28,7 +28,13 @@ metadata.run = (m, args, data) => {
   if (!tagName) return OBUtil.err('Missing tag name', { m });
   if (!tagDescription) return OBUtil.err('Missing tag description', { m });
 
-  tagsDB.insert({ name: tagName, description: tagDescription, userID: m.author.id }, (err, doc) => {
+  tagsDB.insert({ 
+    name: tagName, 
+    description: tagDescription,
+    userID: m.author.id, 
+    timeCreated: new Date(), 
+    timeUpdated: new Date() 
+  }, (err, doc) => {
     if (err) return OBUtil.err(err, { m });
 
     m.channel.send(`✅ \`|\` :pencil: **Tag \`${doc.name}\` created.**`).then(bm => OBUtil.afterSend(bm, m.author.id));

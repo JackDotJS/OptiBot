@@ -31,6 +31,9 @@ metadata.run = (m, args, data) => {
 
     if (doc.length === 0) return OBUtil.err(':x: **I couldn\'t find a tag by that name!**', { m });
 
+    const embed = new djs.MessageEmbed()
+      .setColor(bot.cfg.colors.default)
+
     m.channel.send(doc[0].description).then(bm => OBUtil.afterSend(bm, m.author.id));
   });
 };

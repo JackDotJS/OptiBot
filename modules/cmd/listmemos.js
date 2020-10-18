@@ -9,7 +9,7 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['showalltags', 'tags', 'alltags'],
+  aliases: ['showalltags', 'tags', 'alltags', 'listmemos', 'showmemos'],
   short_desc: `Shows all the tags in the database`,
   long_desc: `Shows all the tags in the database`,
   image: 'IMG_args',

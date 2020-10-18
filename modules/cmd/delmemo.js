@@ -9,11 +9,10 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['deletetag', 'removetag'],
+  aliases: ['deletememo', 'removememo', 'rmmemo', 'deltag', 'deletetag', 'removetag', 'rmtag'],
   short_desc: `Deletes a tag from the tag database`,
   long_desc: `Deletes a tag from the tag database. This action **CANNOT BE UNDONE**`,
   args: '<tag name>',
-  image: 'IMG_args',
   authlvl: 1,
   flags: ['DM_OPTIONAL', 'LITE'],
   run: null

@@ -11,7 +11,14 @@ const metadata = {
   name: path.parse(__filename).name,
   aliases: ['verify', 'donator'],
   short_desc: 'Verify donator status.',
-  long_desc: `Verifies your donator status. If successful, this will grant you the donator access role, and reset your donator token in the process. \n\nYou can find your donator token by logging in through the website, at https://optifine.net/login. Look at the bottom of the page for a string of random characters (see picture for example). \n**Remember that your "Donation ID" is NOT your token!**\n\nPlease note that this will NOT automatically verify you for the \`${bot.prefix}cape\` command. Use this command for details: \`${bot.prefix}faq verify cape\``,
+  long_desc: [
+    `Verifies your donator status. If successful, this will grant you the donator role, and reset your donator token in the process.`,
+    ``,
+    `You can find your donator token by logging in through the website, at https://optifine.net/login. Look at the bottom of the page for a string of random characters (see picture for example).`,
+    ``,
+    `__**!!! Your account password is NOT your token !!!**__`,
+    `__**!!! Your donation ID is NOT your token !!!**__`,
+  ].join('\n'),
   args: '<e-mail> <token>',
   authlvl: 0,
   image: 'IMG_token',
@@ -126,7 +133,7 @@ metadata.run = (m, args, data) => {
         if (err || !res || !body || res.statusCode !== 200) {
           OBUtil.err(err || new Error('Failed to get a response from the OptiFine API'), { m: m });
         } else if (body === 'true') {
-          data.member.roles.add(bot.cfg.roles.donator, 'Donator status verified.').then(() => {
+          data.member.roles.add([bot.cfg.roles.donator, bot.cfg.roles.donatorColor], 'Donator status verified.').then(() => {
             if (donator.member) {
               const embed = new djs.MessageEmbed()
                 .setColor(bot.cfg.embed.okay)

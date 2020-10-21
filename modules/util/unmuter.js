@@ -1,5 +1,7 @@
 const Memory = require('../core/OptiBotMemory.js');
-const OptiBotUtilities = require('../core/OptiBotUtil');
+const OBerr = require('./err.js');
+const getProfile = require('./getProfile.js');
+const updateProfile = require('./updateProfile.js');
 const Assets = require('../core/OptiBotAssetsManager.js');
 const LogEntry = require('../core/OptiBotLogEntry.js');
 const djs = require('discord.js');
@@ -12,7 +14,7 @@ module.exports = (id) => {
   // eslint-disable-next-line no-unused-vars
   return new Promise((resolve, reject) => {
     const errHandler = (err, user) => {
-      OptiBotUtilities.err(err);
+      OBerr(err);
 
       let type = null;
       if (user) type = (user.constructor === djs.User) ? 'user' : 'member';
@@ -34,7 +36,7 @@ module.exports = (id) => {
       logEntry.submit().then(() => {
         resolve();
       }).catch(err => {
-        OptiBotUtilities.err(err);
+        OBerr(err);
         resolve();
       });
     };
@@ -67,21 +69,21 @@ module.exports = (id) => {
     }
 
     function removeProfileData(user, type) {
-      OptiBotUtilities.getProfile(id, false).then(profile => {
+      getProfile(id, false).then(profile => {
         if (profile) {
           /* let entry = new RecordEntry()
-                      .setMod(bot.user.id)
-                      .setAction('mute')
-                      .setActionType('remove')
-                      .setReason(bot.user, `Mute period expired.`)
-                      .setParent(bot.user, profile.edata.mute.caseID)
-      
-                      if(!profile.edata.record) profile.edata.record = [];
-                      profile.edata.record.push(entry.raw); */
+          .setMod(bot.user.id)
+          .setAction('mute')
+          .setActionType('remove')
+          .setReason(bot.user, `Mute period expired.`)
+          .setParent(bot.user, profile.edata.mute.caseID)
+
+          if(!profile.edata.record) profile.edata.record = [];
+          profile.edata.record.push(entry.raw); */
 
           delete profile.edata.mute;
 
-          OptiBotUtilities.updateProfile(profile).then(() => {
+          updateProfile(profile).then(() => {
             finish(user, type);
           }).catch(err => {
             errHandler(err, user);
@@ -112,7 +114,7 @@ module.exports = (id) => {
         .submit().then(() => {
           resolve();
         }).catch(err => {
-          OptiBotUtilities.err(err);
+          OBerr(err);
           resolve();
         });
     }

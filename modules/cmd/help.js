@@ -79,39 +79,45 @@ metadata.run = (m, args, data) => {
           restrictions.push('<:warn:642112437218443297> This command can *only* be used in DMs (Direct Messages) or the <#626843115650547743> channel.');
         } else if (md.flags['MOD_CHANNEL_ONLY']) {
           if (md.flags['NO_DM']) {
-            restrictions.push('<:error:642112426162126873> This command can *only* be used in moderator-only channels.');
+            restrictions.push('<:error:642112426162126873> This command can *only* be used in staff-only channels.');
           } else {
-            restrictions.push('<:error:642112426162126873> This command can *only* be used in DMs (Direct Messages) or any moderator-only channel.');
+            restrictions.push('<:error:642112426162126873> This command can *only* be used in DMs (Direct Messages) or any staff-only channel.');
           }
         } else {
           restrictions.push('<:okay:642112445997121536> This command can be used in any channel, including DMs (Direct Messages)');
         }
 
-        if (md.flags['STRICT']) {
-          restrictions.push('<:locked:642112455333511178> Restrictions apply to ALL members, regardless of roles or permissions.');
-        } else if (md.flags['BOT_CHANNEL_ONLY']) {
-          restrictions.push('<:unlocked:642112465240588338> Moderators exempt from some restrictions.');
+        if (!md.flags['STRICT']) {
+          restrictions.push('<:unlocked:642112465240588338> Staff exempt from certain restrictions.');
         }
 
-        if (md.authlvl === 0) {
-          restrictions.push('<:unlocked:642112465240588338> Available to all server members.');
-        } else if (md.authlvl === 1) {
-          restrictions.push('<:locked:642112455333511178> Retired Staff, Jr. Moderators, and higher.');
-        } else if (md.authlvl === 2) {
-          restrictions.push('<:locked:642112455333511178> Jr. Moderators, Moderators, and higher.');
-        } else if (md.authlvl === 3) {
-          restrictions.push('<:locked:642112455333511178> Moderators and Administrators only.');
-        } else if (md.authlvl === 4) {
-          restrictions.push('<:locked:642112455333511178> Administrators only.');
-        } else if (md.authlvl === 5) {
-          restrictions.push('<:locked:642112455333511178> OptiBot developers only.');
+        switch(md.authlvl) {
+          case 1: 
+            restrictions.push('<:locked:642112455333511178> Retired Staff, Jr. Moderators, and higher.');
+            break;
+          case 2: 
+            restrictions.push('<:locked:642112455333511178> Jr. Moderators, Moderators, and higher.');
+            break;
+          case 3: 
+            restrictions.push('<:locked:642112455333511178> Moderators and Administrators only.');
+            break;
+          case 4: 
+            restrictions.push('<:locked:642112455333511178> Administrators only.');
+            break;
+          case 5: 
+            restrictions.push('<:locked:642112455333511178> OptiBot developers only.');
+            break;
         }
 
         if (md.flags['HIDDEN']) {
-          restrictions.push('<:warn:642112437218443297> This is a hidden command. OptiBot will act as if this command does not exist to any user who does not have required permissions.');
+          restrictions.push('<:warn:642112437218443297> **This is a hidden command.**');
         }
 
-        embed.addField('Restrictions', restrictions.join('\n'));
+        if(restrictions.length > 0) {
+          embed.addField('Important Notes', restrictions.join('\n'));
+        } else {
+          embed.addField('Important Notes', `None.`);
+        }
 
         m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
       }

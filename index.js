@@ -83,9 +83,19 @@ evtFiles.forEach(async file => {
 
 process.on('message', (m) => {
   if (m.crashlog) {
-    log('got crash data');
+    // partially, temporarily disabled to prevent boot loops.
+
+    // fucking end me.
+
+    /* log('got crash data');
     bot.guilds.get(bot.cfg.guilds.log).channels.cache.get(bot.cfg.channels.log.misc)
       .send(`<@181214529340833792> **=== OptiBot Crash Recovery Report ===**`, new djs.MessageAttachment(`./logs/${m.crashlog}`))
+      .catch(err => {
+        ob.OBUtil.err(err);
+      }); */
+
+    bot.guilds.get(bot.cfg.guilds.log).channels.cache.get(bot.cfg.channels.log.misc)
+      .send(`<@181214529340833792> i fucking died, please fix`)
       .catch(err => {
         ob.OBUtil.err(err);
       });

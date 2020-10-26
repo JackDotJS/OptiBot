@@ -10,19 +10,26 @@ const metadata = {
   name: path.parse(__filename).name,
   aliases: ['pingmods', 'moderator', 'moderators', 'mods'],
   short_desc: 'Ping server moderators.',
-  long_desc: 'Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.** \n\nAdditionally, this command tries to minimize mass pings by only selecting moderators that have sent a message in the past 10 minutes, or those who are simply online. \nThe selection priority works as follows:\n\n**1.** Recent Messages\n**2.** Online status\n**3.** All with the <@&467060304145023006> or <@&644668061818945557> roles.',
+  long_desc: 'Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.**',
   authlvl: 0,
-  flags: ['NO_DM', 'NO_TYPER', 'STRICT', 'LITE'],
+  flags: ['NO_DM', 'STRICT', 'LITE'],
   run: null
 };
 
 
 metadata.run = m => {
-  const pinged = [m.author.id];
+  const pinged = [
+    '202558206495555585', // exclude sp614x
+    m.author.id // exclude command issuer
+  ];
 
   let pings = null;
   let attempts = 0;
   let prevTier = null;
+  let resolved = false;
+  let response = null;
+  let msgListener = null;
+  let rctListener = null;
 
   const jrmods = bot.mainGuild.roles.cache.get(bot.cfg.roles.jrmod);
   const mods = bot.mainGuild.roles.cache.get(bot.cfg.roles.moderator);
@@ -37,7 +44,7 @@ metadata.run = m => {
     };
 
     const data = {
-      ids: null,
+      ids: [],
       selectTier: 0,
       mentions: null,
       debug: {
@@ -48,8 +55,6 @@ metadata.run = m => {
 
     for (let i = 0; i < staff.length; i++) {
       const mod = staff[i];
-
-      if (mod.user.id === '202558206495555585') continue; // exclude sp614x
 
       if (!pinged.includes(mod.user.id)) {
         pings.all.push(mod.user.id);
@@ -136,20 +141,28 @@ metadata.run = m => {
 
   // debugging for #224
   function getDebugInfo() {
-    const contents = [
+    return [
       `Attempts: ${attempts}`,
       `Select Tier: ${pings.selectTier}`,
       `Previous Tier: ${prevTier}`,
-      `Pinged: ${pinged.length-1}/${staff.length}`,
+      `Pinged: ${pinged.length}/${staff.length}`,
+      `Resolved: ${resolved}`,
       ``,
       `Pinged IDs:`,
       util.inspect(pinged),
       ``,
       `getPings():`,
       util.inspect(pings, true, 5),
+      ``,
+      `First Bot Response:`,
+      util.inspect(response),
+      ``,
+      `msgListener:`,
+      util.inspect(msgListener),
+      ``,
+      `rctListener:`,
+      util.inspect(rctListener),
     ].join('\n');
-
-    return new djs.MessageAttachment(Buffer.from(contents), 'debug.txt');
   }
 
   if (Memory.mpc.includes(m.channel.id)) {
@@ -163,106 +176,128 @@ metadata.run = m => {
       if (Memory.mpc.indexOf(m.channel.id) > -1) {
         Memory.mpc.splice(Memory.mpc.indexOf(m.channel.id), 1);
       }
+
+      if (msgListener != null && !msgListener.ended) msgListener.stop();
+      if (rctListener != null && !rctListener.ended) rctListener.stop();
     }, 600000);
   }
 
-  const embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
-    .setAuthor('A moderator should be with you soon!', Assets.getEmoji('ICO_bell').url);
+  function resolve(user) {
+    if (resolved) return;
+    resolved = true;
 
-  m.channel.send(`${m.author}`, { embed: embed }).then(pr => {
-    function getModEmbed() {
-      return new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.default)
-        .setAuthor('Moderator Presence Request', Assets.getEmoji('ICO_bell').url)
-        .setTitle('To begin resolving: Use the reaction button on the following linked message, or send your own message in the given channel.')
-        .setDescription(`${pr.channel} | [Direct URL](${pr.url})`)
-        .addField('Issuer', `${m.author} | ${m.author.tag} \n\`\`\`yaml\nID: ${m.author.id}\`\`\``)
-        .setThumbnail(m.author.displayAvatarURL({ format: 'png' }))
-        .setFooter(`Next attempt in ${30 * (attempts+1)} seconds.`);
+    if (!rctListener.ended) rctListener.stop('resolved');
+    if (!msgListener.ended) msgListener.stop('resolved');
+
+    const finalEmbed = new djs.MessageEmbed();
+
+    if (user != null) {
+      finalEmbed.setColor(bot.cfg.embed.okay)
+        .setAuthor('Issue resolved', Assets.getEmoji('ICO_okay').url)
+        .setDescription(`Resolved by ${user}`);
+    } else {
+      finalEmbed.setColor(bot.cfg.embed.error)
+        .setAuthor('Failed to get a response', Assets.getEmoji('ICO_error').url)
+        .setDescription(`This is taking longer than usual. We'll get back to you as soon as possible.`);
     }
 
-    function resolve(user) {
-      const finalEmbed = new djs.MessageEmbed();
+    response.edit(response.content, { embed: finalEmbed });
 
-      if (user) {
-        finalEmbed.setColor(bot.cfg.embed.okay)
-          .setAuthor('Issue resolved', Assets.getEmoji('ICO_okay').url)
-          .setDescription(`Resolved by ${user}`);
-      } else {
-        finalEmbed.setColor(bot.cfg.embed.error)
-          .setAuthor('Failed to get a response', Assets.getEmoji('ICO_error').url)
-          .setDescription(`This is taking longer than usual. We'll get back to you as soon as possible.`);
-      }
+    Memory.mpc.splice(Memory.mpc.indexOf(m.channel.id), 1);
+    
+    if (!response.deleted) {
+      response.reactions.removeAll();
+    }
+  }
 
-      pr.edit(`${m.author}`, { embed: finalEmbed });
+  (function tryResolution() {
+    if (resolved) return;
 
-      Memory.mpc.splice(Memory.mpc.indexOf(m.channel.id), 1);
-      
-      if (!pr.deleted) {
-        pr.reactions.removeAll();
-      }
+    pings = getPings();
+    attempts++;
+
+    const timeout = ( 1000 * 30 * (attempts + 1) ); // add 30 secs for every attempt, starting with 60 secs
+
+    /* // THIS IS SPAMMY!!! USE FOR DEBUGGING ONLY!!!
+    const timeout = ( 1000 * 1.5 * (attempts + 1) ); */
+
+    let content = pings.mentions;
+
+    log(getDebugInfo(), 'debug');
+
+    const embed = new djs.MessageEmbed()
+      .setColor(bot.cfg.embed.default)
+      .setAuthor('Moderator Request', Assets.getEmoji('ICO_bell').url)
+      .addField(
+        'Information for Staff:',
+        `Use the reaction button on ${(attempts === 1) ? 'this message' : `[this message](${response.url})`}, **or** send a message in this channel to begin resolving this issue.`
+      );
+
+    if (pinged.length < staff.length) {
+      embed.setFooter(`Next attempt in ${timeout / 1000} seconds.`);
     }
 
-    function tryResolution(godfuckingdammit) {
-      pings = getPings();
+    if (attempts === 1) {
+      content = `[${m.author}]: ${pings.mentions}`;
+      embed.setTitle(`A moderator should be with you soon!`);
+    } else {
+      embed.setTitle(`Looks like they were busy. Let's try some others.`);
+    }
 
-      bot.channels.cache.get(bot.cfg.channels.modmail).send(`${pings.mentions} ${pr.channel}`, { embed: getModEmbed(), files: [ getDebugInfo() ] }).then(() => {
-        attempts++;
+    m.channel.send(content, { embed: embed }).then(msg => {
+      m.channel.stopTyping(true);
 
-        const timeout = (1000 * 30 * attempts);
-
+      if (pinged.length < staff.length) {
         log(`modping: waiting for ${timeout / 1000} seconds`);
 
-        // reaction filter
+        bot.setTimeout(() => {
+          tryResolution();
+        }, timeout);
+      } else {
+        resolve();
+      }
+
+      if(attempts === 1) {
+        response = msg;
+
+        response.react(bot.emojis.cache.get(bot.cfg.emoji.resolve))
+          .catch(err => {
+            OBUtil.err(err, { m });
+          });
+
+        // === REACTION FILTER ===
+        // 1. reaction emoji is resolve emoji
+        // 2. reaction was added by staff member (jr mods, mods, admins)
         const filter_r = (r, user) => r.emoji.id === bot.cfg.emoji.resolve && staff.some(sm => user.id === sm.user.id);
-        // message filter
+
+        // === MESSAGE FILTER ===
+        // 1. message posted by staff member (jr mods, mods, admins)
+        // 2. message author IS NOT the issuer of this modping
         const filter_m = (mc) => staff.some(sm => mc.author.id === sm.user.id) && mc.author.id != m.author.id;
 
-        const df = pr.createReactionCollector(filter_r, { time: timeout });
-        const mc = pr.channel.createMessageCollector(filter_m);
+        rctListener = response.createReactionCollector(filter_r);
+        msgListener = response.channel.createMessageCollector(filter_m);
 
-        df.on('collect', (r, user) => {
-          df.stop('resolved');
-
+        rctListener.on('collect', (r, user) => {
           resolve(user);
         });
 
-        mc.on('collect', (mm) => {
-          /**
-           * the only reason we need the bot's own reaction
-           * is explicitly so this exact function works. the
-           * reaction is literally never used for anything
-           * except to prevent D.JS from throwing an error
-           * here. its fucking stupid i know but it's the
-           * only way i can make this work right now and im
-           * tired. fuck you
-           */
-          df.handleCollect(godfuckingdammit, mm.author);
+        msgListener.on('collect', (mr) => {
+          resolve(mr.author);
         });
 
-        df.on('end', (c, reason) => {
-          mc.stop();
-          if (reason === 'time') {
-            // post next level of pings
-            if (pinged.length !== staff.length) {
-              tryResolution(godfuckingdammit);
-            } else {
-              resolve();
-            }
-          } else if (reason !== 'resolved') {
-            log(reason, 'error');
-          }
+        rctListener.on('end', (c, reason) => {
+          log('modping reaction collector ended');
+          if (reason !== 'resolved') log(reason, 'error');
         });
-      });
-    }
 
-    pr.react(bot.guilds.cache.get(bot.cfg.guilds.optibot).emojis.cache.get(bot.cfg.emoji.resolve)).then(r => {
-      tryResolution(r);
-    }).catch(err => {
-      OBUtil.err(err, { m });
+        msgListener.on('end', (c, reason) => {
+          log('modping message collector ended');
+          if (reason !== 'resolved') log(reason, 'error');
+        });
+      }
     });
-  });
+  })();
 };
 
 module.exports = new Command(metadata);

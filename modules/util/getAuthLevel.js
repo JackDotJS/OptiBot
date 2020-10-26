@@ -4,25 +4,22 @@ const Memory = require('../core/OptiBotMemory.js');
 
 module.exports = (member, ignoreElevated) => {
   /**
-         * Authorization Level
-         *
-         * -1 = Muted Member (DM ONLY)
-         * 0 = Normal Member
-         * 1 = Advisor
-         * 2 = Jr. Moderator
-         * 3 = Moderator
-         * 4 = Administrator
-         * 5 = Bot Developer
-         */
+   * Authorization Level
+   *
+   * -1 = Muted Member (DM ONLY)
+   * 0 = Normal Member
+   * 1 = Advisor
+   * 2 = Jr. Moderator
+   * 3 = Moderator
+   * 4 = Administrator
+   * 5 = Bot Developer
+   */
 
   const bot = Memory.core.client;
   const log = bot.log;
 
   if (member.constructor === djs.User) {
     log('expected object type member, got user instead', 'warn');
-    if (bot.cfg.superusers.includes(member.id) && !ignoreElevated) {
-      return 5;
-    }
   } else if (member != null && member.constructor === djs.GuildMember) {
     if (member.roles.cache.has(bot.cfg.roles.botdev) && !ignoreElevated) return 5;
     if (member.permissions.has('ADMINISTRATOR')) return 4;

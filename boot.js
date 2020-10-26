@@ -3,7 +3,6 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * Written by Kyle Edwards <wingedasterisk@gmail.com>, January 2020
  * 
- * My final gift to you.
  * Here's to another lousy decade.
  */
 
@@ -19,13 +18,13 @@ const env = {
   mode: 0,
   log: {
     /**
-         * 0 = TRACE
-         * 1 = DEBUG
-         * 2 = INFO
-         * 3 = WARN
-         * 4 = ERROR
-         * 5 = FATAL
-         */
+     * 0 = TRACE
+     * 1 = DEBUG
+     * 2 = INFO
+     * 3 = WARN
+     * 4 = ERROR
+     * 5 = FATAL
+     */
     level: 2,
     stream: null,
     filename: null
@@ -384,14 +383,14 @@ function init() {
         log(data.message, data.level, data.misc);
       } else if (data.type === 'ready') {
         log('Bot ready');
-        if (env.cr.logfile !== null) {
+        if (env.cr.logData != null) {
           // send crash data
-          bot.send({ crashlog: env.cr.logfile }, (err) => {
+          bot.send({ crashlog: env.cr.logData }, (err) => {
             if (err) {
               log('Failed to send crashlog data: ' + err.stack, 'error');
             } else {
               // once finished, clear crash data so it's not sent again during next scheduled restart.
-              env.cr.logfile = null;
+              env.cr.logData = null;
             }
           });
         }
@@ -437,10 +436,14 @@ function init() {
         log('OptiBot seems to have crashed. Restarting...', 'info');
         const logSuffix = 'CRASH';
 
-        env.cr.logfile = `${env.log.filename}_${logSuffix}.log`;
-        setTimeout(() => {
-          end(code, false, logSuffix);
-        }, (env.mode === 0) ? 5000 : 10);
+        fs.readFile(`./logs/${env.log.filename}.log`, { encoding: 'utf8' }, (err, data) => {
+          if (err) throw err;
+          env.cr.logData = data;
+
+          setTimeout(() => {
+            end(code, false, logSuffix);
+          }, (env.mode === 0) ? 5000 : 10);
+        });
       } else if (code === 2) {
         log('Bash Error. (How the fuck?)', 'fatal');
         end(code, true);
@@ -504,14 +507,12 @@ function init() {
       if (log_suffix) {
         fs.rename(`./logs/${env.log.filename}.log`, `./logs/${env.log.filename}_${log_suffix}.log`, (err) => {
           if (err) throw err;
-          else {
-            if (exit) {
-              process.exit(code);
-            } else {
-              setTimeout(() => {
-                init();
-              }, (env.mode === 0) ? 5000 : 500);
-            }
+          if (exit) {
+            process.exit(code);
+          } else {
+            setTimeout(() => {
+              init();
+            }, (env.mode === 0) ? 5000 : 500);
           }
         });
       } else {

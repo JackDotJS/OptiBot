@@ -83,22 +83,9 @@ evtFiles.forEach(async file => {
 
 process.on('message', (m) => {
   if (m.crashlog) {
-    // partially, temporarily disabled to prevent boot loops.
-
-    // fucking end me.
-
-    /* log('got crash data');
-    bot.guilds.get(bot.cfg.guilds.log).channels.cache.get(bot.cfg.channels.log.misc)
-      .send(`<@181214529340833792> **=== OptiBot Crash Recovery Report ===**`, new djs.MessageAttachment(`./logs/${m.crashlog}`))
-      .catch(err => {
-        ob.OBUtil.err(err);
-      }); */
-
-    // update Oct 25 2020: it turns out i forgot to use the right syntax in this temp code anyway.
-    // who the fuck thought it was a good idea to let me near computers?
-
+    log('got crash data');
     bot.guilds.cache.get(bot.cfg.guilds.log).channels.cache.get(bot.cfg.channels.log.misc)
-      .send(`<@181214529340833792> i fucking died, please fix`)
+      .send(`<@&752056938753425488> ${(bot.cfg.envDeveloper != null) ? `<@${bot.cfg.envDeveloper}>` : ''} oops lmao`, new djs.MessageAttachment(Buffer.from(m.crashlog), 'optibot_crash_log.txt'))
       .catch(err => {
         ob.OBUtil.err(err);
       });

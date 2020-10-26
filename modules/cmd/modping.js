@@ -166,8 +166,7 @@ metadata.run = m => {
   }
 
   if (Memory.mpc.includes(m.channel.id)) {
-    return m.channel.send(`Sorry ${m.author}, this command is currently on cooldown in this channel. Please wait a few moments before trying this again.`)
-      .then(bm => OBUtil.afterSend(bm, m.author.id));
+    return OBUtil.err(`Moderators have already been recently called in this channel. Please wait a few moments before trying again.`, { m });
   } else {
     Memory.mpc.push(m.channel.id);
 

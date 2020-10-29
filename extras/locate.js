@@ -50,7 +50,7 @@ let i = 0;
     if(dir.length === 0 || file === undefined) {
       nextd();
     } else
-    if(file.startsWith('.') || file === 'node_modules') {
+    if(file.startsWith('.') || file === 'node_modules' || file === 'extras') {
       nextf();
     } else
     if(file.match(/^.+\.\w+/)) {

@@ -93,14 +93,8 @@
       .setColor(bot.cfg.embed.default)
       .setTitle('Discord Moderation Team')
       .addField('Lead Moderators', 'A <@&467060304145023006> is responsible for ')
-      .addField('Moderators', 'A <@&467060304145023006> is responsible for day-to-day management of interactions between server members in public text channels.')
+      .addField('Moderators', 'A <@&467060304145023006> is responsible for day-to-day management of interactions between server members in public text channels. As a moderator, it is your job to ensure our community remains friendly, welcoming, and peaceful, while reprimanding those who seek to do otherwise.')
       .addField('Junior Moderators', `Alternatively called "Trial Moderators", A <@&644668061818945557> has the same job as Moderators, only with restricted moderation abilities. During their evaluation period, Jr. Moderators are NOT able to kick/ban server members, but they can delete messages and access MOST bot-based moderation commands, including \`${bot.prefix}mute\` and \`${bot.prefix}warn\` (See \`${bot.prefix}list jrmod\` for more)`)
-  },
-  {
-    embed: new djs.MessageEmbed()
-      .setColor(bot.cfg.embed.default)
-      .setTitle('Staff Advisors')
-      .setDescription('Previously known as "Mod Advisors", the job of a <@&695553561064505345> is very different from the other staff roles, and is the only role that *cannot* be acquired through staff applications. Simply put, these members are responsible for providing educated opinions. Advisors are generally expected to weigh-in on most staff discussions whenever possible, simply to give advice, occasional pointers, and ideas. They have no direct moderation abilities, apart from being able to view information not normally seen by ordinary server members. This includes Audit Logs, OptiBot Logs and Records, and most moderation channels. (Including this one!)')
   },
   {
     embed: new djs.MessageEmbed()
@@ -301,7 +295,7 @@
     embed: new djs.MessageEmbed()
       .setColor(bot.cfg.embed.default)
       .setTitle('Member Ban Appeals')
-      .setDescription('Ban appeals can be done via this online form: https://forms.gle/kqMKzeBxzm29pWku8\n\nOnce a ban appeal is received, it must be approved by no less than 5 different moderators. Ideally, votes should be given at least 2-3 days to be processed, given time zones and moderator activity. Once an appeal is **either approved or rejected**, the user in question should be contacted as soon as possible. **Do not unban the user without doing the following:** First, the user\'s identity must be confirmed. It is entirely possible to impersonate a user for a ban appeal, which is where this step comes in. The user must first verify the contents of their ban appeal. Ask them how they answered for various questions on the appeal form. Once they have correctly answered, they can finally be unbanned.')
+      .setDescription('Ban appeals can be done via this online form: https://forms.gle/kqMKzeBxzm29pWku8\n\nOnce a ban appeal is received, it must be approved by no less than 3 different moderators. Ideally, votes should be given at least 2-3 days to be processed, given time zones and moderator activity. Once an appeal is **either approved or rejected**, the user in question should be contacted as soon as possible. **Do not unban the user without doing the following:** First, the user\'s identity must be confirmed. It is entirely possible to impersonate a user for a ban appeal, which is where this step comes in. The user must first verify the contents of their ban appeal. Ask them how they answered for various questions on the appeal form. Once they have correctly answered, they can finally be unbanned.')
       .addField('Policy', 'Any user may request to have their ban lifted, granted they have not violated the Discord Terms of Service, Discord Community Guidelines, rule #10, or been previously banned before. If you\'ve been privately contacted by a banned user, simply redirect them to the form linked above.')
   },
   {

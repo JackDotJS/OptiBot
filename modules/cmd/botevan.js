@@ -28,6 +28,7 @@ metadata.run = (m, args, data) => {
       'used 1996 Ford F-150 for $9k',
       'they called optibot stinky',
       '7',
+      'they delayed cyberpunk 2077 again'
     ];
 
     reason = someReason[Math.floor(Math.random() * someReason.length)];

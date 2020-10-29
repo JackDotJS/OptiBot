@@ -34,8 +34,8 @@ metadata.run = (m, args) => {
 
     if (args[0].toLowerCase() === 'all' || args[0].toLowerCase() === 'crash') {
       count = logs.length;
-    } else if (Number.isInteger(parseInt(args[1])) && parseInt(args[1]) > 0) {
-      count = parseInt(args[1]);
+    } else if (Number.isInteger(parseInt(args[0])) && parseInt(args[0]) > 0) {
+      count = parseInt(args[0]);
     }
 
     for (let i = 0; i < logs.length; i++) {
@@ -47,7 +47,7 @@ metadata.run = (m, args) => {
         zip.addLocalFile(`./logs/${file}`);
       }
 
-      if (i + 1 === count) break;
+      if (i + 1 >= count) break;
     }
 
     m.channel.send(new djs.MessageAttachment(zip.toBuffer(), 'logs.zip'))

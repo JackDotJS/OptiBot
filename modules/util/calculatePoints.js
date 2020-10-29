@@ -15,7 +15,7 @@ module.exports = (date, total) => {
     log(`decay: ${decay}`);
     log(`minimum: ${minimum}`);
 
-    return Math.max(decay, minimum);
+    return Math.round(Math.max(decay, minimum));
   }
 
   return total;

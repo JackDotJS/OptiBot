@@ -120,7 +120,7 @@ metadata.run = (m, args, data) => {
                 }
 
                 if (entry.action === 5 && entry.actionType === 1) {
-                  embed.addField('Points (w/ Calculated Decay)', entry.display.pointsNow);
+                  embed.addField('Marks (w/ Calculated Decay)', entry.display.pointsNow);
                 }
 
                 if (entry.details) embed.addField(`${isEdited('details', entry)}Additional Information`, entry.details);
@@ -164,19 +164,19 @@ metadata.run = (m, args, data) => {
             ];
 
             let pardonedCount = 0;
-            let points = 0;
+            const points = profile.getPoints();
 
             for (const entry of record) {
               if (entry.pardon) {
                 pardonedCount++;
-              } else if (entry.action === 5) {
-                points += OBUtil.calculatePoints(entry.date, parseInt(entry.details.match(/(?<=\[)\d+(?=\])/)));
               }
             }
 
             stats.push(
               `**Pardoned Entries**: ${pardonedCount.toLocaleString()}`,
-              `**Violation Points**: ${points.toLocaleString()}/${bot.cfg.points.userMax.toLocaleString()} ${(points > bot.cfg.points.userMax) ? Assets.getEmoji('ICO_warn').toString() : ''}`
+              `**Violation Marks (Maximum)**: ${points.maximum.toLocaleString()}/${bot.cfg.points.userMax.toLocaleString()} ${(points.maximum >= bot.cfg.points.userMax) ? Assets.getEmoji('ICO_warn').toString() : ''}`,
+              `**Violation Marks (Current)**: ${points.current.toLocaleString()}/${bot.cfg.points.userMax.toLocaleString()} ${(points.current >= bot.cfg.points.userMax) ? Assets.getEmoji('ICO_warn').toString() : ''}`,
+              `**Violation Marks (Minimum)**: ${points.minimum.toLocaleString()}/${bot.cfg.points.userMax.toLocaleString()} ${(points.minimum >= bot.cfg.points.userMax) ? Assets.getEmoji('ICO_warn').toString() : ''}`
             );
 
             let i = (pageNum > 1) ? (perPage * (pageNum - 1)) : 0;
@@ -252,7 +252,7 @@ metadata.run = (m, args, data) => {
                 );
 
                 if (entry.action === 5) {
-                  details.push(`**Amount:** ${entry.display.pointsTotal.toLocaleString()}` + ((entry.display.pointsTotal != entry.display.pointsNow) ? `(now: ${entry.display.pointsNow})` : ''));
+                  details.push(`**Amount:** ${entry.display.pointsTotal.toLocaleString()} ` + ((entry.display.pointsTotal != entry.display.pointsNow) ? `(now: ${entry.display.pointsNow})` : ''));
                 }
 
                 if (entry.reason.length > 128) {

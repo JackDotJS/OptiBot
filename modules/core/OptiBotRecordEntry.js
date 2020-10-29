@@ -100,7 +100,7 @@ module.exports = class RecordEntry {
         break;
       case 5:
         this.display.icon = `${Assets.getEmoji('ICO_points')}`;
-        action = 'Points';
+        action = 'Marks';
         break;
     }
 

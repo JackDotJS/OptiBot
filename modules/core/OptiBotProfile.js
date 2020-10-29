@@ -1,5 +1,5 @@
 const util = require('util');
-const djs = require('discord.js');
+/* const djs = require('discord.js'); */
 
 const RecordEntry = require('./OptiBotRecordEntry.js');
 const Memory = require('./OptiBotMemory.js');
@@ -111,9 +111,10 @@ module.exports = class OptiBotProfile {
   }
 
   getPoints() {
+    const calculatePoints = require('../util/calculatePoints.js');
     const bot = Memory.core.client;
-    const log = bot.log;
-    const now = new Date().getTime();
+    /* const log = bot.log;
+    const now = new Date().getTime(); */
 
     const final = {
       maximum: 0,
@@ -128,18 +129,14 @@ module.exports = class OptiBotProfile {
       const entry = record[i];
 
       if (entry.action === 5 && !entry.pardon) {
-        const points = parseInt(entry.details.match(/(?<=points assigned: \[)\d+(?=\])/i)[0]);
+        const points = parseInt(entry.details.match(/(?<=assigned: \[)\d+(?=\])/i)[0]);
 
         final.maximum += points;
-        final.current += points; // temp
-        final.minimum += points; // temp
-
-        // todo: calculate point decay (#154)
-      }
-
-      if (i + 1 >= record.length) {
-        return final;
+        final.current += calculatePoints(entry.date, points);
+        final.minimum += Math.round((bot.cfg.points.minPercentDecay / 100) * points);
       }
     }
+
+    return final;
   }
 };

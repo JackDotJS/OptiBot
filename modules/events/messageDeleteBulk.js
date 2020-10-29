@@ -39,8 +39,12 @@ module.exports = (bot, ms) => {
 
   if (bot.pause) return;
 
+  log('messageDeleteBulk event fired', 'warn'); // testing #243
+
   bot.setTimeout(() => {
     const messages = [...ms.values()];
+
+    log(`bulk message counts: ${ms.size}, ${messages.length} (${ms.size === messages.length})`, 'warn');
 
     let i = 0;
     (function postNext() {
@@ -90,8 +94,6 @@ module.exports = (bot, ms) => {
 
       if (m.embeds.length > 0) {
         let rawEmbeds = [];
-        // Was this meant to do something?
-        const doRaw = true; // eslint-disable-line no-unused-vars
 
         for (let i = 0; i < m.embeds.length; i++) {
           rawEmbeds.push(util.inspect(m.embeds[i], { showHidden: true, getters: true }));
@@ -111,13 +113,12 @@ module.exports = (bot, ms) => {
       logEntry.submit().then(() => {
         i++;
         postNext();
-      })
-        .catch(err => {
-          ob.OBUtil.err(err);
+      }).catch(err => {
+        ob.OBUtil.err(err);
 
-          i++;
-          postNext();
-        });
+        i++;
+        postNext();
+      });
     })();
   }, 5000);
 };

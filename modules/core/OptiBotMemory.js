@@ -5,8 +5,10 @@ const database = require('nedb');
 const memory = {
   core: {
     client: {
-      keys: require(path.resolve('./cfg/keys.json')),
-      log: console.log
+      keys: require(path.resolve('./cfg/keys.json')), // Also defined in OBClient
+      log: console.log // Also defined in OBClient
+      // Things defined here from OBClient:
+      // cfg, mode, pause, exitTime, locked, prefix, prefxies, version
     },
     logfile: null, // filename of running console log
     root: {

@@ -17,7 +17,7 @@ module.exports = class OptiBot extends djs.Client {
     let cfg = require(path.resolve('./cfg/config.json'));
 
     if (mode === 0) {
-      // load debug config and overwrite properties
+      // Load the real config first, but if the debug config has properties that differ from the real config, overwrite them to use the debug properties
       const cfg_d = require(path.resolve('./cfg/config_debug.json'));
 
       cfg = Object.assign(cfg, cfg_d);

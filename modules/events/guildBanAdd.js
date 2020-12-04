@@ -95,6 +95,8 @@ module.exports = (bot, guild, user) => {
 
         if (reason !== null) {
           recordEntry.setReason(bot.user, reason);
+        } else {
+          recordEntry.setReason(bot.user, "No reason provided");
         }
 
         if (mod !== null) {

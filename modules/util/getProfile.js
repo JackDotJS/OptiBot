@@ -1,5 +1,5 @@
-const Memory = require('../core/OptiBotMemory.js');
-const Profile = require('../core/OptiBotProfile.js');
+const Memory = require('../core/memory.js');
+const Profile = require('../core/profile.js');
 
 /**
      * @param {String} id Profile ID to search for.

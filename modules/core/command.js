@@ -1,7 +1,7 @@
 const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
-const Memory = require('./OptiBotMemory.js');
+const Memory = require('./memory.js');
 
 /**
  * OptiBot Core: Command Class

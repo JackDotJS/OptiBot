@@ -4,8 +4,7 @@ const util = require('util');
 const djs = require('discord.js');
 const path = require('path');
 
-const Memory = require('./OptiBotMemory.js');
-const OBUtil = require('./OptiBotUtil.js');
+const memory = require('./memory.js');
 
 module.exports = class OptiBot extends djs.Client {
   constructor(options, mode, log) {
@@ -40,14 +39,17 @@ module.exports = class OptiBot extends djs.Client {
     this.prefix = cfg.prefixes[0]; // first in array is always default, but all others will be accepted during real usage.
     this.prefixes = cfg.prefixes;
     this.version = require(path.resolve('./package.json')).version;
+    this.util = require('./util.js');
 
-    Memory.core.client = this;
+    memory.core.client = this;
 
     Object.defineProperty(this, 'mainGuild', {
       get: () => {
         return this.guilds.cache.get(this.cfg.guilds.optifine);
       }
     });
+
+    log(`client instance constructed`);
   }
 
   exit(code = 0) {
@@ -61,7 +63,7 @@ module.exports = class OptiBot extends djs.Client {
          */
 
     this.destroy();
-    OBUtil.setWindowTitle('Shutting down...');
+    this.util.setWindowTitle('Shutting down...');
 
     setTimeout(() => {
       process.exit(code);
@@ -124,7 +126,7 @@ module.exports = class OptiBot extends djs.Client {
       delete pr.activity;
     }
 
-    Memory.presence = pr;
+    memory.presence = pr;
     bot.user.setPresence(pr);
   }
 };

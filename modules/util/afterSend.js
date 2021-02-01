@@ -1,5 +1,5 @@
-const Memory = require('../core/OptiBotMemory.js');
-const OptiBotUtilities = require('../core/OptiBotUtil');
+const Memory = require('../core/memory.js');
+const OptiBotUtilities = require('../core/util');
 const djs = require('discord.js'); // eslint-disable-line no-unused-vars
 
 /**

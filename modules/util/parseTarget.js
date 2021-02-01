@@ -1,4 +1,4 @@
-const Memory = require('../core/OptiBotMemory.js');
+const Memory = require('../core/memory.js');
 const util = require('util');
 
 /**

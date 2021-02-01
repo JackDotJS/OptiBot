@@ -1,6 +1,6 @@
-const Memory = require('../core/OptiBotMemory.js');
+const Memory = require('../core/memory.js');
 const djs = require('discord.js');
-const Assets = require('../core/OptiBotAssetsManager.js');
+const Assets = require('../core/asset_manager.js');
 const afterSend = require('./afterSend.js');
 
 /**

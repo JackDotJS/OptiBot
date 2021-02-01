@@ -62,7 +62,7 @@ const log = (m, lvl, file) => {
       color: chalk.white
     },
     file: {
-      content: `UNKNOWN`,
+      content: `NOFILE`,
       color: chalk.yellow
     },
     level: {
@@ -75,29 +75,31 @@ const log = (m, lvl, file) => {
     }
   };
 
-  if (typeof lvl === `string` && [`fatal`, `error`, `warn`, `info`].includes(lvl.toLowerCase())) {
-    entry.level.content = lvl.toUpperCase();
-  }
-
-  switch(lvl.toLowerCase()) {
-    case 'fatal': 
-      entry.level.color = chalk.inverse.bgRedBright;
-      entry.message.color = chalk.red;
-      break;
-    case 'error': 
-      entry.level.color = chalk.red;
-      entry.message.color = chalk.red;
-      break;
-    case 'warn':
-      entry.level.color = chalk.yellowBright;
-      entry.message.color = chalk.yellowBright;
-      break;
-    case 'info':
-      entry.level.color = chalk.white;
-      entry.message.color = chalk.whiteBright;
-      break;
-    default:
-      if (env.log.level < 1) return;
+  if (typeof lvl === `string`) {
+    if ([`fatal`, `error`, `warn`, `info`].includes(lvl.toLowerCase())) {
+      entry.level.content = lvl.toUpperCase();
+    }
+    
+    switch(lvl.toLowerCase()) {
+      case 'fatal': 
+        entry.level.color = chalk.inverse.bgRedBright;
+        entry.message.color = chalk.redBright;
+        break;
+      case 'error': 
+        entry.level.color = chalk.red;
+        entry.message.color = chalk.red;
+        break;
+      case 'warn':
+        entry.level.color = chalk.yellowBright;
+        entry.message.color = chalk.yellowBright;
+        break;
+      case 'info':
+        entry.level.color = chalk.white;
+        entry.message.color = chalk.whiteBright;
+        break;
+      default:
+        if (env.log.level < 1) return;
+    }
   }
 
   if (typeof m !== 'string') {
@@ -121,20 +123,31 @@ const log = (m, lvl, file) => {
     }
   }
 
-  if (file) {
+  if (file != null) {
     entry.file.content = file;
-  }
+  } else {
+    const trace = new Error().stack;
+    const match = trace.split(`\n`)[2].match(/(?<=at\s|\()([^(]*):(\d+):(\d+)\)?$/);
 
-  const terminal1 = [
-    chalk.white(`[${entry.timestamp.color(entry.timestamp.content)}]`),
-    chalk.white(`[${entry.file.color(entry.file.content)}]`),
-    chalk.white(`[${entry.level.color(entry.level.content)}]`),
-    `: `
-  ].join(' ');
-  const terminal2 = entry.message.color(entry.message.content.replace(/\n/g, `\n${(' '.repeat(terminal1.length))}`))
+    if (match != null && match.length >= 4) {
+      const fileName = match[1].replace(process.cwd(), `.`).replace(/\\/g, `/`);
+      const line = match[2];
+      const column = match[3];
+
+      entry.file.content = `${fileName}:${line}:${column}`;
+    }
+  }
 
   const plain1 = `[${entry.timestamp.content}] [${entry.file.content}] [${entry.level.content}] : `;
   const plain2 = entry.message.content.replace(/\n/g, `\n${(' '.repeat(plain1.length))}`) + '\n';
+
+  const terminal1 = [
+    chalk.white(`[${entry.timestamp.color(entry.timestamp.content)}]`),
+    entry.file.color(`[${entry.file.content}]`),
+    entry.level.color(`[${entry.level.content}]`),
+    `: `
+  ].join(' ');
+  const terminal2 = entry.message.color(entry.message.content.replace(/\n/g, `\n${(' '.repeat(plain1.length))}`));
 
   console.log(terminal1 + terminal2);
   if (env.log.stream) env.log.stream.write(plain1 + plain2);
@@ -181,7 +194,7 @@ if (!fs.existsSync('./data/profiles.db')) {
 }
 
 (function setup() {
-  const q1 = () => {
+  (function q1() {
     console.clear();
 
     if (process.argv.includes('--skipsetup')) {
@@ -198,9 +211,9 @@ if (!fs.existsSync('./data/profiles.db')) {
         }
       });
     }
-  }
+  })();
 
-  const q2 = () => {
+  function q2() {
     console.clear();
 
     env.rl.question('SET OPERATING MODE [0-3]\n', (res) => {
@@ -223,9 +236,6 @@ if (!fs.existsSync('./data/profiles.db')) {
       }
     });
   }
-
-  
-  
 })();
 
 function preinit() {
@@ -240,7 +250,7 @@ function preinit() {
     log(`Pre-Init: Unusually high client reset count: ${env.autostart.rph}`, 'warn');
     if (env.autostart.rph > 50) {
       log('Pre-Init: Potential boot loop detected, shutting down for safety.', 'warn');
-      return end(19, true, 'FATAL');
+      return exit(19, true, 'FATAL');
     }
   }
 
@@ -253,7 +263,7 @@ function preinit() {
 
     log('Pre-Init: OptiBot profiles successfully archived.', 'info');
 
-    log('Pre-Init: Archiving log files...', 'info');
+    log('Pre-Init: Checking log archive status...', 'info');
 
     const logs = fs.readdirSync('./logs');
 
@@ -280,7 +290,8 @@ function preinit() {
     const keys = Object.keys(zipData);
 
     if (keys.length === 0) {
-      // nothing to write
+      log('Pre-Init: No logs need to be archived.', 'info');
+
       init();
     } else {
       log(`Pre-Init: Preparing to write ${keys.length} ZIP archive(s)...`, 'info');
@@ -344,10 +355,10 @@ function init() {
   });
 
   bot.on('message', (data) => {
-    if (data != null && data.constructor === Object && data.type != null) {
-      switch(data.type) {
+    if (data != null && data.constructor === Object && data.t != null) {
+      switch(data.t) {
         case 'OB_LOG':
-          log(data.message, data.level, data.misc);
+          log(data.c.message, data.c.level, data.c.file);
           break;
         case 'OB_READY':
           log('Bot ready');
@@ -378,10 +389,10 @@ function init() {
           }
           break;
         case 'OB_RESTART':
-          env.r.guild = data.guild;
-          env.r.channel = data.channel;
-          env.r.message = data.message;
-          env.r.author = data.author;
+          env.r.guild = data.c.guild;
+          env.r.channel = data.c.channel;
+          env.r.message = data.c.message;
+          env.r.author = data.c.author;
           break;
         default:
           log(util.inspect(data)); // to the debugeon with you
@@ -478,14 +489,14 @@ function init() {
   });
 }
 
-function end(code, exit, log_suffix) {
+function exit(code, stop, log_suffix) {
   env.autostart.rph++;
   env.log.stream.end();
 
   setTimeout(() => {
     if (log_suffix != null) fs.renameSync(`./logs/${env.log.filename}.log`, `./logs/${env.log.filename}_${log_suffix}.log`);
     
-    if (exit) {
+    if (stop) {
       process.exit(code);
     } else {
       preinit();

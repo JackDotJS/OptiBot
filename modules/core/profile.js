@@ -1,8 +1,8 @@
 const util = require('util');
 /* const djs = require('discord.js'); */
 
-const RecordEntry = require('./OptiBotRecordEntry.js');
-const Memory = require('./OptiBotMemory.js');
+const RecordEntry = require('./record_entry.js');
+const Memory = require('./memory.js');
 
 module.exports = class OptiBotProfile {
   constructor(raw) {

@@ -4,44 +4,15 @@
  * Written by Kyle Edwards <wingedasterisk@gmail.com>, August 2020
  */
 
-if (!process.send) throw new Error('Cannot run standalone. Please use the "init.bat" file.');
+if (!process.send) throw new Error('Cannot run standalone.');
 
 const cid = require('caller-id');
 const { readdirSync } = require('fs');
 const util = require('util');
 const djs = require('discord.js');
-const ob = require('./modules/core/OptiBot.js');
+const ob = require('./modules/core/optibot.js');
 
-const log = (message, level, file, line) => {
-  const call = cid.getData();
-  if (!file) file = (call.evalFlag) ? 'eval()' : call.filePath.substring(call.filePath.lastIndexOf('\\') + 1);
-  if (!line) line = call.lineNumber;
-
-  try {
-    process.send({
-      type: 'log',
-      message: message,
-      level: level,
-      misc: `${file}:${line}`
-    });
-  }
-  catch (e) {
-    try {
-      process.send({
-        type: 'log',
-        message: util.inspect(message),
-        level: level,
-        misc: `${file}:${line}`
-      });
-    }
-    catch (e2) {
-      log(e);
-      log(e2);
-    }
-  }
-
-
-};
+const log = ob.log;
 
 const bot = new ob.Client({
   //fetchAllMembers: true, // end my life
@@ -55,26 +26,37 @@ const bot = new ob.Client({
   disableMentions: 'everyone'
 }, parseInt(process.argv[2]), log);
 
-ob.Memory.core.logfile = process.argv[3];
+ob.memory.core.logfile = process.argv[3];
 
-ob.OBUtil.setWindowTitle('Connecting...');
+bot.util.setWindowTitle('Connecting...');
 
 bot.login(bot.keys.discord).catch(err => {
-  ob.OBUtil.setWindowTitle('Connection Failed.');
+  bot.util.setWindowTitle('Connection Failed.');
   log(err, 'fatal');
   process.exit(1);
 });
 
-// Load all of the bot events
-const evtFiles = readdirSync('./modules/events/');
+////////////////////////////////////////
+// Bot Ready
+////////////////////////////////////////
 
-log(`Loading ${evtFiles.length} event handlers...`);
+bot.on('ready', () => {
+  log(`Successfully connected to Discord.`, `info`);
 
-evtFiles.forEach(async file => {
-  const eventName = file.split('.')[0];
-  const event = require(`./modules/events/${file}`);
-  bot.on(eventName, event.bind(null, bot));
-  await log(`Loaded event handler: ${eventName}`);
+  if (ob.memory.firstBoot) {
+    ob.memory.firstBoot = false;
+
+    // Load all of the bot events
+
+    log(`Loading event handlers...`);
+
+    /* readdirSync('./modules/events/').forEach(async file => {
+      const name = file.split('.')[0];
+      const event = require(`./modules/events/${file}`);
+      bot.on(name, event.bind(null, bot));
+      log(`Loaded event handler: ${name}`);
+    }); */
+  }
 });
 
 ////////////////////////////////////////
@@ -87,7 +69,7 @@ process.on('message', (m) => {
     bot.guilds.cache.get(bot.cfg.guilds.log).channels.cache.get(bot.cfg.channels.log.misc)
       .send(`<@&752056938753425488> ${(bot.cfg.envDeveloper != null) ? `<@${bot.cfg.envDeveloper}>` : ''} oops lmao`, new djs.MessageAttachment(Buffer.from(m.crashlog), 'optibot_crash_log.txt'))
       .catch(err => {
-        ob.OBUtil.err(err);
+        bot.util.err(err);
       });
   } else if (m.restart) {
     log('got restart data');
@@ -97,10 +79,10 @@ process.on('message', (m) => {
         .setColor(bot.cfg.embed.okay);
 
       msg.edit({ embed: embed }).then(msgF => {
-        ob.OBUtil.afterSend(msgF, m.author);
+        bot.util.afterSend(msgF, m.author);
       });
     }).catch(err => {
-      ob.OBUtil.err(err);
+      bot.util.err(err);
     });
   }
 });

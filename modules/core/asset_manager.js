@@ -3,9 +3,9 @@ const util = require('util');
 const djs = require('discord.js');
 const path = require('path');
 
-const Memory = require('./OptiBotMemory.js');
-let Command = require('./OptiBotCommand.js');
-let OptiBit = require('./OptiBotBit.js');
+const Memory = require('./memory.js');
+let Command = require('./command.js');
+let OptiBit = require('./bit.js');
 
 module.exports = class OptiBotAssetsManager {
   constructor() {

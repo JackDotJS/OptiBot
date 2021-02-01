@@ -1,9 +1,9 @@
-const Memory = require('../core/OptiBotMemory.js');
+const Memory = require('../core/memory.js');
 const OBerr = require('./err.js');
 const getProfile = require('./getProfile.js');
 const updateProfile = require('./updateProfile.js');
-const Assets = require('../core/OptiBotAssetsManager.js');
-const LogEntry = require('../core/OptiBotLogEntry.js');
+const Assets = require('../core/asset_manager.js');
+const LogEntry = require('../core/modlog.js');
 const djs = require('discord.js');
 const util = require('util');
 

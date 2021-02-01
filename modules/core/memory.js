@@ -61,6 +61,7 @@ const memory = {
   rdel: [], // recent deletions
   rban: {}, // recent bans
   donatorInvites: {}, // donator invite cache
+  firstBoot: true
 };
 
 /**

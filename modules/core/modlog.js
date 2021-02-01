@@ -2,8 +2,8 @@ const util = require('util');
 const djs = require('discord.js');
 const cid = require('caller-id');
 const timeago = require('timeago.js');
-const Memory = require('./OptiBotMemory.js');
-const RecordEntry = require('./OptiBotRecordEntry.js');
+const Memory = require('./memory.js');
+const RecordEntry = require('./record_entry.js');
 
 module.exports = class LogEntry {
   constructor(opts = { time: new Date(), console: true, embed: true, channel: 'misc' }) {

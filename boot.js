@@ -1,35 +1,33 @@
 /**
- * OptiBot NX - Core & Boot Manager
+ * OptiBot - Boot Manager
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * Written by Kyle Edwards <wingedasterisk@gmail.com>, January 2020
- * 
- * Here's to another lousy decade.
  */
 
 const child = require('child_process');
 const readline = require('readline');
 const fs = require('fs');
 const util = require('util');
-const callerId = require('caller-id');
 const AZip = require('adm-zip');
+const chalk = require('chalk');
 const pkg = require('./package.json');
+
+process.title = `OptiBot ${pkg.version}`;
 
 const env = {
   mode: 0,
   log: {
     /**
-     * 0 = TRACE
-     * 1 = DEBUG
-     * 2 = INFO
-     * 3 = WARN
-     * 4 = ERROR
-     * 5 = FATAL
+     * 0 = DEBUG
+     * 1 = INFO+
      */
-    level: 2,
+    level: 1,
     stream: null,
     filename: null
   },
-  rl: null,
+  rl: readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  }),
   autostart: {
     rph: 0,
     hour: 0,
@@ -53,7 +51,6 @@ const env = {
 };
 
 const log = (m, lvl, file) => {
-  const call = callerId.getData();
   const now = new Date();
   const t_hour = now.getUTCHours().toString().padStart(2, '0');
   const t_min = now.getUTCMinutes().toString().padStart(2, '0');
@@ -62,52 +59,49 @@ const log = (m, lvl, file) => {
   const entry = {
     timestamp: {
       content: `${t_hour}:${t_min}:${t_sec}.${t_ms}`,
-      color: '\x1b[0m'
+      color: chalk.white
     },
     file: {
-      content: `${call.filePath.substring(call.filePath.lastIndexOf('\\') + 1)}:${call.lineNumber}`,
-      color: '\x1b[33m'
+      content: `UNKNOWN`,
+      color: chalk.yellow
     },
     level: {
-      content: 'TRACE',
-      color: '\x1b[35m'
+      content: 'DEBUG',
+      color: chalk.magenta
     },
     message: {
       content: m,
-      color: '\x1b[97m'
+      color: chalk.white
     }
   };
 
-  if (lvl) {
-    if (lvl.toLowerCase() === 'fatal') {
-      entry.level.content = 'FATAL';
-      entry.level.color = '\x1b[7;91m';
-      entry.message.color = '\x1b[91m';
-    } else if (lvl.toLowerCase() === 'error') {
-      if (env.log.level > 4) return;
-      entry.level.content = 'ERROR';
-      entry.level.color = '\x1b[91m';
-      entry.message.color = '\x1b[91m';
-    } else if (lvl.toLowerCase() === 'warn') {
-      if (env.log.level > 3) return;
-      entry.level.content = 'WARN';
-      entry.level.color = '\x1b[93m';
-      entry.message.color = '\x1b[93m';
-    } else if (lvl.toLowerCase() === 'info') {
-      if (env.log.level > 2) return;
-      entry.level.content = 'INFO';
-      entry.level.color = '\x1b[0m';
-      entry.message.color = '\x1b[97m';
-    } else if (lvl.toLowerCase() === 'debug') {
-      if (env.log.level > 1) return;
-      entry.level.content = 'DEBUG';
-      entry.level.color = '\x1b[35m';
-      entry.message.color = '\x1b[35m';
-    } else if (env.log.level > 0) return;
-  } else if (env.log.level > 0) return;
+  if (typeof lvl === `string` && [`fatal`, `error`, `warn`, `info`].includes(lvl.toLowerCase())) {
+    entry.level.content = lvl.toUpperCase();
+  }
+
+  switch(lvl.toLowerCase()) {
+    case 'fatal': 
+      entry.level.color = chalk.inverse.bgRedBright;
+      entry.message.color = chalk.red;
+      break;
+    case 'error': 
+      entry.level.color = chalk.red;
+      entry.message.color = chalk.red;
+      break;
+    case 'warn':
+      entry.level.color = chalk.yellowBright;
+      entry.message.color = chalk.yellowBright;
+      break;
+    case 'info':
+      entry.level.color = chalk.white;
+      entry.message.color = chalk.whiteBright;
+      break;
+    default:
+      if (env.log.level < 1) return;
+  }
 
   if (typeof m !== 'string') {
-    entry.message.color = '\x1b[33m';
+    entry.message.color = chalk.yellowBright;
     if (m instanceof Error) {
       entry.message.content = m.stack;
     } else if (Buffer.isBuffer(m)) {
@@ -120,7 +114,7 @@ const log = (m, lvl, file) => {
         try {
           entry.message.content = m.toString();
         }
-        catch (e) {
+        catch (e2) {
           log('failed interp of log entry', 'error');
         }
       }
@@ -131,425 +125,392 @@ const log = (m, lvl, file) => {
     entry.file.content = file;
   }
 
-  const m1c = `[${entry.timestamp.content}] [${entry.file.content}] [${entry.level.content}] : `;
-  const m2c = entry.message.content.replace(/\n/g, `\n${(' '.repeat(m1c.length))}`) + '\n';
+  const terminal1 = [
+    chalk.white(`[${entry.timestamp.color(entry.timestamp.content)}]`),
+    chalk.white(`[${entry.file.color(entry.file.content)}]`),
+    chalk.white(`[${entry.level.color(entry.level.content)}]`),
+    `: `
+  ].join(' ');
+  const terminal2 = entry.message.color(entry.message.content.replace(/\n/g, `\n${(' '.repeat(terminal1.length))}`))
 
-  const m1 = `[${entry.timestamp.color}${entry.timestamp.content}\x1b[0m] [${entry.file.color}${entry.file.content}\x1b[0m] ${entry.level.color}[${entry.level.content}]\x1b[0m : `;
-  const m2 = entry.message.color + entry.message.content.replace(/\n/g, `\n${(' '.repeat(m1c.length))}`) + '\x1b[0m';
+  const plain1 = `[${entry.timestamp.content}] [${entry.file.content}] [${entry.level.content}] : `;
+  const plain2 = entry.message.content.replace(/\n/g, `\n${(' '.repeat(plain1.length))}`) + '\n';
 
-  console.log(m1 + m2);
-  if (env.log.stream) env.log.stream.write(m1c + m2c);
+  console.log(terminal1 + terminal2);
+  if (env.log.stream) env.log.stream.write(plain1 + plain2);
 };
 
 // check and setup required directories and files
 
-if (!fs.existsSync('./assets')) {
-  throw new Error('./assets directory not found.');
+const required = [
+  './assets',
+  './assets/img',
+  './cfg',
+  './cfg/config.json',
+  './cfg/keys.json',
+  './modules',
+  './modules/cmd',
+  './modules/core',
+  './modules/core/OptiBot.js'
+];
+
+const makeDirs = [
+  './archive',
+  './archive/logs',
+  './archive/data',
+  './data',
+  './logs'
+];
+
+for (const item of required) {
+  if (!fs.existsSync(item)) throw new Error(`Missing file or directory: ${item}`);
 }
 
-if (!fs.existsSync('./assets/img')) {
-  throw new Error('./assets/img directory not found.');
-}
-
-if (!fs.existsSync('./cfg')) {
-  throw new Error('./cfg directory not found.');
-}
-
-if (!fs.existsSync('./cfg/config.json')) {
-  throw new Error('./cfg/config.json file not found.');
-}
-
-if (!fs.existsSync('./cfg/keys.json')) {
-  throw new Error('./cfg/keys.json file not found.');
+for (const item of makeDirs) {
+  if (!fs.existsSync(item)) {
+    fs.mkdirSync(item);
+  }
 }
 
 if (typeof require('./cfg/keys.json').discord !== 'string') {
   throw new Error('./cfg/keys.json - Missing Discord API token.');
 }
 
-if (!fs.existsSync('./archive')) {
-  fs.mkdirSync('./archive');
-}
-
-if (!fs.existsSync('./archive/logs')) {
-  fs.mkdirSync('./archive/logs');
-}
-
-if (!fs.existsSync('./archive/data')) {
-  fs.mkdirSync('./archive/data');
-}
-
-if (!fs.existsSync('./data')) {
-  fs.mkdirSync('./data');
-}
-
 if (!fs.existsSync('./data/profiles.db')) {
   fs.writeFileSync('./data/profiles.db', '');
 }
 
-if (!fs.existsSync('./logs')) {
-  fs.mkdirSync('./logs');
-}
+(function setup() {
+  const q1 = () => {
+    console.clear();
 
-if (!fs.existsSync('./modules')) {
-  throw new Error('OptiBot Modules directory not found.');
-}
+    if (process.argv.includes('--skipsetup')) {
+      env.mode = parseInt(process.argv.indexOf('--skipsetup') + 1);
+      preinit();
+    } else {
+      env.rl.question('START OPTIBOT [Y/N]\n', (res) => {
+        if (res.trim().toLowerCase() === 'y') {
+          q2();
+        } else if (res.trim().toLowerCase() === 'n') {
+          process.exit();
+        } else {
+          q1();
+        }
+      });
+    }
+  }
 
-if (!fs.existsSync('./modules/cmd')) {
-  throw new Error('Commands directory not found.');
-}
+  const q2 = () => {
+    console.clear();
 
-if (!fs.existsSync('./modules/core')) {
-  throw new Error('Core Module directory not found.');
-}
-
-if (!fs.existsSync('./modules/core/OptiBot.js')) {
-  throw new Error('OptiBot Core Module not found.');
-}
-
-process.title = `OptiBot ${pkg.version}`;
-
-(function q1() {
-  process.stdout.write('\033c');
-  process.stdout.write('\u001b[2J\u001b[0;0H');
-  if (process.argv.indexOf('--skipsetup') > -1) {
-    env.mode = parseInt(process.argv.indexOf('--skipsetup') + 1);
-    init();
-  } else {
-    env.rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout
-    });
-
-    env.rl.question('START OPTIBOT [Y/N]\n', (res) => {
-      if (res.trim().toLowerCase() === 'y') {
+    env.rl.question('SET OPERATING MODE [0-3]\n', (res) => {
+      const mode = parseInt(res);
+  
+      if (isNaN(mode) || mode < 0 || mode > 3) {
         q2();
-      } else if (res.trim().toLowerCase() === 'n') {
-        process.exit();
       } else {
-        q1();
+        /**
+         * MODE 0 - FULL FEATURE SET, CLOSED ACCESS | CODE MODE
+         * MODE 1 - LIMITED FEATURE SET, CLOSED ACCESS | ULTRALIGHT MODE
+         * MODE 2 - LIMITED FEATURE SET, PUBLIC ACCESS | LITE MODE
+         * MODE 3 - FULL FEATURE SET, PUBLIC ACCESS | NORMAL
+         */
+        env.mode = mode;
+        if (mode === 0) env.log.level = 0;
+  
+        env.rl.close();
+        preinit();
       }
     });
   }
+
+  
+  
 })();
 
-function q2() {
-  process.stdout.write('\033c');
-  process.stdout.write('\u001b[2J\u001b[0;0H');
-  env.rl.question('SET OPERATING MODE [0-3]\n', (res) => {
-    const mode = parseInt(res);
-
-    if (isNaN(mode) || mode < 0 || mode > 3) {
-      q2();
-    } else {
-      /**
-       * MODE 0 - FULL FEATURE SET, CLOSED ACCESS | CODE MODE
-       * MODE 1 - LIMITED FEATURE SET, CLOSED ACCESS | ULTRALIGHT MODE
-       * MODE 2 - LIMITED FEATURE SET, PUBLIC ACCESS | LITE MODE
-       * MODE 3 - FULL FEATURE SET, PUBLIC ACCESS | NORMAL
-       */
-      env.mode = mode;
-      if (mode === 0) env.log.level = 0;
-
-      env.rl.close();
-      init();
-    }
-  });
-}
-
-function init() {
-  process.stdout.write('\033c');
-  process.stdout.write('\u001b[2J\u001b[0;0H');
-
-  // 🦀
+function preinit() {
+  console.clear();
 
   process.title = `OptiBot ${pkg.version} | Spawning Process...`;
 
   env.log.filename = new Date().toUTCString().replace(/[/\\?%*:|"<>]/g, '.');
   env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);
 
-  function preinit() {
-    if (env.autostart.rph > 5 && env.mode != 0) {
-      log(`Pre-Init: Unusually high client reset count: ${env.autostart.rph}`, 'warn');
-      if (env.autostart.rph > 50) {
-        log('Pre-Init: Potential boot loop detected, shutting down for safety.', 'warn');
-        return end(19, true, 'FATAL');
+  if (env.autostart.rph > 5 && env.mode != 0) {
+    log(`Pre-Init: Unusually high client reset count: ${env.autostart.rph}`, 'warn');
+    if (env.autostart.rph > 50) {
+      log('Pre-Init: Potential boot loop detected, shutting down for safety.', 'warn');
+      return end(19, true, 'FATAL');
+    }
+  }
+
+  log('Pre-Init: Backing up OptiBot profiles...', 'info');
+  const pzip = new AZip();
+  pzip.addLocalFile('./data/profiles.db');
+
+  pzip.writeZip(`./archive/data/profiles_before_${env.log.filename}.zip`, (err) => {
+    if (err) throw err;
+
+    log('Pre-Init: OptiBot profiles successfully archived.', 'info');
+
+    log('Pre-Init: Archiving log files...', 'info');
+
+    const logs = fs.readdirSync('./logs');
+
+    const zipData = {};
+
+    for (const file of logs) {
+      if (!file.endsWith('.log')) continue;
+      const creation = new Date(Math.min(fs.statSync(`./logs/${file}`).mtime.getTime(), Date.parse(file.substring(0, file.lastIndexOf('GMT') + 3).replace(/\./g, ':'))));
+
+      if (creation.getTime() - new Date().getTime() < (1000 * 60 * 60 * 24 * 30)) continue; // skip if file is less than a month old
+
+      const target = `${creation.getUTCMonth()}_${creation.getUTCFullYear()}`;
+
+      if (Object.keys(zipData[target]).length != 0) {
+        zipData[target].files.push(file);
+      } else {
+        zipData[target] = {
+          files: [file],
+          name: `${creation.toLocaleString('default', { month: 'long', year: 'numeric' })}`
+        };
       }
     }
 
-    log('Pre-Init: Backing up OptiBot profiles...', 'info');
-    const pzip = new AZip();
-    pzip.addLocalFile('./data/profiles.db');
+    const keys = Object.keys(zipData);
 
-    pzip.writeZip(`./archive/data/profiles_before_${env.log.filename}.zip`, (err) => {
-      if (err) throw err;
+    if (keys.length === 0) {
+      // nothing to write
+      init();
+    } else {
+      log(`Pre-Init: Preparing to write ${keys.length} ZIP archive(s)...`, 'info');
 
-      log('Pre-Init: OptiBot profiles successfully archived.', 'info');
-
-      if (new Date().getUTCDate() === 1) {
-        log('Pre-Init: Archiving log files...', 'info');
-        const logs = fs.readdirSync('./logs');
-
-        const zipData = {};
-        const current = new Date().toLocaleString('default', { month: 'long', year: 'numeric' });
-
-        for (const log of logs) {
-          if (!log.endsWith('.log')) continue;
-          const creation = new Date(Math.min(fs.statSync(`./logs/${log}`).mtime.getTime(), Date.parse(log.substring(0, log.lastIndexOf('GMT') + 3).replace(/\./g, ':'))));
-
-          if (creation.toLocaleString('default', { month: 'long', year: 'numeric' }) === current) continue;
-
-          const target = `${creation.getUTCMonth()}_${creation.getUTCFullYear()}`;
-
-          if (zipData[target] != null) {
-            zipData[target].files.push(log);
-          } else {
-            zipData[target] = {
-              files: [log],
-              name: `${creation.toLocaleString('default', { month: 'long', year: 'numeric' })}`
-            };
-          }
+      let archived = 0;
+      let i = 0;
+      (function nextZip() {
+        if (i >= keys.length) {
+          log(`Pre-Init: Successfully archived ${archived} log files.`, 'info');
+          return init();
         }
 
-        const keys = Object.keys(zipData);
+        const data = zipData[keys[i]];
+        const path = `./archive/logs/${data.name}.zip`;
+        const zip = (fs.existsSync(path)) ? new AZip(path) : new AZip();
 
-        if (keys.length === 0) {
-          spawn();
-        } else {
-          log(`Pre-Init: Preparing to write ${keys.length} ZIP archive(s)...`, 'info');
+        for (const file of data.files) {
+          archived++;
+          zip.addLocalFile(`./logs/${file}`);
+          fs.unlinkSync(`./logs/${file}`);
+        }
 
-          let archived = 0;
-          let i = 0;
-          (function nextZip() {
-            if (i >= keys.length) {
-              log(`Pre-Init: Successfully archived ${archived} log files.`, 'info');
-              return spawn();
-            }
+        zip.writeZip(path, (err2) => {
+          if (err2) log(err2.stack, 'error');
 
-            const data = zipData[keys[i]];
-            const path = `./archive/logs/${data.name}.zip`;
-            const zip = (fs.existsSync(path)) ? new AZip(path) : new AZip();
+          i++;
+          nextZip();
+        });
+      })();
+    }
+  });
+}
 
-            for (const file of data.files) {
-              archived++;
-              zip.addLocalFile(`./logs/${file}`);
-              fs.unlinkSync(`./logs/${file}`);
-            }
+function init() {
+  log('Launching OptiBot...', 'info');
 
-            zip.writeZip(path, (err) => {
-              if (err) log(err.stack, 'error');
+  const bot = child.spawn('node', ['index.js', env.mode, env.log.filename], {
+    stdio: ['pipe', 'pipe', 'pipe', 'ipc']
+  });
 
-              i++;
-              nextZip();
+  let chunks_out = [];
+  bot.stdout.on('data', (data) => {
+    chunks_out = chunks_out.concat(data);
+    log(data, undefined);
+  });
+  bot.stdout.on('end', () => {
+    const content = Buffer.concat(chunks_out).toString();
+    if (content.length > 0) log(content, undefined);
+    chunks_out = [];
+  });
+
+  let chunks_err = [];
+  bot.stderr.on('data', (data) => {
+    chunks_err = chunks_err.concat(data);
+    log(data, 'fatal');
+  });
+  bot.stderr.on('end', () => {
+    const content = Buffer.concat(chunks_err).toString();
+    if (content.length > 0) log(content, 'fatal');
+    chunks_err = [];
+  });
+
+  bot.on('message', (data) => {
+    if (data != null && data.constructor === Object && data.type != null) {
+      switch(data.type) {
+        case 'OB_LOG':
+          log(data.message, data.level, data.misc);
+          break;
+        case 'OB_READY':
+          log('Bot ready');
+          if (env.cr.logData != null) {
+            // send crash data
+            bot.send({ crashlog: env.cr.logData }, (err) => {
+              if (err) {
+                log('Failed to send crashlog data: ' + err.stack, 'error');
+              } else {
+                // once finished, clear crash data so it's not sent again during next scheduled restart.
+                env.cr.logData = null;
+              }
             });
-          })();
-        }
-      } else {
-        spawn();
+          }
+
+          if (env.r.guild !== null) {
+            // send restart data
+            bot.send({ restart: env.r }, (err) => {
+              if (err) {
+                log('Failed to send restart data: ' + err.stack, 'error');
+              } else {
+                env.r.guild = null;
+                env.r.channel = null;
+                env.r.message = null;
+                env.r.author = null;
+              }
+            });
+          }
+          break;
+        case 'OB_RESTART':
+          env.r.guild = data.guild;
+          env.r.channel = data.channel;
+          env.r.message = data.message;
+          env.r.author = data.author;
+          break;
+        default:
+          log(util.inspect(data)); // to the debugeon with you
       }
-    });
-  }
+    } else {
+      log(util.inspect(data)); // to the debugeon with you... again
+    }
+  });
 
-  function spawn() {
-    log('OptiBot is now booting...', 'info');
-    const bot = child.spawn('node', ['index.js', env.mode, env.log.filename], {
-      stdio: ['pipe', 'pipe', 'pipe', 'ipc']
-    });
+  bot.on('exit', (code) => {
+    log(`Child process ended with exit code ${code}`, 'info');
 
-    let chunks_out = [];
-    bot.stdout.on('data', (data) => {
-      chunks_out = chunks_out.concat(data);
-      log(data, undefined, 'index.js:NULL');
-    });
-    bot.stdout.on('end', () => {
-      const content = Buffer.concat(chunks_out).toString();
-      if (content.length > 0) log(content, undefined, 'index.js:NULL');
-      chunks_out = [];
-    });
+    if ([18, 1].includes(code)) {
+      env.r.guild = null;
+      env.r.channel = null;
+      env.r.message = null;
+      env.r.author = null;
+    }
 
-    let chunks_err = [];
-    bot.stderr.on('data', (data) => {
-      chunks_err = chunks_err.concat(data);
-      log(data, 'fatal', 'index.js:NULL');
-    });
-    bot.stderr.on('end', () => {
-      const content = Buffer.concat(chunks_err).toString();
-      if (content.length > 0) log(content, 'fatal', 'index.js:NULL');
-      chunks_err = [];
-    });
+    const opts = {
+      exit: true,
+      note: null,
+      timeout: 500
+    };
 
-    bot.on('message', (data) => {
-      if (data.type === 'log') {
-        log(data.message, data.level, data.misc);
-      } else if (data.type === 'ready') {
-        log('Bot ready');
-        if (env.cr.logData != null) {
-          // send crash data
-          bot.send({ crashlog: env.cr.logData }, (err) => {
-            if (err) {
-              log('Failed to send crashlog data: ' + err.stack, 'error');
-            } else {
-              // once finished, clear crash data so it's not sent again during next scheduled restart.
-              env.cr.logData = null;
-            }
-          });
-        }
-
-        if (env.r.guild !== null) {
-          // send restart data
-          bot.send({ restart: env.r }, (err) => {
-            if (err) {
-              log('Failed to send restart data: ' + err.stack, 'error');
-            } else {
-              env.r.guild = null;
-              env.r.channel = null;
-              env.r.message = null;
-              env.r.author = null;
-            }
-          });
-        }
-      } else if (data.type === 'logLvl') {
-        env.log.level = parseInt(data.content);
-        log('Log level updated.', 'fatal');
-      } else if (data.type === 'restart') {
-        env.r.guild = data.guild;
-        env.r.channel = data.channel;
-        env.r.message = data.message;
-        env.r.author = data.author;
-      }
-    });
-
-    bot.on('exit', (code) => {
-      log(`Child process ended with exit code ${code}`, 'info');
-
-      if ([18, 1].indexOf(code) > -1) {
-        env.r.guild = null;
-        env.r.channel = null;
-        env.r.message = null;
-        env.r.author = null;
-      }
-
-      if (code === 0) {
-        log('OptiBot is now shutting down at user request.', 'info');
-        end(code, true);
-      } else if (code === 1) {
-        log('OptiBot seems to have crashed. Restarting...', 'info');
-        const logSuffix = 'CRASH';
-
-        fs.readFile(`./logs/${env.log.filename}.log`, { encoding: 'utf8' }, (err, data) => {
-          if (err) throw err;
-          env.cr.logData = data;
-
-          setTimeout(() => {
-            end(code, false, logSuffix);
-          }, (env.mode === 0) ? 5000 : 10);
-        });
-      } else if (code === 2) {
-        log('Bash Error. (How the fuck?)', 'fatal');
-        end(code, true);
-      } else if (code === 3) {
-        log('Internal JavaScript parse error.', 'fatal');
-        end(code, true);
-      } else if (code === 4) {
-        log('Internal JavaScript Evaluation Failure.', 'fatal');
-        end(code, true);
-      } else if (code === 5) {
-        log('Fatal Error.', 'fatal');
-        end(code, true);
-      } else if (code === 6) {
-        log('Non-function Internal Exception Handler.', 'fatal');
-        end(code, true);
-      } else if (code === 7) {
-        log('Internal Exception Handler Run-Time Failure.', 'fatal');
-        end(code, true);
-      } else if (code === 8) {
-        log('Uncaught exception. (Unused in newer NodeJS)', 'fatal');
-        end(code, true);
-      } else if (code === 9) {
-        log('Invalid Launch Argument(s).', 'fatal');
-        end(code, true);
-      } else if (code === 10) {
-        log('Internal JavaScript Run-Time Failure.', 'fatal');
-        end(code, true);
-      } else if (code === 12) {
-        log('Invalid Debug Argument(s).', 'fatal');
-        end(code, true);
-      } else if (code === 16) {
-        log('OptiBot is now restarting at user request...', 'info');
-        end(code, false);
-      } else if (code === 17) {
+    switch(code) {
+      case 0: 
+        log(`OptiBot is now shutting down at user request.`, `info`);
+        break;
+      case 1: 
+        log(`OptiBot seems to have crashed. Restarting...`, `info`);
+        opts.exit = false;
+        opts.note = `CRASH`;
+        if (env.mode === 0) opts.timeout = 5000;
+        break;
+      case 2: 
+        log(`Bash Error.`, `fatal`);
+        break;
+      case 3: 
+        log(`Internal JavaScript parse error.`, `fatal`);
+        break;
+      case 4: 
+        log(`Internal JavaScript Evaluation Failure.`, `fatal`);
+        break;
+      case 5: 
+        log(`Fatal Error.`, `fatal`);
+        break;
+      case 6: 
+        log(`Non-function Internal Exception Handler.`, `fatal`);
+        break;
+      case 7: 
+        log(`Internal Exception Handler Run-Time Failure.`, `fatal`);
+        break;
+      case 8: 
+        log(`Uncaught exception.`, `fatal`);
+        break;
+      case 9: 
+        log(`Invalid Launch Argument(s).`, `fatal`);
+        break;
+      case 10: 
+        log(`Internal JavaScript Run-Time Failure.`, `fatal`);
+        break;
+      case 12: 
+        log(`Invalid Debug Argument(s).`, `fatal`);
+        break;
+      case 16: 
+        log(`OptiBot is now restarting at user request...`, `info`);
+        break;
+      case 17: 
         if (env.mode === 0) {
-          log('OptiBot cannot be updated in mode 0. Restarting...', 'info');
-          end(16, false);
+          log(`OptiBot cannot be updated in mode 0. Restarting...`, `info`);
+          opts.exit = false;
         } else {
-          log('OptiBot is now being updated...', 'info');
-          update();
+          log(`OptiBot is now being updated...`, `info`);
+          return update();
         }
-      } else if (code === 18) {
+        break;
+      case 18:
         log('OptiBot is now undergoing scheduled restart.', 'info');
-        end(code, false);
-      } else if (code === 19) {
+        opts.exit = false;
+        break;
+      case 19:
         log('OptiBot is shutting down automatically.', 'fatal');
-        end(code, true, 'FATAL');
-      } else if (code > 128) {
-        log(`Signal exit code ${code - 128}.`, 'fatal');
-        end(code, true);
-      }
-    });
-  }
+        opts.exit = false;
+        opts.note = `FATAL`;
+        break;
+    }
 
-  function end(code, exit, log_suffix) {
-    env.autostart.rph++;
+    if (code > 128) log(`Signal exit code ${code - 128}.`, `fatal`);
 
     setTimeout(() => {
-      env.log.stream.end();
+      exit(code, opts.exit, opts.note);
+    }, opts.timeout);
+  });
+}
 
-      if (log_suffix) {
-        fs.rename(`./logs/${env.log.filename}.log`, `./logs/${env.log.filename}_${log_suffix}.log`, (err) => {
-          if (err) throw err;
-          if (exit) {
-            process.exit(code);
-          } else {
-            setTimeout(() => {
-              init();
-            }, (env.mode === 0) ? 5000 : 500);
-          }
-        });
-      } else {
-        setTimeout(() => {
-          if (exit) {
-            process.exit(code);
-          } else {
-            init();
-          }
-        }, 500);
-      }
-    }, 500);
-  }
+function end(code, exit, log_suffix) {
+  env.autostart.rph++;
+  env.log.stream.end();
 
-  function update() {
-    setTimeout(() => {
-      child.execSync('git fetch --all');
-      child.execSync('git reset --hard origin/master');
-      child.execSync('npm install');
+  setTimeout(() => {
+    if (log_suffix != null) fs.renameSync(`./logs/${env.log.filename}.log`, `./logs/${env.log.filename}_${log_suffix}.log`);
+    
+    if (exit) {
+      process.exit(code);
+    } else {
+      preinit();
+    }
+  }, 500);
+}
 
-      setTimeout(() => {
-        env.log.stream.end();
+function update() {
+  env.log.stream.end();
 
-        setTimeout(() => {
-          // i know this looks like a fucking mess of commands and switches but trust me it NEEDS to be structured precisely like this to work.
-          // fuck windows batch
-          child.spawn('cmd', ['/C', 'start', '""', 'cmd', '/C', 'init.bat', '--skipsetup', env.mode], {
-            detached: true,
-            stdio: 'ignore',
-            cwd: __dirname
-          }).unref();
+  child.execSync('git fetch --all');
+  child.execSync('git reset --hard origin/master');
+  child.execSync('npm install');
 
-          process.exit(3);
-        }, 500);
-      }, 500);
-    }, 500);
-  }
+  setTimeout(() => {
+    child.execSync(`npm start -- --skipsetup ${env.mode}`);
 
-  preinit();
+    /* // i know this looks like a fucking mess of commands and switches but trust me it NEEDS to be structured precisely like this to work.
+    // fuck windows batch
+    child.spawn('cmd', ['/C', 'start', '""', 'cmd', '/C', 'init.bat', '--skipsetup', env.mode], {
+      detached: true,
+      stdio: 'ignore',
+      cwd: __dirname
+    }).unref();
+
+    process.exit(3); */
+  }, 500);
 }

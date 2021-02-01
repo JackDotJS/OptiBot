@@ -1,13 +1,7 @@
 archive
-assets/ref.txt
 assets/emoji/src
 cfg/keys.json
 data
-!data/build.json
 logs
 node_modules
 package-lock.json
-*.zip
-*.rdp
-scan_results.txt
-temp

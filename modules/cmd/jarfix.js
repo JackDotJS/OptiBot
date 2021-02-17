@@ -18,7 +18,9 @@ metadata.run = m => {
   const embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
     .setAuthor('Download Jarfix', Assets.getEmoji('ICO_jarfix').url)
-    .setTitle('https://johann.loefflmann.net/jarfix')
+    .setTitle('Jarfix is a program that will automatically set ``.jar`` files to open with Java.')
+    .setDescription('We consider this software safe, despite it being an EXE file.')
+    .addField('Download Page', 'https://johann.loefflmann.net/jarfix')
     .addField('Direct Download', 'https://johann.loefflmann.net/downloads/jarfix.exe')
     .setFooter(`Jarfix Copyright © 2002-${new Date().getUTCFullYear()} by Dipl.-Inf. (FH) Johann Nepomuk Löfflmann`);
 

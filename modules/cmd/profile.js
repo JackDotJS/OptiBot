@@ -2,9 +2,9 @@ const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
 const timeago = require('timeago.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -19,30 +19,30 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+  bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
     log(util.inspect(result));
     if (!result) {
-      OBUtil.err('You must specify a valid user @mention, ID, or target shortcut (^)', { m });
+      bot.util.err('You must specify a valid user @mention, ID, or target shortcut (^)', { m });
     } else if (result.type === 'notfound') {
-      const embed = OBUtil.err('Unable to find a user.')
+      const embed = bot.util.err('Unable to find a user.')
         .setDescription('If this user ever existed, it seems any information about them has been lost to time.');
 
-      m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+      m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
     } else if (result.type === 'id') {
-      OBUtil.getProfile(result.target, false).then(profile => {
+      bot.util.getProfile(result.target, false).then(profile => {
         if (!profile) {
-          const embed = OBUtil.err('Unable to find a user.')
+          const embed = bot.util.err('Unable to find a user.')
             .setDescription('If this user ever existed, it seems any information about them has been lost to time.');
 
-          m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+          m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
         } else {
-          m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => OBUtil.afterSend(bm, m.author.id));
+          m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => bot.util.afterSend(bm, m.author.id));
         }
-      }).catch(err => OBUtil.err(err, { m }));
+      }).catch(err => bot.util.err(err, { m }));
     } else {
-      OBUtil.getProfile(result.id, false).then(profile => {
+      bot.util.getProfile(result.id, false).then(profile => {
         if (args[1] && args[1].toLowerCase() === 'raw' && data.authlvl > 0) {
-          m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => OBUtil.afterSend(bm, m.author.id));
+          m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => bot.util.afterSend(bm, m.author.id));
         } else {
           let mem = null;
           let user = null;
@@ -187,11 +187,11 @@ metadata.run = (m, args, data) => {
             embed.setFooter('This user may not be a member of this server.');
           }
 
-          m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+          m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
         }
-      }).catch(err => OBUtil.err(err, { m }));
+      }).catch(err => bot.util.err(err, { m }));
     }
-  }).catch(err => OBUtil.err(err, { m }));
+  }).catch(err => bot.util.err(err, { m }));
 };
 
 module.exports = new Command(metadata);

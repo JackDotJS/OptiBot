@@ -1,5 +1,5 @@
 const path = require('path');
-const { Command } = require('../core/OptiBot.js');
+const { Command } = require('../core/optibot.js');
 
 const metadata = {
   name: path.parse(__filename).name,

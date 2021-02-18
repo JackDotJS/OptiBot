@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -34,7 +34,7 @@ metadata.run = (m, args, data) => {
     reason = someReason[Math.floor(Math.random() * someReason.length)];
   }
 
-  OBUtil.parseTarget(m, 0, target, bot, data.member).then((result) => {
+  bot.util.parseTarget(m, 0, target, bot, data.member).then((result) => {
     if(result && result.type !== 'notfound') {
       if(result.id === bot.user.id) {
         return m.channel.send('fuck you');
@@ -82,7 +82,7 @@ metadata.run = (m, args, data) => {
 
           bm.edit(embed).then(bm2 => {
             bm2.reactions.removeAll().then(() => {
-              OBUtil.afterSend(bm2, m.author.id);
+              bot.util.afterSend(bm2, m.author.id);
             });
           });
 

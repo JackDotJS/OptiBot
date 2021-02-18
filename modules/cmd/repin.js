@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -15,12 +15,12 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if (!args[0]) return OBUtil.missingArgs(m, metadata);
+  if (!args[0]) return bot.util.missingArgs(m, metadata);
 
-  OBUtil.parseTarget(m, 1, args[0], data.member).then(result => {
+  bot.util.parseTarget(m, 1, args[0], data.member).then(result => {
     if (result && result.type === 'message') {
       if (!result.target.pinned) {
-        OBUtil.err('That message is not pinned.', { m });
+        bot.util.err('That message is not pinned.', { m });
       } else {
         result.target.unpin().then(() => {
           result.target.pin().then(() => {
@@ -28,19 +28,19 @@ metadata.run = (m, args, data) => {
               .setAuthor('Pinned message successfully moved.', Assets.getEmoji('ICO_okay').url)
               .setColor(bot.cfg.embed.okay);
 
-            m.channel.send(embed).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+            m.channel.send(embed).then(msg => { bot.util.afterSend(msg, m.author.id); });
           }).catch(err => {
-            OBUtil.err(err, { m });
+            bot.util.err(err, { m });
           });
         }).catch(err => {
-          OBUtil.err(err, { m });
+          bot.util.err(err, { m });
         });
       }
     } else {
-      OBUtil.err('You must specify a valid message.', { m });
+      bot.util.err('You must specify a valid message.', { m });
     }
   }).catch(err => {
-    OBUtil.err(err, { m });
+    bot.util.err(err, { m });
   });
 };
 

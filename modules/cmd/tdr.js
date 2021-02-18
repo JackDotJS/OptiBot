@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -16,7 +16,7 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if (!data.member.roles.cache.has(bot.cfg.roles.donator)) return OBUtil.err('You are not a verified donator.', { m });
+  if (!data.member.roles.cache.has(bot.cfg.roles.donator)) return bot.util.err('You are not a verified donator.', { m });
 
   // has donator
   if (data.member.roles.cache.has(bot.cfg.roles.donatorColor)) {
@@ -25,7 +25,7 @@ metadata.run = (m, args, data) => {
         .setColor(bot.cfg.embed.okay)
         .setAuthor('Donator color disabled.', Assets.getEmoji('ICO_okay').url);
 
-      m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+      m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
     });
   } else {
     data.member.roles.add(bot.cfg.roles.donatorColor, 'Color toggled by user.').then(() => {
@@ -33,7 +33,7 @@ metadata.run = (m, args, data) => {
         .setColor(bot.cfg.embed.okay)
         .setAuthor('Donator color enabled.', Assets.getEmoji('ICO_okay').url);
 
-      m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+      m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
     });
   }
 

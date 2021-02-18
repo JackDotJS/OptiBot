@@ -2,7 +2,7 @@ const path = require('path');
 const fs = require('fs');
 const djs = require('discord.js');
 const AZip = require('adm-zip');
-const { Command, OBUtil, Memory } = require('../core/OptiBot.js');
+const { Command, memory } = require('../core/optibot.js');
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -51,12 +51,12 @@ metadata.run = (m, args) => {
     }
 
     m.channel.send(new djs.MessageAttachment(zip.toBuffer(), 'logs.zip'))
-      .then(bm => OBUtil.afterSend(bm, m.author.id))
-      .catch(err => OBUtil.err(err));
+      .then(bm => bot.util.afterSend(bm, m.author.id))
+      .catch(err => bot.util.err(err));
   } else {
-    m.channel.send(new djs.MessageAttachment(`./logs/${Memory.core.logfile}.log`))
-      .then(bm => OBUtil.afterSend(bm, m.author.id))
-      .catch(err => OBUtil.err(err));
+    m.channel.send(new djs.MessageAttachment(`./logs/${memory.core.logfile}.log`))
+      .then(bm => bot.util.afterSend(bm, m.author.id))
+      .catch(err => bot.util.err(err));
   }
 };
 

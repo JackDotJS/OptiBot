@@ -1,9 +1,9 @@
 const path = require('path');
 const djs = require('discord.js');
 const sim = require('string-similarity');
-const { Command, OBUtil, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -18,17 +18,17 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if (!args[1]) return OBUtil.missingArgs(m, metadata);
+  if (!args[1]) return bot.util.missingArgs(m, metadata);
 
-  OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+  bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
     if (!result) {
-      OBUtil.err('You must specify a valid user.', { m });
+      bot.util.err('You must specify a valid user.', { m });
     } else if (result.type === 'notfound' || result.type === 'id' || result.type === 'user') {
-      OBUtil.err('Unable to find a user.', { m });
+      bot.util.err('Unable to find a user.', { m });
     } else if (result.target.user.id === m.author.id || result.target.user.id === bot.user.id) {
-      OBUtil.err('Nice try.', { m });
-    } else if (OBUtil.getAuthlvl(result.target) > data.authlvl) {
-      OBUtil.err('You aren\'t powerful enough to update this user\'s roles.', { m });
+      bot.util.err('Nice try.', { m });
+    } else if (bot.util.getAuthlvl(result.target) > data.authlvl) {
+      bot.util.err('You aren\'t powerful enough to update this user\'s roles.', { m });
     } else {
       const roles = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).roles.cache.filter(role => bot.cfg.roles.grantable.indexOf(role.id) > -1).values()];
       const match = {
@@ -47,7 +47,7 @@ metadata.run = (m, args, data) => {
       log(match);
 
       if (match.rating < 0.05) {
-        OBUtil.err('What kind of role is that?', { m });
+        bot.util.err('What kind of role is that?', { m });
       } else if (!result.target.roles.cache.has(match.role.id)) {
         result.target.roles.add(match.role.id, `Role granted by ${m.author.tag}`).then(() => {
           new LogEntry({ channel: 'moderation' })
@@ -65,9 +65,9 @@ metadata.run = (m, args, data) => {
                 .setAuthor('Role added', Assets.getEmoji('ICO_okay').url)
                 .setDescription(`${result.target} has been given the ${match.role} role.`);
 
-              m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+              m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
             });
-        }).catch(err => OBUtil.err(err, { m }));
+        }).catch(err => bot.util.err(err, { m }));
       } else {
         result.target.roles.remove(match.role.id, `Role removed by ${m.author.tag}`).then(() => {
           new LogEntry({ channel: 'moderation' })
@@ -85,13 +85,13 @@ metadata.run = (m, args, data) => {
                 .setAuthor('Role removed', Assets.getEmoji('ICO_okay').url)
                 .setDescription(`${result.target} no longer has the ${match.role} role.`);
 
-              m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+              m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
             });
 
-        }).catch(err => OBUtil.err(err, { m }));
+        }).catch(err => bot.util.err(err, { m }));
       }
     }
-  }).catch(err => OBUtil.err(err, { m }));
+  }).catch(err => bot.util.err(err, { m }));
 
 };
 

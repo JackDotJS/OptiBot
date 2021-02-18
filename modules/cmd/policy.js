@@ -1,8 +1,8 @@
 const path = require('path');
 const sim = require('string-similarity');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -17,11 +17,11 @@ const metadata = {
 
 metadata.run = (m, args) => {
   if (!args[0]) {
-    OBUtil.missingArgs(m, metadata);
+    bot.util.missingArgs(m, metadata);
   } else {
-    Memory.db.pol.find({}, (err, docs) => {
+    memory.db.pol.find({}, (err, docs) => {
       if (err) {
-        OBUtil.err(err, { m });
+        bot.util.err(err, { m });
       } else {
         let allkw = [];
 
@@ -41,12 +41,12 @@ metadata.run = (m, args) => {
                 .setColor(bot.cfg.embed.default)
                 .setFooter(`${(match.bestMatch.rating * 100).toFixed(1)}% match during search.`);
 
-              m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+              m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
             });
           }
         }
 
-        OBUtil.err('Unable to find a policy.', { m });
+        bot.util.err('Unable to find a policy.', { m });
       }
     });
   }

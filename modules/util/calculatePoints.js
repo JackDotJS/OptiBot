@@ -1,4 +1,4 @@
-const Memory = require('../core/memory.js');
+const Memory = require(`../core/memory.js`);
 
 module.exports = (date, total) => {
   const bot = Memory.core.client;

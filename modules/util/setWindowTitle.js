@@ -1,4 +1,4 @@
-const Memory = require('../core/memory.js');
+const Memory = require(`../core/memory.js`);
 
 module.exports = (text) => {
   const bot = Memory.core.client;
@@ -6,12 +6,12 @@ module.exports = (text) => {
   if (text !== undefined) Memory.wintitle = text;
 
   function statusName(code) {
-    if (code === 0) return 'READY';
-    if (code === 1) return 'CONNECTING';
-    if (code === 2) return 'RECONNECTING';
-    if (code === 3) return 'IDLE';
-    if (code === 4) return 'NEARLY';
-    if (code === 5) return 'DISCONNECTED';
+    if (code === 0) return `READY`;
+    if (code === 1) return `CONNECTING`;
+    if (code === 2) return `RECONNECTING`;
+    if (code === 3) return `IDLE`;
+    if (code === 4) return `NEARLY`;
+    if (code === 5) return `DISCONNECTED`;
   }
 
   const wintitle = [
@@ -30,12 +30,12 @@ module.exports = (text) => {
     );
   } else {
     wintitle.push(
-      '-0ms',
+      `-0ms`,
       `WS Code 3 (${statusName(3)})`
     );
   }
 
-  if (typeof Memory.wintitle === 'string') wintitle.push(Memory.wintitle);
+  if (typeof Memory.wintitle === `string`) wintitle.push(Memory.wintitle);
 
-  process.title = wintitle.join(' | ');
+  process.title = wintitle.join(` | `);
 };

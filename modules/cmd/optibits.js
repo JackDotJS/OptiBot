@@ -1,9 +1,9 @@
 const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -17,7 +17,7 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  const list = Memory.assets.optibits;
+  const list = memory.assets.optibits;
 
   let filtered = list;
   let ftext = '';
@@ -109,7 +109,7 @@ metadata.run = (m, args, data) => {
 
   embed.addField('Restrictions', restrictions.join('\n'));
 
-  m.channel.send(embed).then(msg => OBUtil.afterSend(msg, m.author.id));
+  m.channel.send(embed).then(msg => bot.util.afterSend(msg, m.author.id));
 
 };
 

@@ -1,7 +1,7 @@
 const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
-const Memory = require('./memory.js');
+const memory = require('./memory.js');
 
 /**
  * OptiBot Core: Command Class
@@ -21,7 +21,7 @@ module.exports = class Command {
      * @param {Function} data.run The actual command function.
      */
   constructor(meta) {
-    const bot = Memory.core.client;
+    const bot = memory.core.client;
     const log = bot.log;
 
     this.metadata = Command.parseMetadata(meta);
@@ -40,7 +40,7 @@ module.exports = class Command {
     flags = null,
     run = null
   }) {
-    const bot = Memory.core.client;
+    const bot = memory.core.client;
     const log = bot.log;
 
     if (typeof name !== 'string' || name.match(/[^a-zA-Z0-9]/) !== null) {

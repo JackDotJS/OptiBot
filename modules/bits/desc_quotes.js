@@ -1,4 +1,4 @@
-const { OptiBit } = require('../core/OptiBot.js');
+const { OptiBit } = require('../core/optibot.js');
 
 /**
  * This file only exists to retain a visible description for the quotes part of url_handler.js

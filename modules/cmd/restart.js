@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -35,7 +35,7 @@ metadata.run = m => {
             author: m.author.id
           }, (err) => {
             if(err) {
-              OBUtil.err(err.stack, {m:m});
+              bot.util.err(err.stack, {m:m});
             } else {
               bot.exit(16);
             }

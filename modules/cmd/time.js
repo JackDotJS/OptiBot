@@ -1,6 +1,6 @@
 const path = require('path');
 const util = require('util');
-const { Command, OBUtil } = require('../core/OptiBot.js');
+const { Command, OBUtil } = require('../core/optibot.js');
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -15,10 +15,10 @@ const metadata = {
 
 metadata.run = (m, args) => {
   if (!args[0]) {
-    OBUtil.missingArgs(m, metadata);
+    bot.util.missingArgs(m, metadata);
   } else {
-    const time = OBUtil.parseTime(args[0]);
-    m.channel.send(`\`\`\`javascript\n${util.inspect(time)}\`\`\``).then(bm => OBUtil.afterSend(bm, m.author.id));
+    const time = bot.util.parseTime(args[0]);
+    m.channel.send(`\`\`\`javascript\n${util.inspect(time)}\`\`\``).then(bm => bot.util.afterSend(bm, m.author.id));
   }
 };
 

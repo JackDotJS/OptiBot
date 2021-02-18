@@ -1,9 +1,9 @@
 const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, RecordEntry, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -18,18 +18,18 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if (!args[1]) return OBUtil.missingArgs(m, metadata);
+  if (!args[1]) return bot.util.missingArgs(m, metadata);
 
-  OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
-    if (!result) return OBUtil.err('You must specify a valid user.', { m });
-    if (result.type === 'notfound') return OBUtil.err('Unable to find a user.', { m });
-    if (OBUtil.getAuthlvl(result.target) > data.authlvl) return OBUtil.err('You are not strong enough to add notes to this user.', { m });
-    if (result.id === m.author.id || result.id === bot.user.id) return OBUtil.err('Nice try.', { m });
+  bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
+    if (!result) return bot.util.err('You must specify a valid user.', { m });
+    if (result.type === 'notfound') return bot.util.err('Unable to find a user.', { m });
+    if (bot.util.getAuthlvl(result.target) > data.authlvl) return bot.util.err('You are not strong enough to add notes to this user.', { m });
+    if (result.id === m.author.id || result.id === bot.user.id) return bot.util.err('Nice try.', { m });
 
     const reason = m.content.substring(`${bot.prefix}${data.input.cmd} ${args[0]} `.length);
-    if (reason.length > 1000) return OBUtil.err('Note cannot exceed 1000 characters in length.', { m: m });
+    if (reason.length > 1000) return bot.util.err('Note cannot exceed 1000 characters in length.', { m: m });
 
-    OBUtil.getProfile(result.id, true).then(profile => {
+    bot.util.getProfile(result.id, true).then(profile => {
       if (!profile.edata.record) profile.edata.record = [];
 
       const entry = new RecordEntry()
@@ -44,7 +44,7 @@ metadata.run = (m, args, data) => {
 
       profile.edata.record.push(entry.raw);
 
-      OBUtil.updateProfile(profile).then(() => {
+      bot.util.updateProfile(profile).then(() => {
         new LogEntry({ channel: 'moderation' })
           .setColor(bot.cfg.embed.default)
           .setIcon(Assets.getEmoji('ICO_docs').url)
@@ -63,10 +63,10 @@ metadata.run = (m, args, data) => {
 
         m.channel.stopTyping(true);
 
-        m.channel.send({ embed: embed });//.then(bm => OBUtil.afterSend(bm, m.author.id));
-      }).catch(err => OBUtil.err(err, { m: m }));
-    }).catch(err => OBUtil.err(err, { m: m }));
-  }).catch(err => OBUtil.err(err, { m: m }));
+        m.channel.send({ embed: embed });//.then(bm => bot.util.afterSend(bm, m.author.id));
+      }).catch(err => bot.util.err(err, { m: m }));
+    }).catch(err => bot.util.err(err, { m: m }));
+  }).catch(err => bot.util.err(err, { m: m }));
 };
 
 module.exports = new Command(metadata);

@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -33,14 +33,14 @@ metadata.run = (m, args, data) => {
     ];
     embed.setDescription(msgs[Math.floor(Math.random() * msgs.length)]);
 
-    m.channel.send(embed).then(bm => OBUtil.afterSend(m.author.id, bm, bot));
+    m.channel.send(embed).then(bm => bot.util.afterSend(m.author.id, bm, bot));
   } else {
     let target = args[0];
     const reason = (args[1]) ? m.content.substring(`${bot.prefix}${path.parse(__filename).name} ${args[0]} `.length) : null;
     let botTarget = false;
     let selfTarget = false;
 
-    OBUtil.parseTarget(m, 0, target, data.member).then((result) => {
+    bot.util.parseTarget(m, 0, target, data.member).then((result) => {
       if (args[0] && result && result.type !== 'notfound') {
         target = result.target.toString();
 
@@ -60,7 +60,7 @@ metadata.run = (m, args, data) => {
           embed.addField('Reason', reason);
         }
 
-        m.channel.send(embed).then(bm => OBUtil.afterSend(m.author.id, bm, bot));
+        m.channel.send(embed).then(bm => bot.util.afterSend(m.author.id, bm, bot));
       }
     });
   }

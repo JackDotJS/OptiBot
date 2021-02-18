@@ -111,9 +111,9 @@
     ]
   },
   "embed": {
-    "default": "#e29f00",
-    "okay": "#43b581",
-    "error": "#dd2e44"
+    "default": "#E29F00",
+    "okay": "#43B581",
+    "error": "#DD2E44"
   },
   "profiles": {
     "expiration": 30
@@ -128,5 +128,8 @@
     "dailyDecay": 10,
     "decayDelay": 14,
     "minPercentDecay": 20
+  },
+  "perms": {
+    
   }
 }

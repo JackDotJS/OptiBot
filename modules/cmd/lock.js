@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -27,11 +27,11 @@ metadata.run = (m, args, data) => {
   }
 
   if (bot.cfg.channels.nomodify.some(id => [channel.id, channel.parentID].includes(id)) || channel.guild.id != bot.mainGuild.id) {
-    return OBUtil.err(`The #${channel.name} channel cannot be modified.`, { m: m });
+    return bot.util.err(`The #${channel.name} channel cannot be modified.`, { m: m });
   }
 
   if (channel.permissionOverwrites.get(bot.mainGuild.id).deny.has('SEND_MESSAGES')) {
-    return OBUtil.err(`The #${channel.name} channel has already been locked.`, { m: m });
+    return bot.util.err(`The #${channel.name} channel has already been locked.`, { m: m });
   }
 
   channel.updateOverwrite(bot.mainGuild.id, { SEND_MESSAGES: false }, `Channel locked by ${m.author.tag} (${m.author.id}) via ${bot.prefix}${data.input.cmd}`).then(() => {
@@ -49,7 +49,7 @@ metadata.run = (m, args, data) => {
       .setDescription(`The ${channel} channel has been locked.`);
 
     m.channel.stopTyping(true);
-    m.channel.send(embed);//.then(bm => OBUtil.afterSend(bm, m.author.id));
+    m.channel.send(embed);//.then(bm => bot.util.afterSend(bm, m.author.id));
     logEntry.submit();
   });
 };

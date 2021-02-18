@@ -1,18 +1,18 @@
 module.exports = (input) => {
   const result = {
     valid: false,
-    string: '1 hour',
+    string: `1 hour`,
     ms: 1000 * 60 * 60
   };
 
-  if (typeof input !== 'string' || input.length === 0) {
+  if (typeof input !== `string` || input.length === 0) {
     return result;
   }
 
   const split = input.split(/(?<=\d)(?=\D)/g);
   const num = parseInt(split[0]);
-  const measure = (split[1]) ? split[1].toLowerCase() : 'h';
-  let tm = 'hour';
+  const measure = (split[1]) ? split[1].toLowerCase() : `h`;
+  let tm = `hour`;
 
   if (isNaN(num)) {
     return result;
@@ -20,24 +20,24 @@ module.exports = (input) => {
 
   result.valid = true;
 
-  if (measure === 's') {
-    tm = 'second';
+  if (measure === `s`) {
+    tm = `second`;
     result.ms = 1000 * num;
-  } else if (measure === 'm') {
-    tm = 'minute';
+  } else if (measure === `m`) {
+    tm = `minute`;
     result.ms = 1000 * 60 * num;
-  } else if (measure === 'd') {
-    tm = 'day';
+  } else if (measure === `d`) {
+    tm = `day`;
     result.ms = 1000 * 60 * 60 * 24 * num;
-  } else if (measure === 'w') {
-    tm = 'week';
+  } else if (measure === `w`) {
+    tm = `week`;
     result.ms = 1000 * 60 * 60 * 24 * 7 * num;
   } else {
-    tm = 'hour';
+    tm = `hour`;
     result.ms = 1000 * 60 * 60 * num;
   }
 
-  result.string = `${num} ${tm}${(num !== 1) ? 's' : ''}`;
+  result.string = `${num} ${tm}${(num !== 1) ? `s` : ``}`;
   result.split = split;
 
   return result;

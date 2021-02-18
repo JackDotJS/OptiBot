@@ -1,10 +1,10 @@
-const fs = require('fs');
-const util = require('util');
+const fs = require(`fs`);
+const util = require(`util`);
 
-const djs = require('discord.js');
-const path = require('path');
+const djs = require(`discord.js`);
+const path = require(`path`);
 
-const memory = require('./memory.js');
+const memory = require(`./memory.js`);
 
 module.exports = class OptiBot extends djs.Client {
   constructor(options, mode, log) {
@@ -13,11 +13,11 @@ module.exports = class OptiBot extends djs.Client {
     // i dont know why these things wont work without path.resolve (yes, even with the correct path)
     // fuck you, node
 
-    let cfg = require(path.resolve('./cfg/config.json'));
+    let cfg = require(path.resolve(`./cfg/config.json`));
 
     if (mode === 0) {
       // Load the real config first, but if the debug config has properties that differ from the real config, overwrite them to use the debug properties
-      const cfg_d = require(path.resolve('./cfg/config_debug.json'));
+      const cfg_d = require(path.resolve(`./cfg/config_debug.json`));
 
       cfg = Object.assign(cfg, cfg_d);
     }
@@ -29,7 +29,7 @@ module.exports = class OptiBot extends djs.Client {
       exit.setUTCDate(exit.getUTCDate() + 1);
     }
 
-    this.keys = require(path.resolve('./cfg/keys.json'));
+    this.keys = require(path.resolve(`./cfg/keys.json`));
     this.log = log;
     this.cfg = cfg;
     this.mode = mode;
@@ -38,12 +38,12 @@ module.exports = class OptiBot extends djs.Client {
     this.locked = (mode === 0 || mode === 1);
     this.prefix = cfg.prefixes[0]; // first in array is always default, but all others will be accepted during real usage.
     this.prefixes = cfg.prefixes;
-    this.version = require(path.resolve('./package.json')).version;
-    this.util = require('./util.js');
+    this.version = require(path.resolve(`./package.json`)).version;
+    this.util = require(`./util.js`);
 
     memory.core.client = this;
 
-    Object.defineProperty(this, 'mainGuild', {
+    Object.defineProperty(this, `mainGuild`, {
       get: () => {
         return this.guilds.cache.get(this.cfg.guilds.optifine);
       }
@@ -63,7 +63,7 @@ module.exports = class OptiBot extends djs.Client {
          */
 
     this.destroy();
-    this.util.setWindowTitle('Shutting down...');
+    this.util.setWindowTitle(`Shutting down...`);
 
     setTimeout(() => {
       process.exit(code);
@@ -74,7 +74,7 @@ module.exports = class OptiBot extends djs.Client {
     const bot = this;
 
     const pr = {
-      status: 'online',
+      status: `online`,
       activity: {
         name: null,
         type: null
@@ -83,43 +83,43 @@ module.exports = class OptiBot extends djs.Client {
 
     if (type === -1) {
       // shutting down
-      pr.status = 'invisible';
+      pr.status = `invisible`;
     } else
     if (type === 0) {
       // loading assets
-      pr.status = 'idle';
-      pr.activity.type = 'WATCHING';
-      pr.activity.name = 'assets load 🔄';
+      pr.status = `idle`;
+      pr.activity.type = `WATCHING`;
+      pr.activity.name = `assets load 🔄`;
     } else
     if (type === 1) {
       // default state
       if (bot.mode === 0) {
         // code mode
-        pr.status = 'dnd';
-        pr.activity.type = 'PLAYING';
-        pr.activity.name = 'Code Mode 💻';
+        pr.status = `dnd`;
+        pr.activity.type = `PLAYING`;
+        pr.activity.name = `Code Mode 💻`;
       } else
       if (bot.mode === 1 || bot.locked) {
         // ultralight mode and mod mode
-        pr.status = 'dnd';
-        pr.activity.type = 'PLAYING';
-        pr.activity.name = 'Mod Mode 🔒';
+        pr.status = `dnd`;
+        pr.activity.type = `PLAYING`;
+        pr.activity.name = `Mod Mode 🔒`;
       } else
       if (bot.mode === 2) {
         // lite mode
-        pr.status = 'idle';
-        pr.activity.type = 'PLAYING';
-        pr.activity.name = 'Lite Mode ⚠️';
+        pr.status = `idle`;
+        pr.activity.type = `PLAYING`;
+        pr.activity.name = `Lite Mode ⚠️`;
       } else {
         // normal
-        pr.status = 'online';
-        pr.activity.type = 'LISTENING';
+        pr.status = `online`;
+        pr.activity.type = `LISTENING`;
         pr.activity.name = `${bot.prefix}about`;
       }
     } else
     if (type === 2) {
       // cooldown active
-      pr.status = 'idle';
+      pr.status = `idle`;
     }
 
     if (pr.activity.name === null || pr.activity.type === null) {

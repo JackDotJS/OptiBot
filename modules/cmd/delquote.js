@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -16,14 +16,14 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  OBUtil.parseTarget(m, 0, args[0], data.member).then(result => {
+  bot.util.parseTarget(m, 0, args[0], data.member).then(result => {
     if (!result || data.authlvl < 2 || result.id === m.author.id) {
       if (!result && args[0] && data.authlvl >= 2) {
-        OBUtil.err('You must specify a valid user.', { m });
+        bot.util.err('You must specify a valid user.', { m });
       } else {
-        OBUtil.getProfile(m.author.id, false).then(profile => {
+        bot.util.getProfile(m.author.id, false).then(profile => {
           if (!profile || (profile && !profile.ndata.quote)) {
-            OBUtil.err('Your profile does not have a quote message.', { m });
+            bot.util.err('Your profile does not have a quote message.', { m });
           } else {
             const embed = new djs.MessageEmbed()
               .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
@@ -31,17 +31,17 @@ metadata.run = (m, args, data) => {
               .setDescription(`The following quote will be permanently removed from your OptiBot profile: \n> ${profile.ndata.quote}`);
 
             m.channel.send(embed).then(msg => {
-              OBUtil.confirm(m, msg).then(res => {
+              bot.util.confirm(m, msg).then(res => {
                 if (res === 1) {
                   delete profile.ndata.quote;
 
-                  OBUtil.updateProfile(profile).then(() => {
+                  bot.util.updateProfile(profile).then(() => {
                     const update = new djs.MessageEmbed()
                       .setAuthor('Success', Assets.getEmoji('ICO_okay').url)
                       .setColor(bot.cfg.embed.okay)
                       .setDescription('Your profile has been updated.');
 
-                    msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+                    msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
                   });
                 } else if (res === 0) {
                   const update = new djs.MessageEmbed()
@@ -49,30 +49,30 @@ metadata.run = (m, args, data) => {
                     .setColor(bot.cfg.embed.default)
                     .setDescription('Your profile has not been changed.');
 
-                  msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+                  msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
                 } else {
                   const update = new djs.MessageEmbed()
                     .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
                     .setColor(bot.cfg.embed.default)
                     .setDescription('Sorry, you didn\'t respond in time. Please try again.');
 
-                  msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+                  msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
                 }
               }).catch(err => {
-                OBUtil.err(err, { m });
+                bot.util.err(err, { m });
               });
             });
           }
         });
       }
     } else if (result.type === 'notfound') {
-      OBUtil.err('Unable to find a user.', { m });
+      bot.util.err('Unable to find a user.', { m });
     } else {
-      OBUtil.getProfile(result.id, false).then(profile => {
+      bot.util.getProfile(result.id, false).then(profile => {
         if (!profile) {
-          OBUtil.err('This user does not have a profile.', { m });
+          bot.util.err('This user does not have a profile.', { m });
         } else if (!profile || (profile && !profile.ndata.quote)) {
-          OBUtil.err('This profile does not have a quote message.', { m });
+          bot.util.err('This profile does not have a quote message.', { m });
         } else {
           const embed = new djs.MessageEmbed()
             .setAuthor('Are you sure?', Assets.getEmoji('ICO_warn').url)
@@ -80,7 +80,7 @@ metadata.run = (m, args, data) => {
             .setDescription(`The following quote will be permanently removed from ${result.mention}'s OptiBot profile: \n> ${profile.ndata.quote}`);
 
           m.channel.send(embed).then(msg => {
-            OBUtil.confirm(m, msg).then(res => {
+            bot.util.confirm(m, msg).then(res => {
               if (res === 1) {
                 const logEntry = new LogEntry({ channel: 'moderation' })
                   .setColor(bot.cfg.embed.default)
@@ -98,7 +98,7 @@ metadata.run = (m, args, data) => {
 
                 delete profile.ndata.quote;
 
-                OBUtil.updateProfile(profile).then(() => {
+                bot.util.updateProfile(profile).then(() => {
                   const update = new djs.MessageEmbed()
                     .setAuthor('Success', Assets.getEmoji('ICO_okay').url)
                     .setColor(bot.cfg.embed.okay)
@@ -106,7 +106,7 @@ metadata.run = (m, args, data) => {
 
                   msg.channel.stopTyping(true);
                   logEntry.submit();
-                  msg.edit({ embed: update });//.then(msg => { OBUtil.afterSend(msg, m.author.id); });
+                  msg.edit({ embed: update });//.then(msg => { bot.util.afterSend(msg, m.author.id); });
                 }).catch(err => {
                   logEntry.error(err);
                 });
@@ -116,17 +116,17 @@ metadata.run = (m, args, data) => {
                   .setColor(bot.cfg.embed.default)
                   .setDescription(`${result.mention}'s profile has not been changed.`);
 
-                msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+                msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
               } else {
                 const update = new djs.MessageEmbed()
                   .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
                   .setColor(bot.cfg.embed.default)
                   .setDescription('Sorry, you didn\'t respond in time. Please try again.');
 
-                msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+                msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
               }
             }).catch(err => {
-              OBUtil.err(err, { m });
+              bot.util.err(err, { m });
             });
           });
         }

@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -14,7 +14,7 @@ const metadata = {
 
 metadata.run = (m) => {
   if (bot.mode === 0) {
-    return OBUtil.err('This command cannot be used in mode 0.', { m });
+    return bot.util.err('This command cannot be used in mode 0.', { m });
   }
 
   const embed = new djs.MessageEmbed()
@@ -23,7 +23,7 @@ metadata.run = (m) => {
     .setDescription('OptiBot will be forcefully updated to the latest version available on GitHub');
 
   m.channel.send(embed).then(msg => {
-    OBUtil.confirm(m, msg).then(res => {
+    bot.util.confirm(m, msg).then(res => {
       if (res === 1) {
         new LogEntry()
           .setColor(bot.cfg.embed.default)
@@ -39,7 +39,7 @@ metadata.run = (m) => {
               bot.exit(17);
             });
           }).catch(err => {
-            OBUtil.err(err, { m });
+            bot.util.err(err, { m });
           });
       } else if (res === 0) {
         const update = new djs.MessageEmbed()
@@ -47,17 +47,17 @@ metadata.run = (m) => {
           .setColor(bot.cfg.embed.default)
           .setDescription('OptiBot has not been updated.');
 
-        msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
       } else {
         const update = new djs.MessageEmbed()
           .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
           .setColor(bot.cfg.embed.default)
           .setDescription('Sorry, you didn\'t respond in time. Please try again.');
 
-        msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
       }
     }).catch(err => {
-      OBUtil.err(err, { m });
+      bot.util.err(err, { m });
     });
   });
 };

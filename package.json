@@ -12,15 +12,15 @@
     "url": "https://github.com/realjackasterisk/OptiBot"
   },
   "scripts": {
-    "start": "node boot.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "@discordjs/opus": "^0.3.3",
-    "ffmpeg-static": "^4.2.7",
-    "ytdl-core": "^4.1.6",
     "adm-zip": "^0.4.13",
-    "caller-id": "^0.1.0",
+    "chalk": "^4.1.0",
+    "chokidar": "^3.5.1",
     "discord.js": "^12.2.0",
+    "ffmpeg-static": "^4.2.7",
     "file-type": "^12.4.2",
     "iso-639-1": "^2.1.0",
     "jaro-winkler": "^0.2.8",
@@ -30,7 +30,7 @@
     "request-promise": "^4.2.5",
     "string-similarity": "^3.0.0",
     "timeago.js": "^4.0.2",
-    "chalk": "^4.1.0"
+    "ytdl-core": "^4.1.6"
   },
   "devDependencies": {
     "eslint": "^7.9.0"

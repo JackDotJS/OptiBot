@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, RecordEntry, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -15,21 +15,21 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if (!args[0]) return OBUtil.missingArgs(m, metadata);
+  if (!args[0]) return bot.util.missingArgs(m, metadata);
 
-  OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+  bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
     if (!result) {
-      OBUtil.err('You must specify a valid user.', { m });
+      bot.util.err('You must specify a valid user.', { m });
     } else if (result.type === 'notfound') {
-      OBUtil.err('Unable to find a user.', { m });
+      bot.util.err('Unable to find a user.', { m });
     } else if (result.id === m.author.id) {
-      OBUtil.err('Nice try.', { m });
+      bot.util.err('Nice try.', { m });
     } else if (result.id === bot.user.id) {
-      OBUtil.err(':(', { m });
-    } else if (OBUtil.getAuthlvl(result.target) > data.authlvl) {
-      OBUtil.err('That user is too powerful to be warned.', { m });
+      bot.util.err(':(', { m });
+    } else if (bot.util.getAuthlvl(result.target) > data.authlvl) {
+      bot.util.err('That user is too powerful to be warned.', { m });
     } else {
-      OBUtil.getProfile(result.id, true).then(profile => {
+      bot.util.getProfile(result.id, true).then(profile => {
         if (!profile.edata.record) profile.edata.record = [];
         const reason = m.content.substring(`${bot.prefix}${data.input.cmd} ${args[0]} `.length);
 
@@ -42,7 +42,7 @@ metadata.run = (m, args, data) => {
 
         profile.edata.record.push(entry.raw);
 
-        OBUtil.updateProfile(profile).then(() => {
+        bot.util.updateProfile(profile).then(() => {
           const logEntry = new LogEntry({ channel: 'moderation' })
             .setColor(bot.cfg.embed.default)
             .setIcon(Assets.getEmoji('ICO_warn').url)
@@ -70,12 +70,12 @@ metadata.run = (m, args, data) => {
 
           m.channel.stopTyping(true);
 
-          m.channel.send(embed);//.then(bm => OBUtil.afterSend(bm, m.author.id));
+          m.channel.send(embed);//.then(bm => bot.util.afterSend(bm, m.author.id));
           logEntry.submit();
-        }).catch(err => OBUtil.err(err, { m }));
-      }).catch(err => OBUtil.err(err, { m }));
+        }).catch(err => bot.util.err(err, { m }));
+      }).catch(err => bot.util.err(err, { m }));
     }
-  }).catch(err => OBUtil.err(err, { m }));
+  }).catch(err => bot.util.err(err, { m }));
 
 };
 

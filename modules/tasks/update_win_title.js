@@ -1,10 +1,12 @@
-const ob = require('../core/OptiBot.js');
+const ob = require(`../core/OptiBot.js`);
+
+const bot = ob.memory.core.client;
 
 module.exports = {
   repeat: true,
   interval: 500,
   lite: true,
   fn: () => {
-    ob.OBUtil.setWindowTitle();
+    bot.util.setWindowTitle();
   }
 };

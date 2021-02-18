@@ -1,16 +1,16 @@
-const djs = require('discord.js');
-const { OptiBit, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const djs = require(`discord.js`);
+const { OptiBit, memory, Assets } = require(`../core/optibot.js`);
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
-  name: 'General URL Handler',
-  description: 'Performs various actions when a URL is detected in messages.',
+  name: `General URL Handler`,
+  description: `Performs various actions when a URL is detected in messages.`,
   priority: 1000,
   concurrent: true,
   authlvl: 0,
-  flags: ['DM_OPTIONAL', 'HIDDEN'],
+  flags: [`DM_OPTIONAL`, `HIDDEN`],
   validator: null,
   executable: null
 };
@@ -23,7 +23,7 @@ metadata.validator = m => {
 
 metadata.executable = m => {
   //remove everything in single and multi-line codeblocks.
-  const filtered = m.content.replace(/`{3}[^```]+`{3}|`{1}[^`]+`{1}/gi, '');
+  const filtered = m.content.replace(/`{3}[^```]+`{3}|`{1}[^`]+`{1}/gi, ``);
 
   let urls = filtered.match(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi); // eslint-disable-line no-useless-escape
 
@@ -50,7 +50,7 @@ metadata.executable = m => {
       }
     }
     catch (err) {
-      OBUtil.err(err);
+      bot.util.err(err);
     }
   }
 
@@ -59,21 +59,21 @@ metadata.executable = m => {
   if (detected.length > 0) {
     const plan_a = [
       `[Original message](${m.url} "${m.url}") posted by ${m.author}`,
-      `\`\`\`${detected.slice(0, 3).join('\n')} \n${(detected.length > 3) ? `... (${detected.length - 3} more)` : ''}\`\`\``
-    ].join('\n');
+      `\`\`\`${detected.slice(0, 3).join(`\n`)} \n${(detected.length > 3) ? `... (${detected.length - 3} more)` : ``}\`\`\``
+    ].join(`\n`);
 
     const plan_b = [
       `[Original message](${m.url} "${m.url}") posted by ${m.author}`,
       `\`\`\`Error: Too long to show in an embed. (Detected ${detected.length} link(s) overall)\`\`\``
-    ].join('\n');
+    ].join(`\n`);
 
     const embed = new djs.MessageEmbed()
       .setColor(bot.cfg.embed.default)
-      .setAuthor('Hidden Text Detected', Assets.getEmoji('ICO_warn').url)
+      .setAuthor(`Hidden Text Detected`, Assets.getEmoji(`ICO_warn`).url)
       .setFooter([
-        'This detector was added to combat a recently discovered Discord exploit.',
-        'It may not be 100% perfect. Sorry for any false flags!'
-      ].join('\n'));
+        `This detector was added to combat a recently discovered Discord exploit.`,
+        `It may not be 100% perfect. Sorry for any false flags!`
+      ].join(`\n`));
 
     if (plan_a.length < 2000) {
       embed.setDescription(plan_a);
@@ -99,11 +99,11 @@ metadata.executable = m => {
           channel.messages.fetch(rm).then(msg => {
             let contents = msg.content;
             let image = null;
-            let title = 'Message posted';
+            let title = `Message posted`;
             const embed = new djs.MessageEmbed()
               .setColor(bot.cfg.embed.default)
               //.setTitle((msg.member.nickname != null) ? `${msg.member.nickname} [${msg.author.tag}]` : msg.author.tag)
-              .setThumbnail(msg.author.displayAvatarURL({ format: 'png', size: 64, dynamic: true }))
+              .setThumbnail(msg.author.displayAvatarURL({ format: `png`, size: 64, dynamic: true }))
               .setFooter(`Quoted by ${m.author.tag}`);
   
             if (msg.content.length === 0) {
@@ -114,7 +114,7 @@ metadata.executable = m => {
   
               if (msg.attachments.size > 0) {
                 const attURL = msg.attachments.first().url;
-                if (attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
+                if (attURL.endsWith(`.png`) || attURL.endsWith(`.jpg`) || attURL.endsWith(`.jpeg`) || attURL.endsWith(`.gif`)) {
                   image = attURL;
   
                   if ((msg.attachments.size - 1) > 0) {
@@ -126,14 +126,14 @@ metadata.executable = m => {
               }
   
               if (contents.length > 0) {
-                contents = contents.join('\n');
+                contents = contents.join(`\n`);
               }
             } else {
-              if (OBUtil.parseInput(msg.content).valid) title = 'Command issued';
+              if (bot.util.parseInput(msg.content).valid) title = `Command issued`;
   
               if (msg.attachments.size > 0) {
                 const attURL = msg.attachments.first().url;
-                if (attURL.endsWith('.png') || attURL.endsWith('.jpg') || attURL.endsWith('.jpeg') || attURL.endsWith('.gif')) {
+                if (attURL.endsWith(`.png`) || attURL.endsWith(`.jpg`) || attURL.endsWith(`.jpeg`) || attURL.endsWith(`.gif`)) {
                   image = attURL;
                 }
               }
@@ -145,16 +145,16 @@ metadata.executable = m => {
               embed.setImage(image);
   
               if (contents.length === 0) {
-                title = 'Image posted';
+                title = `Image posted`;
               }
             }
   
-            embed.setAuthor(`${title} by ${msg.author.tag}`, Assets.getEmoji('ICO_quote').url);
+            embed.setAuthor(`${title} by ${msg.author.tag}`, Assets.getEmoji(`ICO_quote`).url);
   
-            m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+            m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
           }).catch(err => {
-            if (err.stack.toLowerCase().indexOf('unknown message') === -1) {
-              OBUtil.err(err);
+            if (err.stack.toLowerCase().indexOf(`unknown message`) === -1) {
+              bot.util.err(err);
             }
           });
         }

@@ -1,9 +1,9 @@
 const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -26,38 +26,38 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if (!args[2]) return OBUtil.missingArgs(m, metadata);
+  if (!args[2]) return bot.util.missingArgs(m, metadata);
 
-  OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+  bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
     if (!result) {
-      OBUtil.err('You must specify a valid user.', { m });
+      bot.util.err('You must specify a valid user.', { m });
     } else if (result.type === 'notfound') {
-      OBUtil.err('Unable to find a user.', { m });
-    } else if (OBUtil.getAuthlvl(result.target) > data.authlvl) {
-      OBUtil.err('You are not strong enough to modify this user\'s record.', { m });
+      bot.util.err('Unable to find a user.', { m });
+    } else if (bot.util.getAuthlvl(result.target) > data.authlvl) {
+      bot.util.err('You are not strong enough to modify this user\'s record.', { m });
     } else if (result.id === m.author.id || result.id === bot.user.id) {
-      OBUtil.err('Nice try.', { m });
+      bot.util.err('Nice try.', { m });
     } else if (!['reason', 'details', 'parent', 'pardon'].includes(args[2].toLowerCase())) {
-      OBUtil.err(`Invalid property: \`${args[2]}\``, { m });
+      bot.util.err(`Invalid property: \`${args[2]}\``, { m });
     } else {
       const value = m.content.substring(`${bot.prefix}${data.input.cmd} ${args[0]} ${args[1]} ${args[2]} `.length).trim();
 
       if (value.length > 1000) {
-        OBUtil.err('New value cannot exceed 1000 characters in length.', { m });
+        bot.util.err('New value cannot exceed 1000 characters in length.', { m });
         return;
       }
 
-      OBUtil.getProfile(result.id, false).then(profile => {
+      bot.util.getProfile(result.id, false).then(profile => {
         if (!profile.edata.record) {
-          return OBUtil.err('This user does not have a record that can be modified.', { m });
+          return bot.util.err('This user does not have a record that can be modified.', { m });
         }
 
         profile.getRecord(args[1]).then(entry => {
           if (!entry) {
-            return OBUtil.err(`Unable to find case ID "${args[1]}".`, { m });
+            return bot.util.err(`Unable to find case ID "${args[1]}".`, { m });
           }
-          if (entry.moderator.id !== m.author.id && OBUtil.getAuthlvl(member, true) !== 4) {
-            return OBUtil.err('You do not have permission to modify this entry.', { m });
+          if (entry.moderator.id !== m.author.id && bot.util.getAuthlvl(member, true) !== 4) {
+            return bot.util.err('You do not have permission to modify this entry.', { m });
           }
 
           log(util.inspect(entry));
@@ -72,7 +72,7 @@ metadata.run = (m, args, data) => {
 
           switch (property) {
             case 'reason':
-              if (entry.action === 0) return OBUtil.err('Cannot change "reason" property of notes.', { m });
+              if (entry.action === 0) return bot.util.err('Cannot change "reason" property of notes.', { m });
               propertyName = 'Reason';
               oldValue = entry.reason;
 
@@ -95,7 +95,7 @@ metadata.run = (m, args, data) => {
               if (!newValue) {
                 switch (entry.action) {
                   case 0:
-                    return OBUtil.err('Cannot remove note contents.', { m });
+                    return bot.util.err('Cannot remove note contents.', { m });
                   case 2:
                   case 5:
                     newValue = oldValue.split('\n')[0];
@@ -119,19 +119,19 @@ metadata.run = (m, args, data) => {
               }
 
               if (isNaN(newValue) || newValue < 1420070400000 || newValue > new Date().getTime()) {
-                return OBUtil.err('Invalid case ID.', { m });
+                return bot.util.err('Invalid case ID.', { m });
               } else if (newValue === entry.date) {
-                return OBUtil.err('Nice try.', { m });
+                return bot.util.err('Nice try.', { m });
               }
 
               break;
             case 'pardon':
               if (data.authlvl < 4) {
-                return OBUtil.err('You do not have permission to modify this value.', { m });
+                return bot.util.err('You do not have permission to modify this value.', { m });
               } else if (!entry.pardon) {
-                return OBUtil.err('This entry has not been pardoned.', { m });
+                return bot.util.err('This entry has not been pardoned.', { m });
               } else if (!newValue) {
-                return OBUtil.err('Cannot remove pardon reason.', { m });
+                return bot.util.err('Cannot remove pardon reason.', { m });
               } else {
                 propertyName = 'Pardon Reason';
                 oldValue = entry.pardon.reason;
@@ -140,7 +140,7 @@ metadata.run = (m, args, data) => {
           }
 
           if (oldValue === newValue) {
-            return OBUtil.err('New value cannot be the same as the old value.', { m });
+            return bot.util.err('New value cannot be the same as the old value.', { m });
           }
 
           const cont = () => {
@@ -157,7 +157,7 @@ metadata.run = (m, args, data) => {
               .setFooter('This action CANNOT be undone.');
 
             m.channel.send('_ _', { embed: embed }).then(msg => {
-              OBUtil.confirm(m, msg).then(res => {
+              bot.util.confirm(m, msg).then(res => {
                 if (res === 1) {
                   switch (property) {
                     case 'reason':
@@ -175,7 +175,7 @@ metadata.run = (m, args, data) => {
                   }
 
                   profile.updateRecord(entry).then(() => {
-                    OBUtil.updateProfile(profile).then(() => {
+                    bot.util.updateProfile(profile).then(() => {
                       new LogEntry({ channel: 'moderation' })
                         .setColor(bot.cfg.embed.default)
                         .setIcon(Assets.getEmoji('ICO_docs').url)
@@ -196,9 +196,9 @@ metadata.run = (m, args, data) => {
                             .addField(`Old ${propertyName}`, (oldValue) ? oldValue : '<none>')
                             .addField(`New ${propertyName}`, (newValue) ? newValue : '<none>');
 
-                          msg.edit({ embed: embed });//.then(bm => OBUtil.afterSend(bm, m.author.id));
+                          msg.edit({ embed: embed });//.then(bm => bot.util.afterSend(bm, m.author.id));
                         });
-                    }).catch(err => OBUtil.err(err, { m }));
+                    }).catch(err => bot.util.err(err, { m }));
                   });
                 } else if (res === 0) {
                   const update = new djs.MessageEmbed()
@@ -206,17 +206,17 @@ metadata.run = (m, args, data) => {
                     .setColor(bot.cfg.embed.default)
                     .setDescription(`${result.mention}'s profile has not been changed.`);
 
-                  msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+                  msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
                 } else {
                   const update = new djs.MessageEmbed()
                     .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
                     .setColor(bot.cfg.embed.default)
                     .setDescription('Sorry, you didn\'t respond in time. Please try again.');
 
-                  msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+                  msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
                 }
               }).catch(err => {
-                OBUtil.err(err, { m });
+                bot.util.err(err, { m });
               });
             });
           };
@@ -226,16 +226,16 @@ metadata.run = (m, args, data) => {
               if (entry) {
                 cont();
               } else {
-                OBUtil.err('New parent case ID does not exist.', { m });
+                bot.util.err('New parent case ID does not exist.', { m });
               }
             });
           } else {
             cont();
           }
         });
-      }).catch(err => OBUtil.err(err, { m }));
+      }).catch(err => bot.util.err(err, { m }));
     }
-  }).catch(err => OBUtil.err(err, { m }));
+  }).catch(err => bot.util.err(err, { m }));
 };
 
 module.exports = new Command(metadata);

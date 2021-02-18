@@ -1,9 +1,9 @@
 const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -17,13 +17,13 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
   if (!args[0]) {
-    OBUtil.err(`You must specify a command.`, { m });
+    bot.util.err(`You must specify a command.`, { m });
   } else {
     Assets.fetchCommand(args[0]).then((cmd) => {
       if (!cmd || (cmd.metadata.flags['HIDDEN'] && data.authlvl < cmd.metadata.authlvl)) {
-        OBUtil.err(`The "${args[0]}" command does not exist.`, { m });
+        bot.util.err(`The "${args[0]}" command does not exist.`, { m });
       } else if (data.authlvl < cmd.metadata.authlvl) {
-        OBUtil.err(`You do not have permission to view the "${args[0]}" command.`, { m });
+        bot.util.err(`You do not have permission to view the "${args[0]}" command.`, { m });
       } else {
         const md = cmd.metadata;
 
@@ -119,7 +119,7 @@ metadata.run = (m, args, data) => {
           embed.addField('Important Notes', `None.`);
         }
 
-        m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+        m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
       }
     });
   }

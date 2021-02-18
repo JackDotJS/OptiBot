@@ -1,28 +1,28 @@
-const Memory = require('../core/memory.js');
+const Memory = require(`../core/memory.js`);
 
 module.exports = (member) => {
   const bot = Memory.core.client;
   const log = bot.log;
 
   return new Promise((resolve, reject) => {
-    log(`${member.user.tag} (${member.user.id}) joined OptiFine Donator server!`, 'info');
+    log(`${member.user.tag} (${member.user.id}) joined OptiFine Donator server!`, `info`);
 
     function grantRole() {
-      member.roles.add(bot.cfg.roles.donatorServer, 'Verified Donator via OptiFine Server.').then(() => {
-        log(`${member.user.tag} (${member.user.id}) has been successfully verified as a donator.`, 'info');
+      member.roles.add(bot.cfg.roles.donatorServer, `Verified Donator via OptiFine Server.`).then(() => {
+        log(`${member.user.tag} (${member.user.id}) has been successfully verified as a donator.`, `info`);
         resolve();
       }).catch(err => {
-        log(`Error occurred while verifying ${member.user.tag} (${member.user.id}) as a donator.`, 'error');
+        log(`Error occurred while verifying ${member.user.tag} (${member.user.id}) as a donator.`, `error`);
         reject(err);
       });
     }
 
     function kick() {
-      member.kick('Unverified Donator.').then(() => {
-        log(`Kicked ${member.user.tag} (${member.user.id}) for not being a verified donator.`, 'info');
+      member.kick(`Unverified Donator.`).then(() => {
+        log(`Kicked ${member.user.tag} (${member.user.id}) for not being a verified donator.`, `info`);
         resolve();
       }).catch(err => {
-        log(`Error occurred while kicking ${member.user.tag} (${member.user.id}) from donator server.`, 'error');
+        log(`Error occurred while kicking ${member.user.tag} (${member.user.id}) from donator server.`, `error`);
         reject(err);
       });
     }
@@ -41,7 +41,7 @@ module.exports = (member) => {
       if (err.message.match(/invalid or uncached|unknown member|unknown user/i) != null) {
         kick();
       } else {
-        log(`Error occurred while verifying ${member.user.tag} (${member.user.id}) as a donator.`, 'error');
+        log(`Error occurred while verifying ${member.user.tag} (${member.user.id}) as a donator.`, `error`);
         reject(err);
       }
     });

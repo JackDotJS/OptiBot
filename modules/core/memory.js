@@ -1,11 +1,11 @@
-const path = require('path');
-const fs = require('fs');
-const database = require('nedb');
+const path = require(`path`);
+const fs = require(`fs`);
+const database = require(`nedb`);
 
 const memory = {
   core: {
     client: {
-      keys: require(path.resolve('./cfg/keys.json')), // Also defined in OBClient
+      keys: require(path.resolve(`./cfg/keys.json`)), // Also defined in OBClient
       log: console.log // Also defined in OBClient
       // Things defined here from OBClient:
       // cfg, mode, pause, exitTime, locked, prefix, prefxies, version
@@ -19,28 +19,29 @@ const memory = {
     bootFunc: null,  // used to hold boot function when bot cant connect
   },
   assets: {
-    splash: require(path.resolve('./cfg/splash.json')),
+    needReload: [],
+    splash: require(path.resolve(`./cfg/splash.json`)),
     commands: [],
     optibits: [],
     images: {
-      default: fs.readFileSync(path.resolve('./assets/img/default.png')),
+      default: fs.readFileSync(path.resolve(`./assets/img/default.png`)),
       index: []
     }
   },
   db: {
-    msg: new database({ filename: './data/messages.db', autoload: true }), // react-deletion cache
-    profiles: new database({ filename: './data/profiles.db', autoload: true }), // optibot profiles
-    stats: new database({ filename: './data/statistics.db', autoload: true }), // server statistics
-    bl: new database({ filename: './data/blacklist.db', autoload: true }),
-    faq: new database({ filename: './data/faq.db', autoload: true }),
-    pol: new database({ filename: './data/policies.db', autoload: true }), // policies search keywords
-    rules: new database({ filename: './data/rules.db', autoload: true }) // rules search keywords
+    msg: new database({ filename: `./data/messages.db`, autoload: true }), // react-deletion cache
+    profiles: new database({ filename: `./data/profiles.db`, autoload: true }), // optibot profiles
+    stats: new database({ filename: `./data/statistics.db`, autoload: true }), // server statistics
+    bl: new database({ filename: `./data/blacklist.db`, autoload: true }),
+    faq: new database({ filename: `./data/faq.db`, autoload: true }),
+    pol: new database({ filename: `./data/policies.db`, autoload: true }), // policies search keywords
+    rules: new database({ filename: `./data/rules.db`, autoload: true }) // rules search keywords
   },
   _temp: null, // used to hold boot function when bot cant connect
   sm: {},
   li: 0, // date of last interaction
   presence: {
-    status: 'online'
+    status: `online`
   },
   presenceRetry: 0,
   presenceHour: new Date().getHours(),
@@ -65,6 +66,6 @@ const memory = {
 };
 
 /**
- * OptiBot Memory Module
+ * OptiBot memory Module
  */
 module.exports = memory;

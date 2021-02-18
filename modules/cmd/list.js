@@ -1,9 +1,9 @@
 const path = require('path');
 const cstr = require('string-similarity');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -38,7 +38,7 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  const list = Memory.assets.commands;
+  const list = memory.assets.commands;
   let filtered;
   let selectPage = 1;
   let menu = '';
@@ -108,17 +108,17 @@ metadata.run = (m, args, data) => {
     }
 
     if (data.authlvl < auths[0]) {
-      return OBUtil.err('You do not have permission to view these commands.', { m: m });
+      return bot.util.err('You do not have permission to view these commands.', { m: m });
     }
 
     if (!isModChannel && data.authlvl > 0) {
-      return OBUtil.err('You cannot view these commands outside of moderator-only channels and DMs.', { m: m });
+      return bot.util.err('You cannot view these commands outside of moderator-only channels and DMs.', { m: m });
     }
 
     filtered = list.filter((cmd) => auths.includes(cmd.metadata.authlvl));
   } else if (menu.startsWith('flag:') && menu !== 'flag:' && data.authlvl >= 3) {
     if (!isModChannel && data.authlvl > 0) {
-      return OBUtil.err('You cannot view these commands outside of moderator-only channels and DMs.', { m: m });
+      return bot.util.err('You cannot view these commands outside of moderator-only channels and DMs.', { m: m });
     }
 
     const flag = menu.substring('flag:'.length).toUpperCase();
@@ -194,9 +194,9 @@ metadata.run = (m, args, data) => {
   if (filtered.length === 0) {
     if (menu.startsWith('flag:') && data.authlvl >= 3) {
       const flag = menu.substring('flag:'.length).toUpperCase();
-      OBUtil.err(`Could not find any commands with the "${flag}" flag.`, { m: m });
+      bot.util.err(`Could not find any commands with the "${flag}" flag.`, { m: m });
     } else {
-      OBUtil.err(`Could not find any commands with the "${menu}" filter.`, { m: m });
+      bot.util.err(`Could not find any commands with the "${menu}" filter.`, { m: m });
     }
     return;
   }
@@ -285,7 +285,7 @@ metadata.run = (m, args, data) => {
     added++;
 
     if (added >= 10 || i + 1 >= filtered.length) {
-      m.channel.send({ embed: embed }).then(msg => OBUtil.afterSend(msg, m.author.id));
+      m.channel.send({ embed: embed }).then(msg => bot.util.afterSend(msg, m.author.id));
     } else {
       i++;
       addList();

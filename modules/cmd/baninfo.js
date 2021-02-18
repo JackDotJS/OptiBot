@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -17,18 +17,18 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
   if (!args[0]) {
-    OBUtil.missingArgs(m, metadata);
+    bot.util.missingArgs(m, metadata);
   } else {
-    OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+    bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
       if (!result) {
-        OBUtil.err('You must specify a valid user.', { m });
+        bot.util.err('You must specify a valid user.', { m });
       } else if (result.type === 'notfound') {
-        OBUtil.err('Unable to find a user.', { m });
+        bot.util.err('Unable to find a user.', { m });
       } else if (result.id === m.author.id || result.id === bot.user.id) {
-        OBUtil.err('Nice try.', { m });
+        bot.util.err('Nice try.', { m });
       } else {
         bot.mainGuild.fetchBan(result.id).then(ban => {
-          OBUtil.getProfile(result.id, false).then(profile => {
+          bot.util.getProfile(result.id, false).then(profile => {
             let recordEntry = null;
 
             if (profile && profile.edata.record) {
@@ -67,17 +67,17 @@ metadata.run = (m, args, data) => {
               }
             }
 
-            m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
-          }).catch(err => OBUtil.err(err, { m }));
+            m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+          }).catch(err => bot.util.err(err, { m }));
         }).catch(err => {
           if (err.message.match(/unknown ban/i)) {
-            OBUtil.err(`"${result.tag}" is not currently banned.`, { m });
+            bot.util.err(`"${result.tag}" is not currently banned.`, { m });
           } else {
-            OBUtil.err(err, { m });
+            bot.util.err(err, { m });
           }
         });
       }
-    }).catch(err => OBUtil.err(err, { m }));
+    }).catch(err => bot.util.err(err, { m }));
   }
 };
 

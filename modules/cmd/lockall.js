@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -28,7 +28,7 @@ metadata.run = (m, args, data) => {
     .setDescription(`ALL of the following channels will be locked: \n> ${channels.join('\n> ')}`);
 
   m.channel.send(embed).then(msg => {
-    OBUtil.confirm(m, msg).then(res => {
+    bot.util.confirm(m, msg).then(res => {
       if (res === 1) {
         embed = new djs.MessageEmbed()
           .setAuthor('Locking all channels...', Assets.getEmoji('ICO_wait').url)
@@ -69,14 +69,14 @@ metadata.run = (m, args, data) => {
                   .addField('Failed Locks', fail, true);
 
                 m.channel.stopTyping(true);
-                m.channel.send(embed);//.then(bm => OBUtil.afterSend(bm, m.author.id));
+                m.channel.send(embed);//.then(bm => bot.util.afterSend(bm, m.author.id));
                 logEntry.submit();
               } else {
                 i++;
                 nextChannel();
               }
             }).catch(err => {
-              OBUtil.err(err);
+              bot.util.err(err);
 
               fail++;
               i++;
@@ -90,17 +90,17 @@ metadata.run = (m, args, data) => {
           .setColor(bot.cfg.embed.default)
           .setDescription('No channels have been changed.');
 
-        msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
       } else {
         const update = new djs.MessageEmbed()
           .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
           .setColor(bot.cfg.embed.default)
           .setDescription('Sorry, you didn\'t respond in time. Please try again.');
 
-        msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
       }
     }).catch(err => {
-      OBUtil.err(err, { m: m });
+      bot.util.err(err, { m: m });
     });
   });
 };

@@ -1,7 +1,7 @@
 const path = require('path');
-const { Command, OBUtil, Memory } = require('../core/OptiBot.js');
+const { Command, memory } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -15,12 +15,12 @@ const metadata = {
 
 
 metadata.run = (m, args, data) => {
-  if (!args[0]) return OBUtil.missingArgs(m, metadata);
+  if (!args[0]) return bot.util.missingArgs(m, metadata);
 
   const translate = function (message) {
     if ((Math.random() * 100) < 1) {
       // 1% chance of UwU
-      m.channel.send(OBUtil.uwu(message)).then(bm => OBUtil.afterSend(bm, m.author.id));
+      m.channel.send(bot.util.uwu(message)).then(bm => bot.util.afterSend(bm, m.author.id));
     } else {
       let newStr = '';
 
@@ -46,20 +46,20 @@ metadata.run = (m, args, data) => {
         newStr += thisChar;
 
         if (i + 1 === message.length) {
-          m.channel.send(newStr).then(bm => OBUtil.afterSend(bm, m.author.id));
+          m.channel.send(newStr).then(bm => bot.util.afterSend(bm, m.author.id));
         }
       }
     }
   };
 
-  OBUtil.parseTarget(m, 1, args[0], data.member).then(result => {
+  bot.util.parseTarget(m, 1, args[0], data.member).then(result => {
     if (result && result.type === 'message') {
       translate(result.target.cleanContent);
     } else {
       translate(m.cleanContent.substring(`${bot.prefix}${metadata.name} `.length));
     }
   }).catch(err => {
-    OBUtil.err(err, { m });
+    bot.util.err(err, { m });
   });
 };
 

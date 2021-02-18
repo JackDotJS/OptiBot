@@ -1,9 +1,9 @@
 /* eslint-disable no-inner-declarations */
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, RecordEntry, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -18,21 +18,21 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
   if (!args[0]) {
-    OBUtil.missingArgs(m, metadata);
+    bot.util.missingArgs(m, metadata);
   } else {
-    OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+    bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
       if (!result) {
-        OBUtil.err('You must specify a valid user to unmute.', { m });
+        bot.util.err('You must specify a valid user to unmute.', { m });
       } else if (result.type === 'notfound' || result.type === 'id') {
-        OBUtil.err('Unable to find a user.', { m });
+        bot.util.err('Unable to find a user.', { m });
       } else if (result.id === m.author.id) {
-        OBUtil.err('If you\'re muted, how are you even using this command?', { m });
+        bot.util.err('If you\'re muted, how are you even using this command?', { m });
       } else if (result.id === bot.user.id) {
-        OBUtil.err('I\'m a bot. Why would I even be muted?', { m });
-      } else if (OBUtil.getAuthlvl(result.target) > 0) {
-        OBUtil.err('That user is too powerful to be muted in the first place.', { m });
+        bot.util.err('I\'m a bot. Why would I even be muted?', { m });
+      } else if (bot.util.getAuthlvl(result.target) > 0) {
+        bot.util.err('That user is too powerful to be muted in the first place.', { m });
       } else if (result.type === 'member' && !result.target.roles.cache.has(bot.cfg.roles.muted)) {
-        OBUtil.err('That user has not been muted.', { m });
+        bot.util.err('That user has not been muted.', { m });
       } else {
         s2(result);
       }
@@ -40,7 +40,7 @@ metadata.run = (m, args, data) => {
 
     function s2(result) {
       const now = new Date().getTime();
-      OBUtil.getProfile(result.id, true).then(profile => {
+      bot.util.getProfile(result.id, true).then(profile => {
         const reason = m.content.substring(`${bot.prefix}${data.input.cmd} ${args[0]} `.length);
 
         if (!profile.edata.record) profile.edata.record = [];
@@ -78,14 +78,14 @@ metadata.run = (m, args, data) => {
 
         profile.edata.record.push(entry.raw);
 
-        for (const i in Memory.mutes) {
-          if (Memory.mutes[i].id === profile.id) {
-            bot.clearTimeout(Memory.mutes[i].time);
-            Memory.mutes.splice(i, 1);
+        for (const i in memory.mutes) {
+          if (memory.mutes[i].id === profile.id) {
+            bot.clearTimeout(memory.mutes[i].time);
+            memory.mutes.splice(i, 1);
           }
         }
 
-        OBUtil.updateProfile(profile).then(() => {
+        bot.util.updateProfile(profile).then(() => {
           const logInfo = () => {
             const embed = new djs.MessageEmbed()
               .setColor(bot.cfg.embed.okay)
@@ -99,7 +99,7 @@ metadata.run = (m, args, data) => {
             }
 
             m.channel.stopTyping(true);
-            m.channel.send(embed);//.then(bm => OBUtil.afterSend(bm, m.author.id));
+            m.channel.send(embed);//.then(bm => bot.util.afterSend(bm, m.author.id));
 
             const logEntry = new LogEntry({ channel: 'moderation' })
               .setColor(bot.cfg.embed.default)
@@ -120,11 +120,11 @@ metadata.run = (m, args, data) => {
           if (result.type === 'member') {
             result.target.roles.remove(bot.cfg.roles.muted, `Member unmuted by ${m.author.tag}`).then(() => {
               logInfo();
-            }).catch(err => OBUtil.err(err, { m }));
+            }).catch(err => bot.util.err(err, { m }));
           } else {
             logInfo();
           }
-        }).catch(err => OBUtil.err(err, { m }));
+        }).catch(err => bot.util.err(err, { m }));
       });
     }
   }

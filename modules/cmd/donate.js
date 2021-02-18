@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -36,7 +36,7 @@ metadata.run = m => {
     .setDescription(`OptiFine has been created, developed, and maintained solely by <@202558206495555585> for ${years} whole years and counting. Please consider donating to support the mod's continued development!\n\nFor a one-time donation of $10 USD, you'll (optionally) receive a customizable in-game cape, visible to all other OptiFine players, all in recognition of your awesomeness!`)
     .setFooter('Thank you for your consideration!');
 
-  m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+  m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
 };
 
 module.exports = new Command(metadata);

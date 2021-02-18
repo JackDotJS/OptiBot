@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -21,7 +21,7 @@ metadata.run = m => {
     .setTitle('https://www.java.com')
     .setDescription('Looking for AdoptOpenJDK? **(Advanced users only!)**\nhttps://adoptopenjdk.net/');
 
-  m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+  m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
 };
 
 module.exports = new Command(metadata);

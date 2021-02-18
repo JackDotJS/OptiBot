@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -39,13 +39,13 @@ metadata.run = m => {
 
           bot.setTimeout(() => {
             bm.edit({ embed: embed2 })
-              .then(bm => OBUtil.afterSend(bm, m.author.id))
+              .then(bm => bot.util.afterSend(bm, m.author.id))
               .catch(err => {
-                OBUtil.err(err, { m });
+                bot.util.err(err, { m });
               });
           }, 250);
         }).catch(err => {
-          OBUtil.err(err, { m });
+          bot.util.err(err, { m });
         });
       });
     });

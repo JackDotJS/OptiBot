@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -16,18 +16,18 @@ const metadata = {
 };
 
 metadata.run = (m, args) => {
-  if (!args[0]) return OBUtil.missingArgs(m, metadata);
+  if (!args[0]) return bot.util.missingArgs(m, metadata);
 
-  if (bot.cfg.channels.nomodify.includes(m.channel.id) || bot.cfg.channels.nomodify.includes(m.channel.parentID)) return OBUtil.err('This channel is not allowed to be modified.', { m });
+  if (bot.cfg.channels.nomodify.includes(m.channel.id) || bot.cfg.channels.nomodify.includes(m.channel.parentID)) return bot.util.err('This channel is not allowed to be modified.', { m });
 
-  const time = OBUtil.parseTime(args[0]);
+  const time = bot.util.parseTime(args[0]);
 
   if ((time.ms / 1000) > 600) {
-    OBUtil.err('Slowmode cannot exceed 10 minutes.', { m });
+    bot.util.err('Slowmode cannot exceed 10 minutes.', { m });
   } else if ((time.ms / 1000) < 0) {
-    OBUtil.err('Slowmode cannot use negative values.', { m });
+    bot.util.err('Slowmode cannot use negative values.', { m });
   } else if (m.channel.rateLimitPerUser === (time.ms / 1000)) {
-    OBUtil.err(`Slowmode is already ${(time.ms === 0) ? 'disabled' : `set to ${time.string}`} in this channel.`, { m });
+    bot.util.err(`Slowmode is already ${(time.ms === 0) ? 'disabled' : `set to ${time.string}`} in this channel.`, { m });
   } else {
     m.channel.setRateLimitPerUser((time.ms / 1000), `Slowmode set by ${m.author.tag} (${m.author.id})`).then(() => {
       new LogEntry({ channel: 'moderation' })
@@ -42,10 +42,10 @@ metadata.run = (m, args) => {
             .setAuthor(`Slowmode ${(time.ms === 0) ? 'disabled.' : `set to ${time.string}.`}`, Assets.getEmoji('ICO_okay').url)
             .setColor(bot.cfg.embed.okay);
 
-          m.channel.send({ embed });//.then(bm => OBUtil.afterSend(bm, m.author.id));
+          m.channel.send({ embed });//.then(bm => bot.util.afterSend(bm, m.author.id));
         });
     }).catch(err => {
-      OBUtil.err(err, { m });
+      bot.util.err(err, { m });
     });
   }
 };

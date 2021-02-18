@@ -1,6 +1,6 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil } = require('../core/OptiBot.js');
+const { Command, OBUtil } = require('../core/optibot.js');
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -13,6 +13,6 @@ const metadata = {
 
 metadata.run = m => m.channel.send({
   files: [new djs.MessageAttachment(path.resolve('./assets/img/IMG_shitcord.png'), 'shitcord.png')]
-}).then(bm => OBUtil.afterSend(bm, m.author.id));
+}).then(bm => bot.util.afterSend(bm, m.author.id));
 
 module.exports = new Command(metadata);

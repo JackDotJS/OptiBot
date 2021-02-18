@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -54,9 +54,9 @@ metadata.run = (m, args, data) => {
       embed.author.name = (data.input.cmd === 'pong') ? 'Ping!' : 'Pong!';
       embed.description = desc.join('\n');
       msg.edit(embed).then(() => {
-        OBUtil.afterSend(msg, m.author.id);
+        bot.util.afterSend(msg, m.author.id);
       }).catch(err => {
-        OBUtil.err(err, { m });
+        bot.util.err(err, { m });
       });
     }, 1000);
   });

@@ -1,9 +1,9 @@
 const path = require('path');
 const djs = require('discord.js');
 const request = require('request');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -20,7 +20,7 @@ const metadata = {
 
 metadata.run = (m, args) => {
   if (m.attachments.size === 0 || (m.attachments.first().height !== null && m.attachments.first().height !== undefined) || !m.attachments.first().url.endsWith('.js')) {
-    return OBUtil.err('You must upload a new set of policies as a valid file attachment.', { m });
+    return bot.util.err('You must upload a new set of policies as a valid file attachment.', { m });
   }
 
   let policies = [];
@@ -45,11 +45,11 @@ metadata.run = (m, args) => {
   }
 
   m.channel.send(embed).then(msg => {
-    OBUtil.confirm(m, msg).then(res => {
+    bot.util.confirm(m, msg).then(res => {
       if (res === 1) {
         request(m.attachments.first().url, (err, res, data) => {
           if (err || !res || !data) {
-            OBUtil.err(err || new Error('Unable to download attachment.'), { m });
+            bot.util.err(err || new Error('Unable to download attachment.'), { m });
           } else {
             const update = new djs.MessageEmbed()
               .setColor(bot.cfg.embed.default)
@@ -61,14 +61,14 @@ metadata.run = (m, args) => {
               policies = eval(data);
 
               if (deleteOld) {
-                Memory.db.pol.remove({}, {}, (err) => {
+                memory.db.pol.remove({}, {}, (err) => {
                   if (err) {
-                    OBUtil.err(err, { m });
+                    bot.util.err(err, { m });
                   } else {
                     channel.bulkDelete(100).then(() => {
                       finallyPostShit(msg);
                     }).catch(err => {
-                      OBUtil.err(err);
+                      bot.util.err(err);
                       planBthisfucker(msg);
                     });
                   }
@@ -76,7 +76,7 @@ metadata.run = (m, args) => {
               } else {
                 finallyPostShit(msg);
               }
-            }).catch((err) => OBUtil.err(err, { m }));
+            }).catch((err) => bot.util.err(err, { m }));
           }
         });
       } else if (res === 0) {
@@ -85,17 +85,17 @@ metadata.run = (m, args) => {
           .setColor(bot.cfg.embed.default)
           .setDescription('Staff policies has not been changed.');
 
-        msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
       } else {
         const update = new djs.MessageEmbed()
           .setAuthor('Timed out', Assets.getEmoji('ICO_load').url)
           .setColor(bot.cfg.embed.default)
           .setDescription('Sorry, you didn\'t respond in time. Please try again.');
 
-        msg.edit({ embed: update }).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        msg.edit({ embed: update }).then(msg => { bot.util.afterSend(msg, m.author.id); });
       }
     }).catch(err => {
-      OBUtil.err(err, { m });
+      bot.util.err(err, { m });
     });
   });
 
@@ -126,9 +126,9 @@ metadata.run = (m, args) => {
             im++;
             delmsg();
           }
-        }).catch((err) => OBUtil.err(err, { m }));
+        }).catch((err) => bot.util.err(err, { m }));
       })();
-    }).catch((err) => OBUtil.err(err, { m }));
+    }).catch((err) => bot.util.err(err, { m }));
   }
 
   function finallyPostShit(msg) {
@@ -172,9 +172,9 @@ metadata.run = (m, args) => {
         }
 
         if (policies[i].kw && deleteOld) {
-          Memory.db.pol.insert({ id: pm.id, kw: policies[i].kw }, (err) => {
+          memory.db.pol.insert({ id: pm.id, kw: policies[i].kw }, (err) => {
             if (err) {
-              OBUtil.err(err, { m });
+              bot.util.err(err, { m });
             } else {
               cont();
             }
@@ -182,7 +182,7 @@ metadata.run = (m, args) => {
         } else {
           cont();
         }
-      }).catch((err) => OBUtil.err(err, { m }));
+      }).catch((err) => bot.util.err(err, { m }));
     })();
 
     let pi = 0;
@@ -206,12 +206,12 @@ metadata.run = (m, args) => {
             .setColor(bot.cfg.embed.okay)
             .setAuthor(`Policies successfully updated in ${((new Date().getTime() - time.getTime()) / 1000).toFixed(2)} seconds.`, Assets.getEmoji('ICO_okay').url);
 
-          msg.edit(embed).then((msg) => OBUtil.afterSend(msg, m.author.id)).catch((err) => OBUtil.err(err, { m }));
+          msg.edit(embed).then((msg) => bot.util.afterSend(msg, m.author.id)).catch((err) => bot.util.err(err, { m }));
         } else {
           pi++;
           postIndex();
         }
-      }).catch((err) => OBUtil.err(err, { m }));
+      }).catch((err) => bot.util.err(err, { m }));
     }
   }
 };

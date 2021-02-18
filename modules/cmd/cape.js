@@ -4,9 +4,9 @@ const util = require('util');
 const djs = require('discord.js');
 const Jimp = require('jimp');
 const request = require('request');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -21,19 +21,19 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if (!args[0]) return OBUtil.missingArgs(m, metadata);
+  if (!args[0]) return bot.util.missingArgs(m, metadata);
 
-  /* OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+  /* bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
     if (!result || result.type === 'notfound') {
       getMCname();
     } else {
-      OBUtil.getProfile(result.id, false).then(profile => {
+      bot.util.getProfile(result.id, false).then(profile => {
         if (!profile) {
           getMCname();
         } else if (profile.ndata.cape) {
           getMCname(profile.ndata.cape.uuid, profile.id);
         } else {
-          OBUtil.err(`${result.tag} does not have a verified cape on their profile.`, { m });
+          bot.util.err(`${result.tag} does not have a verified cape on their profile.`, { m });
         }
       });
     }
@@ -43,9 +43,9 @@ metadata.run = (m, args, data) => {
     if (uuid) {
       request({ url: `https://api.mojang.com/user/profiles/${uuid}/names`, encoding: null }, (err, res, data) => {
         if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-          OBUtil.err(err || new Error('Failed to get a response from the Mojang API.'), { m });
+          bot.util.err(err || new Error('Failed to get a response from the Mojang API.'), { m });
         } else if (res.statusCode === 204) {
-          OBUtil.err(new Error('Failed to get Minecraft UUID from the Mojang API.'), { m });
+          bot.util.err(new Error('Failed to get Minecraft UUID from the Mojang API.'), { m });
         } else {
           const dp = JSON.parse(data);
           const dataNormalized = {
@@ -56,18 +56,18 @@ metadata.run = (m, args, data) => {
         }
       });
     } else if (args[0].match(/\W+/) !== null) {
-      OBUtil.err('Minecraft usernames can only contain letters, numbers, and underscores (_)', { m });
+      bot.util.err('Minecraft usernames can only contain letters, numbers, and underscores (_)', { m });
     } else if (args[0].length > 16) {
-      OBUtil.err('Minecraft usernames cannot exceed 16 characters in length.', { m });
+      bot.util.err('Minecraft usernames cannot exceed 16 characters in length.', { m });
     } else {
       request({ url: 'https://api.mojang.com/users/profiles/minecraft/' + args[0], encoding: null }, (err, res, data) => {
         if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-          OBUtil.err(err || new Error('Failed to get a response from the Mojang API'), { m });
+          bot.util.err(err || new Error('Failed to get a response from the Mojang API'), { m });
         } else if (res.statusCode === 204) {
-          const embed = OBUtil.err(`Player "${args[0]}" does not exist.`)
+          const embed = bot.util.err(`Player "${args[0]}" does not exist.`)
             .setDescription('Maybe check your spelling?');
 
-          m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+          m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
         } else {
           getCape(JSON.parse(data));
         }
@@ -80,9 +80,9 @@ metadata.run = (m, args, data) => {
 
     request({ url: 'https://optifine.net/capes/' + player.name + '.png', encoding: null }, (err, res, data) => {
       if (err || !res || !data || [200, 404].indexOf(res.statusCode) === -1) {
-        OBUtil.err(err || new Error('Failed to get a response from the OptiFine API'), { m });
+        bot.util.err(err || new Error('Failed to get a response from the OptiFine API'), { m });
       } else if (res.statusCode === 404) {
-        OBUtil.err(`Player "${player.name}" does not have an OptiFine cape.`, { m });
+        bot.util.err(`Player "${player.name}" does not have an OptiFine cape.`, { m });
       } else {
         processCape(data, player, discord);
       }
@@ -90,7 +90,7 @@ metadata.run = (m, args, data) => {
 
     // todo: create filters system (#111)
     /* if (bot.cfg.uuidFilter.indexOf(player.id) > -1) {
-      OBUtil.err(`Sorry, this player's cape has been blacklisted.`, { m });
+      bot.util.err(`Sorry, this player's cape has been blacklisted.`, { m });
     } else {
 
     } */
@@ -99,7 +99,7 @@ metadata.run = (m, args, data) => {
   function processCape(capeTex, player, discord) {
     Jimp.read(capeTex, (err, image) => {
       if (err) {
-        return OBUtil.err(err, { m });
+        return bot.util.err(err, { m });
       } 
 
       const imageData = {
@@ -168,7 +168,7 @@ metadata.run = (m, args, data) => {
 
         new Jimp((image.bitmap.width / baseW) * 21, (image.bitmap.height / baseH) * 20, (err, full) => {
           if (err) {
-            OBUtil.err(err, { m });
+            bot.util.err(err, { m });
           } else {
             const filterMode = (full.bitmap.width < 256) ? Jimp.RESIZE_NEAREST_NEIGHBOR : Jimp.RESIZE_BEZIER;
 
@@ -188,7 +188,7 @@ metadata.run = (m, args, data) => {
 
   function final(image, player, discord) {
     image.jimp.getBuffer(Jimp.AUTO, (err, img) => {
-      if (err) return OBUtil.err(err, { m });
+      if (err) return bot.util.err(err, { m });
 
       const embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
@@ -206,7 +206,7 @@ metadata.run = (m, args, data) => {
       if (discord) embed.setDescription(`<:okay:642112445997121536> Cape owned by <@${discord}>`);
       if (image.type === 'default') embed.setFooter('This image could not be cropped because the cape texture has an unusual resolution.');
 
-      m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+      m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
     });
   }
 };

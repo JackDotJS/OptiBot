@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -47,7 +47,7 @@ metadata.run = (m) => {
       `Session Uptime: ${uptime(process.uptime() * 1000)}`
     ].join('\n'));
 
-  m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+  m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
 };
 
 function uptime(ut) {

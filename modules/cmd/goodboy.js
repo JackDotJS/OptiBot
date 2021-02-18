@@ -1,5 +1,5 @@
 const path = require('path');
-const { Command, OBUtil, Assets } = require('../core/OptiBot.js');
+const { Command, Assets } = require('../core/optibot.js');
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -10,6 +10,6 @@ const metadata = {
   run: null
 };
 
-metadata.run = m => m.channel.send(Assets.getImage('IMG_goodboy').attachment).then(bm => OBUtil.afterSend(bm, m.author.id));
+metadata.run = m => m.channel.send(Assets.getImage('IMG_goodboy').attachment).then(bm => bot.util.afterSend(bm, m.author.id));
 
 module.exports = new Command(metadata);

@@ -1,9 +1,9 @@
 const path = require('path');
 const djs = require('discord.js');
 const timeago = require('timeago.js');
-const { Command, OBUtil, Memory, RecordEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, RecordEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -22,7 +22,7 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
   if (!args[0]) {
-    return OBUtil.missingArgs(m, metadata);
+    return bot.util.missingArgs(m, metadata);
   }
 
   let selectPage = 1;
@@ -39,20 +39,20 @@ metadata.run = (m, args, data) => {
     selectPage = parseInt(args[2]);
   }
 
-  OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+  bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
     if (!result) {
-      OBUtil.err('You must specify a valid user.', { m: m });
+      bot.util.err('You must specify a valid user.', { m: m });
     } else
     if (result.type === 'notfound') {
-      OBUtil.err('Unable to find a user.', { m: m });
+      bot.util.err('Unable to find a user.', { m: m });
     } else
     if (result.id === bot.user.id) {
-      OBUtil.err('Nice try.', { m: m });
+      bot.util.err('Nice try.', { m: m });
     } else {
       new Promise((resolve, reject) => {
         const logs = [];
-        Memory.db.profiles.find({ format: 3, 'edata.record': { $exists: true } }, (err, docs) => {
-          if (err) return OBUtil.err(err, { m: m });
+        memory.db.profiles.find({ format: 3, 'edata.record': { $exists: true } }, (err, docs) => {
+          if (err) return bot.util.err(err, { m: m });
 
           let i = 0;
           (function checkRecord() {
@@ -101,7 +101,7 @@ metadata.run = (m, args, data) => {
             .addField('Record Statistics', 'This user has no moderation actions on record.')
             .setFooter(footer.join('\n'));
 
-          return m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+          return m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
         }
 
         let pageNum = selectPage;
@@ -159,7 +159,7 @@ metadata.run = (m, args, data) => {
                   value: stats.join(`${Assets.getEmoji('ICO_space')}\n`) + `${Assets.getEmoji('ICO_space')}`
                 });
 
-              m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+              m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
             } else {
               i++;
               addEntry();
@@ -220,7 +220,7 @@ metadata.run = (m, args, data) => {
         })();
       });
     }
-  }).catch(err => OBUtil.err(err, { m: m }));
+  }).catch(err => bot.util.err(err, { m: m }));
 };
 
 module.exports = new Command(metadata);

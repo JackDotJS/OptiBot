@@ -73,20 +73,25 @@ module.exports = class OptiBotAssetsManager {
 
       stages.push({
         name: `OptiBot File System Watcher`,
-        tiers: [false, true, false],
+        tiers: [true, false, false],
         load: () => {
           return new Promise((resolve, reject) => {
+
+            // TODO: fix this garbage to only apply to ./bits, ./cmd, and ./util
+
             const modules = fs.readdirSync(`./modules/`, { withFileTypes: true });
 
             const files = [];
 
             for (const dir of modules) {
+              log(dir);
               if (!dir.isDirectory()) continue;
 
               const subdir = fs.readdirSync(`./modules/${dir.name}`, { withFileTypes: true });
 
               for (const modulefile of subdir) {
-                if (!dir.isFile()) continue;
+                log(modulefile);
+                if (!modulefile.isFile()) continue;
 
                 files.push(`./modules/${dir.name}/${modulefile.name}`);
               }
@@ -94,17 +99,25 @@ module.exports = class OptiBotAssetsManager {
 
             const watcher = chokidar.watch(files, { persistent: false });
 
-            watcher.on(`change`, path => {
-              log(`module updated: "${path}"`);
+            watcher.on(`change`, modpath => {
+              log(`module updated: "${modpath}"`);
+              if (memory.assets.needReload.includes(modpath)) return;
 
-              if (memory.assets.needReload.includes(path)) return;
-
-              log(`Added module "${path}" to refresh list.`, `warn`);
-
-              memory.assets.needReload.push(path);
+              const rpath = path.resolve(modpath);
+              log(`Added module "${rpath}" to refresh list.`, `warn`);
+              memory.assets.needReload.push(rpath);
             });
 
-            resolve();
+            watcher.on(`error`, (err) => {
+              bot.util.err(err);
+            });
+
+            log(`files to watch`);
+            log(files);
+
+            watcher.on(`ready`, () => {
+              resolve();
+            });
           });
         }
       });
@@ -114,11 +127,19 @@ module.exports = class OptiBotAssetsManager {
         tiers: [false, true, false],
         load: () => {
           return new Promise((resolve, reject) => {
+
+            // TODO: add special handling for ./util
+
             for (const moddir of memory.assets.needReload) {
               log(`Reloading module: ${moddir}`, `warn`);
 
               delete require.cache[require.resolve(moddir)];
-              require(moddir);
+              try {
+                require(moddir);
+              }
+              catch(err) {
+                bot.util.err(err);
+              }
             }
 
             resolve();
@@ -266,7 +287,7 @@ module.exports = class OptiBotAssetsManager {
 
             // todo: refactor this code similar to command loader
 
-            const optibits = fs.readdirSync(path.resolve(`./modules/bits`));
+            const optibits = fs.readdirSync(`./modules/bits`);
             let clear = false;
 
             if (memory.assets.optibits.length > 0) {

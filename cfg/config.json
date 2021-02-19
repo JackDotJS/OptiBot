@@ -130,6 +130,117 @@
     "minPercentDecay": 20
   },
   "perms": {
-    
+    "groups": {
+      "default": {
+        "displayName": "Default",
+        "nodes": [ "default" ]
+      },
+      "admin": {
+        "displayName": "Administrators",
+        "nodes": [ "*" ]
+      },
+      "manager": {
+        "displayName": "Team Managers",
+        "nodes": [ "manager" ]
+      },
+      "moderator": {
+        "displayName": "Moderators",
+        "nodes": [ "moderator" ]
+      },
+      "botdev": {
+        "displayName": "OptiBot Developers",
+        "nodes": [ "dev" ]
+      },
+      "staff": {
+        "displayName": "All Staff",
+        "nodes": [ "staff" ]
+      },
+      "jrstaff": {
+        "displayName": "Junior Staff",
+        "nodes": [ "jrstaff" ]
+      },
+      "retired": {
+        "displayName": "Retired Staff",
+        "nodes": [ "retired" ]
+      },
+      "vip": {
+        "displayName": "VIPs",
+        "nodes": [ "vip" ]
+      }
+    },
+    "roles": {
+      "423843424945438723": {
+        "_name": "sp614x",
+        "groups": [ "admin" ]
+      },
+      "663122057818537995": {
+        "_name": "admin",
+        "groups": [ "admin" ]
+      },
+      "811079630278361119": {
+        "_name": "manager",
+        "groups": [ "default", "staff", "manager" ]
+      },
+      "467060304145023006": {
+        "_name": "moderator",
+        "groups": [ "default", "staff", "moderator" ]
+      },
+      "644668061818945557": {
+        "_name": "jr moderator",
+        "groups": [ "default", "jrstaff", "staff", "moderator" ]
+      },
+      "752056938753425488": {
+        "_name": "bot dev",
+        "groups": [ "default", "staff", "botdev" ]
+      },
+      "729735394006138900": {
+        "_name": "support",
+        "groups": [ "default", "staff" ]
+      },
+      "811081448002027580": {
+        "_name": "jr support",
+        "groups": [ "default", "jrstaff", "staff" ]
+      },
+      "811087565863256097": {
+        "_name": "mc server",
+        "groups": [ "default", "staff" ]
+      },
+      "729735521039024250": {
+        "_name": "github",
+        "groups": [ "default", "staff" ]
+      },
+      "757863669055881317": {
+        "_name": "retired",
+        "groups": [ "default", "retired" ]
+      },
+      "663432497878663218": {
+        "_name": "graph guy",
+        "groups": [ "default", "vip" ]
+      },
+      "423834274601369601": {
+        "_name": "shader dev",
+        "groups": [ "default", "vip" ]
+      },
+      "788468317685022760": {
+        "_name": "texture artist",
+        "groups": [ "default", "vip" ]
+      },
+      "423839066631569408": {
+        "_name": "mod developer",
+        "groups": [ "default", "vip" ]
+      },
+      "424169541346525194": {
+        "_name": "donator",
+        "groups": [ "default", "vip" ]
+      },
+      "585546912766099457": {
+        "_name": "nitro booster",
+        "groups": [ "default", "vip" ]
+      },
+      "551089007078015025": {
+        "_name": "muted",
+        "groups": [ "muted" ]
+      }
+    }
   }
 }

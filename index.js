@@ -464,6 +464,7 @@ function init() {
         break;
       case 16: 
         log(`OptiBot is now restarting at user request...`, `info`);
+        opts.exit = false;
         break;
       case 17: 
         if (env.mode === 0) {

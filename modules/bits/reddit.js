@@ -11,7 +11,7 @@ const metadata = {
   executable: null
 };
 
-metadata.validator = m => (m.content.toLowerCase().includes("reddit") || m.content.toLowerCase().includes("r/"));
+metadata.validator = m => /(\s|sub|^)+((reddit\W*\s?)|(r\/\S*\s?))/ig.test(m.content);
 
 metadata.executable = m => {
     m.react(Assets.getEmoji("upvote")).catch(OBUtil.err);

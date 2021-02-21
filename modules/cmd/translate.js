@@ -35,7 +35,7 @@ metadata.run = (m, args, data) => {
           .addField('Detected Language', iso.getName(d[2]))
           .addField('Message Source', `[Direct URL](${source})`);
 
-        m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+        bot.send(m, { embed });
       }
     });
   };

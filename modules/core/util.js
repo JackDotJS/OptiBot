@@ -9,9 +9,9 @@ module.exports = {
   confirm: require(`../util/confirm`),
   err: require(`../util/err`),
   parseTime: require(`../util/parseTime`),
-  afterSend: require(`../util/afterSend`),
+  relativeTime: require(`../util/relativeTime`),
   unmuter: require(`../util/unmuter`),
-  uwu: require(`../util/uwu`),
+  owo: require(`../util/owo`),
   verifyDonator: require(`../util/verifyDonator`),
   calculatePoints: require(`../util/calculatePoints`)
 };

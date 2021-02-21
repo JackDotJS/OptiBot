@@ -1,22 +1,22 @@
-const path = require('path');
-const djs = require('discord.js');
-const timeago = require('timeago.js');
-const { Command, memory, RecordEntry, Assets } = require('../core/optibot.js');
+const path = require(`path`);
+const djs = require(`discord.js`);
+const timeago = require(`timeago.js`);
+const { Command, memory, RecordEntry, Assets } = require(`../core/optibot.js`);
 
 const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['modrecords', 'modlog'],
-  short_desc: 'View a moderator\'s action log.',
-  long_desc: 'Displays a brief summary of a given user\'s recent actions as a moderator.',
+  aliases: [`modrecords`, `modlog`],
+  short_desc: `View a moderator's action log.`,
+  long_desc: `Displays a brief summary of a given user's recent actions as a moderator.`,
   args: [
-    '<discord member> [page #] ["full"]',
-    '<discord member> ["full"] [page #]',
+    `<discord member> [page #] ["full"]`,
+    `<discord member> ["full"] [page #]`,
   ],
   authlvl: 2,
-  flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'LITE'],
+  flags: [`DM_OPTIONAL`, `MOD_CHANNEL_ONLY`, `LITE`],
   run: null
 };
 
@@ -28,7 +28,7 @@ metadata.run = (m, args, data) => {
   let selectPage = 1;
   let viewAll = false;
 
-  if ((args[1] && args[1].toLowerCase() === 'full') || (args[2] && args[2].toLowerCase() === 'full')) {
+  if ((args[1] && args[1].toLowerCase() === `full`) || (args[2] && args[2].toLowerCase() === `full`)) {
     viewAll = true;
   }
 
@@ -41,13 +41,13 @@ metadata.run = (m, args, data) => {
 
   bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
     if (!result) {
-      bot.util.err('You must specify a valid user.', { m: m });
+      bot.util.err(`You must specify a valid user.`, { m: m });
     } else
-    if (result.type === 'notfound') {
-      bot.util.err('Unable to find a user.', { m: m });
+    if (result.type === `notfound`) {
+      bot.util.err(`Unable to find a user.`, { m: m });
     } else
     if (result.id === bot.user.id) {
-      bot.util.err('Nice try.', { m: m });
+      bot.util.err(`Nice try.`, { m: m });
     } else {
       new Promise((resolve, reject) => {
         const logs = [];
@@ -75,33 +75,33 @@ metadata.run = (m, args, data) => {
         });
       }).then((modlog) => {
         const footer = [
-          'Note that existing actions before October 30, 2019 will not show here.',
-          'All records before August 5, 2020 may be missing information.'
+          `Note that existing actions before October 30, 2019 will not show here.`,
+          `All records before August 5, 2020 may be missing information.`
         ];
 
         const embed = new djs.MessageEmbed()
           .setColor(bot.cfg.embed.default)
           .setTitle(result.tag);
 
-        if (result.type !== 'id') {
+        if (result.type !== `id`) {
           embed.setDescription([
             `Mention: ${result.mention}`,
             `\`\`\`yaml\nID: ${result.id}\`\`\``
-          ].join('\n'));
+          ].join(`\n`));
         }
 
-        if (result.type !== 'id') {
-          embed.setThumbnail(((result.type === 'user') ? result.target : result.target.user).displayAvatarURL({ format: 'png' }));
+        if (result.type !== `id`) {
+          embed.setThumbnail(((result.type === `user`) ? result.target : result.target.user).displayAvatarURL({ format: `png` }));
         }
 
-        let title = 'Moderator Audit Log';
+        let title = `Moderator Audit Log`;
 
         if (modlog.length === 0) {
-          embed.setAuthor(title, Assets.getEmoji('ICO_docs').url)
-            .addField('Record Statistics', 'This user has no moderation actions on record.')
-            .setFooter(footer.join('\n'));
+          embed.setAuthor(title, Assets.getEmoji(`ICO_docs`).url)
+            .addField(`Record Statistics`, `This user has no moderation actions on record.`)
+            .setFooter(footer.join(`\n`));
 
-          return m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+          return bot.send(m, { embed });
         }
 
         let pageNum = selectPage;
@@ -137,7 +137,7 @@ metadata.run = (m, args, data) => {
         (function addEntry() {
           const entry = new RecordEntry(modlog[i]);
           const details = [
-            `**Case ID: [${entry.display.id}](${m.url.replace(/\/\d+$/, '')})**`
+            `**Case ID: [${entry.display.id}](${m.url.replace(/\/\d+$/, ``)})**`
           ];
 
           function next() {
@@ -148,18 +148,18 @@ metadata.run = (m, args, data) => {
 
               if (pardonedCount === modlog.length) {
                 stats.push(
-                  `**[NOTICE: All of this moderator's actions have been pardoned.](${m.url.replace(/\/\d+$/, '')})**`
+                  `**[NOTICE: All of this moderator's actions have been pardoned.](${m.url.replace(/\/\d+$/, ``)})**`
                 );
               }
 
-              embed.setAuthor(title, Assets.getEmoji('ICO_docs').url)
-                .setFooter(footer.join('\n'))
+              embed.setAuthor(title, Assets.getEmoji(`ICO_docs`).url)
+                .setFooter(footer.join(`\n`))
                 .fields.unshift({
-                  name: 'Audit Log Information',
-                  value: stats.join(`${Assets.getEmoji('ICO_space')}\n`) + `${Assets.getEmoji('ICO_space')}`
+                  name: `Audit Log Information`,
+                  value: stats.join(`${Assets.getEmoji(`ICO_space`)}\n`) + `${Assets.getEmoji(`ICO_space`)}`
                 });
 
-              m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+              bot.send(m, { embed });
             } else {
               i++;
               addEntry();
@@ -168,8 +168,8 @@ metadata.run = (m, args, data) => {
 
           if (entry.edits && footer.length < 3) {
             footer.push(
-              '',
-              'Edited entries prefixed with an asterisk (*)',
+              ``,
+              `Edited entries prefixed with an asterisk (*)`,
             );
           }
 
@@ -181,20 +181,20 @@ metadata.run = (m, args, data) => {
               return next();
             }
 
-            const reason = `> **${(entry.action !== 0) ? 'Reason' : 'Note Contents'}:**${Assets.getEmoji('ICO_space')}\n> ${entry.pardon.reason.split('\n').join('\n> ')}`;
+            const reason = `> **${(entry.action !== 0) ? `Reason` : `Note Contents`}:**${Assets.getEmoji(`ICO_space`)}\n> ${entry.pardon.reason.split(`\n`).join(`\n> `)}`;
 
             details.push(
-              `**Pardoned By:** ${(entry.pardon.admin === result.id) ? 'Self' : `<@${entry.pardon.admin}>`}`,
+              `**Pardoned By:** ${(entry.pardon.admin === result.id) ? `Self` : `<@${entry.pardon.admin}>`}`,
               `**When:** ${timeago.format(entry.pardon.date)}`
             );
 
             if (entry.pardon.reason.length > 128) {
-              details.push(reason.substring(0, 125).trim() + '...'); // 125 because the "..." takes up three characters
+              details.push(reason.substring(0, 125).trim() + `...`); // 125 because the "..." takes up three characters
             } else {
               details.push(reason);
             }
           } else {
-            const reason = `> **${(entry.action !== 0) ? 'Reason' : 'Note Contents'}:**${Assets.getEmoji('ICO_space')}\n> ${entry.reason.split('\n').join('\n> ')}`;
+            const reason = `> **${(entry.action !== 0) ? `Reason` : `Note Contents`}:**${Assets.getEmoji(`ICO_space`)}\n> ${entry.reason.split(`\n`).join(`\n> `)}`;
 
             details.push(
               `**Member:** <@${modlog[i].userid}>`,
@@ -202,17 +202,17 @@ metadata.run = (m, args, data) => {
             );
 
             if (entry.action === 5) {
-              details.push(`**Amount:** ${entry.display.pointsTotal.toLocaleString()}` + ((entry.display.pointsTotal != entry.display.pointsNow) ? `(now: ${entry.display.pointsNow})` : ''));
+              details.push(`**Amount:** ${entry.display.pointsTotal.toLocaleString()}` + ((entry.display.pointsTotal != entry.display.pointsNow) ? `(now: ${entry.display.pointsNow})` : ``));
             }
 
             if (entry.reason.length > 128) {
-              details.push(reason.substring(0, 128).trim() + '...');
+              details.push(reason.substring(0, 128).trim() + `...`);
             } else {
               details.push(reason);
             }
           }
 
-          embed.addField(`${entry.display.icon} ${(entry.edits) ? '**' : ''}${entry.display.action}${(entry.edits) ? '*' : ''} ${entry.pardon ? '**(PARDONED)**' : ''}`, details.join(`${Assets.getEmoji('ICO_space')}\n`));
+          embed.addField(`${entry.display.icon} ${(entry.edits) ? `**` : ``}${entry.display.action}${(entry.edits) ? `*` : ``} ${entry.pardon ? `**(PARDONED)**` : ``}`, details.join(`${Assets.getEmoji(`ICO_space`)}\n`));
 
           added++;
 

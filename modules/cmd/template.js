@@ -25,7 +25,7 @@ metadata.run = (m, args, data) => {
     .setAuthor('Example MessageEmbed')
     .setColor(bot.cfg.embed.default);
 
-  m.channel.send({embed: embed}).then(bm => bot.util.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 module.exports = new Command(metadata);

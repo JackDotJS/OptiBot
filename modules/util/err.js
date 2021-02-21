@@ -1,7 +1,6 @@
 const Memory = require(`../core/memory.js`);
 const djs = require(`discord.js`);
 const Assets = require(`../core/asset_manager.js`);
-const afterSend = require(`./afterSend.js`);
 
 /**
      * Creates a simple, pre-formatted error message.
@@ -74,9 +73,7 @@ module.exports = (err, data = {}) => {
   // log(util.inspect(data));
 
   if (data.m) {
-    data.m.channel.send({ embed: embed }).then(bm => {
-      afterSend(bm, data.m.author.id);
-    }).catch(e => log(e.stack, `error`));
+    bot.send(data.m, { embed }).catch(e => log(e.stack, `error`));
   } else {
     return embed;
   }

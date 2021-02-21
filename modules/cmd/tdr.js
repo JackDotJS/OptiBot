@@ -25,7 +25,7 @@ metadata.run = (m, args, data) => {
         .setColor(bot.cfg.embed.okay)
         .setAuthor('Donator color disabled.', Assets.getEmoji('ICO_okay').url);
 
-      m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+      bot.send(m, { embed });
     });
   } else {
     data.member.roles.add(bot.cfg.roles.donatorColor, 'Color toggled by user.').then(() => {
@@ -33,7 +33,7 @@ metadata.run = (m, args, data) => {
         .setColor(bot.cfg.embed.okay)
         .setAuthor('Donator color enabled.', Assets.getEmoji('ICO_okay').url);
 
-      m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+      bot.send(m, { embed });
     });
   }
 

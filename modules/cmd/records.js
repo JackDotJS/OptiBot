@@ -76,7 +76,7 @@ metadata.run = (m, args, data) => {
               .addField('Record Statistics', 'This user has no known record.')
               .setFooter(footer.join('\n'));
 
-            m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+            bot.send(m, { embed });
           } else if (!isNaN(caseid) && caseid > 1420070400000 && caseid < new Date().getTime()) {
             // INDIVIDUAL ENTRY
 
@@ -140,7 +140,7 @@ metadata.run = (m, args, data) => {
 
                 embed.setFooter(footer.join('\n'));
 
-                m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+                bot.send(m, { embed });
               }
             });
           } else {
@@ -207,7 +207,7 @@ metadata.run = (m, args, data) => {
                       value: stats.join(`${Assets.getEmoji('ICO_space')}\n`) + `${Assets.getEmoji('ICO_space')}`
                     });
 
-                  m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+                  bot.send(m, { embed });
                 } else {
                   i++;
                   addEntry();

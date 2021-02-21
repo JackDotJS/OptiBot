@@ -20,7 +20,7 @@ metadata.run = m => {
     .setAuthor('OptiFine Issue Tracker', Assets.getEmoji('ICO_git').url)
     .setTitle('https://github.com/sp614x/optifine/issues');
 
-  m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 module.exports = new Command(metadata);

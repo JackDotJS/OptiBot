@@ -22,7 +22,7 @@ metadata.run = m => {
     .addField('Direct Download', 'https://johann.loefflmann.net/downloads/jarfix.exe')
     .setFooter(`Jarfix Copyright © 2002-${new Date().getUTCFullYear()} by Dipl.-Inf. (FH) Johann Nepomuk Löfflmann`);
 
-  m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 module.exports = new Command(metadata);

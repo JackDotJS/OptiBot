@@ -22,7 +22,7 @@ metadata.run = m => {
     .addField('Alternative', 'https://optifined.net/downloads')
     .addField('Older Versions (B1.4 - 1.9)', '[[Ridiculously long URL]](https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/1286605-b1-4-1-9-optifine-history "https://www.minecraftforum.net/forums/mapping-and-modding-java-edition/minecraft-mods/1286605-b1-4-1-9-optifine-history")');
 
-  m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 module.exports = new Command(metadata);

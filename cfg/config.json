@@ -12,9 +12,9 @@
     "rules": "423430686880301056",
     "emoji": [
       "627527422312710154",
+      "785569930909188096",
       "692211554363375666",
-      "672286586641186829",
-      "672287077299388456"
+      "672286586641186829"
     ],
     "policies": "423430686880301056",
     "faq": "423430686880301056"
@@ -39,8 +39,11 @@
       "728753238794567717"
     ],
     "nolog": [
-      "626863172845830144",
-      "626864678198575114",
+      "793981943401807942",
+      "793982936671322173",
+      "793983859809058836",
+      "793986465616232468",
+      "808931874352136192",
       "728753238794567717"
     ],
     "log": {
@@ -79,10 +82,12 @@
     "deleter": "678774775480320021",
     "confirm": "672309254279135263",
     "cancel": "672309278605836308",
-    "resolve": "764836154683817995"
+    "resolve": "764836154683817995",
+    "forward": "781282450189320262",
+    "back": "781282396519137331"
   },
   "messages": {
-    "confirmDelete": "To remove this message, undo the emoji reaction and press it once more to confirm.",
+    "confirmDelete": "To remove this message, click or tap the emoji reaction once more to confirm. To cancel, simply ignore this message.",
     "error": [
       "Everything's going to plan. No, really, that was supposed to happen.",
       "Uh... Did I do that?",
@@ -129,118 +134,196 @@
     "decayDelay": 14,
     "minPercentDecay": 20
   },
+  "splash": [
+    "uwu",
+    "<3",
+    "now in 3 new flavors",
+    "while yall here be sure to check out my soundcloud",
+    "lmao n00b gg ez",
+    "psp exclusive",
+    "bot of the year",
+    "this bot has gone 0 days bug-free",
+    "[next version] hype",
+    "optifine 1.17 when???",
+    "i cant read :)",
+    "establish communism",
+    "my wife left me",
+    "FUCK EPIC",
+    "the all new range rover sport",
+    "[hilarious joke]",
+    "JavaScript, also known as Java for short.",
+    "catch blocks? haha what are those",
+    "what the FUCK is error handling",
+    "fucking ughhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+    "now this is an avengers level threat",
+    "akii is stinky",
+    "zenith is stinky",
+    "jack you stupid fuck",
+    "you're aren't (epic backflip)",
+    "uno bitch",
+    ":3c",
+    "do you rp? uwu",
+    "hhaahaehahehahehaehaheae",
+    "OH MY GOD IT'S DESINC",
+    "epstein didn't kill himself",
+    "hamgruber macdronads",
+    "RATS RATS WE ARE THE RATS",
+    "wholesome keanu reeves chungus 100 covfefe baby yoda elon musk breathtaking thanks for the gold kind stranger",
+    "THE FIVE DOLLAR FOOTLONG IS BACK WHEN YOU BUY TWO",
+    "Apply for the OptiBot credit card, and get a free hat!",
+    "Now in VR!\\*\n\n\\*not available in all regions",
+    "bow before the turtle gods",
+    "pinging Eastah uwu",
+    "we are going to beat you to death",
+    "HONEY FUCK CHEERIOs",
+    "OptiBot",
+    "noooooOOOOOOOOOOOO",
+    "free me of this hell",
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Vel eros donec ac odio tempor orci dapibus ultrices. Dignissim sodales ut eu sem integer vitae justo eget. Vestibulum sed arcu non odio euismod lacinia at quis risus. Egestas congue quisque egestas diam in. Lectus sit amet est placerat. Turpis massa sed elementum tempus egestas sed sed risus pretium. Et leo duis ut diam quam nulla. Accumsan tortor posuere ac ut consequat semper. Mi eget mauris pharetra et ultrices neque ornare. Proin libero nunc consequat interdum varius sit amet mattis vulputate. Donec ultrices tincidunt arcu non sodales neque sodales. Mauris cursus mattis molestie a. Libero nunc consequat interdum varius. Adipiscing tristique risus nec feugiat. Egestas purus viverra accumsan in nisl nisi scelerisque eu. Imperdiet sed euismod nisi porta lorem mollis aliquam ut. Adipiscing enim eu turpis egestas pretium.",
+    "uhhhhhhhhhh",
+    "ummmmmm uhhhhhh",
+    "fire1.ogg",
+    "I WILL RIP OFF YOUR GHOST HEAD AND CRAP IN YOUR STUPID HAT"
+  ],
   "perms": {
     "groups": {
-      "default": {
-        "displayName": "Default",
-        "nodes": [ "default" ]
-      },
       "admin": {
-        "displayName": "Administrators",
-        "nodes": [ "*" ]
+        "display": "Administrators",
+        "nodes": [ "*" ],
+        "inherit": null
       },
       "manager": {
-        "displayName": "Team Managers",
-        "nodes": [ "manager" ]
+        "display": "Team Managers",
+        "nodes": [  ],
+        "inherit": [ "dev" ]
       },
       "moderator": {
-        "displayName": "Moderators",
-        "nodes": [ "moderator" ]
+        "display": "Moderators",
+        "nodes": [  ],
+        "inherit": [ "staff" ]
       },
       "botdev": {
-        "displayName": "OptiBot Developers",
-        "nodes": [ "dev" ]
+        "display": "OptiBot Developers",
+        "nodes": [  ],
+        "inherit": [ "staff" ]
       },
       "staff": {
-        "displayName": "All Staff",
-        "nodes": [ "staff" ]
+        "display": "All Staff",
+        "nodes": [  ],
+        "inherit": [ "jrstaff" ]
       },
       "jrstaff": {
-        "displayName": "Junior Staff",
-        "nodes": [ "jrstaff" ]
+        "display": "Junior Staff",
+        "nodes": [  ],
+        "inherit": [ "retired" ]
       },
       "retired": {
-        "displayName": "Retired Staff",
-        "nodes": [ "retired" ]
+        "display": "Retired Staff",
+        "nodes": [  ],
+        "inherit": [ "vip" ]
       },
       "vip": {
-        "displayName": "VIPs",
-        "nodes": [ "vip" ]
+        "display": "VIPs",
+        "nodes": [  ],
+        "inherit": null
+      },
+      "muted": {
+        "display": "Muted",
+        "nodes": [ "!*" ],
+        "inherit": null
       }
     },
-    "roles": {
-      "423843424945438723": {
-        "_name": "sp614x",
+    "assignments": [
+      {
+        "refname": "user_sp614x",
+        "id": "202558206495555585",
         "groups": [ "admin" ]
       },
-      "663122057818537995": {
-        "_name": "admin",
+      {
+        "refname": "admin",
+        "id": "663122057818537995",
         "groups": [ "admin" ]
       },
-      "811079630278361119": {
-        "_name": "manager",
-        "groups": [ "default", "staff", "manager" ]
+      {
+        "refname": "manager",
+        "id": "811079630278361119",
+        "groups": [ "staff", "manager" ]
       },
-      "467060304145023006": {
-        "_name": "moderator",
-        "groups": [ "default", "staff", "moderator" ]
+      {
+        "refname": "moderator",
+        "id": "467060304145023006",
+        "groups": [ "staff", "moderator" ]
       },
-      "644668061818945557": {
-        "_name": "jr moderator",
-        "groups": [ "default", "jrstaff", "staff", "moderator" ]
+      {
+        "refname": "jr moderator",
+        "id": "644668061818945557",
+        "groups": [ "jrstaff", "staff", "moderator" ]
       },
-      "752056938753425488": {
-        "_name": "bot dev",
-        "groups": [ "default", "staff", "botdev" ]
+      {
+        "refname": "bot dev",
+        "id": "752056938753425488",
+        "groups": [ "staff", "botdev" ]
       },
-      "729735394006138900": {
-        "_name": "support",
-        "groups": [ "default", "staff" ]
+      {
+        "refname": "support",
+        "id": "729735394006138900",
+        "groups": [ "staff" ]
       },
-      "811081448002027580": {
-        "_name": "jr support",
-        "groups": [ "default", "jrstaff", "staff" ]
+      {
+        "refname": "jr support",
+        "id": "811081448002027580",
+        "groups": [ "jrstaff", "staff" ]
       },
-      "811087565863256097": {
-        "_name": "mc server",
-        "groups": [ "default", "staff" ]
+      {
+        "refname": "mc server",
+        "id": "811087565863256097",
+        "groups": [ "staff" ]
       },
-      "729735521039024250": {
-        "_name": "github",
-        "groups": [ "default", "staff" ]
+      {
+        "refname": "github",
+        "id": "729735521039024250",
+        "groups": [ "staff" ]
       },
-      "757863669055881317": {
-        "_name": "retired",
-        "groups": [ "default", "retired" ]
+      {
+        "refname": "retired",
+        "id": "757863669055881317",
+        "groups": [ "retired" ]
       },
-      "663432497878663218": {
-        "_name": "graph guy",
-        "groups": [ "default", "vip" ]
+      {
+        "refname": "graph guy",
+        "id": "663432497878663218",
+        "groups": [ "vip" ]
       },
-      "423834274601369601": {
-        "_name": "shader dev",
-        "groups": [ "default", "vip" ]
+      {
+        "refname": "shader dev",
+        "id": "423834274601369601",
+        "groups": [ "vip" ]
       },
-      "788468317685022760": {
-        "_name": "texture artist",
-        "groups": [ "default", "vip" ]
+      {
+        "refname": "texture artist",
+        "id": "788468317685022760",
+        "groups": [ "vip" ]
       },
-      "423839066631569408": {
-        "_name": "mod developer",
-        "groups": [ "default", "vip" ]
+      {
+        "refname": "mod developer",
+        "id": "423839066631569408",
+        "groups": [ "vip" ]
       },
-      "424169541346525194": {
-        "_name": "donator",
-        "groups": [ "default", "vip" ]
+      {
+        "refname": "donator",
+        "id": "424169541346525194",
+        "groups": [ "vip" ]
       },
-      "585546912766099457": {
-        "_name": "nitro booster",
-        "groups": [ "default", "vip" ]
+      {
+        "refname": "nitro booster",
+        "id": "585546912766099457",
+        "groups": [ "vip" ]
       },
-      "551089007078015025": {
-        "_name": "muted",
+      {
+        "refname": "muted",
+        "id": "551089007078015025",
         "groups": [ "muted" ]
       }
-    }
+    ]
   }
 }

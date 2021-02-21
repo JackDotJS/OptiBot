@@ -1,26 +1,28 @@
-const path = require('path');
-const djs = require('discord.js');
-const { Command, memory, Assets } = require('../core/optibot.js');
+const path = require(`path`);
+const djs = require(`discord.js`);
+const { Command, memory, Assets } = require(`../core/optibot.js`);
 
 const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['latency', 'pong'],
-  short_desc: 'Measure bot latency and response lag.',
+  aliases: [`latency`, `pong`],
+  short_desc: `Measure bot latency and response lag.`,
   authlvl: 1,
-  flags: ['DM_OPTIONAL', 'NO_TYPER'],
+  flags: [`DM_OPTIONAL`, `NO_TYPER`],
   run: null
 };
 
 metadata.run = (m, args, data) => {
   const embed = new djs.MessageEmbed()
-    .setAuthor((data.input.cmd === 'pong') ? 'Pong...' : 'Ping...', Assets.getEmoji('ICO_wifi').url)
+    .setAuthor((data.input.cmd === `pong`) ? `Pong...` : `Ping...`, Assets.getEmoji(`ICO_wifi`).url)
     .setColor(bot.cfg.embed.default)
-    .setDescription('API Latency: ... \nMessage Latency: ...');
+    .setDescription(`API Latency: ... \nMessage Latency: ...`);
 
   const timeStart = new Date().getTime();
-  m.channel.send('_ _', { embed: embed }).then(msg => {
+  bot.send(m, { embed, delayControl: true }).then(bres => {
+    const msg = bres.msg;
+    
     const timeTaken = new Date().getTime() - timeStart;
     bot.setTimeout(() => {
       const desc = [];
@@ -51,11 +53,9 @@ metadata.run = (m, args, data) => {
         desc.push(`Message Latency: ${message.toLocaleString()}ms (Awful)`);
       }
 
-      embed.author.name = (data.input.cmd === 'pong') ? 'Ping!' : 'Pong!';
-      embed.description = desc.join('\n');
-      msg.edit(embed).then(() => {
-        bot.util.afterSend(msg, m.author.id);
-      }).catch(err => {
+      embed.author.name = (data.input.cmd === `pong`) ? `Ping!` : `Pong!`;
+      embed.description = desc.join(`\n`);
+      msg.edit(embed).then(() => bres.addControl).catch(err => {
         bot.util.err(err, { m });
       });
     }, 1000);

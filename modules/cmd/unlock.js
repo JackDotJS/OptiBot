@@ -1,17 +1,17 @@
-const path = require('path');
-const djs = require('discord.js');
-const { Command, memory, LogEntry, Assets } = require('../core/optibot.js');
+const path = require(`path`);
+const djs = require(`discord.js`);
+const { Command, memory, LogEntry, Assets } = require(`../core/optibot.js`);
 
 const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['open'],
-  short_desc: 'Unlock a given channel.',
-  long_desc: 'Unlocks a given channel. Defaults to the channel you\'re in if not specified.',
-  args: '[channel]',
+  aliases: [`open`],
+  short_desc: `Unlock a given channel.`,
+  long_desc: `Unlocks a given channel. Defaults to the channel you're in if not specified.`,
+  args: `[channel]`,
   authlvl: 2,
-  flags: ['NO_DM', 'STRICT', 'LITE'],
+  flags: [`NO_DM`, `STRICT`, `LITE`],
   run: null
 };
 
@@ -30,26 +30,25 @@ metadata.run = (m, args, data) => {
     return bot.util.err(`The #${channel.name} channel cannot be modified.`, { m });
   }
 
-  if (!channel.permissionOverwrites.get(bot.mainGuild.id).deny.has('SEND_MESSAGES')) {
+  if (!channel.permissionOverwrites.get(bot.mainGuild.id).deny.has(`SEND_MESSAGES`)) {
     return bot.util.err(`The #${channel.name} channel has already been unlocked.`, { m });
   }
 
   channel.updateOverwrite(bot.mainGuild.id, { SEND_MESSAGES: null }, `Channel unlocked by ${m.author.tag} (${m.author.id}) via ${bot.prefix}${data.input.cmd}`).then(() => {
-    const logEntry = new LogEntry({ channel: 'moderation' })
+    const logEntry = new LogEntry({ channel: `moderation` })
       .setColor(bot.cfg.embed.default)
-      .setIcon(Assets.getEmoji('ICO_unlock').url)
-      .setTitle('Channel Unlocked', 'Channel Unlock Report')
-      .addSection('Channel', channel)
-      .addSection('Moderator Responsible', m.author)
-      .addSection('Command Location', m);
+      .setIcon(Assets.getEmoji(`ICO_unlock`).url)
+      .setTitle(`Channel Unlocked`, `Channel Unlock Report`)
+      .addSection(`Channel`, channel)
+      .addSection(`Moderator Responsible`, m.author)
+      .addSection(`Command Location`, m);
 
     const embed = new djs.MessageEmbed()
-      .setAuthor('Channel unlocked.', Assets.getEmoji('ICO_okay').url)
+      .setAuthor(`Channel unlocked.`, Assets.getEmoji(`ICO_okay`).url)
       .setColor(bot.cfg.embed.okay)
       .setDescription(`The ${channel} channel has been unlocked.`);
 
-    m.channel.stopTyping(true);
-    m.channel.send(embed);//.then(bm => bot.util.afterSend(bm, m.author.id));
+    bot.send(m, { embed, userDelete: false });
     logEntry.submit();
   });
 };

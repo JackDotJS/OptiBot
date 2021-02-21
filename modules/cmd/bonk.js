@@ -53,7 +53,9 @@ metadata.run = (m, args, data) => {
       .setDescription(`Bonking: ${target} \nWaiting for ${bot.mainGuild.memberCount.toLocaleString()} votes...`)
       .addField(`Reason`, reason);
 
-    m.channel.send(embed).then(bm => (
+    bot.send(m, { embed, delayControl: true }).then(bres => {
+      const bm = bres.msg;
+
       bm.react(bot.guilds.cache.get(bot.cfg.guilds.optibot).emojis.cache.get(bot.cfg.emoji.confirm)).then(() => {
         bot.setTimeout(() => {
           const total = bm.reactions.cache.get(bot.cfg.emoji.confirm);
@@ -84,14 +86,12 @@ metadata.run = (m, args, data) => {
           }
 
           bm.edit(embed).then(bm2 => {
-            bm2.reactions.removeAll().then(() => {
-              bot.util.afterSend(bm2, m.author.id);
-            });
+            bm2.reactions.removeAll().then(() => { bres.addControl() });
           });
 
         }, 1000 * 30);
-      })
-    ));
+      });
+    });
   });
 };
 

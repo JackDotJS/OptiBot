@@ -454,6 +454,9 @@ module.exports = class OptiBotAssetsManager {
         tiers: [true, false, false],
         load: () => {
           return new Promise((resolve, reject) => {
+
+            if (bot.mode === 0) return resolve();
+
             const channels = [...bot.channels.cache.values()];
 
             log(`max channels: ${channels.length}`);

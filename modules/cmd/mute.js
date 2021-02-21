@@ -1,20 +1,20 @@
 /* eslint-disable no-inner-declarations */
-const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const { Command, memory, RecordEntry, LogEntry, Assets } = require('../core/optibot.js');
+const path = require(`path`);
+const util = require(`util`);
+const djs = require(`discord.js`);
+const { Command, memory, RecordEntry, LogEntry, Assets } = require(`../core/optibot.js`);
 
 const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['silence', 'gag'],
-  short_desc: 'Mute a user.',
-  long_desc: 'Stops a user from being able to talk or send messages in text channels. Time limit is optional, and will default to 1 hour if not specified. You can also specify the time measure in (m)inutes, (h)ours, and (d)ays. The maximum time limit is 7 days, but can be set to infinity by using 0. Additionally, you can adjust time limits for users by simply running this command again with the desired time.\n\n**Note that this is not an end-all punishment for every user. It is still very much possible to get around server mutes with the right resources.**',
-  args: '<discord member> [time | reason] [reason]',
+  aliases: [`silence`, `gag`],
+  short_desc: `Mute a user.`,
+  long_desc: `Stops a user from being able to talk or send messages in text channels. Time limit is optional, and will default to 1 hour if not specified. You can also specify the time measure in (m)inutes, (h)ours, and (d)ays. The maximum time limit is 7 days, but can be set to infinity by using 0. Additionally, you can adjust time limits for users by simply running this command again with the desired time.\n\n**Note that this is not an end-all punishment for every user. It is still very much possible to get around server mutes with the right resources.**`,
+  args: `<discord member> [time | reason] [reason]`,
   authlvl: 2,
-  flags: ['NO_DM', 'LITE'],
+  flags: [`NO_DM`, `LITE`],
   run: null
 };
 
@@ -39,22 +39,22 @@ metadata.run = (m, args, data) => {
 
     bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
       if (!result) {
-        bot.util.err('You must specify a valid user.', { m });
-      } else if (['notfound', 'id'].includes(result.type)) {
-        bot.util.err('Unable to find a user.', { m });
+        bot.util.err(`You must specify a valid user.`, { m });
+      } else if ([`notfound`, `id`].includes(result.type)) {
+        bot.util.err(`Unable to find a user.`, { m });
       } else if (result.id === m.author.id) {
-        bot.util.err('Nice try.', { m });
+        bot.util.err(`Nice try.`, { m });
       } else if (result.id === bot.user.id) {
-        bot.util.err('You have no power here.', { m });
+        bot.util.err(`You have no power here.`, { m });
       } else if (bot.util.getAuthlvl(result.target) > 0) {
-        bot.util.err('That user is too powerful to be muted.', { m });
+        bot.util.err(`That user is too powerful to be muted.`, { m });
       } else {
         s2(result);
       }
     });
 
     function s2(result) {
-      log('s2');
+      log(`s2`);
       const time = bot.util.parseTime(args[1]);
 
 
@@ -70,9 +70,9 @@ metadata.run = (m, args, data) => {
           muteData.end = null;
           s3(result, time);
         } else if (time.ms < 10000) {
-          bot.util.err('Be reasonable.', { m });
+          bot.util.err(`Be reasonable.`, { m });
         } else if (time.ms > 604800000) {
-          bot.util.err('Time limit cannot exceed 7 days.', { m });
+          bot.util.err(`Time limit cannot exceed 7 days.`, { m });
         } else {
           muteData.end = now + time.ms;
           s3(result, time);
@@ -81,11 +81,11 @@ metadata.run = (m, args, data) => {
     }
 
     function s3(result, timeData) {
-      log('s3');
+      log(`s3`);
       let isUpdate = false;
       if (rvt.reasonText.length > 0) rvt.reasonAdded = true;
 
-      log('mute: made it here');
+      log(`mute: made it here`);
 
       bot.util.getProfile(result.id, true).then(profile => {
         if (!profile.edata.mute) {
@@ -94,13 +94,13 @@ metadata.run = (m, args, data) => {
           log_data.org_end = profile.edata.mute.end;
 
           if (!rvt.timeAdded) {
-            const embed = bot.util.err('That user has already been muted.', bot)
-              .setDescription('If you\'d like to change the time limit, please specify.');
+            const embed = bot.util.err(`That user has already been muted.`, bot)
+              .setDescription(`If you'd like to change the time limit, please specify.`);
 
-            m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+            bot.send(m, { embed });
             return;
           } else if (muteData.end === profile.edata.mute.end) {
-            bot.util.err('New time limit is no different to the existing time limit.', bot, { m });
+            bot.util.err(`New time limit is no different to the existing time limit.`, bot, { m });
             return;
           } else {
             profile.edata.mute.end = muteData.end;
@@ -110,36 +110,36 @@ metadata.run = (m, args, data) => {
 
         if (!profile.edata.record) profile.edata.record = [];
 
-        log('mute: made it here');
+        log(`mute: made it here`);
 
         const entry = new RecordEntry()
           .setMod(m.author.id)
           .setURL(m.url)
-          .setAction('mute')
-          .setReason(m.author, (rvt.reasonAdded) ? rvt.reasonText : 'No reason provided.');
+          .setAction(`mute`)
+          .setReason(m.author, (rvt.reasonAdded) ? rvt.reasonText : `No reason provided.`);
 
-        log('mute: made it here');
+        log(`mute: made it here`);
 
         if (isUpdate) {
-          entry.setActionType('update')
+          entry.setActionType(`update`)
             .setParent(m.author, profile.edata.mute.caseID);
 
           if (muteData.end !== null) {
             entry.setDetails(m.author, `Mute updated to ${timeData.string}.`);
           } else {
-            entry.setDetails(m.author, 'Mute updated as permanent.');
+            entry.setDetails(m.author, `Mute updated as permanent.`);
           }
         } else {
-          entry.setActionType('add');
+          entry.setActionType(`add`);
 
           if (muteData.end !== null) {
             entry.setDetails(m.author, `Mute set for ${timeData.string}.`);
           } else {
-            entry.setDetails(m.author, 'Mute set as permanent.');
+            entry.setDetails(m.author, `Mute set as permanent.`);
           }
         }
 
-        log('mute: made it here');
+        log(`mute: made it here`);
 
         profile.edata.record.push(entry.raw);
 
@@ -160,21 +160,21 @@ metadata.run = (m, args, data) => {
               log(util.inspect(memory.mutes));
             }
           } else {
-            log('before loop');
+            log(`before loop`);
             for (let i = 0; i < memory.mutes.length; i++) {
               log(`loop ${i}`);
               if (memory.mutes[i].id === profile.id) {
                 bot.clearTimeout(memory.mutes[i].time);
 
                 if (muteData.end < bot.exitTime.getTime()) {
-                  log('new mute exp');
+                  log(`new mute exp`);
                   memory.mutes[i].time = bot.setTimeout(() => {
                     bot.util.unmuter(profile.id);
                   }, muteData.end - now);
 
                   log(util.inspect(memory.mutes));
                 } else {
-                  log('new mute exp is too far from now, removing from cache');
+                  log(`new mute exp is too far from now, removing from cache`);
                   memory.mutes.splice(i, 1);
 
                   log(util.inspect(memory.mutes));
@@ -202,77 +202,75 @@ metadata.run = (m, args, data) => {
               .setColor(bot.cfg.embed.okay);
 
             if (isUpdate) {
-              embed.setAuthor('Mute updated.', Assets.getEmoji('ICO_okay').url);
+              embed.setAuthor(`Mute updated.`, Assets.getEmoji(`ICO_okay`).url);
               if (muteData.end === null) {
-                embed.setDescription(`${result.mention} will now be muted until hell freezes over.`, Assets.getEmoji('ICO_okay').url);
+                embed.setDescription(`${result.mention} will now be muted until hell freezes over.`, Assets.getEmoji(`ICO_okay`).url);
               } else {
-                embed.setDescription(`${result.mention} will now be muted for ${timeData.string}.`, Assets.getEmoji('ICO_okay').url);
+                embed.setDescription(`${result.mention} will now be muted for ${timeData.string}.`, Assets.getEmoji(`ICO_okay`).url);
               }
             } else {
-              embed.setAuthor('User muted.', Assets.getEmoji('ICO_okay').url);
+              embed.setAuthor(`User muted.`, Assets.getEmoji(`ICO_okay`).url);
 
               if (muteData.end === null) {
-                embed.setDescription(`${result.mention} has been muted until hell freezes over.`, Assets.getEmoji('ICO_okay').url);
+                embed.setDescription(`${result.mention} has been muted until hell freezes over.`, Assets.getEmoji(`ICO_okay`).url);
               } else {
-                embed.setDescription(`${result.mention} has been muted for ${timeData.string}.`, Assets.getEmoji('ICO_okay').url);
+                embed.setDescription(`${result.mention} has been muted for ${timeData.string}.`, Assets.getEmoji(`ICO_okay`).url);
               }
             }
 
             if (rvt.reasonAdded) {
-              embed.addField('Reason', rvt.reasonText);
+              embed.addField(`Reason`, rvt.reasonText);
             } else {
-              embed.addField('Reason', `No reason provided. \n(Please use the \`${bot.prefix}editrecord\` command.)`);
+              embed.addField(`Reason`, `No reason provided. \n(Please use the \`${bot.prefix}editrecord\` command.)`);
             }
 
-            m.channel.stopTyping(true);
+            bot.send(m, { embed, userDelete: false });
 
-            m.channel.send(embed);//.then(bm => bot.util.afterSend(bm, m.author.id));
-
-            const logEntry = new LogEntry({ channel: 'moderation' })
+            const logEntry = new LogEntry({ channel: `moderation` })
               .setColor(bot.cfg.embed.default)
-              .setIcon(Assets.getEmoji('ICO_mute').url)
-              .addSection('Member Muted', result.target)
-              .addSection('Moderator Responsible', m.author)
-              .addSection('Command Location', m);
+              .setIcon(Assets.getEmoji(`ICO_mute`).url)
+              .addSection(`Member Muted`, result.target)
+              .addSection(`Moderator Responsible`, m.author)
+              .addSection(`Command Location`, m);
 
-            if (result.type !== 'id') {
-              logEntry.setThumbnail(((result.type === 'user') ? result.target : result.target.user).displayAvatarURL({ format: 'png' }));
+            if (result.type !== `id`) {
+              logEntry.setThumbnail(((result.type === `user`) ? result.target : result.target.user).displayAvatarURL({ format: `png` }));
             }
 
             if (rvt.reasonAdded) {
               logEntry.setHeader(`Reason: ${rvt.reasonText}`);
             } else {
-              logEntry.setHeader('No reason provided.');
+              logEntry.setHeader(`No reason provided.`);
             }
 
             if (isUpdate) {
-              logEntry.setTitle('Member Mute Updated', 'Member Mute Update Report');
+              logEntry.setTitle(`Member Mute Updated`, `Member Mute Update Report`);
 
               if (log_data.org_end === null) {
-                logEntry.addSection('Old Expiration Date', 'Never.');
+                logEntry.addSection(`Old Expiration Date`, `Never.`);
               } else {
-                logEntry.addSection('Old Expiration Date', new Date(log_data.org_end));
+                logEntry.addSection(`Old Expiration Date`, new Date(log_data.org_end));
               }
 
               if (muteData.end === null) {
-                logEntry.addSection('New Expiration Date', 'Never.');
+                logEntry.addSection(`New Expiration Date`, `Never.`);
               } else {
-                logEntry.addSection('New Expiration Date', new Date(muteData.end));
+                logEntry.addSection(`New Expiration Date`, new Date(muteData.end));
               }
             } else {
-              logEntry.setTitle('Member Muted', 'Member Mute Report');
+              logEntry.setTitle(`Member Muted`, `Member Mute Report`);
 
               if (muteData.end === null) {
-                logEntry.addSection('Expiration Date', 'Never.');
+                logEntry.addSection(`Expiration Date`, `Never.`);
               } else {
-                logEntry.addSection('Expiration Date', new Date(muteData.end));
+                logEntry.addSection(`Expiration Date`, new Date(muteData.end));
               }
             }
 
             logEntry.submit();
           };
 
-          if (result.type === 'member') {
+          if (result.type === `member`) {
             result.target.roles.add(bot.cfg.roles.muted, `Member muted for ${timeData.string} by ${m.author.tag}`).then(() => {
               result.target.voice.kick(`Member muted for ${timeData.string} by ${m.author.tag}`).then(() => {
                 logInfo();

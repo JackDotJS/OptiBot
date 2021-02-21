@@ -67,7 +67,7 @@ metadata.run = (m, args, data) => {
           const embed = bot.util.err(`Player "${args[0]}" does not exist.`)
             .setDescription('Maybe check your spelling?');
 
-          m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+          bot.send(m, { embed });
         } else {
           getCape(JSON.parse(data));
         }
@@ -206,7 +206,7 @@ metadata.run = (m, args, data) => {
       if (discord) embed.setDescription(`<:okay:642112445997121536> Cape owned by <@${discord}>`);
       if (image.type === 'default') embed.setFooter('This image could not be cropped because the cape texture has an unusual resolution.');
 
-      m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+      bot.send(m, { embed });
     });
   }
 };

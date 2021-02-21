@@ -1,9 +1,9 @@
 const Memory = require(`../core/memory.js`);
 /**
-     * end my fucking life
-     *
-     * @param {String} str text to uwuify
-     */
+ * end my fucking life
+ *
+ * @param {String} str text to uwuify
+ */
 module.exports = (str) => {
   const bot = Memory.core.client;
   const log = bot.log;

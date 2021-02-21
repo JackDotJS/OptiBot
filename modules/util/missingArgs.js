@@ -2,7 +2,6 @@ const Memory = require(`../core/memory.js`);
 const djs = require(`discord.js`);
 const Assets = require(`../core/asset_manager.js`);
 const Command = require(`../core/command.js`);
-const afterSend = require(`./afterSend.js`);
 
 module.exports = (m, metadata) => {
   const bot = Memory.core.client;
@@ -14,5 +13,5 @@ module.exports = (m, metadata) => {
     .setColor(bot.cfg.embed.default)
     .addField(`Usage`, `${md.args} \nFor more information, use \`${bot.prefix}help ${md.name}\``);
 
-  m.channel.send(embed).then(bm => afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };

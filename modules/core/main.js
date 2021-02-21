@@ -43,37 +43,50 @@ const finalInit = () => {
 
   ob.Assets.load().then((time) => {
     const now = new Date();
+    
     const width = 64; //inner width of box
-    function centerText(text, totalWidth) {
-      text = text.substring(0, totalWidth - 8);
 
-      const leftMargin = Math.floor((totalWidth - (text.length)) / 2);
-      const rightMargin = Math.ceil((totalWidth - (text.length)) / 2);
+    function mkbox(text, totalWidth) {
+      const fstr = [];
+      const normalized = [];
 
-      return `│` + (` `.repeat(leftMargin)) + text + (` `.repeat(rightMargin)) + `│`;
+      for (const line of text.split(`\n`)) {
+        if (line.length > (width - 4)) {
+          normalized.push(
+            ...line.match(new RegExp(`.{1,${(width - 4)}}`, `g`))
+          );
+        } else {
+          normalized.push(line);
+        }
+      }
+
+      fstr.push(`╭${`─`.repeat(width)}╮`);
+
+      for (const line of normalized) {
+        const leftMargin = Math.floor((totalWidth - (line.length)) / 2);
+        const rightMargin = Math.ceil((totalWidth - (line.length)) / 2);
+
+        fstr.push(`│${` `.repeat(leftMargin)}${line}${` `.repeat(rightMargin)}│`);
+      }
+
+      fstr.push(`╰${`─`.repeat(width)}╯`);
+
+      return fstr.join(`\n`);
     }
 
-    let splash = ob.memory.assets.splash[~~(Math.random() * ob.memory.assets.splash.length)];
-
-    if (splash.indexOf(`\n`) > -1) {
-      splash = splash.substring(splash.lastIndexOf(`\n`) + 1).substring(0, width);
-    }
+    const splash = bot.cfg.splash[~~(Math.random() * bot.cfg.splash.length)];
 
     log(splash, `debug`);
 
-    log([
-      `╭${`─`.repeat(width)}╮`,
-      centerText(`  `, width),
-      centerText(`OptiBot ${bot.version}`, width),
-      centerText(`(c) Kyle Edwards <wingedasterisk@gmail.com>, 2020`, width),
-      centerText(`  `, width),
-      centerText(splash, width),
-      centerText(`  `, width),
-      centerText(`Finished initialization in ${process.uptime().toFixed(3)} seconds.`, width),
-      centerText(`Assets loaded in ${time / 1000} seconds.`, width),
-      centerText(`  `, width),
-      `╰${`─`.repeat(width)}╯`
-    ].join(`\n`), `info`);
+    log(mkbox([
+      `OptiBot ${bot.version}`,
+      `(c) Kyle Edwards <wingedasterisk@gmail.com>, 2020`,
+      ``,
+      splash,
+      ``,
+      `Finished initialization in ~${process.uptime().toFixed(3)} seconds.`,
+      `Assets loaded in ${time / 1000} seconds.`
+    ].join(`\n`), width), `info`);
 
     new ob.LogEntry({ time: now, console: false })
       .setColor(bot.cfg.embed.default)
@@ -154,12 +167,8 @@ process.on(`message`, (data) => {
           .setAuthor(`Restarted in ${((new Date().getTime() - msg.createdTimestamp) / 1000).toFixed(1)} seconds.`, ob.Assets.getEmoji(`ICO_okay`).url)
           .setColor(bot.cfg.embed.okay);
 
-        msg.edit({ embed: embed }).then(msgF => {
-          bot.util.afterSend(msgF, data.c.author);
-        });
-      }).catch(err => {
-        bot.util.err(err);
-      });
+        msg.edit({ embed: embed });
+      }).catch(bot.util.err);
       break;
     case `BM_CLI_INPUT`:
       // todo

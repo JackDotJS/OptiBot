@@ -21,7 +21,7 @@ metadata.run = m => {
     .setTitle('https://www.java.com')
     .setDescription('Looking for AdoptOpenJDK? **(Advanced users only!)**\nhttps://adoptopenjdk.net/');
 
-  m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 module.exports = new Command(metadata);

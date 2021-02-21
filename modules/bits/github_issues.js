@@ -60,7 +60,7 @@ metadata.executable = (m, member, authlvl) => {
         embed.setFooter(`Other issues were omitted to prevent ratelimiting.`);
       }
 
-      m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+      bot.send(m, { embed });
     }
 
     function next(forward, err) {

@@ -1,6 +1,6 @@
 const path = require(`path`);
 const fs = require(`fs`);
-const database = require(`nedb`);
+const Database = require(`nedb`);
 
 const memory = {
   core: {
@@ -20,7 +20,6 @@ const memory = {
   },
   assets: {
     needReload: [],
-    splash: require(path.resolve(`./cfg/splash.json`)),
     commands: [],
     optibits: [],
     images: {
@@ -29,13 +28,12 @@ const memory = {
     }
   },
   db: {
-    msg: new database({ filename: `./data/messages.db`, autoload: true }), // react-deletion cache
-    profiles: new database({ filename: `./data/profiles.db`, autoload: true }), // optibot profiles
-    stats: new database({ filename: `./data/statistics.db`, autoload: true }), // server statistics
-    bl: new database({ filename: `./data/blacklist.db`, autoload: true }),
-    faq: new database({ filename: `./data/faq.db`, autoload: true }),
-    pol: new database({ filename: `./data/policies.db`, autoload: true }), // policies search keywords
-    rules: new database({ filename: `./data/rules.db`, autoload: true }) // rules search keywords
+    profiles: new Database({ filename: `./data/profiles.db`, autoload: true }), // optibot profiles
+    stats: new Database({ filename: `./data/statistics.db`, autoload: true }), // server statistics
+    bl: new Database({ filename: `./data/blacklist.db`, autoload: true }),
+    faq: new Database({ filename: `./data/faq.db`, autoload: true }),
+    pol: new Database({ filename: `./data/policies.db`, autoload: true }), // policies search keywords
+    rules: new Database({ filename: `./data/rules.db`, autoload: true }) // rules search keywords
   },
   _temp: null, // used to hold boot function when bot cant connect
   sm: {},

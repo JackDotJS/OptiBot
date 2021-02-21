@@ -22,7 +22,7 @@ metadata.run = m => {
     .addField('How does it work?', '*The Thanos Method!™️* is simple. To find conflicting mods, split your mods folder into 2 groups. Remove one group, and test in-game. Keep the group that has the problem, and repeat until no more mods can be removed without the issue disappearing. Thanks to *The Thanos Method!™️*, you can now report the incompatible mods on GitHub!')
     .setFooter('"The Thanos Method!" is not actually trademarked or even remotely considered an official name. \n\nplease don\'t sue me i just thought it was funny');
 
-  m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 module.exports = new Command(metadata);

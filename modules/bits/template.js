@@ -31,7 +31,7 @@ metadata.executable = (m, member, authlvl) => {
     .setAuthor('Example MessageEmbed')
     .setColor(bot.cfg.embed.default);
 
-  m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 module.exports = new OptiBit(metadata);

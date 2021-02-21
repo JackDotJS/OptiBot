@@ -151,7 +151,7 @@ metadata.executable = m => {
   
             embed.setAuthor(`${title} by ${msg.author.tag}`, Assets.getEmoji(`ICO_quote`).url);
   
-            m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+            bot.send(m, { embed });
           }).catch(err => {
             if (err.stack.toLowerCase().indexOf(`unknown message`) === -1) {
               bot.util.err(err);

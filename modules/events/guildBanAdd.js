@@ -12,8 +12,6 @@ module.exports = (bot, guild, user) => {
   const logEntry = new ob.LogEntry({ time: now, channel: `moderation` })
     .preLoad();
 
-  log(util.inspect(guild));
-
   log(util.inspect(user));
 
   log(`ban: got here`);

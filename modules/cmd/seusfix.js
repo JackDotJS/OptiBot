@@ -36,7 +36,7 @@ metadata.run = m => {
       '```'
     ].join('\n'));
 
-  m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 module.exports = new Command(metadata);

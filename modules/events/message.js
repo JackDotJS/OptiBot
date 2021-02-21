@@ -81,7 +81,7 @@ module.exports = (bot, m) => {
             embed.setDescription(`Type \`${bot.prefix}list\` for a list of commands.`);
           }
 
-          m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+          bot.send(m, { embed });
         };
 
         const checkMisuse = (msg, image) => {
@@ -103,9 +103,7 @@ module.exports = (bot, m) => {
             content = m.author;
           }
 
-          m.channel.send(content, { embed: embed }).then(bm => {
-            bot.util.afterSend(bm, m.author.id);
-          });
+          bot.send(m, content, { embed });
         };
 
         if (cmd) {

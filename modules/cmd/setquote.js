@@ -34,7 +34,7 @@ metadata.run = (m, args, data) => {
           .setAuthor('Your profile has been updated', Assets.getEmoji('ICO_okay').url)
           .setColor(bot.cfg.embed.okay);
 
-        m.channel.send(embed).then(msg => { bot.util.afterSend(msg, m.author.id); });
+        bot.send(m, { embed });
       }).catch(err => {
         bot.util.err(err, { m });
       });

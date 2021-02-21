@@ -10,7 +10,6 @@ const metadata = {
   long_desc: `Displays information about OptiBot itself, and how to get started using it.`,
   authlvl: 0,
   flags: [`DM_OPTIONAL`, `NO_TYPER`, `BOT_CHANNEL_ONLY`, `LITE`],
-  perm_nodes: null,
   run: null
 };
 
@@ -48,7 +47,7 @@ metadata.run = (m) => {
       `Session Uptime: ${uptime(process.uptime() * 1000)}`
     ].join(`\n`));
 
-  m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 function uptime(ut) {

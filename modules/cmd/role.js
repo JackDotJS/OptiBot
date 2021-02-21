@@ -65,7 +65,7 @@ metadata.run = (m, args, data) => {
                 .setAuthor('Role added', Assets.getEmoji('ICO_okay').url)
                 .setDescription(`${result.target} has been given the ${match.role} role.`);
 
-              m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+              bot.send(m, { embed });
             });
         }).catch(err => bot.util.err(err, { m }));
       } else {
@@ -85,7 +85,7 @@ metadata.run = (m, args, data) => {
                 .setAuthor('Role removed', Assets.getEmoji('ICO_okay').url)
                 .setDescription(`${result.target} no longer has the ${match.role} role.`);
 
-              m.channel.send({ embed: embed }).then(bm => bot.util.afterSend(bm, m.author.id));
+              bot.send(m, { embed });
             });
 
         }).catch(err => bot.util.err(err, { m }));

@@ -1,15 +1,15 @@
-const path = require('path');
-const { Command, memory } = require('../core/optibot.js');
+const path = require(`path`);
+const { Command, memory } = require(`../core/optibot.js`);
 
 const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: 'MoCkInG tOnE translator.',
-  long_desc: 'Rewrites a message with a mOcKiNg tOnE. In other words, this will pseudo-randomize the capitalization of each letter in the given text.',
-  args: '<text | discord message>',
+  short_desc: `MoCkInG tOnE translator.`,
+  long_desc: `Rewrites a message with a mOcKiNg tOnE. In other words, this will pseudo-randomize the capitalization of each letter in the given text.`,
+  args: `<text | discord message>`,
   authlvl: 1,
-  flags: ['DM_OPTIONAL', 'NO_TYPER'],
+  flags: [`DM_OPTIONAL`, `NO_TYPER`],
   run: null
 };
 
@@ -20,9 +20,9 @@ metadata.run = (m, args, data) => {
   const translate = function (message) {
     if ((Math.random() * 100) < 1) {
       // 1% chance of UwU
-      m.channel.send(bot.util.uwu(message)).then(bm => bot.util.afterSend(bm, m.author.id));
+      bot.send(m, bot.util.owo(message));
     } else {
-      let newStr = '';
+      let newStr = ``;
 
       for (let i = 0; i < message.length; i++) {
         let thisChar = message.charAt(i);
@@ -46,14 +46,14 @@ metadata.run = (m, args, data) => {
         newStr += thisChar;
 
         if (i + 1 === message.length) {
-          m.channel.send(newStr).then(bm => bot.util.afterSend(bm, m.author.id));
+          bot.send(m, newStr);
         }
       }
     }
   };
 
   bot.util.parseTarget(m, 1, args[0], data.member).then(result => {
-    if (result && result.type === 'message') {
+    if (result && result.type === `message`) {
       translate(result.target.cleanContent);
     } else {
       translate(m.cleanContent.substring(`${bot.prefix}${metadata.name} `.length));

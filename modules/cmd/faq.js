@@ -148,7 +148,7 @@ metadata.run = (m, args, data) => {
 
         embed.addField('Additional Information', `[${infotext}Click here to go to the original message link.](${best.message.url})\n\n Check out the <#531622141393764352> channel to find more frequent questions.`);
 
-        m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+        bot.send(m, { embed });
       }
     } else {
       i++;

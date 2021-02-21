@@ -119,7 +119,7 @@ metadata.run = (m, args, data) => {
           embed.addField('Important Notes', `None.`);
         }
 
-        m.channel.send(embed).then(bm => bot.util.afterSend(bm, m.author.id));
+        bot.send(m, { embed });
       }
     });
   }

@@ -18,10 +18,7 @@
     ],
     "quotes": [
       "warn",
-      "single",
-      {
-        "allowTemplateLiterals": true
-      }
+      "backtick"
     ],
     "semi": [
       "warn",
@@ -52,6 +49,7 @@
         "functions": false,
         "classes": false
       }
-    ]
+    ],
+    "no-case-declarations": 0
   }
 }

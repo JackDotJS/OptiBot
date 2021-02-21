@@ -1,5 +1,5 @@
-const Memory = require('../core/OptiBotMemory.js');
-const Profile = require('../core/OptiBotProfile.js');
+const Memory = require(`../core/memory.js`);
+const Profile = require(`../core/profile.js`);
 
 /**
      * @param {String} id Profile ID to search for.
@@ -11,7 +11,7 @@ module.exports = (id, create) => {
   const log = bot.log;
 
   return new Promise((resolve, reject) => {
-    log('get profile: ' + id);
+    log(`get profile: ` + id);
     Memory.db.profiles.find({ id, format: 3 }, (err, docs) => {
       if (err) {
         reject(err);

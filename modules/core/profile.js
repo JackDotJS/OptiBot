@@ -1,8 +1,8 @@
 const util = require('util');
 /* const djs = require('discord.js'); */
 
-const RecordEntry = require('./OptiBotRecordEntry.js');
-const Memory = require('./OptiBotMemory.js');
+const RecordEntry = require('./record_entry.js');
+const memory = require('./memory.js');
 
 module.exports = class OptiBotProfile {
   constructor(raw) {
@@ -28,7 +28,7 @@ module.exports = class OptiBotProfile {
   }
 
   getRecord(id) {
-    const bot = Memory.core.client;
+    const bot = memory.core.client;
     const log = bot.log;
 
     return new Promise((resolve, reject) => {
@@ -83,7 +83,7 @@ module.exports = class OptiBotProfile {
   }
 
   updateRecord(data) {
-    const bot = Memory.core.client;
+    const bot = memory.core.client;
     const log = bot.log;
 
     return new Promise((resolve, reject) => {
@@ -112,7 +112,7 @@ module.exports = class OptiBotProfile {
 
   getPoints() {
     const calculatePoints = require('../util/calculatePoints.js');
-    const bot = Memory.core.client;
+    const bot = memory.core.client;
     /* const log = bot.log;
     const now = new Date().getTime(); */
 

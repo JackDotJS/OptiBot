@@ -2,9 +2,9 @@ const util = require('util');
 const path = require('path');
 const djs = require('discord.js');
 const request = require('request');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -46,7 +46,7 @@ metadata.run = (m, args, data) => {
     if (err.message.match(/invalid or uncached|unknown member|unknown user/i)) {
       checkBan();
     } else {
-      OBUtil.err(err, { m: m });
+      bot.util.err(err, { m: m });
     }
   });
 
@@ -58,14 +58,14 @@ metadata.run = (m, args, data) => {
       if (err.message.match(/unknown ban/i)) {
         final();
       } else {
-        OBUtil.err(err, { m: m });
+        bot.util.err(err, { m: m });
       }
     });
   }
 
   const getDonatorInvite = () => {
     return new Promise((resolve, reject) => {
-      const cached = Memory.donatorInvites[m.author.id];
+      const cached = memory.donatorInvites[m.author.id];
 
       if (cached) {
         donator.guild.fetchInvites().then(invites => {
@@ -81,7 +81,7 @@ metadata.run = (m, args, data) => {
         });
       } else {
         donator.guild.channels.cache.get('686207354315735071').createInvite(inviteSettings).then(invite => {
-          Memory.donatorInvites[m.author.id] = invite;
+          memory.donatorInvites[m.author.id] = invite;
 
           resolve(invite);
         }).catch(err => {
@@ -94,12 +94,12 @@ metadata.run = (m, args, data) => {
   function final() {
     if (data.member.roles.cache.has(bot.cfg.roles.donator)) {
       if (donator.member) {
-        const embed = OBUtil.err('You already have the Donator role!')
+        const embed = bot.util.err('You already have the Donator role!')
           .setDescription('Additionally, you cannot get an invite to the Donator Discord server because you\'re already a member.');
 
         m.channel.send({ embed: embed });
       } else if (donator.ban) {
-        const embed = OBUtil.err('You already have the Donator role!')
+        const embed = bot.util.err('You already have the Donator role!')
           .setDescription('Additionally, you cannot get an invite to the Donator Discord server because you\'ve been banned.');
 
         m.channel.send({ embed: embed });
@@ -123,15 +123,15 @@ metadata.run = (m, args, data) => {
         });
       }
     } else if (!args[0]) {
-      OBUtil.missingArgs(m, metadata);
+      bot.util.missingArgs(m, metadata);
     } else if (args[0].indexOf('@') < 0 && args[0].indexOf('.') < 0) {
-      OBUtil.err('You must specify a valid e-mail address.', { m: m });
+      bot.util.err('You must specify a valid e-mail address.', { m: m });
     } else if (!args[1]) {
-      OBUtil.err('You must specify your donator token.', { m: m });
+      bot.util.err('You must specify your donator token.', { m: m });
     } else {
       request({ url: 'https://optifine.net/validateToken?e=' + encodeURIComponent(args[0]) + '&t=' + encodeURIComponent(args[1]), headers: { 'User-Agent': 'optibot' } }, (err, res, body) => {
         if (err || !res || !body || res.statusCode !== 200) {
-          OBUtil.err(err || new Error('Failed to get a response from the OptiFine API'), { m: m });
+          bot.util.err(err || new Error('Failed to get a response from the OptiFine API'), { m: m });
         } else if (body === 'true') {
           data.member.roles.add([bot.cfg.roles.donator, bot.cfg.roles.donatorColor], 'Donator status verified.').then(() => {
             if (donator.member) {
@@ -171,7 +171,7 @@ metadata.run = (m, args, data) => {
 
           });
         } else {
-          const embed = OBUtil.err('Invalid credentials.')
+          const embed = bot.util.err('Invalid credentials.')
             .setDescription('Make sure that your token and e-mail are the same as what you see on https://optifine.net/login.');
 
           m.channel.send({ embed: embed });

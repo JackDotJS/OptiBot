@@ -1,34 +1,34 @@
-const path = require('path');
-const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const path = require(`path`);
+const djs = require(`discord.js`);
+const { Command, memory, Assets } = require(`../core/optibot.js`);
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['getban', 'searchban'],
-  short_desc: 'Get ban information.',
-  long_desc: 'Gets information on a given user\'s ban. Includes information from records, if available.',
-  args: '<discord member>',
+  aliases: [`getban`, `searchban`],
+  short_desc: `Get ban information.`,
+  long_desc: `Gets information on a given user's ban. Includes information from records, if available.`,
+  args: `<discord member>`,
   authlvl: 2,
-  flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'LITE'],
+  flags: [`DM_OPTIONAL`, `MOD_CHANNEL_ONLY`, `LITE`],
   run: null
 };
 
 metadata.run = (m, args, data) => {
   if (!args[0]) {
-    OBUtil.missingArgs(m, metadata);
+    bot.util.missingArgs(m, metadata);
   } else {
-    OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+    bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
       if (!result) {
-        OBUtil.err('You must specify a valid user.', { m });
-      } else if (result.type === 'notfound') {
-        OBUtil.err('Unable to find a user.', { m });
+        bot.util.err(`You must specify a valid user.`, { m });
+      } else if (result.type === `notfound`) {
+        bot.util.err(`Unable to find a user.`, { m });
       } else if (result.id === m.author.id || result.id === bot.user.id) {
-        OBUtil.err('Nice try.', { m });
+        bot.util.err(`Nice try.`, { m });
       } else {
         bot.mainGuild.fetchBan(result.id).then(ban => {
-          OBUtil.getProfile(result.id, false).then(profile => {
+          bot.util.getProfile(result.id, false).then(profile => {
             let recordEntry = null;
 
             if (profile && profile.edata.record) {
@@ -45,39 +45,39 @@ metadata.run = (m, args, data) => {
 
             const embed = new djs.MessageEmbed()
               .setColor(bot.cfg.embed.default)
-              .setAuthor('Ban Information', Assets.getEmoji('ICO_docs').url)
+              .setAuthor(`Ban Information`, Assets.getEmoji(`ICO_docs`).url)
               .setTitle(result.tag)
               .setDescription([
                 `Mention: ${result.mention}`,
                 `\`\`\`yaml\nID: ${result.id}\`\`\``
-              ].join('\n'))
-              .addField('Ban Reason', ban.reason);
+              ].join(`\n`))
+              .addField(`Ban Reason`, ban.reason);
 
-            if (result.type !== 'id') {
-              embed.setThumbnail(((result.type === 'user') ? result.target : result.target.user).displayAvatarURL({ format: 'png' }));
+            if (result.type !== `id`) {
+              embed.setThumbnail(((result.type === `user`) ? result.target : result.target.user).displayAvatarURL({ format: `png` }));
             }
 
             if (recordEntry != null) {
               if (recordEntry.reason !== ban.reason) {
-                embed.addField('(Record) Ban Reason', recordEntry.reason);
+                embed.addField(`(Record) Ban Reason`, recordEntry.reason);
               }
 
               if (recordEntry.details != null) {
-                embed.addField('(Record) Details', recordEntry.details);
+                embed.addField(`(Record) Details`, recordEntry.details);
               }
             }
 
-            m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
-          }).catch(err => OBUtil.err(err, { m }));
+            bot.send(m, { embed });
+          }).catch(err => bot.util.err(err, { m }));
         }).catch(err => {
           if (err.message.match(/unknown ban/i)) {
-            OBUtil.err(`"${result.tag}" is not currently banned.`, { m });
+            bot.util.err(`"${result.tag}" is not currently banned.`, { m });
           } else {
-            OBUtil.err(err, { m });
+            bot.util.err(err, { m });
           }
         });
       }
-    }).catch(err => OBUtil.err(err, { m }));
+    }).catch(err => bot.util.err(err, { m }));
   }
 };
 

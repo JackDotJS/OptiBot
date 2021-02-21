@@ -1,7 +1,7 @@
 const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
-const Memory = require('./OptiBotMemory.js');
+const memory = require('./memory.js');
 
 /**
  * OptiBot Core: OptiBit Class
@@ -11,7 +11,7 @@ module.exports = class OptiBit {
   /**
      */
   constructor(meta) {
-    const bot = Memory.core.client;
+    const bot = memory.core.client;
     const log = bot.log;
 
     this.metadata = OptiBit.parseMetadata(meta);
@@ -32,7 +32,7 @@ module.exports = class OptiBit {
     validator = null,
     executable = null
   }) {
-    const bot = Memory.core.client;
+    const bot = memory.core.client;
     const log = bot.log;
 
     if (typeof name !== 'string') {

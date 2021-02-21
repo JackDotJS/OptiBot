@@ -1,15 +1,15 @@
-const path = require('path');
-const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const path = require(`path`);
+const djs = require(`discord.js`);
+const { Command, memory, Assets } = require(`../core/optibot.js`);
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: 'Show information about OptiBot itself.',
-  long_desc: 'Displays information about OptiBot itself, and how to get started using it.',
+  short_desc: `Show information about OptiBot itself.`,
+  long_desc: `Displays information about OptiBot itself, and how to get started using it.`,
   authlvl: 0,
-  flags: ['DM_OPTIONAL', 'NO_TYPER', 'BOT_CHANNEL_ONLY', 'LITE'],
+  flags: [`DM_OPTIONAL`, `NO_TYPER`, `BOT_CHANNEL_ONLY`, `LITE`],
   run: null
 };
 
@@ -31,23 +31,23 @@ metadata.run = (m) => {
   const desc = [
     `Developed and maintained by ${developers} out of love for a great community.`,
     ``,
-    `To use any command, simply type a prefix (\` ${bot.prefixes.join(' `, ` ')} \`) immediately followed by the name/alias of the command. Command arguments are separated by spaces, like so: \` ${bot.prefix}command <arg1> <arg2> <arg3> ... \``
+    `To use any command, simply type a prefix (\` ${bot.prefixes.join(` \`, \` `)} \`) immediately followed by the name/alias of the command. Command arguments are separated by spaces, like so: \` ${bot.prefix}command <arg1> <arg2> <arg3> ... \``
   ];
 
   const embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor(`OptiBot`, Assets.getEmoji('ICO_info').url)
-    .setThumbnail(bot.user.displayAvatarURL({ format: 'png', size: 64 }))
-    .setTitle('The official OptiFine Discord server bot. \n\n')
-    .setDescription(desc.join('\n'))
-    .addField('Commands List', `\`\`\`${bot.prefix}list\`\`\``, true)
-    .addField('Command Details', `\`\`\`${bot.prefix}help <command>\`\`\``, true)
+    .setAuthor(`OptiBot`, Assets.getEmoji(`ICO_info`).url)
+    .setThumbnail(bot.user.displayAvatarURL({ format: `png`, size: 64 }))
+    .setTitle(`The official OptiFine Discord server bot. \n\n`)
+    .setDescription(desc.join(`\n`))
+    .addField(`Commands List`, `\`\`\`${bot.prefix}list\`\`\``, true)
+    .addField(`Command Details`, `\`\`\`${bot.prefix}help <command>\`\`\``, true)
     .setFooter([
       `Version: ${bot.version}`,
       `Session Uptime: ${uptime(process.uptime() * 1000)}`
-    ].join('\n'));
+    ].join(`\n`));
 
-  m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 function uptime(ut) {
@@ -57,13 +57,13 @@ function uptime(ut) {
   const days = (ut / (1000 * 60 * 60 * 24)).toFixed(1);
 
   if (seconds < 60) {
-    return seconds + ' Seconds';
+    return seconds + ` Seconds`;
   } else if (minutes < 60) {
-    return minutes + ' Minutes';
+    return minutes + ` Minutes`;
   } else if (hours < 24) {
-    return hours + ' Hours';
+    return hours + ` Hours`;
   } else {
-    return days + ' Days';
+    return days + ` Days`;
   }
 }
 

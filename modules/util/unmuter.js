@@ -1,11 +1,11 @@
-const Memory = require('../core/OptiBotMemory.js');
-const OBerr = require('./err.js');
-const getProfile = require('./getProfile.js');
-const updateProfile = require('./updateProfile.js');
-const Assets = require('../core/OptiBotAssetsManager.js');
-const LogEntry = require('../core/OptiBotLogEntry.js');
-const djs = require('discord.js');
-const util = require('util');
+const Memory = require(`../core/memory.js`);
+const OBerr = require(`./err.js`);
+const getProfile = require(`./getProfile.js`);
+const updateProfile = require(`./updateProfile.js`);
+const Assets = require(`../core/asset_manager.js`);
+const LogEntry = require(`../core/modlog.js`);
+const djs = require(`discord.js`);
+const util = require(`util`);
 
 module.exports = (id) => {
   const bot = Memory.core.client;
@@ -17,20 +17,20 @@ module.exports = (id) => {
       OBerr(err);
 
       let type = null;
-      if (user) type = (user.constructor === djs.User) ? 'user' : 'member';
+      if (user) type = (user.constructor === djs.User) ? `user` : `member`;
 
-      const logEntry = new LogEntry({ channel: 'moderation' })
+      const logEntry = new LogEntry({ channel: `moderation` })
         .setColor(bot.cfg.embed.error)
-        .setIcon(Assets.getEmoji('ICO_error').url)
-        .setTitle('Member Unmute Failure', 'Member Mute Removal Failure Report')
-        .setHeader('An error occurred while trying to unmute a user.')
+        .setIcon(Assets.getEmoji(`ICO_error`).url)
+        .setTitle(`Member Unmute Failure`, `Member Mute Removal Failure Report`)
+        .setHeader(`An error occurred while trying to unmute a user.`)
         .setDescription(`\`\`\`diff\n-${err}\`\`\``);
 
       if (user) {
-        logEntry.addSection('Member', (type === 'user') ? user : user.user)
-          .setThumbnail(((type === 'user') ? user : user.user).displayAvatarURL({ format: 'png' }));
+        logEntry.addSection(`Member`, (type === `user`) ? user : user.user)
+          .setThumbnail(((type === `user`) ? user : user.user).displayAvatarURL({ format: `png` }));
       } else {
-        logEntry.addSection('Member', 'Unknown. (Error occurred before or during fetch operation)');
+        logEntry.addSection(`Member`, `Unknown. (Error occurred before or during fetch operation)`);
       }
 
       logEntry.submit().then(() => {
@@ -57,10 +57,10 @@ module.exports = (id) => {
 
     function removeRole(user) {
       if (user.constructor === djs.User) {
-        removeProfileData(user, 'user');
+        removeProfileData(user, `user`);
       } else {
-        user.roles.remove(bot.cfg.roles.muted, 'Mute period expired.').then(() => {
-          removeProfileData(user, 'member');
+        user.roles.remove(bot.cfg.roles.muted, `Mute period expired.`).then(() => {
+          removeProfileData(user, `member`);
         }).catch(err => {
           log(util.inspect(user));
           errHandler(err, user);
@@ -104,13 +104,13 @@ module.exports = (id) => {
         }
       }
 
-      new LogEntry({ channel: 'moderation' })
+      new LogEntry({ channel: `moderation` })
         .setColor(bot.cfg.embed.default)
-        .setIcon(Assets.getEmoji('ICO_unmute').url)
-        .setTitle('Member Unmuted', 'Member Mute Removal Report')
-        .setHeader('Reason: Mute period expired.')
-        .addSection('Member Unmuted', (type === 'user') ? user : user.user)
-        .setThumbnail(((type === 'user') ? user : user.user).displayAvatarURL({ format: 'png' }))
+        .setIcon(Assets.getEmoji(`ICO_unmute`).url)
+        .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
+        .setHeader(`Reason: Mute period expired.`)
+        .addSection(`Member Unmuted`, (type === `user`) ? user : user.user)
+        .setThumbnail(((type === `user`) ? user : user.user).displayAvatarURL({ format: `png` }))
         .submit().then(() => {
           resolve();
         }).catch(err => {

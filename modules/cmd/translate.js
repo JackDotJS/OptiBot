@@ -3,9 +3,9 @@ const util = require('util');
 const djs = require('discord.js');
 const iso = require('iso-639-1');
 const request = require('request');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -18,12 +18,12 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if (!args[0]) return OBUtil.missingArgs(m, metadata);
+  if (!args[0]) return bot.util.missingArgs(m, metadata);
 
   const translate = function (message, source) {
     request(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(message)}`, (err, res, data) => {
       if (err || !res || !data || res.statusCode !== 200) {
-        OBUtil.err(err || new Error('Failed to get a response from the Google Translate API.'), { m });
+        bot.util.err(err || new Error('Failed to get a response from the Google Translate API.'), { m });
       } else {
         const d = JSON.parse(data);
         log(util.inspect(d));
@@ -35,21 +35,21 @@ metadata.run = (m, args, data) => {
           .addField('Detected Language', iso.getName(d[2]))
           .addField('Message Source', `[Direct URL](${source})`);
 
-        m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+        bot.send(m, { embed });
       }
     });
   };
 
-  OBUtil.parseTarget(m, 1, args[0], data.member).then(result => {
+  bot.util.parseTarget(m, 1, args[0], data.member).then(result => {
     if (result && result.type === 'message') {
       translate(result.target.cleanContent, result.target.url);
     } else if (result && result.type === 'notfound') {
-      OBUtil.err('Could not find a message to translate.', { m });
+      bot.util.err('Could not find a message to translate.', { m });
     } else {
       translate(m.cleanContent.substring(`${bot.prefix}${metadata.name} `.length), m.url);
     }
   }).catch(err => {
-    OBUtil.err(err, { m });
+    bot.util.err(err, { m });
   });
 };
 

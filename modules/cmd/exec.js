@@ -6,9 +6,9 @@ const util = require('util');
 const fileType = require('file-type');
 const request = require('request');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, RecordEntry, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {

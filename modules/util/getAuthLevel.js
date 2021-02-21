@@ -1,5 +1,5 @@
-const djs = require('discord.js');
-const Memory = require('../core/OptiBotMemory.js');
+const djs = require(`discord.js`);
+const Memory = require(`../core/memory.js`);
 
 
 module.exports = (member, ignoreElevated) => {
@@ -19,10 +19,10 @@ module.exports = (member, ignoreElevated) => {
   const log = bot.log;
 
   if (member.constructor === djs.User) {
-    log('expected object type member, got user instead', 'warn');
+    log(`expected object type member, got user instead`, `warn`);
   } else if (member != null && member.constructor === djs.GuildMember) {
     if (member.roles.cache.has(bot.cfg.roles.botdev) && !ignoreElevated) return 5;
-    if (member.permissions.has('ADMINISTRATOR')) return 4;
+    if (member.permissions.has(`ADMINISTRATOR`)) return 4;
     if (member.roles.cache.has(bot.cfg.roles.moderator)) return 3;
     if (member.roles.cache.has(bot.cfg.roles.jrmod)) return 2;
     if (member.roles.cache.has(bot.cfg.roles.retired)) return 1;

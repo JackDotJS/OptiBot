@@ -1,7 +1,6 @@
-const Memory = require('../core/OptiBotMemory.js');
-const djs = require('discord.js');
-const Assets = require('../core/OptiBotAssetsManager.js');
-const afterSend = require('./afterSend.js');
+const Memory = require(`../core/memory.js`);
+const djs = require(`discord.js`);
+const Assets = require(`../core/asset_manager.js`);
 
 /**
      * Creates a simple, pre-formatted error message.
@@ -17,9 +16,9 @@ module.exports = (err, data = {}) => {
     .setColor(bot.cfg.embed.error);
 
   if (err instanceof Error) {
-    log(err.stack, 'error');
+    log(err.stack, `error`);
 
-    const lines = err.stack.split('\n');
+    const lines = err.stack.split(`\n`);
 
     let formatted = [
       err.toString()
@@ -27,7 +26,7 @@ module.exports = (err, data = {}) => {
 
     if (bot.mode < 2) {
       for (const line of lines) {
-        if (line.includes('node_modules')) break;
+        if (line.includes(`node_modules`)) break;
 
         let file = line.match(new RegExp(`${Memory.core.root.drive}\\[^,]+\\d+:\\d+`));
         if (!file) continue;
@@ -39,12 +38,12 @@ module.exports = (err, data = {}) => {
         let evalTrace = line.match(/(?<=<anonymous>):\d+:\d+/);
         if (evalTrace) evalTrace = evalTrace[0];
 
-        let str = '';
+        let str = ``;
 
-        const fileshort = file.replace(Memory.core.root.dir, '~');
+        const fileshort = file.replace(Memory.core.root.dir, `~`);
 
         if (trace && trace !== file) {
-          if (trace === 'eval') {
+          if (trace === `eval`) {
             str += trace + evalTrace;
             formatted.push(str);
             formatted.push(fileshort);
@@ -64,19 +63,17 @@ module.exports = (err, data = {}) => {
       formatted = [...new Set(formatted)];
     }
 
-    embed.setAuthor('Something went wrong.', Assets.getEmoji('ICO_error').url)
+    embed.setAuthor(`Something went wrong.`, Assets.getEmoji(`ICO_error`).url)
       .setTitle(bot.cfg.messages.error[~~(Math.random() * bot.cfg.messages.error.length)])
-      .setDescription(`\`\`\`diff\n- ${formatted.join('\n-   at ')}\`\`\``);
+      .setDescription(`\`\`\`diff\n- ${formatted.join(`\n-   at `)}\`\`\``);
   } else {
-    embed.setAuthor(err, Assets.getEmoji('ICO_error').url);
+    embed.setAuthor(err, Assets.getEmoji(`ICO_error`).url);
   }
 
   // log(util.inspect(data));
 
   if (data.m) {
-    data.m.channel.send({ embed: embed }).then(bm => {
-      afterSend(bm, data.m.author.id);
-    }).catch(e => log(e.stack, 'error'));
+    bot.send(data.m, { embed }).catch(e => log(e.stack, `error`));
   } else {
     return embed;
   }

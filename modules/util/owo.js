@@ -1,58 +1,58 @@
-const Memory = require('../core/OptiBotMemory.js');
+const Memory = require(`../core/memory.js`);
 /**
-     * end my fucking life
-     *
-     * @param {String} str text to uwuify
-     */
+ * end my fucking life
+ *
+ * @param {String} str text to uwuify
+ */
 module.exports = (str) => {
   const bot = Memory.core.client;
   const log = bot.log;
 
-  const words = str.split(' ');
-  let newStr = '';
+  const words = str.split(` `);
+  let newStr = ``;
   /* eslint-disable-next-line no-useless-escape */
   const url = /\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))/gi;
 
   const replacements = [
     {
-      match: ['you'],
-      replace: ['you', 'u', 'yu', 'yew']
+      match: [`you`],
+      replace: [`you`, `u`, `yu`, `yew`]
     },
     {
-      match: ['your'],
-      replace: ['your', 'ur', 'yur', 'yer']
+      match: [`your`],
+      replace: [`your`, `ur`, `yur`, `yer`]
     },
     {
-      match: ['stuff'],
-      replace: ['stuff', 'stuffz', 'stuffs']
+      match: [`stuff`],
+      replace: [`stuff`, `stuffz`, `stuffs`]
     },
     {
-      match: ['lol', 'lel', 'lul', 'xd'],
-      replace: ['lol', 'xD', 'xDDD', 'lol xDD', 'lol XD UwU']
+      match: [`lol`, `lel`, `lul`, `xd`],
+      replace: [`lol`, `xD`, `xDDD`, `lol xDD`, `lol XD UwU`]
     },
     {
-      match: [':)', 'c:', 'ouo', ':3'],
-      replace: [':3', 'UwU', 'OwO']
+      match: [`:)`, `c:`, `ouo`, `:3`],
+      replace: [`:3`, `UwU`, `OwO`]
     },
     {
-      match: [':(', ':C', 'T-T'],
-      replace: ['QwQ']
+      match: [`:(`, `:C`, `T-T`],
+      replace: [`QwQ`]
     },
     {
-      match: ['what', 'wut'],
-      replace: ['what', 'wat']
+      match: [`what`, `wut`],
+      replace: [`what`, `wat`]
     },
     {
-      match: ['over'],
-      replace: ['ova', 'ovuh', 'ovoh']
+      match: [`over`],
+      replace: [`ova`, `ovuh`, `ovoh`]
     },
   ];
 
   const exceptions = [
-    'your',
-    'ur',
-    'or',
-    'over'
+    `your`,
+    `ur`,
+    `or`,
+    `over`
   ];
 
   const exclamation = (match) => {
@@ -64,20 +64,20 @@ module.exports = (str) => {
     const length = ~~(Math.random() * (maxLength - minLength + 1) + minLength);
 
     let weight = 0; // weight of exclamation points. max is 1.0
-    if (match.indexOf('!') > -1 && match.indexOf('?') === -1) {
+    if (match.indexOf(`!`) > -1 && match.indexOf(`?`) === -1) {
       weight = 1;
-    } else if (match.indexOf('?') > -1 && match.indexOf('!') === -1) {
+    } else if (match.indexOf(`?`) > -1 && match.indexOf(`!`) === -1) {
       weight = 0.25;
     } else {
-      weight = (match.split('!').length - 1 / match.length);
+      weight = (match.split(`!`).length - 1 / match.length);
     }
 
-    let ex = '';
+    let ex = ``;
     for (let i = 0; i < length; i++) {
       if (Math.random() > weight) {
-        ex += (Math.random() < (weight / 4)) ? '1' : '!';
+        ex += (Math.random() < (weight / 4)) ? `1` : `!`;
       } else {
-        ex += '?';
+        ex += `?`;
       }
     }
 
@@ -89,13 +89,13 @@ module.exports = (str) => {
 
     if (word.match(url) === null) {
       if (exceptions.indexOf(word) === -1) {
-        word = word.replace(/[rl]/g, 'w')
-          .replace(/[RL]/g, 'W')
-          .replace(/n([aeiou])(?=\S)/g, 'ny$1')
-          .replace(/N([aeiou])(?=\S)/g, 'Ny$1')
-          .replace(/N([AEIOU])(?=\S)/g, 'Ny$1')
-          .replace(/ove/g, 'uv')
-          .replace(/OVE/g, 'UV')
+        word = word.replace(/[rl]/g, `w`)
+          .replace(/[RL]/g, `W`)
+          .replace(/n([aeiou])(?=\S)/g, `ny$1`)
+          .replace(/N([aeiou])(?=\S)/g, `Ny$1`)
+          .replace(/N([AEIOU])(?=\S)/g, `Ny$1`)
+          .replace(/ove/g, `uv`)
+          .replace(/OVE/g, `UV`)
           .replace(/[!?]+$/g, exclamation);
       }
 
@@ -109,11 +109,11 @@ module.exports = (str) => {
       }
 
       log(word);
-      newStr += word + ' ';
+      newStr += word + ` `;
     }
   }
 
-  const face = ['OwO', 'UwU', '', ''];
+  const face = [`OwO`, `UwU`, ``, ``];
 
   return `${newStr}${face[~~(Math.random() * face.length)]}`;
 };

@@ -2,9 +2,9 @@ const path = require('path');
 const djs = require('discord.js');
 const sim = require('string-similarity');
 
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -18,18 +18,18 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if (!args[0]) return OBUtil.missingArgs(m, metadata);
+  if (!args[0]) return bot.util.missingArgs(m, metadata);
 
   let query = m.cleanContent.substring(`${bot.prefix}${metadata.name} `.length);
 
-  OBUtil.parseTarget(m, 1, args[0], data.member).then(result => {
+  bot.util.parseTarget(m, 1, args[0], data.member).then(result => {
     if (result && result.type === 'message') {
       query = result.target.cleanContent;
     }
 
     getMessages();
   }).catch(err => {
-    OBUtil.err(err, { m });
+    bot.util.err(err, { m });
   });
 
 
@@ -105,7 +105,7 @@ metadata.run = (m, args, data) => {
       ratings.sort((a, b) => a.r - b.r);
       log(ratings);
       if (best.r < 0.05 || best.message === undefined || best.message === null) {
-        OBUtil.err('Could not find an answer to that question', { m });
+        bot.util.err('Could not find an answer to that question', { m });
       } else {
         const embed = new djs.MessageEmbed()
           .setColor(bot.cfg.embed.default)
@@ -148,7 +148,7 @@ metadata.run = (m, args, data) => {
 
         embed.addField('Additional Information', `[${infotext}Click here to go to the original message link.](${best.message.url})\n\n Check out the <#531622141393764352> channel to find more frequent questions.`);
 
-        m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+        bot.send(m, { embed });
       }
     } else {
       i++;

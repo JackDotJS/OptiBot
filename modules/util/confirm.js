@@ -1,4 +1,4 @@
-const Memory = require('../core/OptiBotMemory.js');
+const Memory = require(`../core/memory.js`);
 
 module.exports = (m, bm) => {
   const bot = Memory.core.client;
@@ -10,8 +10,8 @@ module.exports = (m, bm) => {
     const filter = (r, user) => [bot.cfg.emoji.confirm, bot.cfg.emoji.cancel].indexOf(r.emoji.id) > -1 && user.id === m.author.id;
     const df = bm.createReactionCollector(filter, { time: (1000 * 60 * 5) });
 
-    df.on('collect', r => {
-      df.stop('done');
+    df.on(`collect`, r => {
+      df.stop(`done`);
 
       if (r.emoji.id === bot.cfg.emoji.confirm) {
         resolve(1);
@@ -20,15 +20,15 @@ module.exports = (m, bm) => {
       }
     });
 
-    df.on('end', (c, reason) => {
+    df.on(`end`, (c, reason) => {
       if (!bm.deleted) {
         bm.reactions.removeAll().then(() => {
-          if (reason === 'done') {
+          if (reason === `done`) {
             return;
-          } else if (reason === 'time') {
+          } else if (reason === `time`) {
             resolve(-1);
           } else {
-            log(reason, 'error');
+            log(reason, `error`);
           }
         });
       }

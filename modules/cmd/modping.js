@@ -1,9 +1,9 @@
 const path = require('path');
 const djs = require('discord.js');
 const util = require('util');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -165,15 +165,15 @@ metadata.run = m => {
     ].join('\n');
   }
 
-  if (Memory.mpc.includes(m.channel.id)) {
-    return OBUtil.err(`Moderators have already been recently called in this channel. Please wait a few moments before trying again.`, { m });
+  if (memory.mpc.includes(m.channel.id)) {
+    return bot.util.err(`Moderators have already been recently called in this channel. Please wait a few moments before trying again.`, { m });
   } else {
-    Memory.mpc.push(m.channel.id);
+    memory.mpc.push(m.channel.id);
 
     bot.setTimeout(() => {
       // function to automatically remove in 10 minutes incase something goes wrong
-      if (Memory.mpc.indexOf(m.channel.id) > -1) {
-        Memory.mpc.splice(Memory.mpc.indexOf(m.channel.id), 1);
+      if (memory.mpc.indexOf(m.channel.id) > -1) {
+        memory.mpc.splice(memory.mpc.indexOf(m.channel.id), 1);
       }
 
       if (msgListener != null && !msgListener.ended) msgListener.stop();
@@ -202,7 +202,7 @@ metadata.run = m => {
 
     response.edit(response.content, { embed: finalEmbed });
 
-    Memory.mpc.splice(Memory.mpc.indexOf(m.channel.id), 1);
+    memory.mpc.splice(memory.mpc.indexOf(m.channel.id), 1);
     
     if (!response.deleted) {
       response.reactions.removeAll();
@@ -261,7 +261,7 @@ metadata.run = m => {
 
         response.react(bot.emojis.cache.get(bot.cfg.emoji.resolve))
           .catch(err => {
-            OBUtil.err(err, { m });
+            bot.util.err(err, { m });
           });
 
         // === REACTION FILTER ===

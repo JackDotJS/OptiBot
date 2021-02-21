@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -24,7 +24,7 @@ metadata.run = m => {
     .addField('Direct Download', 'https://johann.loefflmann.net/downloads/jarfix.exe')
     .setFooter(`Jarfix Copyright © 2002-${new Date().getUTCFullYear()} by Dipl.-Inf. (FH) Johann Nepomuk Löfflmann`);
 
-  m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 module.exports = new Command(metadata);

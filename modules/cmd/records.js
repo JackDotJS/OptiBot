@@ -2,9 +2,9 @@ const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
 const timeago = require('timeago.js');
-const { Command, OBUtil, Memory, RecordEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, RecordEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -24,7 +24,7 @@ const metadata = {
 
 metadata.run = (m, args, data) => {
   if (!args[0]) {
-    OBUtil.missingArgs(m, metadata);
+    bot.util.missingArgs(m, metadata);
   } else {
     let selectPage = 1;
     const caseid = (args[1]) ? parseInt(args[1], 36) : 0;
@@ -40,15 +40,15 @@ metadata.run = (m, args, data) => {
       selectPage = parseInt(args[2]);
     }
 
-    OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+    bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
       if (!result) {
-        OBUtil.err('You must specify a valid user.', { m });
+        bot.util.err('You must specify a valid user.', { m });
       } else if (result.type === 'notfound') {
-        OBUtil.err('Unable to find a user.', { m });
+        bot.util.err('Unable to find a user.', { m });
       } else if (result.id === bot.user.id) {
-        OBUtil.err('Nice try.', { m });
+        bot.util.err('Nice try.', { m });
       } else {
-        OBUtil.getProfile(result.id, false).then(profile => {
+        bot.util.getProfile(result.id, false).then(profile => {
           const footer = [
             'Note that existing violations before October 30, 2019 will not show here.',
             'All records before August 5, 2020 may be missing information.'
@@ -76,7 +76,7 @@ metadata.run = (m, args, data) => {
               .addField('Record Statistics', 'This user has no known record.')
               .setFooter(footer.join('\n'));
 
-            m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+            bot.send(m, { embed });
           } else if (!isNaN(caseid) && caseid > 1420070400000 && caseid < new Date().getTime()) {
             // INDIVIDUAL ENTRY
 
@@ -84,7 +84,7 @@ metadata.run = (m, args, data) => {
 
             profile.getRecord(caseid).then(entry => {
               if (!entry) {
-                OBUtil.err(`Unable to find case ID "${caseid}".`, { m });
+                bot.util.err(`Unable to find case ID "${caseid}".`, { m });
               } else {
                 log(util.inspect(entry));
 
@@ -140,7 +140,7 @@ metadata.run = (m, args, data) => {
 
                 embed.setFooter(footer.join('\n'));
 
-                m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+                bot.send(m, { embed });
               }
             });
           } else {
@@ -207,7 +207,7 @@ metadata.run = (m, args, data) => {
                       value: stats.join(`${Assets.getEmoji('ICO_space')}\n`) + `${Assets.getEmoji('ICO_space')}`
                     });
 
-                  m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+                  bot.send(m, { embed });
                 } else {
                   i++;
                   addEntry();
@@ -269,9 +269,9 @@ metadata.run = (m, args, data) => {
               next();
             })();
           }
-        }).catch(err => OBUtil.err(err, { m }));
+        }).catch(err => bot.util.err(err, { m }));
       }
-    }).catch(err => OBUtil.err(err, { m }));
+    }).catch(err => bot.util.err(err, { m }));
   }
 };
 

@@ -1,7 +1,7 @@
 const djs = require('discord.js');
-const { OptiBit, Memory } = require('../core/OptiBot.js');
+const { OptiBit, memory } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: 'Direct Message Default Response',

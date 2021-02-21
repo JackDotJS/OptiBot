@@ -1,75 +1,75 @@
-const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const timeago = require('timeago.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const path = require(`path`);
+const util = require(`util`);
+const djs = require(`discord.js`);
+const timeago = require(`timeago.js`);
+const { Command, memory, Assets } = require(`../core/optibot.js`);
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['whois'],
-  short_desc: 'Show a user\'s OptiBot profile.',
-  long_desc: 'Displays detailed information about a given user. Almost all information provided by Discord\'s API.',
-  args: '[discord member]',
+  aliases: [`whois`],
+  short_desc: `Show a user's OptiBot profile.`,
+  long_desc: `Displays detailed information about a given user. Almost all information provided by Discord's API.`,
+  args: `[discord member]`,
   authlvl: -1,
-  flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY', 'LITE'],
+  flags: [`DM_OPTIONAL`, `BOT_CHANNEL_ONLY`, `LITE`],
   run: null
 };
 
 metadata.run = (m, args, data) => {
-  OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+  bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
     log(util.inspect(result));
     if (!result) {
-      OBUtil.err('You must specify a valid user @mention, ID, or target shortcut (^)', { m });
-    } else if (result.type === 'notfound') {
-      const embed = OBUtil.err('Unable to find a user.')
-        .setDescription('If this user ever existed, it seems any information about them has been lost to time.');
+      bot.util.err(`You must specify a valid user @mention, ID, or target shortcut (^)`, { m });
+    } else if (result.type === `notfound`) {
+      const embed = bot.util.err(`Unable to find a user.`)
+        .setDescription(`If this user ever existed, it seems any information about them has been lost to time.`);
 
-      m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
-    } else if (result.type === 'id') {
-      OBUtil.getProfile(result.target, false).then(profile => {
+      bot.send(m, { embed });
+    } else if (result.type === `id`) {
+      bot.util.getProfile(result.target, false).then(profile => {
         if (!profile) {
-          const embed = OBUtil.err('Unable to find a user.')
-            .setDescription('If this user ever existed, it seems any information about them has been lost to time.');
+          const embed = bot.util.err(`Unable to find a user.`)
+            .setDescription(`If this user ever existed, it seems any information about them has been lost to time.`);
 
-          m.channel.send({ embed: embed }).then(bm => OBUtil.afterSend(bm, m.author.id));
+          bot.send(m, { embed });
         } else {
-          m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => OBUtil.afterSend(bm, m.author.id));
+          bot.send(m, `\`\`\`javascript\n${util.inspect(profile)}\`\`\``);
         }
-      }).catch(err => OBUtil.err(err, { m }));
+      }).catch(err => bot.util.err(err, { m }));
     } else {
-      OBUtil.getProfile(result.id, false).then(profile => {
-        if (args[1] && args[1].toLowerCase() === 'raw' && data.authlvl > 0) {
-          m.channel.send(`\`\`\`javascript\n${util.inspect(profile)}\`\`\``).then(bm => OBUtil.afterSend(bm, m.author.id));
+      bot.util.getProfile(result.id, false).then(profile => {
+        if (args[1] && args[1].toLowerCase() === `raw` && data.authlvl > 0) {
+          bot.send(m, `\`\`\`javascript\n${util.inspect(profile)}\`\`\``);
         } else {
           let mem = null;
           let user = null;
 
-          if (result.type === 'member') {
+          if (result.type === `member`) {
             mem = result.target;
             user = result.target.user;
-          } else if (result.type === 'user') {
+          } else if (result.type === `user`) {
             user = result.target;
           }
 
           const embed = new djs.MessageEmbed()
-            .setAuthor((user.id === m.author.id) ? 'You are...' : 'That is...', Assets.getEmoji('ICO_user').url)
+            .setAuthor((user.id === m.author.id) ? `You are...` : `That is...`, Assets.getEmoji(`ICO_user`).url)
             .setColor(bot.cfg.embed.default)
-            .setTitle(`${user.tag} ${(profile && profile.ndata.emoji) ? profile.ndata.emoji : ''}`) // todo: add profile emoji command. (#166)
-            .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 64, format: 'png' }));
+            .setTitle(`${user.tag} ${(profile && profile.ndata.emoji) ? profile.ndata.emoji : ``}`) // todo: add profile emoji command. (#166)
+            .setThumbnail(user.displayAvatarURL({ dynamic: true, size: 64, format: `png` }));
 
           const presence = [];
 
-          if (user.presence.status === 'online') {
-            presence.push('**Status:** \\🟢 Online');
-          } else if (user.presence.status === 'idle') {
-            presence.push('**Status:** \\🟡 Away');
-          } else if (user.presence.status === 'dnd') {
-            presence.push('**Status:** \\🔴 Do Not Disturb');
+          if (user.presence.status === `online`) {
+            presence.push(`**Status:** \\🟢 Online`);
+          } else if (user.presence.status === `idle`) {
+            presence.push(`**Status:** \\🟡 Away`);
+          } else if (user.presence.status === `dnd`) {
+            presence.push(`**Status:** \\🔴 Do Not Disturb`);
           } else {
-            presence.push('**Status:** \\⚫ Offline/Invisible');
+            presence.push(`**Status:** \\⚫ Offline/Invisible`);
           }
 
           if (user.presence.clientStatus !== null) {
@@ -77,15 +77,15 @@ metadata.run = (m, args, data) => {
             const client = user.presence.clientStatus;
 
             if (client.desktop) {
-              msg.push('desktop');
+              msg.push(`desktop`);
             }
 
             if (client.mobile) {
-              msg.push('mobile');
+              msg.push(`mobile`);
             }
 
             if (client.web) {
-              msg.push('a web browser');
+              msg.push(`a web browser`);
             }
 
             if (msg.length === 1) {
@@ -100,9 +100,9 @@ metadata.run = (m, args, data) => {
           if (user.presence.activities.length > 0 && user.presence.activities[0].type !== null) {
             const status = user.presence.activities[0];
 
-            if (status.type === 'CUSTOM_STATUS') {
-              let emoji = '';
-              let text = '';
+            if (status.type === `CUSTOM_STATUS`) {
+              let emoji = ``;
+              let text = ``;
 
               if (status.emoji) {
                 if (!status.emoji.id) {
@@ -120,14 +120,14 @@ metadata.run = (m, args, data) => {
                 presence.push(`**Custom Status:** ${emoji}${text}`);
               }
             } else {
-              let doing = '**Activity:** Playing';
+              let doing = `**Activity:** Playing`;
 
-              if (status.type === 'STREAMING') {
-                doing = '**Activity:** Streaming';
-              } else if (status.type === 'LISTENING') {
-                doing = '**Activity:** Listening to';
-              } else if (status.type === 'WATCHING') {
-                doing = '**Activity:** Watching';
+              if (status.type === `STREAMING`) {
+                doing = `**Activity:** Streaming`;
+              } else if (status.type === `LISTENING`) {
+                doing = `**Activity:** Listening to`;
+              } else if (status.type === `WATCHING`) {
+                doing = `**Activity:** Watching`;
               }
 
               if (status.url) {
@@ -138,14 +138,14 @@ metadata.run = (m, args, data) => {
             }
           }
 
-          embed.setDescription(`${(profile && profile.ndata.quote) ? `> ${profile.ndata.quote}\n\n` : ''}${presence.join('\n')}`);
+          embed.setDescription(`${(profile && profile.ndata.quote) ? `> ${profile.ndata.quote}\n\n` : ``}${presence.join(`\n`)}`);
 
           const identity = [
             `Mention: ${user.toString()}`,
             `User ID: \`\`\`yaml\n${user.id}\`\`\``
-          ].join('\n');
+          ].join(`\n`);
 
-          embed.addField('Identification', identity);
+          embed.addField(`Identification`, identity);
 
           if (mem != null) {
             const roles = [];
@@ -154,7 +154,7 @@ metadata.run = (m, args, data) => {
             rolec.reverse().forEach((role) => {
               log(role.rawPosition);
               if (role.id !== mem.guild.id) {
-                if (m.channel.type === 'dm' || m.guild.id !== bot.cfg.guilds.optifine) {
+                if (m.channel.type === `dm` || m.guild.id !== bot.cfg.guilds.optifine) {
                   roles.push(`\`@${role.name}\``);
                 } else {
                   roles.push(role.toString());
@@ -163,35 +163,35 @@ metadata.run = (m, args, data) => {
             });
 
             if (roles.length > 0) {
-              embed.addField('Server Roles', roles.join(' '));
+              embed.addField(`Server Roles`, roles.join(` `));
             }
 
             if (mem.joinedAt !== null) {
-              embed.addField('Server Join Date', `${mem.joinedAt.toUTCString()}\n(${timeago.format(mem.joinedAt)})`, true);
+              embed.addField(`Server Join Date`, `${mem.joinedAt.toUTCString()}\n(${timeago.format(mem.joinedAt)})`, true);
             }
           }
 
-          embed.addField('Account Creation Date', `${user.createdAt.toUTCString()}\n(${timeago.format(user.createdAt)})`, true);
+          embed.addField(`Account Creation Date`, `${user.createdAt.toUTCString()}\n(${timeago.format(user.createdAt)})`, true);
 
           if (profile) {
             if (profile.edata.mute) {
               if (profile.edata.mute.end === null) {
-                embed.addField('Mute Expiration', 'Never. (Permanent Mute)', true);
+                embed.addField(`Mute Expiration`, `Never. (Permanent Mute)`, true);
               } else {
-                embed.addField('Mute Expiration', `${new Date(profile.edata.mute.end).toUTCString()}\n(${timeago.format(profile.edata.mute.end)})`, true);
+                embed.addField(`Mute Expiration`, `${new Date(profile.edata.mute.end).toUTCString()}\n(${timeago.format(profile.edata.mute.end)})`, true);
               }
             }
           }
 
-          if (result.type === 'user') {
-            embed.setFooter('This user may not be a member of this server.');
+          if (result.type === `user`) {
+            embed.setFooter(`This user may not be a member of this server.`);
           }
 
-          m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
+          bot.send(m, { embed });
         }
-      }).catch(err => OBUtil.err(err, { m }));
+      }).catch(err => bot.util.err(err, { m }));
     }
-  }).catch(err => OBUtil.err(err, { m }));
+  }).catch(err => bot.util.err(err, { m }));
 };
 
 module.exports = new Command(metadata);

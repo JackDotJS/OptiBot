@@ -1,8 +1,8 @@
 const path = require('path');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, Assets } = require('../core/OptiBot.js');
+const { Command, memory, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
@@ -14,12 +14,12 @@ const metadata = {
 };
 
 metadata.run = (m, args, data) => {
-  if (!args[0]) return OBUtil.missingArgs(m, metadata);
+  if (!args[0]) return bot.util.missingArgs(m, metadata);
 
   if (m.content.substring(`${bot.prefix}${data.input.cmd} `.length).length > 256) {
-    OBUtil.err('Message cannot exceed 256 characters in length.', { m });
+    bot.util.err('Message cannot exceed 256 characters in length.', { m });
   } else {
-    OBUtil.getProfile(m.author.id, true).then(profile => {
+    bot.util.getProfile(m.author.id, true).then(profile => {
       const lines = m.content.substring(`${bot.prefix}${data.input.cmd} `.length).replace(/\>/g, '\\>').split('\n'); // eslint-disable-line no-useless-escape
       const quote = [];
 
@@ -29,17 +29,17 @@ metadata.run = (m, args, data) => {
 
       profile.ndata.quote = djs.Util.escapeCodeBlock(quote.join(' '));
 
-      OBUtil.updateProfile(profile).then(() => {
+      bot.util.updateProfile(profile).then(() => {
         const embed = new djs.MessageEmbed()
           .setAuthor('Your profile has been updated', Assets.getEmoji('ICO_okay').url)
           .setColor(bot.cfg.embed.okay);
 
-        m.channel.send(embed).then(msg => { OBUtil.afterSend(msg, m.author.id); });
+        bot.send(m, { embed });
       }).catch(err => {
-        OBUtil.err(err, { m });
+        bot.util.err(err, { m });
       });
     }).catch(err => {
-      OBUtil.err(err, { m });
+      bot.util.err(err, { m });
     });
   }
 };

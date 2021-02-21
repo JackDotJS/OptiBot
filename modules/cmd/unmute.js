@@ -1,38 +1,38 @@
 /* eslint-disable no-inner-declarations */
-const path = require('path');
-const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const path = require(`path`);
+const djs = require(`discord.js`);
+const { Command, memory, RecordEntry, LogEntry, Assets } = require(`../core/optibot.js`);
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['ungag', 'unsilence'],
-  short_desc: 'Unmute a user.',
-  long_desc: 'Allows a user to speak once again, if they\'ve already been muted.',
-  args: '<discord member> [reason]',
+  aliases: [`ungag`, `unsilence`],
+  short_desc: `Unmute a user.`,
+  long_desc: `Allows a user to speak once again, if they've already been muted.`,
+  args: `<discord member> [reason]`,
   authlvl: 2,
-  flags: ['NO_DM', 'LITE'],
+  flags: [`NO_DM`, `LITE`],
   run: null
 };
 
 metadata.run = (m, args, data) => {
   if (!args[0]) {
-    OBUtil.missingArgs(m, metadata);
+    bot.util.missingArgs(m, metadata);
   } else {
-    OBUtil.parseTarget(m, 0, args[0], data.member).then((result) => {
+    bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
       if (!result) {
-        OBUtil.err('You must specify a valid user to unmute.', { m });
-      } else if (result.type === 'notfound' || result.type === 'id') {
-        OBUtil.err('Unable to find a user.', { m });
+        bot.util.err(`You must specify a valid user to unmute.`, { m });
+      } else if (result.type === `notfound` || result.type === `id`) {
+        bot.util.err(`Unable to find a user.`, { m });
       } else if (result.id === m.author.id) {
-        OBUtil.err('If you\'re muted, how are you even using this command?', { m });
+        bot.util.err(`If you're muted, how are you even using this command?`, { m });
       } else if (result.id === bot.user.id) {
-        OBUtil.err('I\'m a bot. Why would I even be muted?', { m });
-      } else if (OBUtil.getAuthlvl(result.target) > 0) {
-        OBUtil.err('That user is too powerful to be muted in the first place.', { m });
-      } else if (result.type === 'member' && !result.target.roles.cache.has(bot.cfg.roles.muted)) {
-        OBUtil.err('That user has not been muted.', { m });
+        bot.util.err(`I'm a bot. Why would I even be muted?`, { m });
+      } else if (bot.util.getAuthlvl(result.target) > 0) {
+        bot.util.err(`That user is too powerful to be muted in the first place.`, { m });
+      } else if (result.type === `member` && !result.target.roles.cache.has(bot.cfg.roles.muted)) {
+        bot.util.err(`That user has not been muted.`, { m });
       } else {
         s2(result);
       }
@@ -40,7 +40,7 @@ metadata.run = (m, args, data) => {
 
     function s2(result) {
       const now = new Date().getTime();
-      OBUtil.getProfile(result.id, true).then(profile => {
+      bot.util.getProfile(result.id, true).then(profile => {
         const reason = m.content.substring(`${bot.prefix}${data.input.cmd} ${args[0]} `.length);
 
         if (!profile.edata.record) profile.edata.record = [];
@@ -48,9 +48,9 @@ metadata.run = (m, args, data) => {
         const entry = new RecordEntry()
           .setMod(m.author.id)
           .setURL(m.url)
-          .setAction('mute')
-          .setActionType('remove')
-          .setReason(m.author, (reason.length > 0) ? reason : 'No reason provided.');
+          .setAction(`mute`)
+          .setActionType(`remove`)
+          .setReason(m.author, (reason.length > 0) ? reason : `No reason provided.`);
 
         if (profile.edata.mute) {
           const remaining = profile.edata.mute.end - now;
@@ -60,11 +60,11 @@ metadata.run = (m, args, data) => {
           let time_remaining = null;
 
           if (minutes < 60) {
-            time_remaining = `${minutes} minute${(minutes !== 1) ? 's' : ''}`;
+            time_remaining = `${minutes} minute${(minutes !== 1) ? `s` : ``}`;
           } else if (hours < 24) {
-            time_remaining = `${hours} hour${(hours !== 1) ? 's' : ''}`;
+            time_remaining = `${hours} hour${(hours !== 1) ? `s` : ``}`;
           } else {
-            time_remaining = `${days} day${(days !== 1) ? 's' : ''}`;
+            time_remaining = `${days} day${(days !== 1) ? `s` : ``}`;
           }
 
           entry.setParent(m.author, profile.edata.mute.caseID);
@@ -78,53 +78,52 @@ metadata.run = (m, args, data) => {
 
         profile.edata.record.push(entry.raw);
 
-        for (const i in Memory.mutes) {
-          if (Memory.mutes[i].id === profile.id) {
-            bot.clearTimeout(Memory.mutes[i].time);
-            Memory.mutes.splice(i, 1);
+        for (const i in memory.mutes) {
+          if (memory.mutes[i].id === profile.id) {
+            bot.clearTimeout(memory.mutes[i].time);
+            memory.mutes.splice(i, 1);
           }
         }
 
-        OBUtil.updateProfile(profile).then(() => {
+        bot.util.updateProfile(profile).then(() => {
           const logInfo = () => {
             const embed = new djs.MessageEmbed()
               .setColor(bot.cfg.embed.okay)
-              .setAuthor('User unmuted.', Assets.getEmoji('ICO_okay').url)
+              .setAuthor(`User unmuted.`, Assets.getEmoji(`ICO_okay`).url)
               .setDescription(`${result.mention} has been unmuted.`);
 
             if (reason.length > 0) {
-              embed.addField('Reason', reason);
+              embed.addField(`Reason`, reason);
             } else {
-              embed.addField('Reason', `No reason provided. \n(Please use the \`${bot.prefix}editrecord\` command.)`);
+              embed.addField(`Reason`, `No reason provided. \n(Please use the \`${bot.prefix}editrecord\` command.)`);
             }
+            
+            bot.send(m, { embed });
 
-            m.channel.stopTyping(true);
-            m.channel.send(embed);//.then(bm => OBUtil.afterSend(bm, m.author.id));
-
-            const logEntry = new LogEntry({ channel: 'moderation' })
+            const logEntry = new LogEntry({ channel: `moderation` })
               .setColor(bot.cfg.embed.default)
-              .setIcon(Assets.getEmoji('ICO_unmute').url)
-              .setTitle('Member Unmuted', 'Member Mute Removal Report')
-              .setHeader((reason.length > 0) ? 'Reason: ' + reason : 'No reason provided.')
-              .addSection('Member Unmuted', result.target)
-              .addSection('Moderator Responsible', m.author)
-              .addSection('Command Location', m);
+              .setIcon(Assets.getEmoji(`ICO_unmute`).url)
+              .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
+              .setHeader((reason.length > 0) ? `Reason: ` + reason : `No reason provided.`)
+              .addSection(`Member Unmuted`, result.target)
+              .addSection(`Moderator Responsible`, m.author)
+              .addSection(`Command Location`, m);
 
-            if (result.type !== 'id') {
-              logEntry.setThumbnail(((result.type === 'user') ? result.target : result.target.user).displayAvatarURL({ format: 'png' }));
+            if (result.type !== `id`) {
+              logEntry.setThumbnail(((result.type === `user`) ? result.target : result.target.user).displayAvatarURL({ format: `png` }));
             }
 
             logEntry.submit();
           };
 
-          if (result.type === 'member') {
+          if (result.type === `member`) {
             result.target.roles.remove(bot.cfg.roles.muted, `Member unmuted by ${m.author.tag}`).then(() => {
               logInfo();
-            }).catch(err => OBUtil.err(err, { m }));
+            }).catch(err => bot.util.err(err, { m }));
           } else {
             logInfo();
           }
-        }).catch(err => OBUtil.err(err, { m }));
+        }).catch(err => bot.util.err(err, { m }));
       });
     }
   }

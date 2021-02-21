@@ -3,9 +3,9 @@
 const path = require('path');
 const util = require('util');
 const djs = require('discord.js');
-const { Command, OBUtil, Memory, RecordEntry, LogEntry, Assets } = require('../core/OptiBot.js');
+const { Command, memory, RecordEntry, LogEntry, Assets } = require('../core/optibot.js');
 
-const bot = Memory.core.client;
+const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
@@ -25,7 +25,7 @@ metadata.run = (m, args, data) => {
     .setAuthor('Example MessageEmbed')
     .setColor(bot.cfg.embed.default);
 
-  m.channel.send({embed: embed}).then(bm => OBUtil.afterSend(bm, m.author.id));
+  bot.send(m, { embed });
 };
 
 module.exports = new Command(metadata);

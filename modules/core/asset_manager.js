@@ -39,25 +39,6 @@ module.exports = class OptiBotAssetsManager {
       let done = 0;
       let skipped = 0;
       let skippedAsync = 0;
-      
-      stages.push({
-        name: `OptiBot Events Loader`,
-        tiers: [true, false, false],
-        load: () => {
-          return new Promise((resolve, reject) => {
-            const events = fs.readdirSync(`./modules/events/`);
-
-            for (const file of events) {
-              const name = file.split(`.`)[0];
-              const event = require(`../events/${file}`);
-              bot.on(name, event.bind(null, bot));
-              log(`Loaded event handler: ${name}`);
-            }
-
-            resolve();
-          });
-        }
-      });
 
       stages.push({
         name: `OptiFine GuildMembers Pre-cacher`,
@@ -209,7 +190,26 @@ module.exports = class OptiBotAssetsManager {
         }
       });
 
-      stages.push({
+      stagesAsync.push({
+        name: `OptiBot Events Loader`,
+        tiers: [true, false, false],
+        load: () => {
+          return new Promise((resolve, reject) => {
+            const events = fs.readdirSync(`./modules/events/`);
+
+            for (const file of events) {
+              const name = file.split(`.`)[0];
+              const event = require(`../events/${file}`);
+              bot.on(name, event.bind(null, bot));
+              log(`Loaded event handler: ${name}`);
+            }
+
+            resolve();
+          });
+        }
+      });
+
+      stagesAsync.push({
         name: `Audit Log Pre-cacher`,
         tiers: [true, false, false],
         load: () => {

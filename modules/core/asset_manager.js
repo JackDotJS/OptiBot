@@ -607,17 +607,6 @@ module.exports = class OptiBotAssetsManager {
     });
   }
 
-  static registerCommand(cmd) {
-    return new Promise((resolve, reject) => {
-      if (cmd.constructor === Command) {
-        memory.assets.commands.push(cmd);
-        resolve(cmd);
-      } else {
-        reject(new Error(`Attempted to register non-command object as a command.`));
-      }
-    });
-  }
-
   static fetchCommand(query) {
     const bot = memory.core.client;
     const log = bot.log;
@@ -655,6 +644,25 @@ module.exports = class OptiBotAssetsManager {
         }
       })();
     });
+  }
+
+  static getCommand(query) {
+    const bot = memory.core.client;
+    const log = bot.log;
+
+    query = query.toLowerCase();
+
+    for (const cmd of memory.assets.commands) {
+      if (query === cmd.metadata.name) return cmd;
+
+      if (cmd.metadata.aliases.length > 0) {
+        for (const alias of cmd.metadata.aliases) {
+          if (query === alias) return cmd;
+        }
+      }
+    }
+
+    return null;
   }
 
   static getEmoji(query) {

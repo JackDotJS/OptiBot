@@ -1,22 +1,22 @@
 /* eslint-disable no-inner-declarations */
-const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const Jimp = require('jimp');
-const request = require('request');
-const { Command, memory, Assets } = require('../core/optibot.js');
+const path = require(`path`);
+const util = require(`util`);
+const djs = require(`discord.js`);
+const Jimp = require(`jimp`);
+const request = require(`request`);
+const { Command, memory, Assets } = require(`../core/optibot.js`);
 
 const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['cloak', 'elytra'],
-  short_desc: 'Show off an OptiFine donator cape.',
-  long_desc: 'Displays a given user\'s OptiFine cape and elytra, assuming they\'ve donated and have their cape activated.',
-  args: '<minecraft username>',
+  aliases: [`cloak`, `elytra`],
+  short_desc: `Show off an OptiFine donator cape.`,
+  long_desc: `Displays a given user's OptiFine cape and elytra, assuming they've donated and have their cape activated.`,
+  args: `<minecraft username>`,
   authlvl: 0,
-  flags: ['DM_OPTIONAL', 'BOT_CHANNEL_ONLY', 'LITE'],
+  flags: [`DM_OPTIONAL`, `BOT_CHANNEL_ONLY`, `LITE`],
   run: null
 };
 
@@ -43,29 +43,29 @@ metadata.run = (m, args, data) => {
     if (uuid) {
       request({ url: `https://api.mojang.com/user/profiles/${uuid}/names`, encoding: null }, (err, res, data) => {
         if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-          bot.util.err(err || new Error('Failed to get a response from the Mojang API.'), { m });
+          bot.util.err(err || new Error(`Failed to get a response from the Mojang API.`), { m });
         } else if (res.statusCode === 204) {
-          bot.util.err(new Error('Failed to get Minecraft UUID from the Mojang API.'), { m });
+          bot.util.err(new Error(`Failed to get Minecraft UUID from the Mojang API.`), { m });
         } else {
           const dp = JSON.parse(data);
           const dataNormalized = {
-            name: dp[dp.length - 1]['name'],
+            name: dp[dp.length - 1][`name`],
             id: uuid
           };
           getCape(dataNormalized, discord);
         }
       });
     } else if (args[0].match(/\W+/) !== null) {
-      bot.util.err('Minecraft usernames can only contain letters, numbers, and underscores (_)', { m });
+      bot.util.err(`Minecraft usernames can only contain letters, numbers, and underscores (_)`, { m });
     } else if (args[0].length > 16) {
-      bot.util.err('Minecraft usernames cannot exceed 16 characters in length.', { m });
+      bot.util.err(`Minecraft usernames cannot exceed 16 characters in length.`, { m });
     } else {
-      request({ url: 'https://api.mojang.com/users/profiles/minecraft/' + args[0], encoding: null }, (err, res, data) => {
+      request({ url: `https://api.mojang.com/users/profiles/minecraft/` + args[0], encoding: null }, (err, res, data) => {
         if (err || !res || !data || [200, 204].indexOf(res.statusCode) === -1) {
-          bot.util.err(err || new Error('Failed to get a response from the Mojang API'), { m });
+          bot.util.err(err || new Error(`Failed to get a response from the Mojang API`), { m });
         } else if (res.statusCode === 204) {
           const embed = bot.util.err(`Player "${args[0]}" does not exist.`)
-            .setDescription('Maybe check your spelling?');
+            .setDescription(`Maybe check your spelling?`);
 
           bot.send(m, { embed });
         } else {
@@ -78,9 +78,9 @@ metadata.run = (m, args, data) => {
   function getCape(player, discord) {
     log(util.inspect(player));
 
-    request({ url: 'https://optifine.net/capes/' + player.name + '.png', encoding: null }, (err, res, data) => {
+    request({ url: `https://optifine.net/capes/` + player.name + `.png`, encoding: null }, (err, res, data) => {
       if (err || !res || !data || [200, 404].indexOf(res.statusCode) === -1) {
-        bot.util.err(err || new Error('Failed to get a response from the OptiFine API'), { m });
+        bot.util.err(err || new Error(`Failed to get a response from the OptiFine API`), { m });
       } else if (res.statusCode === 404) {
         bot.util.err(`Player "${player.name}" does not have an OptiFine cape.`, { m });
       } else {
@@ -107,13 +107,13 @@ metadata.run = (m, args, data) => {
         type: null
       };
       
-      if (args[1] && args[1].toLowerCase() === 'full') {
-        imageData.type = 'full';
+      if (args[1] && args[1].toLowerCase() === `full`) {
+        imageData.type = `full`;
 
         final(imageData, player, discord);
       } else if (Math.round(image.bitmap.width / image.bitmap.height) !== 2) {
-        log(`Unknown cape resolution: ${player.name}`, 'warn');
-        imageData.type = 'default';
+        log(`Unknown cape resolution: ${player.name}`, `warn`);
+        imageData.type = `default`;
 
         final(imageData, player, discord);
       } else {
@@ -177,7 +177,7 @@ metadata.run = (m, args, data) => {
               .resize(Jimp.AUTO, 256, filterMode);
 
             imageData.jimp = full;
-            imageData.type = 'cropped';
+            imageData.type = `cropped`;
 
             final(imageData, player, discord);
           }
@@ -192,19 +192,19 @@ metadata.run = (m, args, data) => {
 
       const embed = new djs.MessageEmbed()
         .setColor(bot.cfg.embed.default)
-        .attachFiles([new djs.MessageAttachment(img, 'cape.png')])
-        .setImage('attachment://cape.png')
+        .attachFiles([new djs.MessageAttachment(img, `cape.png`)])
+        .setImage(`attachment://cape.png`)
         .setTitle(djs.Util.escapeMarkdown(player.name))
         .setURL(`https://namemc.com/profile/${player.name}`);
 
-      if (image.type !== 'cropped') {
-        embed.setAuthor('OptiFine Donator Cape (Full Texture)', Assets.getEmoji('ICO_cape').url);
+      if (image.type !== `cropped`) {
+        embed.setAuthor(`OptiFine Donator Cape (Full Texture)`, Assets.getEmoji(`ICO_cape`).url);
       } else {
-        embed.setAuthor('OptiFine Donator Cape', Assets.getEmoji('ICO_cape').url);
+        embed.setAuthor(`OptiFine Donator Cape`, Assets.getEmoji(`ICO_cape`).url);
       }
 
-      if (discord) embed.setDescription(`<:okay:642112445997121536> Cape owned by <@${discord}>`);
-      if (image.type === 'default') embed.setFooter('This image could not be cropped because the cape texture has an unusual resolution.');
+      if (discord) embed.setDescription(`${Assets.getEmoji(`okay`)} Cape owned by <@${discord}>`);
+      if (image.type === `default`) embed.setFooter(`This image could not be cropped because the cape texture has an unusual resolution.`);
 
       bot.send(m, { embed });
     });

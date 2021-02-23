@@ -26,7 +26,8 @@ metadata.run = (m, args, data) => {
       `${bot.user.toString()} has been beaned.\n\nWait, wha-`,
       `Beans and Beans and Beans and Beans.`,
       `[Dr. Robotnik's Mean Bean Machine](https://en.wikipedia.org/wiki/Dr._Robotnik%27s_Mean_Bean_Machine) is a [falling block puzzle game](https://en.wikipedia.org/wiki/List_of_puzzle_video_games#Falling_block_puzzles) developed by [Compile](https://en.wikipedia.org/wiki/Compile_(company)) and published by [Sega](https://en.wikipedia.org/wiki/Sega). It was released for the [Genesis/Mega Drive](https://en.wikipedia.org/wiki/Sega_Genesis) in North America and Europe in November 1993, and was ported to the [Game Gear](https://en.wikipedia.org/wiki/Game_Gear) and [Master System](https://en.wikipedia.org/wiki/Master_System) in December 1993 and June 1994, respectively. The plot revolves around [Sonic the Hedgehog](https://en.wikipedia.org/wiki/Sonic_the_Hedgehog) series antagonist [Doctor Robotnik](https://en.wikipedia.org/wiki/Doctor_Eggman) kidnapping residents from Beanville and turning them into robots, with the purpose of removing all joy from the planet Mobius.`,
-      `<:ICO_okay:657533487602991114> _​ _ _​ _ ${embed.author.name}`, // warning: zero width chars here
+      // eslint-disable-next-line no-irregular-whitespace
+      `${Assets.getEmoji(`ICO_okay`)} _​ _ _​ _ ${embed.author.name}`, // warning: zero width chars here
       `_ _`,
       `\${response}`,
       `you forgot to say who got beaned you absolute fucking melon`

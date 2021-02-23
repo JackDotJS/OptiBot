@@ -71,7 +71,7 @@
     "muted": "551089007078015025",
     "grantable": [
       "423834274601369601",
-      "423836695301980171",
+      "788468317685022760",
       "423839066631569408"
     ]
   },
@@ -80,11 +80,12 @@
   },
   "emoji": {
     "deleter": "678774775480320021",
+    "forward": "781282450189320262",
+    "back": "781282396519137331",
     "confirm": "672309254279135263",
     "cancel": "672309278605836308",
     "resolve": "764836154683817995",
-    "forward": "781282450189320262",
-    "back": "781282396519137331"
+    "default": "657533390073102363"
   },
   "messages": {
     "confirmDelete": "To remove this message, click or tap the emoji reaction once more to confirm. To cancel, simply ignore this message.",
@@ -116,8 +117,9 @@
     ]
   },
   "embed": {
-    "default": "#E29F00",
+    "default": "#7289DA",
     "okay": "#43B581",
+    "warn": "#E29F00",
     "error": "#DD2E44"
   },
   "profiles": {

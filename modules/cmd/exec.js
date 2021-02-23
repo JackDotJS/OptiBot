@@ -1,23 +1,23 @@
 /* eslint-disable no-unused-vars */
 // That is disabled so that eval can access them without requiring them in the eval statement itself
-const path = require('path');
-const timeago = require('timeago.js');
-const util = require('util');
-const fileType = require('file-type');
-const request = require('request');
-const djs = require('discord.js');
-const { Command, memory, RecordEntry, LogEntry, Assets } = require('../core/optibot.js');
+const path = require(`path`);
+const timeago = require(`timeago.js`);
+const util = require(`util`);
+const fileType = require(`file-type`);
+const request = require(`request`);
+const djs = require(`discord.js`);
+const { Command, memory, RecordEntry, LogEntry, Assets } = require(`../core/optibot.js`);
 
 const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['eval'],
-  short_desc: 'Evaluate JavaScript code.',
-  args: '<code> [--verbose]',
+  aliases: [`eval`],
+  short_desc: `Evaluate JavaScript code.`,
+  args: `<code> [--verbose]`,
   authlvl: 5,
-  flags: ['DM_OPTIONAL', 'MOD_CHANNEL_ONLY', 'STRICT', 'HIDDEN', 'DELETE_ON_MISUSE', 'LITE'],
+  flags: [`DM_OPTIONAL`, `MOD_CHANNEL_ONLY`, `STRICT`, `HIDDEN`, `DELETE_ON_MISUSE`, `LITE`],
   run: null
 };
 
@@ -25,16 +25,14 @@ metadata.run = async (m, args, data) => {
   try {
     let verboseMode = false;
 
-    if (m.content.endsWith('--verbose')) {
-      m.content = m.content.split('--verbose')[0].trim();
+    if (m.content.endsWith(`--verbose`)) {
+      m.content = m.content.split(`--verbose`)[0].trim();
       verboseMode = true;
     }
 
     const code = m.content.substring(`${bot.prefix}${path.parse(__filename).name} `.length);
     const execStart = new Date().getTime();
-    let output = eval(code);
-    // Resolves the promise if the output is a promise
-    if (output instanceof Promise || (Boolean(output) && typeof output.then === 'function' && typeof output.catch === 'function')) output = await output;
+    const output = await (eval(code));
     const execEnd = new Date().getTime();
 
     const raw = `${output}`;
@@ -54,9 +52,9 @@ metadata.run = async (m, args, data) => {
 
         for (const item of output) {
           if (item === null) {
-            itemTypes.push('null');
+            itemTypes.push(`null`);
           } else if (item === undefined) {
-            itemTypes.push('undefined');
+            itemTypes.push(`undefined`);
           } else {
             itemTypes.push(`${item.constructor.name}`);
           }
@@ -64,7 +62,7 @@ metadata.run = async (m, args, data) => {
 
         info.push(
           `Array Length: ${output.length}`,
-          `Array Item Types: ${[...new Set(itemTypes)].join(', ')}`,
+          `Array Item Types: ${[...new Set(itemTypes)].join(`, `)}`,
         );
       } else if (output.constructor === Object) {
         const keys = Object.keys(output);
@@ -75,9 +73,9 @@ metadata.run = async (m, args, data) => {
           const value = output[keys[i]];
 
           if (value === null) {
-            itemTypes.push('null');
+            itemTypes.push(`null`);
           } else if (value === undefined) {
-            itemTypes.push('undefined');
+            itemTypes.push(`undefined`);
           } else {
             itemTypes.push(`${value.constructor.name}`);
           }
@@ -85,7 +83,7 @@ metadata.run = async (m, args, data) => {
 
         info.push(
           `Object Keys: ${keys.length}`,
-          `Object Value Types: ${[...new Set(itemTypes)].join(', ')}`
+          `Object Value Types: ${[...new Set(itemTypes)].join(`, `)}`
         );
       }
     }
@@ -94,22 +92,22 @@ metadata.run = async (m, args, data) => {
     function compileContents() {
       if (verboseMode) {
         contents.push(
-          'Result Information:',
-          `\`\`\`yaml\n${info.join('\n')} \`\`\``
+          `Result Information:`,
+          `\`\`\`yaml\n${info.join(`\n`)} \`\`\``
         );
       }
 
       contents.push(
         ...result
       );
-      contents = contents.join('\n');
+      contents = contents.join(`\n`);
     }
 
     if (Buffer.isBuffer(output)) {
       const ft = fileType(output);
       if (ft !== null && ft !== undefined) {
         result = [
-          'File Output:'
+          `File Output:`
         ];
         info.push(
           `File Size: ${output.length.toLocaleString()} bytes`,
@@ -119,7 +117,7 @@ metadata.run = async (m, args, data) => {
 
         compileContents();
         m.channel.stopTyping(true);
-        m.channel.send(contents, { files: [new djs.MessageAttachment(output, 'output.' + ft.ext)] });
+        m.channel.send(contents, { files: [new djs.MessageAttachment(output, `output.` + ft.ext)] });
       } else {
         defaultRes();
       }
@@ -133,7 +131,7 @@ metadata.run = async (m, args, data) => {
       if(verboseMode) {
         if (raw === inspect) {
           result.push(
-            'Output:',
+            `Output:`,
             `\`\`\`javascript\n${djs.Util.escapeCodeBlock(inspect)} \`\`\``
           );
           info.push(
@@ -141,9 +139,9 @@ metadata.run = async (m, args, data) => {
           );
         } else {
           result.push(
-            'Raw Output:',
+            `Raw Output:`,
             `\`\`\`${djs.Util.escapeCodeBlock(raw)} \`\`\``,
-            'Inspected Output:',
+            `Inspected Output:`,
             `\`\`\`javascript\n${djs.Util.escapeCodeBlock(inspect)} \`\`\``
           );
           info.push(
@@ -161,54 +159,54 @@ metadata.run = async (m, args, data) => {
       if (contents.length > 2000) {
         const oldlength = contents.length;
         contents = [
-          '////////////////////////////////////////////////////////////////',
-          '// Input',
-          '////////////////////////////////////////////////////////////////',
-          '',
+          `////////////////////////////////////////////////////////////////`,
+          `// Input`,
+          `////////////////////////////////////////////////////////////////`,
+          ``,
           code,
-          '',
-          '',
-          '////////////////////////////////////////////////////////////////',
-          '// Result Information',
-          '////////////////////////////////////////////////////////////////',
-          '',
-          info.join('\n'),
-          '',
-          '',
+          ``,
+          ``,
+          `////////////////////////////////////////////////////////////////`,
+          `// Result Information`,
+          `////////////////////////////////////////////////////////////////`,
+          ``,
+          info.join(`\n`),
+          ``,
+          ``,
         ];
 
         if (raw === inspect) {
           contents = contents.concat([
-            '////////////////////////////////////////////////////////////////',
-            '// Output',
-            '////////////////////////////////////////////////////////////////',
-            '',
+            `////////////////////////////////////////////////////////////////`,
+            `// Output`,
+            `////////////////////////////////////////////////////////////////`,
+            ``,
             raw
-          ]).join('\n');
+          ]).join(`\n`);
         } else {
           contents = contents.concat([
-            '////////////////////////////////////////////////////////////////',
-            '// Raw Output',
-            '////////////////////////////////////////////////////////////////',
-            '',
+            `////////////////////////////////////////////////////////////////`,
+            `// Raw Output`,
+            `////////////////////////////////////////////////////////////////`,
+            ``,
             raw,
-            '',
-            '',
-            '////////////////////////////////////////////////////////////////',
-            '// Inspected Output',
-            '////////////////////////////////////////////////////////////////',
-            '',
+            ``,
+            ``,
+            `////////////////////////////////////////////////////////////////`,
+            `// Inspected Output`,
+            `////////////////////////////////////////////////////////////////`,
+            ``,
             inspect
-          ]).join('\n');
+          ]).join(`\n`);
         }
 
         m.channel.stopTyping(true);
         m.channel.send([
-          'Result Information:',
-          `\`\`\`yaml\n${info.join('\n')}\`\`\``,
+          `Result Information:`,
+          `\`\`\`yaml\n${info.join(`\n`)}\`\`\``,
           `Output too long! (${(oldlength - 2000).toLocaleString()} characters over message limit)`,
-          'See attached file for output:'
-        ].join('\n'), { files: [new djs.MessageAttachment(Buffer.from(contents), 'output.txt')] });
+          `See attached file for output:`
+        ].join(`\n`), { files: [new djs.MessageAttachment(Buffer.from(contents), `output.txt`)] });
       } else {
         m.channel.stopTyping(true);
         m.channel.send(contents);

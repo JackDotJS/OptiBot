@@ -140,6 +140,21 @@ module.exports = class OptiBot extends djs.Client {
       let user = null;
       let channel = null;
 
+      // get user and channel
+
+      if (dest instanceof djs.User) {
+        user = dest;
+        channel = dest;
+      } else if (dest instanceof djs.GuildMember) {
+        user = dest.user;
+        channel = dest.user;
+      } else if (dest instanceof djs.Message) {
+        user = dest.author;
+        channel = dest.channel;
+      } else if (dest instanceof djs.TextChannel) {
+        channel = dest.channel;
+      } else reject(new Error(`Invalid destination type.`));
+
       if (!options && typeof content === `object` && !Array.isArray(content)) {
         options = content;
         content = `_ _`;
@@ -197,7 +212,11 @@ module.exports = class OptiBot extends djs.Client {
           if (autotrunc) embed.footer.text = embed.footer.text.substring(0, getLimit(`footer`));
         }
 
-        return new djs.MessageEmbed(embed);
+        const processed = new djs.MessageEmbed(embed);
+
+        if (orgEmbed.files.length > 0) processed.attachFiles(orgEmbed.files);
+
+        return processed;
       };
 
       if (typeof content === `string` && content.length > 0 && content != `_ _`) {
@@ -221,21 +240,6 @@ module.exports = class OptiBot extends djs.Client {
         options.embed = processEmbed(options.embed);
       }
 
-      // get user and channel
-
-      if (dest instanceof djs.User) {
-        user = dest;
-        channel = dest;
-      } else if (dest instanceof djs.GuildMember) {
-        user = dest.user;
-        channel = dest.user;
-      } else if (dest instanceof djs.Message) {
-        user = dest.author;
-        channel = dest.channel;
-      } else if (dest instanceof djs.TextChannel) {
-        channel = dest.channel;
-      }
-
       // add deletion button in between page buttons.
       // if the page buttons havent been added, this will (translation: "should") simply add the deletion button like normal
       // splice() is pretty neat
@@ -243,11 +247,7 @@ module.exports = class OptiBot extends djs.Client {
 
       log(buttons);
 
-      channel.send({
-        content,
-        embed: options.embed,
-        files: options.files
-      }).then(bm => {
+      channel.send(content, options).then(bm => {
         channel.stopTyping(true);
 
         const addControl = () => {

@@ -1,4 +1,4 @@
-const { OptiBit } = require('../core/optibot.js');
+const { OptiBit } = require(`../core/optibot.js`);
 
 /**
  * This file only exists to retain a visible description for the hidden URL detection part of url_handler.js
@@ -7,12 +7,12 @@ const { OptiBit } = require('../core/optibot.js');
  */
 
 const metadata = {
-  name: 'Hidden URL Text Detector',
-  description: 'Detects "hidden text" in URLs. This is more accurately described as "userinfo", which is typically rendered invisible by most applications such as Discord.',
+  name: `Hidden URL Text Detector`,
+  description: `Detects "hidden text" in URLs. This is more accurately described as "userinfo", which is typically rendered invisible by most applications such as Discord.`,
   priority: 1000,
   concurrent: true,
   authlvl: 0,
-  flags: ['DM_OPTIONAL', 'HIDDEN'],
+  flags: [`DM_OPTIONAL`, `HIDDEN`],
   validator: () => { return false; },
   executable: () => {}
 };

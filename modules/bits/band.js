@@ -1,4 +1,6 @@
-const { OptiBit, OBUtil } = require(`../core/OptiBot.js`);
+const { OptiBit, memory } = require(`../core/OptiBot.js`);
+
+const bot = memory.core.client;
 
 const metadata = {
   name: `Band Emojis`,
@@ -20,7 +22,7 @@ metadata.executable = async m => {
     m.react(`🎸`),
     m.react(`🥁`),
     m.react(`🎤`)
-  ]).catch(err => OBUtil.err(err));
+  ]).catch(bot.util.err);
 };
 
 module.exports = new OptiBit(metadata);

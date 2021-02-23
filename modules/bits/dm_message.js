@@ -1,16 +1,16 @@
-const djs = require('discord.js');
-const { OptiBit, memory } = require('../core/optibot.js');
+const djs = require(`discord.js`);
+const { OptiBit, memory } = require(`../core/optibot.js`);
 
 const bot = memory.core.client;
 
 const metadata = {
-  name: 'Direct Message Default Response',
-  description: 'Description.',
-  image: 'IMG_args',
+  name: `Direct Message Default Response`,
+  description: `Description.`,
+  image: `IMG_args`,
   priority: 0,
   concurrent: false,
   authlvl: -1,
-  flags: ['DM_ONLY', 'HIDDEN'],
+  flags: [`DM_ONLY`, `HIDDEN`],
   validator: null,
   executable: null
 };
@@ -21,10 +21,10 @@ metadata.executable = m => {
   const embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
     //.setAuthor(`Hi there!`, Assets.getEmoji('ICO_info').url)
-    .setTitle('Hi there!')
+    .setTitle(`Hi there!`)
     .setDescription(`For a list of commands, type \`${bot.prefix}list\`. If you've donated and you'd like to receive your donator role, type \`${bot.prefix}help dr\` for instructions.`);
 
-  m.channel.send({ embed });
+  m.channel.send({ embed }).catch(bot.util.err);
 };
 
 module.exports = new OptiBit(metadata);

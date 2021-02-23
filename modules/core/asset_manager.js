@@ -3,6 +3,7 @@ const util = require(`util`);
 const chokidar = require(`chokidar`);
 const djs = require(`discord.js`);
 const path = require(`path`);
+const Jimp = require(`jimp`);
 
 const memory = require(`./memory.js`);
 const Command = require(`./command.js`);
@@ -681,12 +682,43 @@ module.exports = class OptiBotAssetsManager {
     return bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === `ICO_default`.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)));
   }
 
-  static getImage(query) {
-    for (const i in memory.assets.images.index) {
-      if (memory.assets.images.index[i].name.toLowerCase() === query.toLowerCase()) {
-        return memory.assets.images.index[i];
+  static async getIcon(query, color) {
+    const bot = memory.core.client;
+    const log = bot.log;
+
+    const icon = new Jimp(512, 512, color);
+
+    const masks = fs.readdirSync(`./assets/icon`);
+    let mask = null;
+
+    for (const filename of masks) {
+      if (filename.substring(0, filename.lastIndexOf(`.`)).toLowerCase() === query.toLowerCase()) {
+        log(`match`);
+        mask = await Jimp.read(`./assets/icon/${filename}`);
+        break;
       }
     }
-    return memory.assets.images.default;
+
+    if (!mask) return fs.readFileSync(`./assets/icon/ICO_default.png`);
+
+    mask.resize(512, 512, Jimp.RESIZE_BICUBIC);
+    icon.mask(mask, 0, 0);
+
+    return icon.getBufferAsync(Jimp.MIME_PNG);
+  }
+
+  static getImage(query) {
+    const bot = memory.core.client;
+    const log = bot.log;
+    const images = fs.readdirSync(`./assets/img`);
+
+    for (const filename of images) {
+      if (filename.substring(0, filename.lastIndexOf(`.`)).toLowerCase() === query.toLowerCase()) {
+        log(`match`);
+        return fs.readFileSync(`./assets/img/${filename}`);
+      }
+    }
+
+    return fs.readFileSync(`./assets/img/ICO_default.png`);
   }
 };

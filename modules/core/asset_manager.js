@@ -650,7 +650,7 @@ module.exports = class OptiBotAssetsManager {
     return bot.emojis.cache.get(bot.cfg.emoji.default);
   }
 
-  static async getIcon(query, color) {
+  static async getIcon(query, color = `#FFFFFF`) {
     const bot = memory.core.client;
     const log = bot.log;
 

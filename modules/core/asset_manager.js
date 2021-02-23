@@ -679,7 +679,7 @@ module.exports = class OptiBotAssetsManager {
     }
 
     if (result) return result;
-    return bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === `ICO_default`.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)));
+    return bot.emojis.cache.get(bot.cfg.emoji.default);
   }
 
   static async getIcon(query, color) {
@@ -689,7 +689,7 @@ module.exports = class OptiBotAssetsManager {
     const icon = new Jimp(512, 512, color);
 
     const masks = fs.readdirSync(`./assets/icon`);
-    let mask = null;
+    let mask;
 
     for (const filename of masks) {
       if (filename.substring(0, filename.lastIndexOf(`.`)).toLowerCase() === query.toLowerCase()) {

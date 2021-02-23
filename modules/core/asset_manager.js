@@ -346,38 +346,6 @@ module.exports = class OptiBotAssetsManager {
       });
 
       stagesAsync.push({
-        name: `Image Loader`,
-        tiers: [true, true, true],
-        load: () => {
-          return new Promise((resolve, reject) => {
-            memory.assets.images.index = [];
-            const images = fs.readdirSync(path.resolve(`./assets/img`));
-
-            for (const img of images) {
-              if (img.match(/\./) !== null) {
-                const buffer = fs.readFileSync(path.resolve(`./assets/img/${img}`));
-
-                if (img.substring(0, img.lastIndexOf(`.`)) === `default`) {
-                  memory.assets.images.default = {
-                    name: img.substring(0, img.lastIndexOf(`.`)),
-                    buffer: buffer,
-                    attachment: new djs.MessageAttachment(buffer, `image${img.substring(img.lastIndexOf(`.`))}`)
-                  };
-                } else {
-                  memory.assets.images.index.push({
-                    name: img.substring(0, img.lastIndexOf(`.`)),
-                    buffer: buffer,
-                    attachment: new djs.MessageAttachment(buffer, `image${img.substring(img.lastIndexOf(`.`))}`)
-                  });
-                }
-              }
-            }
-            resolve();
-          });
-        }
-      });
-
-      stagesAsync.push({
         name: `Scheduled Task Loader`,
         tiers: [true, false, false],
         load: () => {

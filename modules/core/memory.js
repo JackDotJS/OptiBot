@@ -4,7 +4,7 @@ const memory = {
   core: {
     client: {
       // both of these are also defined in client.js
-      keys: require(`./cfg/keys.json`),
+      keys: require(`../../cfg/keys.json`),
       log: console.log
       // see client.js for additional properties that are added here during initialization
     },

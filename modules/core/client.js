@@ -162,8 +162,8 @@ module.exports = class OptiBot extends djs.Client {
 
       // text pre-processing
 
-      const owomode = (options.owo != null && typeof options.owo === `boolean` && options.owo);
-      const autotrunc = (options.autotrunc != null && typeof options.autotrunc === `boolean` && options.autotrunc);
+      const owomode = (typeof options === `object` && options.owo != null && typeof options.owo === `boolean` && options.owo);
+      const autotrunc = (typeof options === `object` && options.autotrunc != null && typeof options.autotrunc === `boolean` && options.autotrunc);
 
       const getLimit = (type) => {
         const limits = {

@@ -620,6 +620,8 @@ module.exports = class OptiBotAssetsManager {
     const bot = memory.core.client;
     const log = bot.log;
 
+    if (!query) return null;
+
     query = query.toLowerCase();
 
     for (const cmd of memory.assets.commands) {

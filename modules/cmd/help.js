@@ -18,7 +18,23 @@ const metadata = {
 
 metadata.run = async (m, args, data) => {
   let list;
-  const query = m.cleanContent.substring(`${bot.prefix}${data.input.cmd} `.length).trim().exec(/((?<=").+?(?="))|([^"]+)/i);
+  let query;
+  let strict = false;
+  const parseQuery = (/((?<=").+?(?="))|([^"]+)/i).exec(m.cleanContent.substring(`${bot.prefix}${data.input.cmd} `.length));
+
+  if (parseQuery != null) {
+    if (parseQuery[1] != null) {
+      strict = true;
+      query = parseQuery[1];
+    } else if (parseQuery[2] != null) {
+      query = parseQuery[2];
+    }
+  }
+
+  const checkCMD = Assets.getCommand(query);
+
+  if (checkCMD) bot.send(m, checkCMD.metadata.name);
+
 
   log(util.inspect(query));
 

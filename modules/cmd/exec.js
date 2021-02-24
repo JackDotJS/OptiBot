@@ -36,7 +36,7 @@ metadata.run = async (m, args, data) => {
     const execEnd = new Date().getTime();
 
     const raw = `${output}`;
-    const inspect = `${util.inspect(output, { depth: 0 })}`;
+    const inspect = `${util.inspect(output, { depth: 1 })}`;
     const info = [
       `Execution Time: ${(execEnd - execStart).toLocaleString()}ms (${(execEnd - execStart) / 1000} seconds)`,
       `Typeof: ${typeof output}`,

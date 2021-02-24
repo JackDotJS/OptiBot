@@ -17,7 +17,7 @@ const metadata = {
 };
 
 metadata.run = async (m, args, data) => {
-  let list;
+  let list = memory.assets.commands;
   let query;
   let strict = false;
   const parseQuery = (/((?<=").+?(?="))|([^"]+)/i).exec(m.cleanContent.substring(`${bot.prefix}${data.input.cmd} `.length));
@@ -31,10 +31,11 @@ metadata.run = async (m, args, data) => {
     }
   }
 
-  const checkCMD = Assets.getCommand(query);
+  // todo: filter commands
 
-  if (checkCMD) bot.send(m, checkCMD.metadata.name);
+  // todo: show commands
 
+  // todo: fucking everything
 
   log(util.inspect(query));
 

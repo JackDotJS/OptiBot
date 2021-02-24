@@ -2,6 +2,7 @@ module.exports = {
   setWindowTitle: require(`../util/setWindowTitle`),
   parseInput: require(`../util/parseInput`),
   getAuthlvl: require(`../util/getAuthLevel`),
+  getPerms: require(`../util/getPerms`),
   missingArgs: require(`../util/missingArgs`),
   getProfile: require(`../util/getProfile`),
   updateProfile: require(`../util/updateProfile`),

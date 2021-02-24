@@ -224,7 +224,7 @@ module.exports = class OptiBot extends djs.Client {
         if (autotrunc) content = content.substring(0, getLimit(`content`));
       }
 
-      if (options.embeds != null && Array.isArray(options.embeds) && options.embeds.length > 1) {
+      if (typeof options === `object` && options.embeds != null && Array.isArray(options.embeds) && options.embeds.length > 1) {
         for (const i in options.embeds) {
           options.embeds[i] = processEmbed(options.embeds[i]);
         }
@@ -236,14 +236,14 @@ module.exports = class OptiBot extends djs.Client {
           bot.cfg.emoji.forward
         );
       } else
-      if (options.embed != null && options.embed instanceof djs.MessageEmbed) {
+      if (typeof options === `object` && options.embed != null && options.embed instanceof djs.MessageEmbed) {
         options.embed = processEmbed(options.embed);
       }
 
       // add deletion button in between page buttons.
       // if the page buttons havent been added, this will (translation: "should") simply add the deletion button like normal
       // splice() is pretty neat
-      if ((typeof options.userDelete !== `boolean` || options.userDelete) && channel.type !== `dm`) buttons.splice(1, 0, bot.cfg.emoji.deleter);
+      if (typeof options === `object` && (typeof options.userDelete !== `boolean` || options.userDelete) && channel.type !== `dm`) buttons.splice(1, 0, bot.cfg.emoji.deleter);
 
       log(buttons);
 
@@ -336,7 +336,7 @@ module.exports = class OptiBot extends djs.Client {
           })(0);
         };
 
-        if (!options.delayControl && user != null) addControl();
+        if (typeof options === `object` && !options.delayControl && user != null) addControl();
 
         resolve({
           msg: bm,

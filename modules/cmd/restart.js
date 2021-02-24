@@ -18,9 +18,12 @@ metadata.run = m => {
     .setIcon(Assets.getEmoji(`ICO_door`).url)
     .setTitle(`OptiBot is now restarting...`, `OptiBot Restart Report`)
     .addSection(`Command Issuer`, m.author)
-    .submit().then(() => {
+    .submit().then(async () => {
       const embed = new djs.MessageEmbed()
-        .setAuthor(`Restarting...`, Assets.getEmoji(`ICO_load`).url)
+        .attachFiles([
+          new djs.MessageAttachment(await Assets.getIcon(`ICO_loading`, bot.cfg.embed.default), `icon.gif`)
+        ])
+        .setAuthor(`Restarting...`, `attachment://icon.gif`)
         .setColor(bot.cfg.embed.default);
 
       m.channel.send(embed).then((msg) => {

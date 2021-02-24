@@ -24,9 +24,12 @@ metadata.run = m => {
     .setTitle(`OptiBot Assets Reloaded`, `OptiBot Assets Reload Report`)
     .addSection(`Moderator Responsible`, m.author)
     .addSection(`Command Location`, m)
-    .submit().then(() => {
+    .submit().then(async () => {
       const embed = new djs.MessageEmbed()
-        .setAuthor(`Reloading assets...`, Assets.getEmoji(`ICO_load`).url)
+        .attachFiles([
+          new djs.MessageAttachment(await Assets.getIcon(`ICO_loading`, bot.cfg.embed.default), `icon.gif`)
+        ])
+        .setAuthor(`Reloading assets...`, `attachment://icon.gif`)
         .setColor(bot.cfg.embed.default);
 
       bot.send(m, { embed, delayControl: true }).then(bres => {

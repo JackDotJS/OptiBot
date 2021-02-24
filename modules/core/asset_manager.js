@@ -4,6 +4,7 @@ const chokidar = require(`chokidar`);
 const djs = require(`discord.js`);
 const path = require(`path`);
 const Jimp = require(`jimp`);
+const gwrap = require(`gifwrap`);
 
 const memory = require(`./memory.js`);
 const Command = require(`./command.js`);
@@ -654,14 +655,18 @@ module.exports = class OptiBotAssetsManager {
     const bot = memory.core.client;
     const log = bot.log;
 
-    const icon = new Jimp(512, 512, color);
-
     const masks = fs.readdirSync(`./assets/icon`);
     let mask;
 
     for (const filename of masks) {
       if (filename.substring(0, filename.lastIndexOf(`.`)).toLowerCase() === query.toLowerCase()) {
         log(`match`);
+
+        if (filename.endsWith(`.gif`)) {
+          mask = await gwrap.GifUtil.read(`./assets/icon/${filename}`);
+          break;
+        }
+
         mask = await Jimp.read(`./assets/icon/${filename}`);
         break;
       }
@@ -669,10 +674,34 @@ module.exports = class OptiBotAssetsManager {
 
     if (!mask) return fs.readFileSync(`./assets/icon/ICO_default.png`);
 
-    mask.resize(512, 512, Jimp.RESIZE_BICUBIC);
-    icon.mask(mask, 0, 0);
+    // process PNG
+    if (mask.constructor === Jimp) {
+      const icon = new Jimp(mask.bitmap.width, mask.bitmap.height, color);
 
-    return icon.getBufferAsync(Jimp.MIME_PNG);
+      icon.mask(mask, 0, 0);
+
+      return icon.getBufferAsync(Jimp.MIME_PNG);
+    }
+
+    // process GIF
+    const frames = [];
+
+    for (const i in mask.frames) {
+      const jcolor = new Jimp(mask.frames[i].bitmap.width, mask.frames[i].bitmap.height, color);
+      const fjmask = gwrap.GifUtil.copyAsJimp(Jimp, mask.frames[i].bitmap);
+
+      const newframe = new gwrap.GifFrame(mask.frames[i]);
+
+      jcolor.mask(fjmask, 0, 0);
+
+      newframe.bitmap = jcolor.bitmap;
+
+      frames.push(newframe);
+    }
+
+    const codec = new gwrap.GifCodec();
+
+    return (await codec.encodeGif(frames, { loops: 0, colorScope: 0 })).buffer;
   }
 
   static getImage(query) {

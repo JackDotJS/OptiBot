@@ -22,10 +22,7 @@ const memory = {
     needReload: [],
     commands: [],
     optibits: [],
-    images: {
-      default: fs.readFileSync(path.resolve(`./assets/img/default.png`)),
-      index: []
-    }
+    icons: []
   },
   db: {
     profiles: new Database({ filename: `./data/profiles.db`, autoload: true }), // optibot profiles

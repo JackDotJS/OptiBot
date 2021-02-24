@@ -13,7 +13,7 @@ const metadata = {
   run: null
 };
 
-metadata.run = (m) => {
+metadata.run = async (m) => {
   const devsSorted = bot.mainGuild.roles.cache.get(bot.cfg.roles.botdev).members
     .sort((a, b) => a.joinedTimestamp - b.joinedTimestamp)
     .map(member => member.toString());
@@ -35,8 +35,11 @@ metadata.run = (m) => {
   ];
 
   const embed = new djs.MessageEmbed()
+    .attachFiles([
+      new djs.MessageAttachment(await Assets.getIcon(`ICO_info`, bot.cfg.embed.default), `icon.png`)
+    ])
     .setColor(bot.cfg.embed.default)
-    .setAuthor(`OptiBot`, Assets.getEmoji(`ICO_info`).url)
+    .setAuthor(`OptiBot`, `attachment://icon.png`)
     .setThumbnail(bot.user.displayAvatarURL({ format: `png`, size: 64 }))
     .setTitle(`The official OptiFine Discord server bot. \n\n`)
     .setDescription(desc.join(`\n`))

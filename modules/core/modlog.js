@@ -35,7 +35,7 @@ module.exports = class LogEntry {
       data.channel = bot.cfg.channels.log[`misc`];
     }
 
-    data.channel = bot.guilds.cache.get(bot.cfg.guilds.log).channels.cache.get(data.channel);
+    data.channel = bot.channels.cache.get(data.channel);
 
     data.embed.setFooter(`Click on embed title to download plaintext report.\nEvent logged on ${data.time.toUTCString()}`)
       .setTimestamp(data.time);
@@ -153,7 +153,7 @@ module.exports = class LogEntry {
         .setTimestamp(this.data.time);
 
       if (this.data.publishing.embed) {
-        bot.guilds.cache.get(bot.cfg.guilds.optibot).channels.cache.get(bot.cfg.channels.logFiles).send({
+        bot.channels.cache.get(bot.cfg.channels.cache).send({
           files: [new djs.MessageAttachment(Buffer.from(plaintext), `${this.ptd.report.toLowerCase().replace(/[/\\?%*:|"<> ]/g, `_`)}.txt`)]
         }).then(att => {
           embed.author.url = [...att.attachments.values()][0].url;
@@ -313,7 +313,7 @@ module.exports = class LogEntry {
       }
 
       if (this.data.publishing.embed) {
-        bot.guilds.cache.get(bot.cfg.guilds.optibot).channels.cache.get(bot.cfg.channels.logFiles).send({
+        bot.channels.cache.get(bot.cfg.channels.cache).send({
           files: [new djs.MessageAttachment(Buffer.from(plaintext), `${this.ptd.report.toLowerCase().replace(/[/\\?%*:|"<> ]/g, `_`)}.txt`)]
         }).then(att => {
           if (this.embed.author) {

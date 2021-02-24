@@ -20,10 +20,7 @@ metadata.run = m => {
     .addSection(`Command Issuer`, m.author)
     .submit().then(async () => {
       const embed = new djs.MessageEmbed()
-        .attachFiles([
-          new djs.MessageAttachment(await Assets.getIcon(`ICO_loading`, bot.cfg.embed.default), `icon.gif`)
-        ])
-        .setAuthor(`Restarting...`, `attachment://icon.gif`)
+        .setAuthor(`Restarting...`, await Assets.getIcon(`ICO_loading`, bot.cfg.embed.default))
         .setColor(bot.cfg.embed.default);
 
       m.channel.send(embed).then((msg) => {

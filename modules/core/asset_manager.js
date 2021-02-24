@@ -449,7 +449,7 @@ module.exports = class OptiBotAssetsManager {
               if (channel.type === `text` && channel.guild.id === bot.mainGuild.id) {
                 log(`[${i}] fetching from channel: ${channel.id}`);
 
-                channel.messages.fetch({ limit: bot.cfg.init.cacheLimit }, true).then(() => {
+                channel.messages.fetch({ limit: 100 }, true).then(() => {
                   next();
                 }).catch(err => {
                   bot.util.err(err);
@@ -655,6 +655,28 @@ module.exports = class OptiBotAssetsManager {
     const bot = memory.core.client;
     const log = bot.log;
 
+    for (const item of memory.assets.icons) {
+      if (item.q === query && item.c === color) {
+        return item.u;
+      }
+    }
+
+    // item does not exist in cache
+
+    // incredibly basic cache system, only lasts while the bot is online
+    // todo: make this work off of database
+    const submit = async (data, ext) => {
+      const cachemsg = await bot.send(bot.channels.cache.get(bot.cfg.channels.cache), { files: [ new djs.MessageAttachment(data, `image.${ext}`) ] });
+
+      memory.assets.icons.push({
+        q: query,
+        c: color,
+        u: cachemsg.msg.attachments.first().url
+      });
+
+      return cachemsg.msg.attachments.first().url;
+    };
+
     const masks = fs.readdirSync(`./assets/icon`);
     let mask;
 
@@ -672,7 +694,7 @@ module.exports = class OptiBotAssetsManager {
       }
     }
 
-    if (!mask) return fs.readFileSync(`./assets/icon/ICO_default.png`);
+    if (!mask) return await submit(await fs.readFileSync(`./assets/icon/ICO_default.png`), `png`);
 
     // process PNG
     if (mask.constructor === Jimp) {
@@ -680,7 +702,7 @@ module.exports = class OptiBotAssetsManager {
 
       icon.mask(mask, 0, 0);
 
-      return icon.getBufferAsync(Jimp.MIME_PNG);
+      return await submit(await icon.getBufferAsync(Jimp.MIME_PNG), `png`);
     }
 
     // process GIF
@@ -701,7 +723,7 @@ module.exports = class OptiBotAssetsManager {
 
     const codec = new gwrap.GifCodec();
 
-    return (await codec.encodeGif(frames, { loops: 0, colorScope: 0 })).buffer;
+    return await submit((await codec.encodeGif(frames, { loops: 0, colorScope: 0 })).buffer, `gif`);
   }
 
   static getImage(query) {

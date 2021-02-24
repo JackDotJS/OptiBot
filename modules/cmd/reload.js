@@ -26,10 +26,7 @@ metadata.run = m => {
     .addSection(`Command Location`, m)
     .submit().then(async () => {
       const embed = new djs.MessageEmbed()
-        .attachFiles([
-          new djs.MessageAttachment(await Assets.getIcon(`ICO_loading`, bot.cfg.embed.default), `icon.gif`)
-        ])
-        .setAuthor(`Reloading assets...`, `attachment://icon.gif`)
+        .setAuthor(`Reloading assets...`, await Assets.getIcon(`ICO_loading`, bot.cfg.embed.default))
         .setColor(bot.cfg.embed.default);
 
       bot.send(m, { embed, delayControl: true }).then(bres => {

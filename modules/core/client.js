@@ -152,7 +152,7 @@ module.exports = class OptiBot extends djs.Client {
         user = dest.author;
         channel = dest.channel;
       } else if (dest instanceof djs.TextChannel) {
-        channel = dest.channel;
+        channel = dest;
       } else reject(new Error(`Invalid destination type.`));
 
       if (!options && typeof content === `object` && !Array.isArray(content)) {
@@ -336,7 +336,7 @@ module.exports = class OptiBot extends djs.Client {
           })(0);
         };
 
-        if (!options.delayControl) addControl();
+        if (!options.delayControl && user != null) addControl();
 
         resolve({
           msg: bm,

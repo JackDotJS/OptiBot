@@ -35,11 +35,8 @@ metadata.run = async (m) => {
   ];
 
   const embed = new djs.MessageEmbed()
-    .attachFiles([
-      new djs.MessageAttachment(await Assets.getIcon(`ICO_info`, bot.cfg.embed.default), `icon.png`)
-    ])
     .setColor(bot.cfg.embed.default)
-    .setAuthor(`OptiBot`, `attachment://icon.png`)
+    .setAuthor(`OptiBot`, await Assets.getIcon(`ICO_info`, bot.cfg.embed.default))
     .setThumbnail(bot.user.displayAvatarURL({ format: `png`, size: 64 }))
     .setTitle(`The official OptiFine Discord server bot. \n\n`)
     .setDescription(desc.join(`\n`))

@@ -144,7 +144,7 @@ process.on(`message`, (data) => {
     case `BM_CRASHLOG`:
       log(`got crash data`);
 
-      const channel = bot.guilds.cache.get(bot.cfg.guilds.log).channels.cache.get(bot.cfg.channels.log.misc);
+      const channel = bot.channels.cache.get(bot.cfg.channels.log.misc);
 
       channel.send(
         `<@&752056938753425488> ${(bot.cfg.envDeveloper != null) ? `<@${bot.cfg.envDeveloper}>` : ``} oops lmao`,

@@ -21,7 +21,7 @@ metadata.run = async m => {
     .addSection(`Command Issuer`, m.author)
     .submit().then(async () => {
       const embed = new djs.MessageEmbed()
-        .setAuthor(`Shutting down. Goodbye!`, await Assets.getEmoji(`ICO_door`, bot.cfg.embed.default))
+        .setAuthor(`Shutting down. Goodbye!`, await Assets.getIcon(`ICO_door`, bot.cfg.embed.default))
         .setColor(bot.cfg.embed.default);
 
       m.channel.send(embed).then(() => {

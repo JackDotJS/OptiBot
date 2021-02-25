@@ -41,12 +41,12 @@ const finalInit = () => {
 
   bot.util.setWindowTitle(`Loading Assets...`);
 
-  ob.Assets.load().then((time) => {
+  ob.Assets.load().then(async (time) => {
     const now = new Date();
     
     const width = 64; //inner width of box
 
-    function mkbox(text, totalWidth) {
+    async function mkbox(text, totalWidth) {
       const fstr = [];
       const normalized = [];
 
@@ -78,7 +78,7 @@ const finalInit = () => {
 
     log(splash, `debug`);
 
-    log(mkbox([
+    log(await mkbox([
       `OptiBot ${bot.version}`,
       `(c) Kyle Edwards <wingedasterisk@gmail.com>, 2020`,
       ``,
@@ -90,7 +90,7 @@ const finalInit = () => {
 
     new ob.LogEntry({ time: now, console: false })
       .setColor(bot.cfg.embed.default)
-      .setIcon(ob.Assets.getEmoji(`ICO_info`).url)
+      .setIcon(await ob.Assets.getIcon(`ICO_info`, bot.cfg.embed.default))
       .setThumbnail(bot.user.displayAvatarURL({ format: `png` }))
       .setTitle(`OptiBot Initialized`, `OptiBot Initalization Time Report`)
       .setHeader(`Version: ${bot.version}`)
@@ -162,9 +162,9 @@ process.on(`message`, (data) => {
       break;
     case `BM_RESTART`:
       log(`got restart data`);
-      bot.guilds.cache.get(data.c.guild).channels.cache.get(data.c.channel).messages.fetch(data.c.message).then(msg => {
+      bot.guilds.cache.get(data.c.guild).channels.cache.get(data.c.channel).messages.fetch(data.c.message).then(async msg => {
         const embed = new djs.MessageEmbed()
-          .setAuthor(`Restarted in ${((new Date().getTime() - msg.createdTimestamp) / 1000).toFixed(1)} seconds.`, ob.Assets.getEmoji(`ICO_okay`).url)
+          .setAuthor(`Restarted in ${((new Date().getTime() - msg.createdTimestamp) / 1000).toFixed(1)} seconds.`, await ob.Assets.getIcon(`ICO_check`, bot.cfg.embed.okay))
           .setColor(bot.cfg.embed.okay);
 
         msg.edit({ embed: embed });

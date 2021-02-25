@@ -653,12 +653,12 @@ module.exports = class OptiBotAssetsManager {
     return bot.emojis.cache.get(bot.cfg.emoji.default);
   }
 
-  static async getIcon(query, color = `#FFFFFF`) {
+  static async getIcon(query, color = `#FFFFFF`, rotate = 0) {
     const bot = memory.core.client;
     const log = bot.log;
 
     for (const item of memory.assets.icons) {
-      if (item.q === query && item.c === color) {
+      if (item.q === query && item.c === color && item.r === rotate) {
         return item.u;
       }
     }
@@ -673,6 +673,7 @@ module.exports = class OptiBotAssetsManager {
       memory.assets.icons.push({
         q: query,
         c: color,
+        r: rotate,
         u: cachemsg.msg.attachments.first().url
       });
 
@@ -704,6 +705,11 @@ module.exports = class OptiBotAssetsManager {
 
       icon.mask(mask, 0, 0);
 
+      if (rotate !== 0 && !isNaN(parseInt(rotate))) {
+        icon.background(0x00000000) // ensures background doesnt show after rotating
+          .rotate(parseInt(rotate), false);
+      }
+
       return await submit(await icon.getBufferAsync(Jimp.MIME_PNG), `png`);
     }
 
@@ -717,6 +723,10 @@ module.exports = class OptiBotAssetsManager {
       const newframe = new gwrap.GifFrame(mask.frames[i]);
 
       jcolor.mask(fjmask, 0, 0);
+      if (rotate !== 0 && !isNaN(parseInt(rotate))) {
+        jcolor.background(0x00000000) // ensures background doesnt show after rotating
+          .rotate(parseInt(rotate), false);
+      }
 
       newframe.bitmap = jcolor.bitmap;
 

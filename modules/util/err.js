@@ -1,15 +1,15 @@
-const Memory = require(`../core/memory.js`);
+const memory = require(`../core/memory.js`);
 const djs = require(`discord.js`);
 const Assets = require(`../core/asset_manager.js`);
 
 /**
-     * Creates a simple, pre-formatted error message.
-     *
-     * @param {(Error|String)} err The error message or object.
-     * @param {OptiBot} [bot] OptiBot
-     */
+ * Creates a simple, pre-formatted error message.
+ *
+ * @param {(Error|String)} err The error message or object.
+ * @param {OptiBot} [bot] OptiBot
+ */
 module.exports = (err, data = {}) => {
-  const bot = Memory.core.client;
+  const bot = memory.core.client;
   const log = bot.log;
 
   const embed = new djs.MessageEmbed()

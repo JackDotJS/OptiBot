@@ -1,7 +1,7 @@
-const path = require('path');
-const util = require('util');
-const djs = require('discord.js');
-const memory = require('./memory.js');
+const path = require(`path`);
+const util = require(`util`);
+const djs = require(`discord.js`);
+const memory = require(`./memory.js`);
 
 /**
  * OptiBot Core: Command Class
@@ -32,9 +32,9 @@ module.exports = class Command {
   static parseMetadata({
     name = null,
     aliases = [],
-    short_desc = 'This command has no set description.',
+    short_desc = `This command has no set description.`,
     long_desc = null,
-    args = '',
+    args = ``,
     image = null,
     authlvl = null,
     flags = null,
@@ -43,32 +43,32 @@ module.exports = class Command {
     const bot = memory.core.client;
     const log = bot.log;
 
-    if (typeof name !== 'string' || name.match(/[^a-zA-Z0-9]/) !== null) {
-      throw new TypeError('Invalid or unspecified Command property: name');
+    if (typeof name !== `string` || name.match(/[^a-zA-Z0-9]/) !== null) {
+      throw new TypeError(`Invalid or unspecified Command property: name`);
     }
-    if (typeof aliases !== 'string' && !Array.isArray(aliases)) {
-      throw new TypeError('Invalid Command property: aliases');
+    if (typeof aliases !== `string` && !Array.isArray(aliases)) {
+      throw new TypeError(`Invalid Command property: aliases`);
     }
-    if (typeof short_desc !== 'string') {
-      throw new TypeError('Invalid Command property: short_desc');
+    if (typeof short_desc !== `string`) {
+      throw new TypeError(`Invalid Command property: short_desc`);
     }
-    if (typeof long_desc !== 'string' && typeof long_desc !== 'undefined' && long_desc !== null) {
-      throw new TypeError('Invalid Command property: long_desc');
+    if (typeof long_desc !== `string` && typeof long_desc !== `undefined` && long_desc !== null) {
+      throw new TypeError(`Invalid Command property: long_desc`);
     }
-    if (typeof args !== 'string' && !Array.isArray(args)) {
-      throw new TypeError('Invalid Command property: args');
+    if (typeof args !== `string` && !Array.isArray(args)) {
+      throw new TypeError(`Invalid Command property: args`);
     }
-    if (typeof image !== 'string' && typeof image !== 'undefined' && image !== null) {
-      throw new TypeError('Invalid Command property: image');
+    if (typeof image !== `string` && typeof image !== `undefined` && image !== null) {
+      throw new TypeError(`Invalid Command property: image`);
     }
-    if (typeof authlvl !== 'number') {
-      throw new TypeError('Invalid or unspecified Command property: authlvl');
+    if (typeof authlvl !== `number`) {
+      throw new TypeError(`Invalid or unspecified Command property: authlvl`);
     }
-    if (!Array.isArray(aliases) && typeof flags !== 'undefined' && flags !== null) {
-      throw new TypeError('Invalid Command property: flags');
+    if (!Array.isArray(aliases) && typeof flags !== `undefined` && flags !== null) {
+      throw new TypeError(`Invalid Command property: flags`);
     }
-    if (typeof run !== 'function') {
-      throw new Error('Invalid or unspecified Command property: run');
+    if (typeof run !== `function`) {
+      throw new Error(`Invalid or unspecified Command property: run`);
     }
 
     const metadata = {
@@ -154,40 +154,40 @@ module.exports = class Command {
       let found = 0;
 
       flags.forEach(t => {
-        if (typeof t !== 'string') {
-          throw new TypeError('Flags must be specified as strings.');
+        if (typeof t !== `string`) {
+          throw new TypeError(`Flags must be specified as strings.`);
         } else
-        if (typeof metadata.flags[t.toUpperCase()] === 'boolean') {
+        if (typeof metadata.flags[t.toUpperCase()] === `boolean`) {
           metadata.flags[t.toUpperCase()] = true;
           found++;
         }
       });
 
       if (found === 0) {
-        throw new Error('All given flags are invalid.');
+        throw new Error(`All given flags are invalid.`);
       }
 
-      if (metadata.flags['NO_DM'] && metadata.authlvl === -1) {
+      if (metadata.flags[`NO_DM`] && metadata.authlvl === -1) {
         throw new Error(`Command "${name}": Flag NO_DM and authlvl -1 are mutually exclusive.`);
       }
 
-      if (metadata.flags['NO_DM'] && metadata.flags['DM_OPTIONAL']) {
+      if (metadata.flags[`NO_DM`] && metadata.flags[`DM_OPTIONAL`]) {
         throw new Error(`Command "${name}": Flags NO_DM and DM_OPTIONAL are mutually exclusive.`);
       }
 
-      if (metadata.flags['DM_OPTIONAL'] && metadata.flags['DM_ONLY']) {
+      if (metadata.flags[`DM_OPTIONAL`] && metadata.flags[`DM_ONLY`]) {
         throw new Error(`Command "${name}": Flags DM_OPTIONAL and DM_ONLY are mutually exclusive.`);
       }
 
-      if (metadata.flags['NO_DM'] && metadata.flags['DM_ONLY']) {
+      if (metadata.flags[`NO_DM`] && metadata.flags[`DM_ONLY`]) {
         throw new Error(`Command "${name}": Flags NO_DM and DM_ONLY are mutually exclusive.`);
       }
 
-      if (metadata.flags['BOT_CHANNEL_ONLY'] && metadata.flags['DM_ONLY']) {
+      if (metadata.flags[`BOT_CHANNEL_ONLY`] && metadata.flags[`DM_ONLY`]) {
         throw new Error(`Command "${name}": Flags BOT_CHANNEL_ONLY and DM_ONLY are mutually exclusive.`);
       }
 
-      if (metadata.flags['BOT_CHANNEL_ONLY'] && metadata.flags['NO_DM']) {
+      if (metadata.flags[`BOT_CHANNEL_ONLY`] && metadata.flags[`NO_DM`]) {
         throw new Error(`Command "${name}": Flags BOT_CHANNEL_ONLY and NO_DM are mutually exclusive.`);
       }
     } else {
@@ -202,12 +202,12 @@ module.exports = class Command {
         examplesRaw.push(`${bot.prefix}${name} ${args[i]}`);
 
         if (i + 1 === args.length) {
-          metadata.args = examples.join('');
-          metadata.args_pt = examplesRaw.join('\n');
+          metadata.args = examples.join(``);
+          metadata.args_pt = examplesRaw.join(`\n`);
         }
       }
     } else
-    if (typeof args === 'string') {
+    if (typeof args === `string`) {
       metadata.args = `\`\`\`ini\n${bot.prefix}${name} ${args}\`\`\``;
       metadata.args_pt = `${bot.prefix}${name} ${args}`;
     } else {

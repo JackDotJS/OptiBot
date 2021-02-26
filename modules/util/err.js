@@ -28,7 +28,7 @@ module.exports = (err, data = {}) => {
       for (const line of lines) {
         if (line.includes(`node_modules`)) break;
 
-        let file = line.match(new RegExp(`${Memory.core.root.drive}\\[^,]+\\d+:\\d+`));
+        let file = line.match(new RegExp(`${memory.core.root.drive}\\[^,]+\\d+:\\d+`));
         if (!file) continue;
         file = file[0];
 
@@ -40,7 +40,7 @@ module.exports = (err, data = {}) => {
 
         let str = ``;
 
-        const fileshort = file.replace(Memory.core.root.dir, `~`);
+        const fileshort = file.replace(memory.core.root.dir, `~`);
 
         if (trace && trace !== file) {
           if (trace === `eval`) {

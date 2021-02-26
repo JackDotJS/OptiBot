@@ -155,15 +155,22 @@ module.exports = class OptiBot extends djs.Client {
         channel = dest;
       } else reject(new Error(`Invalid destination type.`));
 
-      if (!options && typeof content === `object` && !Array.isArray(content)) {
-        options = content;
-        content = `_ _`;
-      }
+      if (options == null) {
+        options = {};
+
+        if (typeof content === `object` && !Array.isArray(content)) {
+          options = content;
+          content = `_ _`;
+        }
+      } 
+
+      log(options);
+      log(content);
 
       // text pre-processing
 
-      const owomode = (typeof options === `object` && options.owo != null && typeof options.owo === `boolean` && options.owo);
-      const autotrunc = (typeof options === `object` && options.autotrunc != null && typeof options.autotrunc === `boolean` && options.autotrunc);
+      const owomode = (options.owo != null && typeof options.owo === `boolean` && options.owo);
+      const autotrunc = (options.autotrunc != null && typeof options.autotrunc === `boolean` && options.autotrunc);
 
       const getLimit = (type) => {
         const limits = {
@@ -224,26 +231,32 @@ module.exports = class OptiBot extends djs.Client {
         if (autotrunc) content = content.substring(0, getLimit(`content`));
       }
 
-      if (typeof options === `object` && options.embeds != null && Array.isArray(options.embeds) && options.embeds.length > 1) {
-        for (const i in options.embeds) {
-          options.embeds[i] = processEmbed(options.embeds[i]);
+      if (options.embeds != null && Array.isArray(options.embeds)) {
+        if (options.embeds.length > 1) {
+          // array has more than 1
+          for (const i in options.embeds) {
+            options.embeds[i] = processEmbed(options.embeds[i]);
+          }
+  
+          options.embed = options.embeds[0];
+  
+          buttons.push(
+            bot.cfg.emoji.back,
+            bot.cfg.emoji.forward
+          );
+        } else {
+          // array only has 1
+          options.embed = processEmbed(options.embeds[0]);
         }
-
-        options.embed = options.embeds[0];
-
-        buttons.push(
-          bot.cfg.emoji.back,
-          bot.cfg.emoji.forward
-        );
       } else
-      if (typeof options === `object` && options.embed != null && options.embed instanceof djs.MessageEmbed) {
+      if (options.embed != null && options.embed instanceof djs.MessageEmbed) {
         options.embed = processEmbed(options.embed);
       }
 
       // add deletion button in between page buttons.
-      // if the page buttons havent been added, this will (translation: "should") simply add the deletion button like normal
+      // if the page buttons havent been added, this will simply add the deletion button like normal
       // splice() is pretty neat
-      if (typeof options === `object` && (typeof options.userDelete !== `boolean` || options.userDelete) && channel.type !== `dm`) buttons.splice(1, 0, bot.cfg.emoji.deleter);
+      if (channel.type !== `dm` && (typeof options.userDelete !== `boolean` || options.userDelete)) buttons.splice(1, 0, bot.cfg.emoji.deleter);
 
       log(buttons);
 
@@ -336,7 +349,7 @@ module.exports = class OptiBot extends djs.Client {
           })(0);
         };
 
-        if (typeof options === `object` && !options.delayControl && user != null) addControl();
+        if (!options.delayControl && user != null) addControl();
 
         resolve({
           msg: bm,

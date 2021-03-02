@@ -147,13 +147,13 @@ process.on(`message`, (data) => {
       const channel = bot.channels.cache.get(bot.cfg.channels.log.misc);
 
       channel.send(
-        `<@&752056938753425488> ${(bot.cfg.envDeveloper != null) ? `<@${bot.cfg.envDeveloper}>` : ``} oops lmao`,
+        `<@&752056938753425488> ${(bot.cfg.dev != null) ? `<@${bot.cfg.dev.devID}>` : ``} oops lmao`,
         new djs.MessageAttachment(Buffer.from(data.c), `optibot_crash_log.txt`)
       ).catch(err => {
         bot.util.err(err);
 
         channel.send([
-          `<@&752056938753425488> ${(bot.cfg.envDeveloper != null) ? `<@${bot.cfg.envDeveloper}>` : ``} oops lmao`,
+          `<@&752056938753425488> ${(bot.cfg.dev != null) ? `<@${bot.cfg.dev.devID}>` : ``} oops lmao`,
           ``,
           `Failed to send crash log:`,
           `\`\`\`\n${err.stack}\`\`\``

@@ -5,11 +5,13 @@ const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `MoCkInG tOnE translator.`,
-  long_desc: `Rewrites a message with a mOcKiNg tOnE. In other words, this will pseudo-randomize the capitalization of each letter in the given text.`,
+  description: {
+    short: `MoCkInG tOnE translator.`,
+    long: `Rewrites a message with a mOcKiNg tOnE. In other words, this will pseudo-randomize the capitalization of each letter in the given text.`
+  },
   args: `<text | discord message>`,
-  authlvl: 1,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`],
+  dm: true,
+  flags: [ `PERMS_REQUIRED` ],
   run: null
 };
 

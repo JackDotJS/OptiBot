@@ -10,19 +10,21 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`verify`, `donator`],
-  short_desc: `Verify donator status.`,
-  long_desc: [
-    `Verifies your donator status. If successful, this will grant you the donator role, and reset your donator token in the process.`,
-    ``,
-    `You can find your donator token by logging in through the website, at https://optifine.net/login. Look at the bottom of the page for a string of random characters (see picture for example).`,
-    ``,
-    `__**!!! Your account password is NOT your token !!!**__`,
-    `__**!!! Your donation ID is NOT your token !!!**__`,
-  ].join(`\n`),
+  description: {
+    short: `Verify donator status.`,
+    long: [
+      `Verifies your donator status. If successful, this will grant you the donator role, and reset your donator token in the process.`,
+      ``,
+      `You can find your donator token by logging in through the website, at https://optifine.net/login. Look at the bottom of the page for a string of random characters (see picture for example).`,
+      ``,
+      `__**!!! Your account password is NOT your token !!!**__`,
+      `__**!!! Your donation ID is NOT your token !!!**__`,
+    ].join(`\n`)
+  },
   args: `<e-mail> <token>`,
-  authlvl: 0,
+  dm: true,
   image: `IMG_token`,
-  flags: [`DM_ONLY`, `STRICT`, `DELETE_ON_MISUSE`, `NO_TYPER`, `CONFIDENTIAL`, `LITE`],
+  flags: [ `DM_ONLY`, `STRICT`, `DELETE_ON_MISUSE`, `NO_LOGGING_ARGS`, `LITE` ],
   run: null
 };
 

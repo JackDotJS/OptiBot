@@ -9,13 +9,13 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  // aliases: ['aliases'],
-  short_desc: `Short description. Shows when viewed with \` ${bot.prefix}list \``,
-  long_desc: `Long description. Shows when using \` ${bot.prefix}help ${path.parse(__filename).name} \` and tooltips in \` ${bot.prefix}list \``,
-  args: `<icon name> [color]`,
-  image: `IMG_args`,
-  authlvl: 5,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`, `HIDDEN`, `LITE`],
+  description: {
+    short: `Display an OptiBot icon.`,
+    long: `Displays an OptiBot embed icon, with optional custom colors and rotation.`
+  },
+  args: `<icon name> [color] [angle]`,
+  dm: true,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

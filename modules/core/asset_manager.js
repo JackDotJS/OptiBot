@@ -141,6 +141,7 @@ module.exports = class OptiBotAssetsManager {
 
             for(const i in commands) {
               const cmd = commands[i];
+              log(cmd);
               if (cmd == null || !cmd.isFile() || !cmd.name.endsWith(`.js`)) continue;
             
               log(`processing: ./modules/cmd/${cmd.name}`);
@@ -180,14 +181,12 @@ module.exports = class OptiBotAssetsManager {
                     }
                   }
                 }
-            
-                finalRegister();
-              } else {
-                finalRegister();
               }
 
-              resolve();
+              finalRegister();
             }
+
+            resolve();
           });
         }
       });
@@ -202,7 +201,7 @@ module.exports = class OptiBotAssetsManager {
             for (const file of events) {
               const name = file.split(`.`)[0];
               const event = require(`../events/${file}`);
-              bot.on(name, event.bind(null, bot));
+              bot.on(name, event);
               log(`Loaded event handler: ${name}`);
             }
 

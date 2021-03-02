@@ -4,7 +4,7 @@ const ob = require(`../core/OptiBot.js`);
 const bot = ob.memory.core.client;
 const log = ob.log;
 
-module.exports = (bot, rl) => {
+module.exports = (rl) => {
   const rlInfo = [
     `Timeout: ${rl.timeout}`,
     `Request Limit: ${rl.limit}`,

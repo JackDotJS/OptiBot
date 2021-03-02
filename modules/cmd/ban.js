@@ -6,12 +6,13 @@ const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: [`null`],
-  short_desc: `Ban a given user.`,
-  long_desc: `Bans a given user. This command only really exists to allow moderators to ban users outside of the server. **Note that this will NOT delete any existing messages for the sake of preserving history.**`,
+  description: {
+    short: `Ban a given user.`,
+    long: `Bans a given user. This command only really exists to allow moderators to ban users outside of the server. **Note that this will NOT delete any existing messages for the sake of preserving history.**`
+  },
   args: `<discord member> <reason>`,
-  authlvl: 3,
-  flags: [`NO_DM`, `LITE`],
+  dm: false,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

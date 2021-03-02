@@ -12,11 +12,13 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`cloak`, `elytra`],
-  short_desc: `Show off an OptiFine donator cape.`,
-  long_desc: `Displays a given user's OptiFine cape and elytra, assuming they've donated and have their cape activated.`,
+  description: {
+    short: `Show off an OptiFine donator cape.`,
+    long: `Displays a given user's OptiFine cape and elytra, assuming they've donated and have their cape activated.`
+  },
   args: `<minecraft username>`,
-  authlvl: 0,
-  flags: [`DM_OPTIONAL`, `BOT_CHANNEL_ONLY`, `LITE`],
+  dm: true,
+  flags: [ `BOT_CHANNEL_ONLY`, `LITE` ],
   run: null
 };
 

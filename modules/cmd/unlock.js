@@ -7,11 +7,13 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`open`],
-  short_desc: `Unlock a given channel.`,
-  long_desc: `Unlocks a given channel. Defaults to the channel you're in if not specified.`,
+  description: {
+    short: `Unlock a given channel.`,
+    long: `Unlocks a given channel. Defaults to the channel you're in if not specified.`
+  },
   args: `[channel]`,
-  authlvl: 2,
-  flags: [`NO_DM`, `STRICT`, `LITE`],
+  dm: false,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

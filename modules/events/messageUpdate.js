@@ -5,15 +5,34 @@ const ob = require(`../core/OptiBot.js`);
 const bot = ob.memory.core.client;
 const log = ob.log;
 
-module.exports = (bot, m, mNew) => {
+module.exports = async (m, mNew) => {
+  if (bot.pause) return;
+  if (m.type !== `DEFAULT` || m.system || m.author.system || m.author.bot) return;
+
+  // handle command edits
+  const input = bot.util.parseInput(mNew.content);
+  const inputOld = bot.util.parseInput(m.content);
+
+  if (input.valid) {
+    const messages = await m.channel.messages.fetch({ amount: 2 });
+    const sorted = messages.sort((a, b) => b.createdTimestamp - a.createdTimestamp).array();
+
+    if (inputOld.valid && sorted[0].author.id === bot.user.id && sorted[1].id === mNew.id) {
+      sorted[0].delete();
+      bot.util.handleCommand(sorted[1], input);
+    }
+
+    if (sorted[0].id === mNew.id) {
+      bot.util.handleCommand(sorted[0], input);
+    }
+  }
+
   const now = new Date();
 
-  if (bot.pause) return;
-  if (m.channel.type === `dm`) return;
-  if (m.type !== `DEFAULT` || m.system || m.author.system || m.author.bot) return;
   if (m.guild.id !== bot.cfg.guilds.optifine) return;
-  if (bot.util.parseInput(mNew).cmd === `dr`) return;
+  if (input.cmd === `dr`) return;
   if (bot.cfg.channels.nolog.some(id => [m.channel.id, m.channel.parentID].includes(id))) return;
+  if (m.channel.type === `dm`) return;
 
   const logEntry = new ob.LogEntry({ time: now, channel: `edit` });
 

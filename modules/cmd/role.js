@@ -9,24 +9,26 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`rank`],
-  short_desc: `Add or remove member roles.`,
-  long_desc: [
-    `Adds or removes roles for the specified member. Note that roles are not retained if the given member leaves and rejoins the server.`,
-    ``,
-    `The following roles can be granted/removed:`,
-    (() => {
-      const desc_grantable = [];
-
-      for (let i = 0; i < bot.cfg.roles.grantable.length; i++) {
-        desc_grantable.push(`<@&${bot.cfg.roles.grantable[i]}>`);
-      }
-
-      return desc_grantable.join(` `);
-    })()
-  ].join(`\n`),
+  description: {
+    short: `Add or remove member roles.`,
+    long: [
+      `Adds or removes roles for the specified member. Note that roles are not retained if the given member leaves and rejoins the server.`,
+      ``,
+      `The following roles can be granted/removed:`,
+      (() => {
+        const desc_grantable = [];
+  
+        for (let i = 0; i < bot.cfg.roles.grantable.length; i++) {
+          desc_grantable.push(`<@&${bot.cfg.roles.grantable[i]}>`);
+        }
+  
+        return desc_grantable.join(` `);
+      })()
+    ].join(`\n`)
+  },
   args: `<discord member> <role>`,
-  authlvl: 2,
-  flags: [`NO_DM`, `LITE`],
+  dm: false,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

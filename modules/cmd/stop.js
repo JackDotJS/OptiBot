@@ -6,10 +6,12 @@ const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `Shut down OptiBot.`,
   aliases: [ `exit` ],
-  authlvl: 4,
-  flags: [`NO_DM`, `NO_TYPER`, `LITE`],
+  description: {
+    short: `Shut down OptiBot.`,
+  },
+  dm: false,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

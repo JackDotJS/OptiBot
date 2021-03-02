@@ -8,11 +8,13 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`optibit`, `bits`, `bit`],
-  short_desc: `Show OptiBits.`,
-  long_desc: `Displays information for all OptiBits. (This will be moved to \`${bot.prefix}help\` and \`${bot.prefix}list\` in a future update.)`,
+  description: {
+    short: `Show OptiBits.`,
+    long: `Displays information for all OptiBits. (This will be moved to \`${bot.prefix}help\` and \`${bot.prefix}list\` in a future update.)`
+  },
   args: `[page number]`,
-  authlvl: 0,
-  flags: [`DM_OPTIONAL`, `BOT_CHANNEL_ONLY`],
+  dm: true,
+  flags: [ `BOT_CHANNEL_ONLY`, `LITE` ],
   run: null
 };
 

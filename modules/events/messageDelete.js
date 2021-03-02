@@ -6,7 +6,7 @@ const ob = require(`../core/OptiBot.js`);
 const bot = ob.memory.core.client;
 const log = ob.log;
 
-module.exports = (bot, m) => {
+module.exports = (m) => {
   const now = new Date();
   if (bot.pause) return;
   if (m.channel.type === `dm`) return;

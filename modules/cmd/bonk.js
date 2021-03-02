@@ -7,12 +7,14 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`boatvan`, `botevan`],
-  short_desc: `Start a vote to bonk a user.`,
-  long_desc: `Starts a vote to bonk a given user. \n\n__**THIS IS A JOKE COMMAND.**__`,
-  args: `<discord member> [reason]`,
+  description: {
+    short: `Start a vote to bonk a user.`,
+    long: `Starts a vote to bonk a given user. \n\n__**THIS IS A JOKE COMMAND.**__`
+  },
+  args: `[discord member] [reason]`,
   image: `IMG_banhammer`,
-  authlvl: 1,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`, `HIDDEN`],
+  dm: true,
+  flags: [ `PERMS_REQUIRED` ],
   run: null
 };
 
@@ -56,7 +58,7 @@ metadata.run = (m, args, data) => {
     bot.send(m, { embed, delayControl: true }).then(bres => {
       const bm = bres.msg;
 
-      bm.react(bot.guilds.cache.get(bot.cfg.guilds.optibot).emojis.cache.get(bot.cfg.emoji.confirm)).then(() => {
+      bm.react(bot.emojis.cache.get(bot.cfg.emoji.confirm)).then(() => {
         bot.setTimeout(() => {
           const total = bm.reactions.cache.get(bot.cfg.emoji.confirm);
           embed = new djs.MessageEmbed()

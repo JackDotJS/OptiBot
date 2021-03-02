@@ -6,10 +6,12 @@ const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `Show information about OptiBot itself.`,
-  long_desc: `Displays information about OptiBot itself, and how to get started using it.`,
-  authlvl: 0,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`, `BOT_CHANNEL_ONLY`, `LITE`],
+  description: {
+    short: `A quick introduction to OptiBot.`,
+    long: `Provides a quick introduction to OptiBot.`
+  },
+  dm: true,
+  flags: [ `BOT_CHANNEL_ONLY`, `LITE` ],
   run: null
 };
 
@@ -30,18 +32,16 @@ metadata.run = async (m) => {
 
   const desc = [
     `Developed and maintained by ${developers} out of love for a great community.`,
-    ``,
-    `To use any command, simply type a prefix (\` ${bot.prefixes.join(` \`, \` `)} \`) immediately followed by the name/alias of the command. Command arguments are separated by spaces, like so: \` ${bot.prefix}command <arg1> <arg2> <arg3> ... \``
   ];
 
   const embed = new djs.MessageEmbed()
     .setColor(bot.cfg.embed.default)
-    .setAuthor(`OptiBot`, await Assets.getIcon(`ICO_info`, bot.cfg.embed.default))
+    .setAuthor(`About`, await Assets.getIcon(`ICO_info`, bot.cfg.embed.default))
     .setThumbnail(bot.user.displayAvatarURL({ format: `png`, size: 64 }))
     .setTitle(`The official OptiFine Discord server bot. \n\n`)
     .setDescription(desc.join(`\n`))
-    .addField(`Commands List`, `\`\`\`${bot.prefix}list\`\`\``, true)
-    .addField(`Command Details`, `\`\`\`${bot.prefix}help <command>\`\`\``, true)
+    .addField(`View Commands`, `\`\`\`${bot.prefix}help\`\`\``, true)
+    .addField(`View Details`, `\`\`\`${bot.prefix}help <command>\`\`\``, true)
     .setFooter([
       `Version: ${bot.version}`,
       `Session Uptime: ${uptime(process.uptime() * 1000)}`

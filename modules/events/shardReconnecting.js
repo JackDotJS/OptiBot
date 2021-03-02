@@ -4,7 +4,7 @@ const ob = require(`../core/OptiBot.js`);
 const bot = ob.memory.core.client;
 const log = ob.log;
 
-module.exports = (bot, id) => {
+module.exports = (id) => {
   log(`Shard WebSocket reconnecting... \nShard ID: ${id}`, `warn`);
   log(util.inspect(bot.ws));
   bot.util.setWindowTitle();

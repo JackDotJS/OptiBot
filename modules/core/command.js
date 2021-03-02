@@ -32,12 +32,11 @@ module.exports = class Command {
   static parseMetadata({
     name = null,
     aliases = [],
-    short_desc = `This command has no set description.`,
-    long_desc = null,
-    args = ``,
+    description = {},
+    args = [],
     image = null,
-    authlvl = null,
-    flags = null,
+    dm = true,
+    flags = [],
     run = null
   }) {
     const bot = memory.core.client;
@@ -46,25 +45,22 @@ module.exports = class Command {
     if (typeof name !== `string` || name.match(/[^a-zA-Z0-9]/) !== null) {
       throw new TypeError(`Invalid or unspecified Command property: name`);
     }
-    if (typeof aliases !== `string` && !Array.isArray(aliases)) {
+    if (!Array.isArray(aliases)) {
       throw new TypeError(`Invalid Command property: aliases`);
     }
-    if (typeof short_desc !== `string`) {
-      throw new TypeError(`Invalid Command property: short_desc`);
-    }
-    if (typeof long_desc !== `string` && typeof long_desc !== `undefined` && long_desc !== null) {
-      throw new TypeError(`Invalid Command property: long_desc`);
+    if (description.constructor !== Object) {
+      throw new TypeError(`Invalid Command property: description`);
     }
     if (typeof args !== `string` && !Array.isArray(args)) {
       throw new TypeError(`Invalid Command property: args`);
     }
-    if (typeof image !== `string` && typeof image !== `undefined` && image !== null) {
+    if (typeof image !== `string` && image != null) {
       throw new TypeError(`Invalid Command property: image`);
     }
-    if (typeof authlvl !== `number`) {
-      throw new TypeError(`Invalid or unspecified Command property: authlvl`);
+    if (typeof dm !== `boolean`) {
+      throw new TypeError(`Invalid Command property: dm`);
     }
-    if (!Array.isArray(aliases) && typeof flags !== `undefined` && flags !== null) {
+    if (!Array.isArray(flags)) {
       throw new TypeError(`Invalid Command property: flags`);
     }
     if (typeof run !== `function`) {
@@ -74,38 +70,21 @@ module.exports = class Command {
     const metadata = {
       name: name,
       aliases: (Array.isArray(aliases)) ? [...new Set(aliases)] : [],
-      short_desc: short_desc,
-      long_desc: (long_desc) ? long_desc : short_desc,
-      args: null,
-      args_pt: null,
+      description: {
+        short: (typeof description.short === `string`) ? description.short : `This command has no set description.`,
+        long: (typeof description.long === `string`) ? description.long : (typeof description.short === `string`) ? description.short : `This command has no set description.`
+      },
+      args: [],
 
       // Image to be shown as a thumbnail when this command is viewed through !help.
       // Must be a plain string specifying a complete filename from the ../assets/img directory.
       // i.e. "IMG_token.png"
       image: image,
 
-      /**
-             * Authorization Level
-             * 
-             * -1 = Muted Member
-             * 0 = Normal Member
-             * 1 = Retired Staff
-             * 2 = Jr. Moderator
-             * 3 = Moderator
-             * 4 = Administrator
-             * 5 = Bot Developer
-             * 6+ = God himself
-             */
-      authlvl: authlvl,
+      // Allow usage of command in DMs.
+      dm: dm,
 
       flags: {
-        // Command cannot be used in Direct Messages.
-        // Mutually exclusive with authlvl -1.
-        NO_DM: false,
-
-        // Command can be used in server chat OR Direct Messages
-        DM_OPTIONAL: false,
-
         // Command can ONLY be used in Direct Messages
         DM_ONLY: false,
 
@@ -113,43 +92,39 @@ module.exports = class Command {
         // Mutually exclusive with DM_ONLY and NO_DM
         BOT_CHANNEL_ONLY: false,
 
-        // Command can only be used in moderator-only channels/categories. (see: config.channels.mod)
-        MOD_CHANNEL_ONLY: false,
+        // Command can only be used staff-only channels/categories. (see: config.channels.staff)
+        STAFF_CHANNEL_ONLY: false,
 
-        // Normally, users with authlvl 2 and higher are exempt from the BOT_CHANNEL_ONLY flag.
-        // Users with authlvl 5 are also exempt from the flags MOD_CHANNEL_ONLY, NO_DM, and DM_ONLY.
-        // This flag makes it so all restrictions are applied, regardless of authlvl.
-        // This is generally applied when using a command in an unexpected channel would somehow
-        // result in errors/crashes.
-        STRICT: false,
-
-        // Normally, authlvls between the member and the command are compared as "greater than or equal to".
-        // This flag ensures the member's authlvl must always equal the command's required authlvl.
-        STRICT_AUTH: false,
-
-        // Ignores elevated "Bot Developer" permissions and compares next available authlvl.
-        IGNORE_ELEVATED: false,
+        // Normally, users with the bypassChannels permission node are exempt from the BOT_CHANNEL_ONLY flag.
+        // Additionally, users with the wildcard (*) permission node are exempt from the STAFF_CHANNEL_ONLY flag.
+        // This flag makes it so all restrictions are applied, regardless of permissions.
+        STRICT: false, 
 
         // Deletes the users message if any restriction results in the command not firing.
         // Useful for reducing spam, or for commands that require particularly sensitive information as arguments.
         DELETE_ON_MISUSE: false,
 
-        // Command is treated as non-existent to any user without the required authlvl.
+        // Prevents command from showing in !help command list. (does not apply for users with bypassHidden permission node)
+        // When combined with the PERMS_REQUIRED flag, the bot will also
+        // treat this command as non-existent when any user attempts to use
+        // it without the required permissions.
         HIDDEN: false,
 
-        // Prevents typing indicators from being sent in the given channel.
-        // Commands without this flag MUST use the channel.stopTyping() method after sending a response message.
-        NO_TYPER: false,
+        // Usage of this command will not be logged at all.
+        NO_LOGGING: false,
 
-        // Details of this command will not be logged.
-        CONFIDENTIAL: false,
+        // Arguments for this command will not be logged.
+        NO_LOGGING_ARGS: false,
 
-        // Preserve command during Modes 1 and 2.
-        LITE: false
+        // Allows command to be loaded during Modes 1 and 2.
+        LITE: false,
+        
+        // Requires the user to have a permission group, inherited or otherwise, that allows usage of this command.
+        PERMS_REQUIRED: false,
       }
     };
 
-    if (Array.isArray(flags) && flags.length > 0) {
+    if (flags.length > 0) {
       flags = [...new Set(flags)];
       let found = 0;
 
@@ -167,52 +142,24 @@ module.exports = class Command {
         throw new Error(`All given flags are invalid.`);
       }
 
-      if (metadata.flags[`NO_DM`] && metadata.authlvl === -1) {
-        throw new Error(`Command "${name}": Flag NO_DM and authlvl -1 are mutually exclusive.`);
-      }
-
-      if (metadata.flags[`NO_DM`] && metadata.flags[`DM_OPTIONAL`]) {
-        throw new Error(`Command "${name}": Flags NO_DM and DM_OPTIONAL are mutually exclusive.`);
-      }
-
-      if (metadata.flags[`DM_OPTIONAL`] && metadata.flags[`DM_ONLY`]) {
-        throw new Error(`Command "${name}": Flags DM_OPTIONAL and DM_ONLY are mutually exclusive.`);
-      }
-
-      if (metadata.flags[`NO_DM`] && metadata.flags[`DM_ONLY`]) {
-        throw new Error(`Command "${name}": Flags NO_DM and DM_ONLY are mutually exclusive.`);
+      if (!metadata.dm && metadata.flags[`DM_ONLY`]) {
+        throw new Error(`Command "${name}": Cannot use flag DM_ONLY while this command does not allow DMs.`);
       }
 
       if (metadata.flags[`BOT_CHANNEL_ONLY`] && metadata.flags[`DM_ONLY`]) {
         throw new Error(`Command "${name}": Flags BOT_CHANNEL_ONLY and DM_ONLY are mutually exclusive.`);
       }
-
-      if (metadata.flags[`BOT_CHANNEL_ONLY`] && metadata.flags[`NO_DM`]) {
-        throw new Error(`Command "${name}": Flags BOT_CHANNEL_ONLY and NO_DM are mutually exclusive.`);
-      }
-    } else {
-      if (authlvl !== 5) metadata.authlvl = 5;
     }
 
     if (Array.isArray(args) && args.length > 0) {
-      const examples = [];
-      const examplesRaw = [];
-      for (let i = 0; i < args.length; i++) {
-        examples.push(`\`\`\`ini\n${bot.prefix}${name} ${args[i]}\`\`\``);
-        examplesRaw.push(`${bot.prefix}${name} ${args[i]}`);
-
-        if (i + 1 === args.length) {
-          metadata.args = examples.join(``);
-          metadata.args_pt = examplesRaw.join(`\n`);
-        }
+      for (const arg of args) {
+        metadata.args.push(`${bot.prefix}${name} ${arg}`);
       }
     } else
     if (typeof args === `string`) {
-      metadata.args = `\`\`\`ini\n${bot.prefix}${name} ${args}\`\`\``;
-      metadata.args_pt = `${bot.prefix}${name} ${args}`;
+      metadata.args.push(`${bot.prefix}${name} ${args}`);
     } else {
-      metadata.args = `\`\`\`ini\n${bot.prefix}${name}\`\`\``;
-      metadata.args_pt = `${bot.prefix}${name}`;
+      metadata.args.push(`${bot.prefix}${name}`);
     }
 
     return metadata;

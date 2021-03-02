@@ -9,19 +9,21 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`editrec`, `updaterecord`],
-  short_desc: `Edit an existing record entry.`,
-  long_desc: [
-    `Edits an existing record entry. With the exception of Administrators, records can only be modified by the same moderator who's responsible for its creation.`,
-    ``,
-    `Valid properties include:`,
-    `**\`reason\`** - The reason for this action.`,
-    `**\`details\`** - The details of the case.`,
-    `**\`parent\`** - The parent case ID.`,
-    `**\`pardon\`** - (Administrators only) The reason for pardoning this action.`,
-  ].join(`\n`),
+  description: {
+    short: `Edit an existing record entry.`,
+    long: [
+      `Edits an existing record entry. With the exception of Administrators, records can only be modified by the same moderator who's responsible for its creation.`,
+      ``,
+      `Valid properties include:`,
+      `**\`reason\`** - The reason for this action.`,
+      `**\`details\`** - The details of the case.`,
+      `**\`parent\`** - The parent case ID.`,
+      `**\`pardon\`** - (Administrators only) The reason for pardoning this action.`,
+    ].join(`\n`)
+  },
   args: `<discord member> <case ID> <property> [new value]`,
-  authlvl: 2,
-  flags: [`NO_DM`, `STRICT`, `NO_TYPER`, `LITE`],
+  dm: false,
+  flags: [ `STRICT`, `PERMS_REQUIRED`, `STAFF_CHANNEL_ONLY`, `LITE`],
   run: null
 };
 

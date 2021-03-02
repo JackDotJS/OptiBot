@@ -9,14 +9,16 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`modrecords`, `modlog`],
-  short_desc: `View a moderator's action log.`,
-  long_desc: `Displays a brief summary of a given user's recent actions as a moderator.`,
+  description: {
+    short: `View a moderator's action log.`,
+    long: `Displays a brief summary of a given user's recent actions as a moderator.`
+  },
   args: [
     `<discord member> [page #] ["full"]`,
     `<discord member> ["full"] [page #]`,
   ],
-  authlvl: 2,
-  flags: [`DM_OPTIONAL`, `MOD_CHANNEL_ONLY`, `LITE`],
+  dm: true,
+  flags: [ `STAFF_CHANNEL_ONLY`, `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

@@ -1,9 +1,10 @@
 const djs = require(`discord.js`);
 const ob = require(`../core/OptiBot.js`);
 
+const bot = ob.memory.core.client;
 const log = ob.log;
 
-module.exports = (bot, oldc, newc) => {
+module.exports = (oldc, newc) => {
   const now = new Date();
   if (bot.pause) return;
   if (oldc.type !== `text`) return;

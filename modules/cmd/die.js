@@ -5,10 +5,11 @@ const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `die`,
-  long_desc: `die`,
-  authlvl: 1,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`, `HIDDEN`],
+  description: {
+    short: `die`
+  },
+  dm: true,
+  flags: [ `HIDDEN`, `PERMS_REQUIRED` ],
   run: null
 };
 

@@ -7,11 +7,13 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`getban`, `searchban`],
-  short_desc: `Get ban information.`,
-  long_desc: `Gets information on a given user's ban. Includes information from records, if available.`,
+  description: {
+    short: `Get ban information.`,
+    long: `Gets information on a given user's ban. Includes information from records, if available.`
+  },
   args: `<discord member>`,
-  authlvl: 2,
-  flags: [`DM_OPTIONAL`, `MOD_CHANNEL_ONLY`, `LITE`],
+  dm: true,
+  flags: [ `STAFF_CHANNEL_ONLY`, `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

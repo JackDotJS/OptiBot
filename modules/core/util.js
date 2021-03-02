@@ -7,6 +7,7 @@ module.exports = {
   getProfile: require(`../util/getProfile`),
   updateProfile: require(`../util/updateProfile`),
   parseTarget: require(`../util/parseTarget`),
+  parseTargetNew: require(`../util/parseTargetNew`),
   confirm: require(`../util/confirm`),
   err: require(`../util/err`),
   parseTime: require(`../util/parseTime`),
@@ -14,5 +15,5 @@ module.exports = {
   unmuter: require(`../util/unmuter`),
   owo: require(`../util/owo`),
   verifyDonator: require(`../util/verifyDonator`),
-  calculatePoints: require(`../util/calculatePoints`)
+  handleCommand: require(`../util/handleCommand`)
 };

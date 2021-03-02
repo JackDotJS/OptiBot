@@ -1,0 +1,34 @@
+{
+  "dev": {
+    "devID": "",
+    "exec": {
+      "verbose": true,
+      "inspectionDepth": 2
+    }
+  },
+  "prefixes": [
+    ">",
+    "."
+  ],
+  "guilds": {
+    "optifine": null,
+    "optibot": "",
+    "donator": null
+  },
+  "channels": {
+    "bot": [],
+    "mod": [],
+    "blacklist": [],
+    "nomodify": [],
+    "nolog": [],
+    "log": {
+      "moderation": "",
+      "delete": "",
+      "joinleave": "",
+      "edit": "",
+      "misc": ""
+    },
+    "cache": "",
+    "faq": ""
+  }
+}

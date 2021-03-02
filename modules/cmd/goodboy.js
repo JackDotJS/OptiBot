@@ -6,9 +6,11 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`goodboi`],
-  short_desc: `Good boy!`,
-  authlvl: 1,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`, `LITE`],
+  description: {
+    short: `Good boy!`
+  },
+  dm: true,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

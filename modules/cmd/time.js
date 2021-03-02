@@ -7,11 +7,13 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`timetest`],
-  short_desc: `Test OptiBot's time parser utility.`,
-  long_desc: `Gives the raw output of OptiBot's time parser utility.`,
+  description: {
+    short: `Test OptiBot's time parser utility.`,
+    long: `Gives the raw output of OptiBot's time parser utility.`
+  },
   args: `<time>`,
-  authlvl: 1,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`],
+  dm: true,
+  flags: [ `PERMS_REQUIRED` ],
   run: null
 };
 

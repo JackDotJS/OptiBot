@@ -8,10 +8,12 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`unlockdown`],
-  short_desc: `Unlock ALL server channels.`,
-  long_desc: `Unlocks ALL channels in the server.`,
-  authlvl: 3,
-  flags: [`NO_DM`, `STRICT`, `NO_TYPER`, `LITE`],
+  description: {
+    short: `Unlock ALL server channels.`,
+    long: `Unlocks ALL channels in the server.`
+  },
+  dm: false,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

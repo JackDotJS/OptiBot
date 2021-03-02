@@ -6,11 +6,13 @@ const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  //aliases: ['fixjar'],
-  short_desc: `Get a link to download Jarfix.`,
-  long_desc: `Provides a link to download Jarfix.`,
-  authlvl: 0,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`],
+  aliases: [`fixjar`],
+  description: {
+    short: `Get a link to download Jarfix.`,
+    long: `Provides a link to download Jarfix.`
+  },
+  dm: true,
+  flags: [ `LITE` ],
   run: null
 };
 

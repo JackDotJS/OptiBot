@@ -7,11 +7,13 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`slowmode`, `sm`],
-  short_desc: `Set channel slowmode time.`,
-  long_desc: `Manually sets interval for slowmode in the current channel.`,
+  description: {
+    short: `Set channel slowmode time.`,
+    long: `Manually sets interval for slowmode in the current channel.`
+  },
   args: `<time>`,
-  authlvl: 2,
-  flags: [`NO_DM`, `NO_TYPER`, `LITE`],
+  dm: false,
+  flags: [`PERMS_REQUIRED`, `LITE`],
   run: null
 };
 

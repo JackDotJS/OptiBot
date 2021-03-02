@@ -1,11 +1,13 @@
-const path = require('path');
-const { Command } = require('../core/optibot.js');
+const path = require(`path`);
+const { Command } = require(`../core/optibot.js`);
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `This kills the bot.`,
-  authlvl: 5,
-  flags: ['DM_OPTIONAL', 'NO_TYPER', 'HIDDEN', 'LITE'],
+  description: {
+    short: `This kills the bot.`
+  },
+  dm: false,
+  flags: [ `HIDDEN`, `PERMS_REQUIRED`, `STAFF_CHANNEL_ONLY`, `STRICT`, `DELETE_ON_MISUSE`, `LITE` ],
   run: null
 };
 

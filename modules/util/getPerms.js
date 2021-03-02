@@ -9,7 +9,13 @@ module.exports = async (member) => {
 
   const perms = {
     level: 0,
-    nodes: []
+    nodes: [],
+    has: (perm) => {
+      if (bot.cfg.dev != null && member.id === bot.cfg.dev.devID) return true;
+      if (perms.nodes.includes(`*`)) return true;
+      if (perms.nodes.includes(`!*`)) return false;
+      return perms.nodes.includes(perm);
+    }
   };
 
   if (member.constructor === djs.User) {

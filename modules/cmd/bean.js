@@ -6,11 +6,13 @@ const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `Get beaned.`,
-  long_desc: `Beans a user. This is a Very Serious(TM) command and has Very Serious(TM) consequences if used incorrectly.`,
+  description: {
+    short: `Get beaned.`,
+    long:`Beans a user. This is a Very Serious(TM) command and has Very Serious(TM) consequences if used incorrectly.`
+  },
   args: `[discord member] [reason]`,
-  authlvl: 1,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`],
+  dm: true,
+  flags: [ `PERMS_REQUIRED` ],
   run: null
 };
 

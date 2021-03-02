@@ -10,11 +10,13 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`whois`],
-  short_desc: `Show a user's OptiBot profile.`,
-  long_desc: `Displays detailed information about a given user. Almost all information provided by Discord's API.`,
+  description: {
+    short: `Show a user's OptiBot profile.`,
+    long: `Displays detailed information about a given user. Almost all information provided by Discord's API.`
+  },
   args: `[discord member]`,
-  authlvl: -1,
-  flags: [`DM_OPTIONAL`, `BOT_CHANNEL_ONLY`, `LITE`],
+  dm: true,
+  flags: [ `BOT_CHANNEL_ONLY` ],
   run: null
 };
 

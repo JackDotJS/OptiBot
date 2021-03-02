@@ -6,11 +6,12 @@ const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  //aliases: [''],
-  short_desc: `Show OptiFine donation information.`,
-  long_desc: `Shows information about OptiFine donations.`,
-  authlvl: 0,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`],
+  description: {
+    short: `Show OptiFine donation information.`,
+    long: `Shows information about OptiFine donations.`
+  },
+  dm: true,
+  flags: [ `LITE` ],
   run: null
 };
 

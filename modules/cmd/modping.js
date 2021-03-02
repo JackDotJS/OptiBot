@@ -1,25 +1,27 @@
-const path = require('path');
-const djs = require('discord.js');
-const util = require('util');
-const { Command, memory, Assets } = require('../core/optibot.js');
+const path = require(`path`);
+const djs = require(`discord.js`);
+const util = require(`util`);
+const { Command, memory, Assets } = require(`../core/optibot.js`);
 
 const bot = memory.core.client;
 const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: ['pingmods', 'moderator', 'moderators', 'mods'],
-  short_desc: 'Ping server moderators.',
-  long_desc: 'Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.**',
-  authlvl: 0,
-  flags: ['NO_DM', 'STRICT', 'LITE'],
+  aliases: [`pingmods`, `moderator`, `moderators`, `mods`],
+  description: {
+    short: `Ping server moderators.`,
+    long: `Pings server moderators. This command should only be used for *legitimate reasons,* such as reporting rule breakers or requesting server roles. Think of it as actually pinging a role. **Continually using this command improperly will not be tolerated.**`
+  },
+  dm: false,
+  flags: [ `LITE` ],
   run: null
 };
 
 
 metadata.run = m => {
   const pinged = [
-    '202558206495555585', // exclude sp614x
+    `202558206495555585`, // exclude sp614x
     m.author.id // exclude command issuer
   ];
 
@@ -75,13 +77,13 @@ metadata.run = m => {
 
         data.debug.presence.push(debugPresence);
 
-        if (mod.presence.status === 'online') {
+        if (mod.presence.status === `online`) {
           pings.online.push(mod.user.id);
 
           if (mod.lastMessage != null && (mod.lastMessage.createdTimestamp + 600000) > new Date().getTime()) {
             pings.recent.push(mod.user.id);
           }
-        } else if (mod.presence.status === 'away') {
+        } else if (mod.presence.status === `away`) {
           pings.away.push(mod.user.id);
         }
       }
@@ -103,23 +105,23 @@ metadata.run = m => {
       data.selectTier = i;
 
       if(prevTier === i) {
-        log('same tier');
+        log(`same tier`);
         
         if(noAdmins.length === 0) {
-          log('only admins');
+          log(`only admins`);
           // only admins left in this tier
           data.ids = tier;
         } else {
-          log('mods');
+          log(`mods`);
           data.ids = noAdmins;
         }
       } else {
-        log('new tier');
+        log(`new tier`);
 
         let selectRandom = noAdmins[Math.floor(Math.random() * noAdmins.length)];
 
         if(noAdmins.length === 0) {
-          log('only admins');
+          log(`only admins`);
           selectRandom = tier[Math.floor(Math.random() * tier.length)];
         }
 
@@ -131,7 +133,7 @@ metadata.run = m => {
     }
 
     pinged.push(...data.ids);
-    data.mentions = `<@${data.ids.join('> <@')}>`;
+    data.mentions = `<@${data.ids.join(`> <@`)}>`;
     data.debug.tiers = pings;
 
     log(util.inspect(data));
@@ -162,7 +164,7 @@ metadata.run = m => {
       ``,
       `rctListener:`,
       util.inspect(rctListener),
-    ].join('\n');
+    ].join(`\n`);
   }
 
   if (memory.mpc.includes(m.channel.id)) {
@@ -185,18 +187,18 @@ metadata.run = m => {
     if (resolved) return;
     resolved = true;
 
-    if (!rctListener.ended) rctListener.stop('resolved');
-    if (!msgListener.ended) msgListener.stop('resolved');
+    if (!rctListener.ended) rctListener.stop(`resolved`);
+    if (!msgListener.ended) msgListener.stop(`resolved`);
 
     const finalEmbed = new djs.MessageEmbed();
 
     if (user != null) {
       finalEmbed.setColor(bot.cfg.embed.okay)
-        .setAuthor('Issue resolved', Assets.getEmoji('ICO_okay').url)
+        .setAuthor(`Issue resolved`, Assets.getEmoji(`ICO_okay`).url)
         .setDescription(`Resolved by ${user}`);
     } else {
       finalEmbed.setColor(bot.cfg.embed.error)
-        .setAuthor('Failed to get a response', Assets.getEmoji('ICO_error').url)
+        .setAuthor(`Failed to get a response`, Assets.getEmoji(`ICO_error`).url)
         .setDescription(`This is taking longer than usual. We'll get back to you as soon as possible.`);
     }
 
@@ -222,14 +224,14 @@ metadata.run = m => {
 
     let content = pings.mentions;
 
-    log(getDebugInfo(), 'debug');
+    log(getDebugInfo(), `debug`);
 
     const embed = new djs.MessageEmbed()
       .setColor(bot.cfg.embed.default)
-      .setAuthor('Moderator Request', Assets.getEmoji('ICO_bell').url)
+      .setAuthor(`Moderator Request`, Assets.getEmoji(`ICO_bell`).url)
       .addField(
-        'Information for Staff:',
-        `Use the reaction button on ${(attempts === 1) ? 'this message' : `[this message](${response.url})`}, **or** send a message in this channel to begin resolving this issue.`
+        `Information for Staff:`,
+        `Use the reaction button on ${(attempts === 1) ? `this message` : `[this message](${response.url})`}, **or** send a message in this channel to begin resolving this issue.`
       );
 
     if (pinged.length < staff.length) {
@@ -277,22 +279,22 @@ metadata.run = m => {
         rctListener = response.createReactionCollector(filter_r);
         msgListener = response.channel.createMessageCollector(filter_m);
 
-        rctListener.on('collect', (r, user) => {
+        rctListener.on(`collect`, (r, user) => {
           resolve(user);
         });
 
-        msgListener.on('collect', (mr) => {
+        msgListener.on(`collect`, (mr) => {
           resolve(mr.author);
         });
 
-        rctListener.on('end', (c, reason) => {
-          log('modping reaction collector ended');
-          if (reason !== 'resolved') log(reason, 'error');
+        rctListener.on(`end`, (c, reason) => {
+          log(`modping reaction collector ended`);
+          if (reason !== `resolved`) log(reason, `error`);
         });
 
-        msgListener.on('end', (c, reason) => {
-          log('modping message collector ended');
-          if (reason !== 'resolved') log(reason, 'error');
+        msgListener.on(`end`, (c, reason) => {
+          log(`modping message collector ended`);
+          if (reason !== `resolved`) log(reason, `error`);
         });
       }
     });

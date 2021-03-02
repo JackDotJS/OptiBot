@@ -9,15 +9,17 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`logs`],
-  short_desc: `Download OptiBot log(s).`,
-  long_desc: `Downloads the latest log file(s) that OptiBot has generated. **Note that this cannot access archived log files.**`,
+  description: {
+    short: `Download OptiBot log(s).`,
+    long: `Downloads the latest log file(s) that OptiBot has generated. **Note that this cannot access archived log files.**`
+  },
   args: [
     `[amount]`,
     `all`,
     `crash`
   ],
-  authlvl: 5,
-  flags: [`DM_OPTIONAL`, `MOD_CHANNEL_ONLY`, `LITE`],
+  dm: true,
+  flags: [ `PERMS_REQUIRED`, `STAFF_CHANNEL_ONLY`, `LITE` ],
   run: null
 };
 

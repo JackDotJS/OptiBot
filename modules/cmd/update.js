@@ -6,9 +6,11 @@ const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `Force update OptiBot`,
-  authlvl: 4,
-  flags: [`NO_DM`, `NO_TYPER`, `IGNORE_ELEVATED`, `LITE`],
+  description: {
+    short: `Force update OptiBot`
+  },
+  dm: false,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

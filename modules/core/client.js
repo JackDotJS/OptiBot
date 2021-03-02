@@ -42,11 +42,15 @@ module.exports = class OptiBot extends djs.Client {
     this.version = require(path.resolve(`./package.json`)).version;
     this.util = require(`./util.js`);
 
+    this.profiles = require(`./profile_manager.js`);
+    this.records = require(`./record_manager.js`);
+
     memory.core.client = this;
 
     Object.defineProperty(this, `mainGuild`, {
       get: () => {
-        return this.guilds.cache.get(this.cfg.guilds.optifine);
+        if (this.cfg.guilds.optifine != null) return this.guilds.cache.get(this.cfg.guilds.optifine);
+        return this.guilds.cache.get(this.cfg.guilds.optibot);
       }
     });
 

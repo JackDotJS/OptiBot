@@ -6,11 +6,16 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`uwu`],
-  short_desc: `OwO`,
-  long_desc: `UwU OwO UwU`,
-  args: `<text | discord message>`,
-  authlvl: 1,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`],
+  description: {
+    short: `OwO`,
+    long: `UwU OwO UwU`
+  },
+  args: [
+    `<text>`,
+    `<discord message>`
+  ],
+  dm: true,
+  flags: [ `PERMS_REQUIRED` ],
   run: null
 };
 

@@ -5,8 +5,6 @@ module.exports = (m, bm) => {
   const log = bot.log;
 
   return new Promise((resolve, reject) => {
-    m.channel.stopTyping(true);
-
     const filter = (r, user) => [bot.cfg.emoji.confirm, bot.cfg.emoji.cancel].indexOf(r.emoji.id) > -1 && user.id === m.author.id;
     const df = bm.createReactionCollector(filter, { time: (1000 * 60 * 5) });
 
@@ -14,9 +12,9 @@ module.exports = (m, bm) => {
       df.stop(`done`);
 
       if (r.emoji.id === bot.cfg.emoji.confirm) {
-        resolve(1);
+        resolve(`confirm`);
       } else {
-        resolve(0);
+        resolve(`cancel`);
       }
     });
 
@@ -26,7 +24,7 @@ module.exports = (m, bm) => {
           if (reason === `done`) {
             return;
           } else if (reason === `time`) {
-            resolve(-1);
+            resolve(`timeout`);
           } else {
             log(reason, `error`);
           }

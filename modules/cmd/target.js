@@ -8,14 +8,16 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`targetuser`, `targettest`],
-  short_desc: `Test OptiBot's targeting utility.`,
-  long_desc: `Gives the raw output of OptiBot's targeting utility.`,
+  description: {
+    short: `Test OptiBot's targeting utility.`,
+    long: `Gives the raw output of OptiBot's targeting utility.`
+  },
   args: [
     `0 [discord member]`,
     `1 [discord message]`
   ],
-  authlvl: 1,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`],
+  dm: true,
+  flags: [ `PERMS_REQUIRED` ],
   run: null
 };
 

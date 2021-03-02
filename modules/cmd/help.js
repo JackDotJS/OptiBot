@@ -10,11 +10,15 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `Find or view OptiBot commands.`,
-  long_desc: `Gives detailed information about a given command.`,
-  args: `[command name|command alias|query]`,
-  authlvl: 0,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`, `BOT_CHANNEL_ONLY`],
+  description: {
+    short: `Find or view OptiBot commands.`
+  },
+  args: [
+    `[command]`,
+    `[query]`
+  ],
+  dm: true,
+  flags: [ `BOT_CHANNEL_ONLY`, `LITE` ],
   run: null
 };
 
@@ -22,6 +26,7 @@ metadata.run = async (m, args, data) => {
   const list = [];
   let query;
   let strict = false;
+  const userPerms = await bot.util.getPerms(data.member); // todo: move this to base command handler
 
   const parseQuery = (/((?<=").+?(?="))|([^"]+)/i).exec(m.cleanContent.substring(`${bot.prefix}${data.input.cmd} `.length));
 
@@ -38,11 +43,13 @@ metadata.run = async (m, args, data) => {
   log(query);
 
   const showPages = async () => {
-    const perPage = 10;
-    const pageLimit = Math.ceil(list.length / perPage);
+    const hasScore = list.some((item) => item.score != null);
+
+    const perPage = (hasScore) ? 24 : 10;
+    const pageLimit = Math.ceil((list.length * ((hasScore) ? 3 : 1)) / perPage);
     const pages = [];
 
-    const title = (query != null) ? `Search Query: "${(query.length > 64) ? query.substring(0, 64) + `...` : query }" ${(strict) ? `(strict)` : ``}` : null;
+    const title = (query != null) ? `Searching for: "${(query.length > 64) ? query.substring(0, 64) + `...` : query }" ${(strict) ? `(strict)` : ``}` : null;
 
     let embed;
 
@@ -59,7 +66,7 @@ metadata.run = async (m, args, data) => {
 
     for (const result of list) {
       const cmd = result.cmd;
-      const score = result.score;
+      const score = (hasScore) ? (result.score * 100).toFixed(1) : null;
 
       if (embed != null && embed.fields.length >= perPage) {
         pages.push(embed);
@@ -76,9 +83,22 @@ metadata.run = async (m, args, data) => {
       }
 
       embed.addField(
-        bot.prefix + cmd.metadata.name + ` ` + ((score != null) ? `(${(score * 100).toFixed(1)}%)` : ``),
-        cmd.metadata.short_desc
+        `${bot.prefix}${cmd.metadata.name}`,
+        `${cmd.metadata.description.short}`,
+        hasScore
       );
+
+      if (hasScore) {
+        embed.addField(
+          `_ _`,
+          `_ _`,
+          true
+        ).addField(
+          `_ _`,
+          `**${score}% match**`,
+          true
+        );
+      }
     }
 
     pages.push(embed);
@@ -87,11 +107,32 @@ metadata.run = async (m, args, data) => {
   };
 
   const showCommand = async (cmd) => {
-    bot.send(m, `${cmd.metadata.name} (massive todo)`);
+    const md = cmd.metadata;
+
+    const embed = new djs.MessageEmbed()
+      .setColor(bot.cfg.embed.default)
+      .setAuthor(`OptiBot Index`, await Assets.getIcon(`ICO_docs`, bot.cfg.embed.default))
+      .setTitle(bot.prefix + md.name)
+      .setDescription(md.description.long)
+      .addField(`Usage Example(s)`, `\`\`\`\n${md.args.join(`\`\`\` \`\`\`\n`)}\`\`\``);
+
+    if (md.aliases.length > 0) {
+      embed.addField(`Aliases`, `\`\`\`${bot.prefix}${md.aliases.join(`, ${bot.prefix}`)}\`\`\``);
+    }
+
+    if (md.image) {
+      embed.attachFiles([ new djs.MessageAttachment(Assets.getImage(md.image), `image.png`) ])
+        .setThumbnail(`attachment://image.png`);
+    }
+
+    bot.send(m, { embed });
   };
 
   // todo: filter commands
   for (const cmd of memory.assets.commands) {
+    if (cmd.metadata.flags[`PERMS_REQUIRED`] && !data.perms.has(`*`)) continue;
+    if (cmd.metadata.flags[`HIDDEN`] && !data.perms.has(`bypassHidden`)) continue;
+
     if (query == null) {
       list.push({ cmd });
       continue;
@@ -99,10 +140,10 @@ metadata.run = async (m, args, data) => {
 
     const toCheck = [
       cmd.metadata.name,
-      cmd.metadata.args,
+      ...cmd.metadata.args,
       ...cmd.metadata.aliases,
-      cmd.metadata.short_desc,
-      cmd.metadata.long_desc,
+      cmd.metadata.description.short,
+      cmd.metadata.description.long,
       ...Object.keys(cmd.metadata.flags).filter((flag) => cmd.metadata.flags[flag]),
     ];
 
@@ -118,6 +159,8 @@ metadata.run = async (m, args, data) => {
       return showCommand(cmd);
     } else {
       let score = 0;
+
+      log(toCheck);
 
       // jaro-winkler
       //const compare = wink;

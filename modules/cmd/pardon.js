@@ -8,11 +8,13 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `Pardon a record entry.`,
-  long_desc: `Dismisses a given record entry. Note that this will only pardon a single record entry. If needed, any linked entries must also be pardoned separately.`,
+  description: {
+    short: `Pardon a record entry.`,
+    long: `Dismisses a given record entry. Note that this will only pardon a single record entry. If needed, any linked entries must also be pardoned separately.`
+  },
   args: `<discord member> <case ID> <reason>`,
-  authlvl: 4,
-  flags: [`NO_TYPER`, `NO_DM`, `STRICT`, `IGNORE_ELEVATED`, `LITE`],
+  dm: false,
+  flags: [ `STAFF_CHANNEL_ONLY`, `STRICT`, `LITE` ],
   run: null
 };
 

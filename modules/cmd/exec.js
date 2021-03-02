@@ -14,151 +14,113 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`eval`],
-  short_desc: `Evaluate JavaScript code.`,
-  args: `<code> [--verbose]`,
-  authlvl: 5,
-  flags: [`DM_OPTIONAL`, `MOD_CHANNEL_ONLY`, `STRICT`, `HIDDEN`, `DELETE_ON_MISUSE`, `LITE`],
+  description: {
+    short: `Evaluate JavaScript code.`,
+    long: [
+      `Executes any given JavaScript code. `,
+      ``,
+      `Note that this command includes an \`opts\` variable, which can be freely modified to adjust the given output of this command. This variable currently has two properties:`,
+      `**opts.verbose** - Allows display of detailed result information.`,
+      `**opts.depth** - Sets depth of \`util.inspect()\`.`,
+      ``,
+      `The default values for these properties are specified in \`config_debug.json\` at \`config.dev.exec\``
+    ].join(`\n`)
+  },
+  args: `<code>`,
+  dm: true,
+  flags: [ `STAFF_CHANNEL_ONLY`, `STRICT`, `HIDDEN`, `DELETE_ON_MISUSE`, `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 
 metadata.run = async (m, args, data) => {
   try {
-    let verboseMode = false;
+    const opts = {
+      verbose: true,
+      depth: 2,
+    };
 
-    if (m.content.endsWith(`--verbose`)) {
-      m.content = m.content.split(`--verbose`)[0].trim();
-      verboseMode = true;
+    if (bot.cfg.dev && bot.cfg.dev.exec) {
+      opts.verbose = bot.cfg.dev.exec.verbose;
+      opts.depth = bot.cfg.dev.exec.inspectionDepth;
     }
 
     const code = m.content.substring(`${bot.prefix}${path.parse(__filename).name} `.length);
+
     const execStart = new Date().getTime();
-    const output = await (eval(code));
-    const execEnd = new Date().getTime();
+    let result = eval(code);
 
-    const raw = `${output}`;
-    const inspect = `${util.inspect(output, { depth: 1 })}`;
-    const info = [
-      `Execution Time: ${(execEnd - execStart).toLocaleString()}ms (${(execEnd - execStart) / 1000} seconds)`,
-      `Typeof: ${typeof output}`,
-    ];
-    let result = [];
-    let contents = [];
-
-    if (output != null) {
-      info.push(`Constructor: ${output.constructor.name}`);
-
-      if (Array.isArray(output)) {
-        const itemTypes = [];
-
-        for (const item of output) {
-          if (item === null) {
-            itemTypes.push(`null`);
-          } else if (item === undefined) {
-            itemTypes.push(`undefined`);
-          } else {
-            itemTypes.push(`${item.constructor.name}`);
-          }
-        }
-
-        info.push(
-          `Array Length: ${output.length}`,
-          `Array Item Types: ${[...new Set(itemTypes)].join(`, `)}`,
-        );
-      } else if (output.constructor === Object) {
-        const keys = Object.keys(output);
-
-        const itemTypes = [];
-
-        for (let i = 0; i < keys.length; i++) {
-          const value = output[keys[i]];
-
-          if (value === null) {
-            itemTypes.push(`null`);
-          } else if (value === undefined) {
-            itemTypes.push(`undefined`);
-          } else {
-            itemTypes.push(`${value.constructor.name}`);
-          }
-        }
-
-        info.push(
-          `Object Keys: ${keys.length}`,
-          `Object Value Types: ${[...new Set(itemTypes)].join(`, `)}`
-        );
-      }
+    if (result instanceof Promise || (Boolean(result) && typeof result.then === `function` && typeof result.catch === `function`)) {
+      result = await result;
     }
 
-    // eslint-disable-next-line no-inner-declarations
-    function compileContents() {
-      if (verboseMode) {
+    const execEnd = new Date().getTime();
+
+    const raw = `${result}`;
+    const inspect = `${util.inspect(result, { depth: opts.depth })}`;
+
+    // verbose output
+    const vOutput = [ 
+      (() => {
+        const diff = execEnd - execStart;
+
+        if (diff === 0) return `Execution Time: Instant`;
+        return `Execution Time: ${(diff).toLocaleString()}ms (${(diff) / 1000} seconds)`;
+      })(),
+      `Typeof: ${typeof result}`,
+    ];
+
+    // basic output
+    const bOutput = []; 
+
+    const compileContents = () => {
+      const contents = [];
+
+      if (opts.verbose) {
         contents.push(
           `Result Information:`,
-          `\`\`\`yaml\n${info.join(`\n`)} \`\`\``
+          `\`\`\`yaml\n${vOutput.join(`\n`)} \`\`\``
         );
       }
 
       contents.push(
-        ...result
+        ...bOutput
       );
-      contents = contents.join(`\n`);
-    }
 
-    if (Buffer.isBuffer(output)) {
-      const ft = fileType(output);
-      if (ft !== null && ft !== undefined) {
-        result = [
-          `File Output:`
-        ];
-        info.push(
-          `File Size: ${output.length.toLocaleString()} bytes`,
-          `File Extension: ${ft.ext}`,
-          `File MIME Type: ${ft.mime}`
-        );
+      return contents.join(`\n`);
+    };
 
-        compileContents();
-        m.channel.stopTyping(true);
-        m.channel.send(contents, { files: [new djs.MessageAttachment(output, `output.` + ft.ext)] });
-      } else {
-        defaultRes();
-      }
-    } else {
-      defaultRes();
-    }
-
-
-    // eslint-disable-next-line no-inner-declarations
-    function defaultRes() {
-      if(verboseMode) {
+    const printResult = () => {
+      if(opts.verbose) {
         if (raw === inspect) {
-          result.push(
+          vOutput.push(
+            `Output Text Length: ${raw.length.toLocaleString()} characters`
+          );
+
+          bOutput.push(
             `Output:`,
             `\`\`\`javascript\n${djs.Util.escapeCodeBlock(inspect)} \`\`\``
           );
-          info.push(
-            `Output Text Length: ${raw.length.toLocaleString()} characters`
-          );
         } else {
-          result.push(
+          vOutput.push(
+            `Raw Output Text Length: ${raw.length.toLocaleString()} characters`,
+            `Inspected Output Text Length: ${inspect.length.toLocaleString()} characters`
+          );
+
+          bOutput.push(
             `Raw Output:`,
             `\`\`\`${djs.Util.escapeCodeBlock(raw)} \`\`\``,
             `Inspected Output:`,
             `\`\`\`javascript\n${djs.Util.escapeCodeBlock(inspect)} \`\`\``
           );
-          info.push(
-            `Raw Output Text Length: ${raw.length.toLocaleString()} characters`,
-            `Inspected Output Text Length: ${inspect.length.toLocaleString()} characters`
-          );
         }
       } else {
-        result.push(`\`\`\`js\n${djs.Util.escapeCodeBlock(inspect)}\n\`\`\``);
+        bOutput.push(`\`\`\`js\n${djs.Util.escapeCodeBlock(inspect)}\n\`\`\``);
       }
-      
 
-      compileContents();
+      const contents = compileContents();
 
       if (contents.length > 2000) {
-        const oldlength = contents.length;
-        contents = [
+        const file = [
           `////////////////////////////////////////////////////////////////`,
           `// Input`,
           `////////////////////////////////////////////////////////////////`,
@@ -170,21 +132,21 @@ metadata.run = async (m, args, data) => {
           `// Result Information`,
           `////////////////////////////////////////////////////////////////`,
           ``,
-          info.join(`\n`),
+          vOutput.join(`\n`),
           ``,
           ``,
         ];
 
         if (raw === inspect) {
-          contents = contents.concat([
+          file.push(
             `////////////////////////////////////////////////////////////////`,
             `// Output`,
             `////////////////////////////////////////////////////////////////`,
             ``,
             raw
-          ]).join(`\n`);
+          );
         } else {
-          contents = contents.concat([
+          file.push(
             `////////////////////////////////////////////////////////////////`,
             `// Raw Output`,
             `////////////////////////////////////////////////////////////////`,
@@ -197,25 +159,100 @@ metadata.run = async (m, args, data) => {
             `////////////////////////////////////////////////////////////////`,
             ``,
             inspect
-          ]).join(`\n`);
+          );
         }
 
-        m.channel.stopTyping(true);
-        m.channel.send([
-          `Result Information:`,
-          `\`\`\`yaml\n${info.join(`\n`)}\`\`\``,
-          `Output too long! (${(oldlength - 2000).toLocaleString()} characters over message limit)`,
+        const newOutput = [];
+
+        if (opts.verbose) {
+          newOutput.push(
+            `Result Information:`,
+            `\`\`\`yaml\n${vOutput.join(`\n`)} \`\`\``
+          );
+        }
+
+        newOutput.push(
+          `Output too long! (${(contents.length - 2000).toLocaleString()} characters over message limit)`,
           `See attached file for output:`
-        ].join(`\n`), { files: [new djs.MessageAttachment(Buffer.from(contents), `output.txt`)] });
+        );
+
+        bot.send(m, newOutput.join(`\n`), { files: [new djs.MessageAttachment(Buffer.from(file.join(`\n`)), `output.txt`)] });
       } else {
-        m.channel.stopTyping(true);
-        m.channel.send(contents);
+        bot.send(m, contents);
+      }
+    };
+
+    if (result != null) {
+      vOutput.push(`Constructor: ${result.constructor.name}`);
+
+      if (opts.verbose && Array.isArray(result)) {
+        const itemTypes = [];
+
+        for (const item of result) {
+          if (item === null) {
+            itemTypes.push(`null`);
+          } else if (item === undefined) {
+            itemTypes.push(`undefined`);
+          } else {
+            itemTypes.push(`${item.constructor.name}`);
+          }
+        }
+
+        vOutput.push(
+          `Array Length: ${result.length}`,
+          `Array Item Types: ${[...new Set(itemTypes)].join(`, `)}`,
+        );
+      }
+      
+      if (opts.verbose && result.constructor === Object) {
+        const keys = Object.keys(result);
+
+        vOutput.push(
+          `Object Key Count: ${keys.length}`
+        );
+
+        if (keys.length > 0) {
+          const itemTypes = [];
+
+          for (let i = 0; i < keys.length; i++) {
+            const value = result[keys[i]];
+
+            if (value === null) {
+              itemTypes.push(`null`);
+            } else if (value === undefined) {
+              itemTypes.push(`undefined`);
+            } else {
+              itemTypes.push(`${value.constructor.name}`);
+            }
+          }
+
+          vOutput.push(
+            `Object Keys: ${keys.join(`, `)}`,
+            `Object Value Types: ${[...new Set(itemTypes)].join(`, `)}`
+          );
+        }
+      }
+
+      if (Buffer.isBuffer(result)) {
+        const ft = fileType(result);
+        if (ft !== null && ft !== undefined) {
+          bOutput.push(`File Output:`);
+
+          vOutput.push(
+            `File Size: ${result.length.toLocaleString()} bytes`,
+            `File Extension: ${ft.ext}`,
+            `File MIME Type: ${ft.mime}`
+          );
+  
+          return bot.send(m, compileContents(), { files: [new djs.MessageAttachment(result, `output.` + ft.ext)] });
+        }
       }
     }
+
+    printResult();
   }
   catch (err) {
-    m.channel.stopTyping(true);
-    m.channel.send(`\`\`\`diff\n-${err.stack || err}\`\`\``);
+    bot.send(m, `\`\`\`diff\n-${err.stack || err}\`\`\``);
   }
 };
 

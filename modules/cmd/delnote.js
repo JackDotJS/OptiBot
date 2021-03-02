@@ -8,11 +8,13 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`rmnote`, `removenote`],
-  short_desc: `Remove a note from someone's record.`,
-  long_desc: `Removes a note from someone's record. With the exception of Administrators, notes can only be removed by the note author.`,
+  description: {
+    short: `Remove a note from someone's record.`,
+    long: `Removes a note from someone's record. With the exception of Administrators, notes can only be removed by the note author.`
+  },
   args: `<discord member> <case ID>`,
-  authlvl: 2,
-  flags: [`NO_DM`, `STRICT`, `NO_TYPER`, `LITE`],
+  dm: false,
+  flags: [ `STRICT`, `STAFF_CHANNEL_ONLY`, `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

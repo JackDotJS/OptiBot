@@ -3,7 +3,7 @@ const ob = require(`../core/OptiBot.js`);
 const bot = ob.memory.core.client;
 const log = ob.log;
 
-module.exports = (bot, member) => {
+module.exports = (member) => {
   const now = new Date();
   if (bot.pause) return;
   if (member.guild.id !== bot.cfg.guilds.optifine) return;

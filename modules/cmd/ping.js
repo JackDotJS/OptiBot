@@ -7,9 +7,11 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`latency`, `pong`],
-  short_desc: `Measure bot latency and response lag.`,
-  authlvl: 1,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`],
+  description: {
+    short: `Measure bot latency and response lag.`
+  },
+  dm: true,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

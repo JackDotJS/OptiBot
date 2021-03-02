@@ -8,7 +8,7 @@ const Assets = require(`../core/asset_manager.js`);
  * @param {(Error|String)} err The error message or object.
  * @param {OptiBot} [bot] OptiBot
  */
-module.exports = (err, data = {}) => {
+module.exports = async (err, data = {}) => {
   const bot = memory.core.client;
   const log = bot.log;
 
@@ -63,11 +63,11 @@ module.exports = (err, data = {}) => {
       formatted = [...new Set(formatted)];
     }
 
-    embed.setAuthor(`Something went wrong.`, Assets.getEmoji(`ICO_error`).url)
+    embed.setAuthor(`Something went wrong.`, await Assets.getIcon(`ICO_x`, bot.cfg.embed.error))
       .setTitle(bot.cfg.messages.error[~~(Math.random() * bot.cfg.messages.error.length)])
       .setDescription(`\`\`\`diff\n- ${formatted.join(`\n-   at `)}\`\`\``);
   } else {
-    embed.setAuthor(err, Assets.getEmoji(`ICO_error`).url);
+    embed.setAuthor(err, await Assets.getIcon(`ICO_x`, bot.cfg.embed.error));
   }
 
   // log(util.inspect(data));

@@ -8,10 +8,12 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`lockdown`],
-  short_desc: `Lock ALL server channels.`,
-  long_desc: `Locks ALL channels in the server.`,
-  authlvl: 3,
-  flags: [`NO_DM`, `STRICT`, `NO_TYPER`, `LITE`],
+  description: {
+    short: `Lock ALL server channels.`,
+    long: `Locks ALL channels in the server.`
+  },
+  dm: false,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

@@ -7,11 +7,13 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`close`],
-  short_desc: `Lock a given channel.`,
-  long_desc: `Locks a given channel. Defaults to the channel you're in if not specified.`,
+  description: {
+    short: `Lock a given channel.`,
+    long: `Locks a given channel. Defaults to the channel you're in if not specified.`
+  },
   args: `[channel]`,
-  authlvl: 2,
-  flags: [`NO_DM`, `STRICT`, `LITE`],
+  dm: false,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

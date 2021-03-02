@@ -3,6 +3,7 @@ assets/emoji/src
 assets/src
 assets/icon_filled
 cfg/keys.json
+cfg/config_debug.json
 data
 logs
 node_modules

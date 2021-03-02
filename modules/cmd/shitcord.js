@@ -6,10 +6,11 @@ const bot = memory.core.client;
 
 const metadata = {
   name: path.parse(__filename).name,
-  aliases: [`poop`, `shit`],
-  short_desc: `You know what this does.`,
-  authlvl: 4,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`],
+  description: {
+    short: `discord moment`
+  },
+  dm: true,
+  flags: [ `PERMS_REQUIRED` ],
   run: null
 };
 

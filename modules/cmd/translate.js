@@ -10,10 +10,15 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  short_desc: `Translate some text into English.`,
-  args: `<text | discord message>`,
-  authlvl: 1,
-  flags: [`DM_OPTIONAL`, `LITE`],
+  description: {
+    short: `Translate a message into English.`
+  },
+  args: [
+    `<text>`,
+    `<discord message>`
+  ],
+  dm: true,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

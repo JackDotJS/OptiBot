@@ -8,11 +8,13 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`ungag`, `unsilence`],
-  short_desc: `Unmute a user.`,
-  long_desc: `Allows a user to speak once again, if they've already been muted.`,
+  description: {
+    short: `Unmute a user.`,
+    long: `Allows a user to speak once again, if they've already been muted.`
+  },
   args: `<discord member> [reason]`,
-  authlvl: 2,
-  flags: [`NO_DM`, `LITE`],
+  dm: false,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
 

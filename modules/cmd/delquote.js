@@ -7,11 +7,13 @@ const bot = memory.core.client;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`unquote`, `rmquote`],
-  short_desc: `Remove profile quotes.`,
-  long_desc: `Removes a quote from a given profile. Defaults to yourself when no arguments are given. Requires moderator permissions to remove quotes from other profiles.`,
-  authlvl: 0,
+  description: {
+    short: `Remove profile quotes.`,
+    long: `Removes a quote from a given profile. Requires moderator permissions to remove quotes from other profiles.`
+  },
   args: `[discord member]`,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`, `LITE`, `BOT_CHANNEL_ONLY`],
+  dm: true,
+  flags: [ `BOT_CHANNEL_ONLY`, `LITE` ],
   run: null
 };
 

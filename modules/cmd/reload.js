@@ -8,10 +8,12 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   aliases: [`reset`],
-  short_desc: `Reload OptiBot assets.`,
-  long_desc: `Reloads OptiBot assets, such as commands, OptiBits, core classes, and images.`,
-  authlvl: 5,
-  flags: [`DM_OPTIONAL`, `NO_TYPER`, `LITE`],
+  description: {
+    short: `Reload OptiBot assets.`,
+    long: `Reloads OptiBot assets, such as commands, OptiBits, core classes, and images.`
+  },
+  dm: true,
+  flags: [ `PERMS_REQUIRED`, `STAFF_CHANNEL_ONLY`, `LITE` ],
   run: null
 };
 
@@ -35,8 +37,8 @@ metadata.run = m => {
         const embed2 = new djs.MessageEmbed()
           .setColor(bot.cfg.embed.okay);
 
-        Assets.load(1).then((time) => {
-          embed2.setAuthor(`Assets successfully reset in ${time / 1000} seconds.`, Assets.getEmoji(`ICO_okay`).url);
+        Assets.load(1).then(async (time) => {
+          embed2.setAuthor(`Assets successfully reset in ${time / 1000} seconds.`, await Assets.getIcon(`ICO_check`, bot.cfg.embed.okay));
           log(`Assets successfully reset in ${time / 1000} seconds.`, `info`);
 
           bot.setTimeout(() => {

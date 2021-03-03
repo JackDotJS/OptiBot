@@ -1,3 +1,4 @@
+const djs = require(`discord.js`);
 const util = require(`util`);
 const timeago = require(`timeago.js`);
 const ob = require(`../core/OptiBot.js`);
@@ -27,13 +28,14 @@ module.exports = async (m, mNew) => {
     }
   }
 
-  const now = new Date();
-
-  if (m.guild.id !== bot.cfg.guilds.optifine) return;
-  if (input.cmd === `dr`) return;
-  if (bot.cfg.channels.nolog.some(id => [m.channel.id, m.channel.parentID].includes(id))) return;
+  if (input.cmd === `dr` || inputOld.cmd === `dr`) return;
   if (m.channel.type === `dm`) return;
 
+  let postInChannel = false;
+  const postInLogs = (m.guild.id !== bot.cfg.guilds.optifine && [...bot.cfg.channels.nolog, ...bot.cfg.channels.staff].some(id => [m.channel.id, m.channel.parentID].includes(id)));
+  const embed = new djs.MessageEmbed();
+
+  const now = new Date();
   const logEntry = new ob.LogEntry({ time: now, channel: `edit` });
 
   const desc = [
@@ -42,17 +44,24 @@ module.exports = async (m, mNew) => {
   ];
 
   logEntry.setColor(bot.cfg.embed.default)
-    .setIcon(ob.Assets.getEmoji(`ICO_edit`).url)
+    .setIcon(await ob.Assets.getIcon(`ICO_pencil`, bot.cfg.embed.default))
     .setTitle(`Message Updated`, `Message Update Report`)
     .setDescription(desc.join(`\n`), desc.join(` `))
     .addSection(`Author`, m.author)
     .addSection(`Message Location`, m);
+
+  embed.setColor(bot.cfg.embed.warn)
+    .setAuthor(`Pinned Message Updated`, await ob.Assets.getIcon(`ICO_pencil`, bot.cfg.embed.warn))
+    .setTitle(`Message posted by ${m.author.tag}`)
+    .setThumbnail(m.author.displayAvatarURL({ format: `png`, size: 64 }));
 
   /////////////////////////////
   // text content
   /////////////////////////////
 
   if (m.content !== mNew.content) {
+    postInChannel = true;
+
     if (m.content.length !== 0) {
       logEntry.addSection(`Old Message Contents`, m.content);
     } else {
@@ -64,15 +73,20 @@ module.exports = async (m, mNew) => {
 
     if (mNew.content.length !== 0) {
       logEntry.addSection(`New Message Contents`, mNew.content);
+      
+      embed.setDescription(mNew.content);
+
     } else {
       logEntry.addSection(`New Message Contents`, {
         data: `\u200B`,
         raw: ``
       });
+
+      embed.setDescription(`_ _`);
     }
   } else if (m.content.length !== 0) {
     logEntry.addSection(`Message Contents`, m.content);
-  }
+  } 
 
   /////////////////////////////
   // attachments
@@ -92,6 +106,7 @@ module.exports = async (m, mNew) => {
       data: att.join(`\n`),
       raw: att_raw.join(`\n`)
     });
+    embed.addField(`Message Attachments`, att.join(`\n`));
   }
 
   /////////////////////////////
@@ -126,11 +141,10 @@ module.exports = async (m, mNew) => {
     logEntry.addSection(`Old Message Embeds`, {
       data: `[${m.embeds.length} Embed${(m.embeds.length !== 1) ? `s` : ``}]`,
       raw: rawEmbeds
-    })
-      .addSection(`New Message Embeds`, {
-        data: `[${mNew.embeds.length} Embed${(mNew.embeds.length !== 1) ? `s` : ``}]`,
-        raw: rawEmbedsNew
-      });
+    }).addSection(`New Message Embeds`, {
+      data: `[${mNew.embeds.length} Embed${(mNew.embeds.length !== 1) ? `s` : ``}]`,
+      raw: rawEmbedsNew
+    });
   } else if (m.embeds.length > 0) {
     logEntry.addSection(`Message Embeds`, {
       data: `[${m.embeds.length} Embed${(m.embeds.length !== 1) ? `s` : ``}]`,
@@ -139,4 +153,8 @@ module.exports = async (m, mNew) => {
   }
 
   logEntry.submit();
+
+  embed.addField(`Message URL`, `[[link]](${m.url})`);
+
+  if (postInChannel && m.pinned && mNew.pinned) bot.send(mNew, { embed, userDelete: false });
 };

@@ -69,9 +69,9 @@ module.exports = (input) => {
 
   if (length == null || measurement == null) {
     if (time > now) {
-      return 'right now';
+      return `right now`;
     } else {
-      return 'just now';
+      return `just now`;
     }
   }
 
@@ -79,9 +79,9 @@ module.exports = (input) => {
   const rounded = Math.round(length);
 
   if (Number.isInteger(length)) {
-    final.push('exactly');
+    final.push(`exactly`);
   } else {
-    final.push('about');
+    final.push(`about`);
   }
 
   if (rounded === 1 && !Number.isInteger(length)) {
@@ -90,13 +90,13 @@ module.exports = (input) => {
     final.push(rounded);
   }
 
-  final.push(measurement[1]+((rounded > 1) ? 's' : ''));
+  final.push(measurement[1]+((rounded > 1) ? `s` : ``));
 
   if (time > now) {
-    final.unshift('in');
+    final.unshift(`in`);
   } else {
-    final.push('ago');
+    final.push(`ago`);
   }
 
-  return final.join(' ');
+  return final.join(` `);
 };

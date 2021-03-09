@@ -1,10 +1,9 @@
 /* eslint-disable no-unused-vars */
 // That is disabled so that eval can access them without requiring them in the eval statement itself
 const path = require(`path`);
-const timeago = require(`timeago.js`);
 const util = require(`util`);
 const fileType = require(`file-type`);
-const request = require(`request`);
+const fetch = require(`node-fetch`);
 const djs = require(`discord.js`);
 const { Command, memory, RecordEntry, LogEntry, Assets } = require(`../core/optibot.js`);
 

@@ -31,7 +31,8 @@
     "request-promise": "^4.2.5",
     "string-similarity": "^3.0.0",
     "timeago.js": "^4.0.2",
-    "ytdl-core": "^4.1.6"
+    "ytdl-core": "^4.1.6",
+    "node-fetch": "^2.6.1"
   },
   "devDependencies": {
     "eslint": "^7.9.0"

@@ -16,7 +16,7 @@ const metadata = {
     long: `Long description. Shows when using \` ${bot.prefix}help ${path.parse(__filename).name} \``
   },
   args: `[args]`,
-  guilds: ``,
+  guilds: [],
   image: `IMG_args.png`,
   dm: true,
   flags: [ `HIDDEN`, `LITE` ],

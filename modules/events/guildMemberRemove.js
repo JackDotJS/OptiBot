@@ -6,7 +6,7 @@ const log = ob.log;
 module.exports = (member) => {
   const now = new Date();
   if (bot.pause) return;
-  if (member.guild.id !== bot.cfg.guilds.optifine) return;
+  if (member.guild.id !== bot.mainGuild.id) return;
 
   for (const i in ob.memory.mutes) {
     const mute = ob.memory.mutes[i];

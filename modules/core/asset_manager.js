@@ -350,19 +350,21 @@ module.exports = class OptiBotAssetsManager {
       }
     });
 
-    stagesAsync.push({
-      name: `Unverified Donator Checker`,
-      tiers: [true, false, false],
-      load: async () => {
-        const members = (await bot.guilds.cache.get(bot.cfg.guilds.donator).members.fetch()).filter(mem => mem.roles.cache.size === 1).array();
-
-        for (const member of members) {
-          await bot.util.verifyDonator(member);
+    if (bot.cfg.guilds.donator && bot.cfg.guilds.donator.length > 0) {
+      stagesAsync.push({
+        name: `Unverified Donator Checker`,
+        tiers: [true, false, false],
+        load: async () => {
+          const members = (await bot.guilds.cache.get(bot.cfg.guilds.donator).members.fetch()).filter(mem => mem.roles.cache.size === 1).array();
+  
+          for (const member of members) {
+            await bot.util.verifyDonator(member);
+          }
+  
+          return;
         }
-
-        return;
-      }
-    });
+      });
+    }
 
     stagesAsync.push({
       name: `Message Pre-Cacher`,

@@ -12,7 +12,7 @@ module.exports = (m) => {
   if (m.channel.type === `dm`) return;
   if (m.type !== `DEFAULT` || m.system || m.author.system) return;
   if (m.author.system || m.author.bot) return;
-  if (m.guild.id !== bot.cfg.guilds.optifine) return;
+  if (m.guild.id !== bot.mainGuild.id) return;
   if (bot.util.parseInput(m.content).cmd === `dr`) return;
   if (bot.cfg.channels.nolog.some(id => [m.channel.id, m.channel.parentID].includes(id))) return;
 

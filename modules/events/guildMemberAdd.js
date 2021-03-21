@@ -7,7 +7,7 @@ module.exports = (member) => {
   const now = new Date();
   if (bot.pause) return;
 
-  if (member.guild.id === bot.cfg.guilds.optifine) {
+  if (member.guild.id === bot.mainGuild.id) {
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // DO NOT SET THIS TO TRUE UNDER ANY CIRCUMSTANCES
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!

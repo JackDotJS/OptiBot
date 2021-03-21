@@ -29,8 +29,8 @@ metadata.run = m => {
       str += `\n- bot channel`;
     }
 
-    if (bot.cfg.channels.mod.some(id => [channel.id, channel.parentID].includes(id))) {
-      str += `\n- mod channel`;
+    if (bot.cfg.channels.staff.some(id => [channel.id, channel.parentID].includes(id))) {
+      str += `\n- staff channel`;
     }
 
     if (bot.cfg.channels.blacklist.some(id => [channel.id, channel.parentID].includes(id))) {

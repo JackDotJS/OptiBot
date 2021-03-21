@@ -189,7 +189,7 @@ bot.on(`guildUnavailable`, guild => log(`Guild Unavailable! \nUnable to connect 
 bot.on(`guildUpdate`, (oldg, newg) => {
   if (!oldg.available && newg.available) {
     log(`Guild available! \n"${newg.name}" has recovered. \nGuild ID: ${newg.id}`, `warn`);
-    if (newg.id === bot.cfg.guilds.optifine) {
+    if (newg.id === bot.mainGuild.id) {
       finalInit();
     }
   }

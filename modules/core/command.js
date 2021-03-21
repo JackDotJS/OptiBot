@@ -20,13 +20,16 @@ module.exports = class Command {
      * @param {Array[String]} [data.flags] Restriction and modifier flags.
      * @param {Function} data.run The actual command function.
      */
-  constructor(meta) {
+  constructor(meta, exec) {
     const bot = memory.core.client;
     const log = bot.log;
 
     this.metadata = Command.parseMetadata(meta);
-    this.exec = meta.run;
-    this.rawArgs = meta.args;
+    this.exec = (exec != null) ? exec : meta.run;
+
+    if (typeof this.exec !== `function`) {
+      throw new Error(`Invalid or unspecified Command property: run`);
+    }
   }
 
   static parseMetadata({
@@ -34,10 +37,10 @@ module.exports = class Command {
     aliases = [],
     description = {},
     args = [],
+    guilds = [],
     image = null,
     dm = true,
-    flags = [],
-    run = null
+    flags = []
   }) {
     const bot = memory.core.client;
     const log = bot.log;
@@ -54,6 +57,9 @@ module.exports = class Command {
     if (typeof args !== `string` && !Array.isArray(args)) {
       throw new TypeError(`Invalid Command property: args`);
     }
+    if (!Array.isArray(guilds)) {
+      throw new TypeError(`Invalid Command property: guilds`);
+    }
     if (typeof image !== `string` && image != null) {
       throw new TypeError(`Invalid Command property: image`);
     }
@@ -63,18 +69,16 @@ module.exports = class Command {
     if (!Array.isArray(flags)) {
       throw new TypeError(`Invalid Command property: flags`);
     }
-    if (typeof run !== `function`) {
-      throw new Error(`Invalid or unspecified Command property: run`);
-    }
 
     const metadata = {
       name: name,
-      aliases: (Array.isArray(aliases)) ? [...new Set(aliases)] : [],
+      aliases: [...new Set(aliases)],
       description: {
         short: (typeof description.short === `string`) ? description.short : `This command has no set description.`,
         long: (typeof description.long === `string`) ? description.long : (typeof description.short === `string`) ? description.short : `This command has no set description.`
       },
       args: [],
+      guilds: [...new Set(guilds)],
 
       // Image to be shown as a thumbnail when this command is viewed through !help.
       // Must be a plain string specifying a complete filename from the ../assets/img directory.

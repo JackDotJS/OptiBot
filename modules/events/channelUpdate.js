@@ -8,7 +8,7 @@ module.exports = (oldc, newc) => {
   const now = new Date();
   if (bot.pause) return;
   if (oldc.type !== `text`) return;
-  if (oldc.guild.id !== bot.cfg.guilds.optifine) return;
+  if (oldc.guild.id !== bot.mainGuild.id) return;
   if (bot.cfg.channels.nolog.some(id => [oldc.id, oldc.parentID].includes(id))) return;
 
   if (oldc.topic === newc.topic && oldc.name === newc.name) return;

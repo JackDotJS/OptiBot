@@ -24,7 +24,7 @@ metadata.run = (m, args, data) => {
   let filtered = list;
   let ftext = ``;
   const selectPage = parseInt(args[0]) || 0;
-  const isModChannel = (m.channel.type === `dm` || [m.channel.id, m.channel.parentID].some(e => bot.cfg.channels.mod.includes(e)));
+  const isModChannel = (m.channel.type === `dm` || [m.channel.id, m.channel.parentID].some(e => bot.cfg.channels.staff.includes(e)));
 
   if (data.authlvl > 0) {
     if(isModChannel) {

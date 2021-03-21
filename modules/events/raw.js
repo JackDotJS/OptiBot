@@ -14,7 +14,7 @@ module.exports = (packet) => {
     // as of writing, this only contains the message ID, the channel ID, and the guild ID.
     bot.setTimeout(() => {
       if (ob.memory.rdel.includes(packet.d.id)) return; // stops if the message exists in the bot's cache.
-      if (packet.d.guild_id !== bot.cfg.guilds.optifine) return;
+      if (packet.d.guild_id !== bot.mainGuild.id) return;
       if (bot.cfg.channels.nolog.includes(packet.d.channel_id)) return;
 
       const logEntry = new ob.LogEntry({ time: now, channel: `delete`, embed: false });

@@ -17,7 +17,7 @@
   },
   "channels": {
     "bot": [],
-    "mod": [],
+    "staff": [],
     "blacklist": [],
     "nomodify": [],
     "nolog": [],

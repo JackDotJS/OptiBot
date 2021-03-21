@@ -7,7 +7,7 @@ const log = ob.log;
 module.exports = (guild, user) => {
   const now = new Date();
   if (bot.pause) return;
-  if (guild.id !== bot.cfg.guilds.optifine) return;
+  if (guild.id !== bot.mainGuild.id) return;
 
   const logEntry = new ob.LogEntry({ time: now, channel: `moderation` })
     .preLoad();

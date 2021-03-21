@@ -10,25 +10,24 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  // aliases: ['aliases'], // OPTIONAL
+  // aliases: ['aliases'],
   description: {
-    // BOTH OPTIONAL
     short: `Short description. Shows when viewed in the command list.`,
     long: `Long description. Shows when using \` ${bot.prefix}help ${path.parse(__filename).name} \``
   },
-  args: `[args]`, // OPTIONAL
-  image: `IMG_args.png`, // OPTIONAL
-  dm: true, // OPTIONAL
-  flags: [ `HIDDEN`, `LITE`], // OPTIONAL
-  run: null
+  args: `[args]`,
+  guilds: ``,
+  image: `IMG_args.png`,
+  dm: true,
+  flags: [ `HIDDEN`, `LITE` ],
 };
 
-metadata.run = (m, args, data) => {
+const exec = async (m, args, data) => {
   const embed = new djs.MessageEmbed()
-    .setAuthor(`Example MessageEmbed`)
+    .setAuthor(`Example MessageEmbed`, await Assets.getIcon(`ICO_info`, bot.cfg.embed.default))
     .setColor(bot.cfg.embed.default);
 
   bot.send(m, { embed });
 };
 
-module.exports = new Command(metadata);
+module.exports = new Command(metadata, exec);

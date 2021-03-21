@@ -79,7 +79,7 @@ module.exports = (m, type, target, member) => {
     }
 
     function checkServer(id) {
-      bot.guilds.cache.get(bot.cfg.guilds.optifine).members.fetch({ user: id, cache: true }).then(mem => {
+      bot.mainGuild.members.fetch({ user: id, cache: true }).then(mem => {
         if (type === 0) {
           remember({ type: `member`, target: mem });
         } else if (type === 1) {
@@ -135,8 +135,8 @@ module.exports = (m, type, target, member) => {
         }
       } else if (type === 0) {
         let users = [];
-        if (m.guild.id !== bot.cfg.guilds.optifine) {
-          users = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).members.cache.values()];
+        if (m.guild.id !== bot.mainGuild.id) {
+          users = [...bot.mainGuild.members.cache.values()];
         } else {
           users = [...m.guild.members.cache.values()];
         }
@@ -146,9 +146,9 @@ module.exports = (m, type, target, member) => {
         const someone = users[~~(Math.random() * users.length)];
         remember({ type: `member`, target: someone });
       } else if (type === 1) {
-        const channels_unfiltered = [...bot.guilds.cache.get(bot.cfg.guilds.optifine).channels.cache.values()];
+        const channels_unfiltered = [...bot.mainGuild.channels.cache.values()];
         const channels = [];
-        const blacklist = bot.cfg.channels.mod.concat(bot.cfg.channels.blacklist);
+        const blacklist = bot.cfg.channels.staff.concat(bot.cfg.channels.blacklist);
 
         channels_unfiltered.forEach((channel) => {
           if (!blacklist.includes(channel.id) && !blacklist.includes(channel.parentID) && channel.type === `text` && channel.messages.cache.size > 0) {
@@ -213,7 +213,7 @@ module.exports = (m, type, target, member) => {
                 if (thisID.value.createdTimestamp + 1000 > m.createdTimestamp) {
                   log(`extremely recent message skipped`, `debug`);
                   search();
-                } else if (m.guild.id !== bot.cfg.guilds.optifine && type === 0) {
+                } else if (m.guild.id !== bot.mainGuild.id && type === 0) {
                   checkServer(thisID.value.member.id);
                 } else {
                   if (type === 0) {

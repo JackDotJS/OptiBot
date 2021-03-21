@@ -32,7 +32,7 @@ module.exports = async (m, mNew) => {
   if (m.channel.type === `dm`) return;
 
   let postInChannel = false;
-  const postInLogs = (m.guild.id !== bot.cfg.guilds.optifine && [...bot.cfg.channels.nolog, ...bot.cfg.channels.staff].some(id => [m.channel.id, m.channel.parentID].includes(id)));
+  const postInLogs = (m.guild.id !== bot.mainGuild.id && [...bot.cfg.channels.nolog, ...bot.cfg.channels.staff].some(id => [m.channel.id, m.channel.parentID].includes(id)));
   const embed = new djs.MessageEmbed();
 
   const now = new Date();

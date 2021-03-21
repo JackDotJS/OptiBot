@@ -49,7 +49,7 @@ module.exports = class OptiBot extends djs.Client {
 
     Object.defineProperty(this, `mainGuild`, {
       get: () => {
-        if (this.cfg.guilds.optifine != null) return this.guilds.cache.get(this.cfg.guilds.optifine);
+        if (this.cfg.guilds.optifine != null && this.cfg.guilds.optifine.length > 0) return this.guilds.cache.get(this.cfg.guilds.optifine);
         return this.guilds.cache.get(this.cfg.guilds.optibot);
       }
     });

@@ -7,5 +7,4 @@ cfg/config_debug.json
 data
 logs
 node_modules
-package-lock.json
 .local

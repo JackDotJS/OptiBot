@@ -15,33 +15,17 @@ const metadata = {
   run: null
 };
 
-metadata.run = async (m) => {
-  const devsSorted = bot.mainGuild.roles.cache.get(bot.cfg.roles.botdev).members
-    .sort((a, b) => a.joinedTimestamp - b.joinedTimestamp)
-    .map(member => member.toString());
-
-  const developers = devsSorted.reduce((str, one, i, arr) => {
-    if(i+1 === arr.length) {
-      str += `, and ${one}`;
-    } else {
-      str += `, ${one}`;
-    }
-
-    return str;
-  });
-
-  const desc = [
-    `Developed and maintained by ${developers} out of love for a great community.`,
-  ];
+metadata.run = async (m, args, data) => {
+  const desc = data.cfg.splash[~~(Math.random() * data.cfg.splash.length)];
 
   const embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
-    .setAuthor(`About`, await Assets.getIcon(`ICO_info`, bot.cfg.embed.default))
+    .setColor(data.cfg.colors.default)
+    .setAuthor(`About`, await Assets.getIcon(`ICO_info`, data.cfg.colors.default))
     .setThumbnail(bot.user.displayAvatarURL({ format: `png`, size: 64 }))
     .setTitle(`The official OptiFine Discord server bot. \n\n`)
     .setDescription(desc.join(`\n`))
-    .addField(`View Commands`, `\`\`\`${bot.prefix}help\`\`\``, true)
-    .addField(`View Details`, `\`\`\`${bot.prefix}help <command>\`\`\``, true)
+    .addField(`View Commands`, `\`\`\`${data.cfg.prefixes[0]}help\`\`\``, true)
+    .addField(`View Details`, `\`\`\`${data.cfg.prefixes[0]}help <command>\`\`\``, true)
     .setFooter([
       `Version: ${bot.version}`,
       `Session Uptime: ${uptime(process.uptime() * 1000)}`

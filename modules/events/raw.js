@@ -8,7 +8,7 @@ const log = ob.log;
 
 module.exports = (packet) => {
   const now = new Date();
-  if (bot.pause) return;
+  if (!bot.available) return;
   if (packet.t === `MESSAGE_DELETE`) {
     // this packet does not contain the actual message data, unfortunately.
     // as of writing, this only contains the message ID, the channel ID, and the guild ID.
@@ -26,7 +26,7 @@ module.exports = (packet) => {
         `(${timeago.format(mt)})`
       ];
 
-      logEntry.setColor(bot.cfg.embed.error)
+      logEntry.setColor(bot.cfg.colors.error)
         .setIcon(ob.Assets.getEmoji(`ICO_trash`).url)
         .setTitle(`(Uncached) Message Deleted`, `Uncached Message Deletion Report`)
         .setDescription(desc.join(`\n`), desc.join(` `))

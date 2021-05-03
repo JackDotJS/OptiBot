@@ -5,7 +5,7 @@ const log = ob.log;
 
 module.exports = (member) => {
   const now = new Date();
-  if (bot.pause) return;
+  if (!bot.available) return;
   if (member.guild.id !== bot.mainGuild.id) return;
 
   for (const i in ob.memory.mutes) {
@@ -25,7 +25,7 @@ module.exports = (member) => {
         if ((ad[i].action === `MEMBER_KICK` || ad[i].action === `MEMBER_BAN_ADD`) && ad[i].target.id === member.user.id) {
           if (ad[i].action === `MEMBER_KICK`) {
             new ob.LogEntry({ time: now, channel: `moderation` })
-              .setColor(bot.cfg.embed.error)
+              .setColor(bot.cfg.colors.error)
               .setIcon(ob.Assets.getEmoji(`ICO_leave`).url)
               .setThumbnail(member.user.displayAvatarURL({ format: `png` }))
               .setTitle(`Member Kicked`, `Member Kick Report`)
@@ -37,7 +37,7 @@ module.exports = (member) => {
           break;
         } else if (i + 1 >= ad.length) {
           new ob.LogEntry({ time: now, channel: `joinleave` })
-            .setColor(bot.cfg.embed.error)
+            .setColor(bot.cfg.colors.error)
             .setIcon(ob.Assets.getEmoji(`ICO_leave`).url)
             .setThumbnail(member.user.displayAvatarURL({ format: `png` }))
             .setTitle(`Member Left`, `Member Leave Report`)

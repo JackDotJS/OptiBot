@@ -10,7 +10,8 @@ const metadata = {
     short: `Show OptiFine donation information.`,
     long: `Shows information about OptiFine donations.`
   },
-  dm: true,
+  guilds: [ bot.cfg.guilds.optifine ],
+  dm: false,
   flags: [ `LITE` ],
   run: null
 };
@@ -28,7 +29,7 @@ metadata.run = m => {
   }
 
   const embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .setAuthor(`OptiFine Donations`, Assets.getEmoji(`ICO_heart`).url)
     .setTitle(`https://optifine.net/donate`)
     .setDescription(`OptiFine has been created, developed, and maintained solely by <@202558206495555585> for ${years} whole years and counting. Please consider donating to support the mod's continued development!\n\nFor a one-time donation of $10 USD, you'll (optionally) receive a customizable in-game cape, visible to all other OptiFine players, all in recognition of your awesomeness!`)

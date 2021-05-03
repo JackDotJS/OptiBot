@@ -50,7 +50,7 @@ metadata.executable = (m, member, authlvl) => {
 
       log(`finalizing GH refs`, `trace`);
       const embed = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.default)
+        .setColor(bot.cfg.colors.default)
         .setAuthor(`OptiFine Issue Tracker`, Assets.getEmoji(`ICO_git`).url)
         .setDescription(`In response to [this](${m.url}) message...\n\n${issueLinks.join(`\n\n`)}`);
 

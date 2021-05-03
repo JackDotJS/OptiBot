@@ -6,7 +6,7 @@ const log = ob.log;
 
 module.exports = (guild, user) => {
   const now = new Date();
-  if (bot.pause) return;
+  if (!bot.available) return;
   if (guild.id !== bot.mainGuild.id) return;
 
   const logEntry = new ob.LogEntry({ time: now, channel: `moderation` })
@@ -24,7 +24,7 @@ module.exports = (guild, user) => {
         }
       }
 
-      logEntry.setColor(bot.cfg.embed.default)
+      logEntry.setColor(bot.cfg.colors.default)
         .setIcon(ob.Assets.getEmoji(`ICO_unban`).url)
         .setThumbnail(user.displayAvatarURL({ format: `png` }))
         .setTitle(`Member Ban Revoked`, `Member Ban Removal Report`)

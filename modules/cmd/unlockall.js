@@ -26,7 +26,7 @@ metadata.run = (m, args, data) => {
 
   let embed = new djs.MessageEmbed()
     .setAuthor(`Are you sure?`, Assets.getEmoji(`ICO_warn`).url)
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .setDescription(`ALL of the following channels will be unlocked: \n> ${channels.join(`\n> `)}`);
 
   bot.send(m, { embed, delayControl: true }).then(bres => {
@@ -36,7 +36,7 @@ metadata.run = (m, args, data) => {
       if (res === 1) {
         embed = new djs.MessageEmbed()
           .setAuthor(`Unlocking all channels...`, Assets.getEmoji(`ICO_wait`).url)
-          .setColor(bot.cfg.embed.default);
+          .setColor(bot.cfg.colors.default);
 
         msg.edit(embed).then(() => {
           const logEntry = new LogEntry({ channel: `moderation` })
@@ -58,7 +58,7 @@ metadata.run = (m, args, data) => {
               success++;
 
               if (i + 1 >= channels.length) {
-                logEntry.setColor(bot.cfg.embed.default)
+                logEntry.setColor(bot.cfg.colors.default)
                   .setIcon(Assets.getEmoji(`ICO_unlock`).url)
                   .setTitle(`All Channels Unlocked`, `Channel Unlock Report`)
                   .addSection(`Successful Unlocks`, success, true)
@@ -68,7 +68,7 @@ metadata.run = (m, args, data) => {
 
                 const embed = new djs.MessageEmbed()
                   .setAuthor(`All channels unlocked.`, Assets.getEmoji(`ICO_okay`).url)
-                  .setColor(bot.cfg.embed.okay)
+                  .setColor(bot.cfg.colors.okay)
                   .addField(`Successful Unlocks`, success, true)
                   .addField(`Failed Unlocks`, fail, true);
 
@@ -91,14 +91,14 @@ metadata.run = (m, args, data) => {
       } else if (res === 0) {
         const update = new djs.MessageEmbed()
           .setAuthor(`Cancelled`, Assets.getEmoji(`ICO_load`).url)
-          .setColor(bot.cfg.embed.default)
+          .setColor(bot.cfg.colors.default)
           .setDescription(`No channels have been changed.`);
 
         msg.edit({ embed: update }).then(() => bres.addControl);
       } else {
         const update = new djs.MessageEmbed()
           .setAuthor(`Timed out`, Assets.getEmoji(`ICO_load`).url)
-          .setColor(bot.cfg.embed.default)
+          .setColor(bot.cfg.colors.default)
           .setDescription(`Sorry, you didn't respond in time. Please try again.`);
 
         msg.edit({ embed: update }).then(() => bres.addControl);

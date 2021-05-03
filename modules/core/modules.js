@@ -1,5 +1,5 @@
 module.exports = {
-  Client: require(`./client.js`),
+  Client: require(`./vector.js`),
   Assets: require(`./asset_manager.js`),
   Command: require(`./command.js`),
   OptiBit: require(`./bit.js`),

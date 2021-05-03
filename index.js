@@ -1,5 +1,5 @@
 /**
- * OptiBot - Boot Manager
+ * Vector Bot - Boot Manager
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  */
 
@@ -11,7 +11,7 @@ const AZip = require(`adm-zip`);
 const chalk = require(`chalk`);
 const pkg = require(`./package.json`);
 
-process.title = `OptiBot ${pkg.version}`;
+process.title = `Vector ${pkg.version}`;
 
 const env = {
   mode: 0,
@@ -164,7 +164,7 @@ const required = [
   `./modules`,
   `./modules/cmd`,
   `./modules/core`,
-  `./modules/core/OptiBot.js`
+  `./modules/core/app.js`
 ];
 
 const makeDirs = [
@@ -173,6 +173,11 @@ const makeDirs = [
   `./archive/data`,
   `./data`,
   `./logs`
+];
+
+const makeFiles = [
+  `./data/profiles.db`,
+  `./data/guilds.db`
 ];
 
 for (const item of required) {
@@ -185,12 +190,14 @@ for (const item of makeDirs) {
   }
 }
 
-if (typeof require(`./cfg/keys.json`).discord !== `string`) {
-  throw new Error(`./cfg/keys.json - Missing Discord API token.`);
+for (const item of makeFiles) {
+  if (!fs.existsSync(item)) {
+    fs.writeFileSync(item, ``);
+  }
 }
 
-if (!fs.existsSync(`./data/profiles.db`)) {
-  fs.writeFileSync(`./data/profiles.db`, ``);
+if (typeof require(`./cfg/keys.json`).discord !== `string`) {
+  throw new Error(`./cfg/keys.json - Missing Discord API token.`);
 }
 
 (function setup() {
@@ -199,35 +206,36 @@ if (!fs.existsSync(`./data/profiles.db`)) {
 
     if (process.argv.includes(`--skipsetup`)) {
       env.mode = parseInt(process.argv.indexOf(`--skipsetup`) + 1);
-      preinit();
-    } else {
-      env.rl.question(`START OPTIBOT [Y/N]\n`, (res) => {
-        if (res.trim().toLowerCase() === `y`) {
-          q2();
-        } else if (res.trim().toLowerCase() === `n`) {
-          process.exit();
-        } else {
-          q1();
-        }
-      });
-    }
+      return preinit();
+    } 
+
+    env.rl.question(`START VECTOR [Y/N]\n`, (res) => {
+      if (res.trim().toLowerCase() === `y`) {
+        q2();
+      } else if (res.trim().toLowerCase() === `n`) {
+        process.exit();
+      } else {
+        q1();
+      }
+    });
   })();
 
   function q2() {
     console.clear();
 
-    env.rl.question(`SET OPERATING MODE [0-3]\n`, (res) => {
+    console.log([
+      `MODE 0 - FULL FEATURE SET, CLOSED ACCESS | "CODE MODE"`,
+      `MODE 1 - LIMITED FEATURE SET, PUBLIC ACCESS | "LITE MODE"`,
+      `MODE 2 - FULL FEATURE SET, PUBLIC ACCESS | NORMAL OPERATION`,
+      ``
+    ].join(`\n`));
+
+    env.rl.question(`SET OPERATING MODE [0-2]\n`, (res) => {
       const mode = parseInt(res);
   
-      if (isNaN(mode) || mode < 0 || mode > 3) {
+      if (isNaN(mode) || mode < 0 || mode > 2) {
         q2();
       } else {
-        /**
-         * MODE 0 - FULL FEATURE SET, CLOSED ACCESS | CODE MODE
-         * MODE 1 - LIMITED FEATURE SET, CLOSED ACCESS | ULTRALIGHT MODE
-         * MODE 2 - LIMITED FEATURE SET, PUBLIC ACCESS | LITE MODE
-         * MODE 3 - FULL FEATURE SET, PUBLIC ACCESS | NORMAL
-         */
         env.mode = mode;
         if (mode === 0) env.log.level = 0;
   
@@ -241,7 +249,7 @@ if (!fs.existsSync(`./data/profiles.db`)) {
 function preinit() {
   console.clear();
 
-  process.title = `OptiBot ${pkg.version} | Spawning Process...`;
+  process.title = `Vector ${pkg.version} | Spawning Process...`;
 
   env.log.filename = new Date().toUTCString().replace(/[/\\?%*:|"<>]/g, `.`);
   env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);
@@ -254,14 +262,14 @@ function preinit() {
     }
   }
 
-  log(`Pre-Init: Backing up OptiBot profiles...`, `info`);
+  log(`Pre-Init: Backing up user profiles...`, `info`);
   const pzip = new AZip();
   pzip.addLocalFile(`./data/profiles.db`);
 
   pzip.writeZip(`./archive/data/profiles_before_${env.log.filename}.zip`, (err) => {
     if (err) throw err;
 
-    log(`Pre-Init: OptiBot profiles successfully archived.`, `info`);
+    log(`Pre-Init: User profiles successfully archived.`, `info`);
 
     log(`Pre-Init: Checking log archive status...`, `info`);
 
@@ -326,9 +334,9 @@ function preinit() {
 }
 
 function init() {
-  log(`Launching OptiBot...`, `info`);
+  log(`Launching Vector...`, `info`);
 
-  const bot = child.spawn(`node`, [`modules/core/main.js`, env.mode, env.log.filename], {
+  const bot = child.spawn(`node`, [`modules/core/app.js`, env.mode, env.log.filename], {
     stdio: [`pipe`, `pipe`, `pipe`, `ipc`]
   });
 
@@ -360,10 +368,10 @@ function init() {
     }
 
     switch (data.t) {
-      case `OB_LOG`:
+      case `APP_LOG`:
         log(data.c.message, data.c.level, data.c.file);
         break;
-      case `OB_READY`:
+      case `APP_READY`:
         log(`Bot ready`);
         if (env.cr.logData != null) {
           // send crash data
@@ -393,7 +401,7 @@ function init() {
           });
         }
         break;
-      case `OB_RESTART`:
+      case `APP_RESTART`:
         env.r.guild = data.c.guild;
         env.r.channel = data.c.channel;
         env.r.message = data.c.message;
@@ -423,10 +431,10 @@ function init() {
 
     switch(code) {
       case 0: 
-        log(`OptiBot is now shutting down at user request.`, `info`);
+        log(`Vector is now shutting down at user request.`, `info`);
         break;
       case 1: 
-        log(`OptiBot seems to have crashed. Restarting...`, `info`);
+        log(`Vector seems to have crashed. Restarting...`, `info`);
         opts.exit = false;
         opts.note = `CRASH`;
         opts.postLog = true;
@@ -463,24 +471,24 @@ function init() {
         log(`Invalid Debug Argument(s).`, `fatal`);
         break;
       case 16: 
-        log(`OptiBot is now restarting at user request...`, `info`);
+        log(`Vector is now restarting at user request...`, `info`);
         opts.exit = false;
         break;
       case 17: 
         if (env.mode === 0) {
-          log(`OptiBot cannot be updated in mode 0. Restarting...`, `info`);
+          log(`Vector cannot be updated in mode 0. Restarting...`, `info`);
           opts.exit = false;
         } else {
-          log(`OptiBot is now being updated...`, `info`);
+          log(`Vector is now being updated...`, `info`);
           return update();
         }
         break;
       case 18:
-        log(`OptiBot is now undergoing scheduled restart.`, `info`);
+        log(`Vector is now undergoing scheduled restart.`, `info`);
         opts.exit = false;
         break;
       case 19:
-        log(`OptiBot is shutting down automatically.`, `fatal`);
+        log(`Vector is shutting down automatically.`, `fatal`);
         opts.exit = false;
         opts.note = `FATAL`;
         break;

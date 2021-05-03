@@ -29,16 +29,12 @@ const metadata = {
 };
 
 const exec = async (m, args, data) => {
-  if (!args[0]) {
+  if (!args[1]) {
     return bot.util.missingArgs(m, metadata);
   }
   
   if (args[0].indexOf(`@`) < 0 && args[0].indexOf(`.`) < 0) {
     return bot.util.err(`You must specify a valid e-mail address.`, { m });
-  } 
-  
-  if (!args[1]) {
-    return bot.util.err(`You must specify your donator token.`, { m });
   }
 
   const res = await fetch(
@@ -54,8 +50,8 @@ const exec = async (m, args, data) => {
     await data.member.roles.add([bot.cfg.roles.donator, bot.cfg.roles.donatorColor], `Donator status verified.`);
 
     const embed = new djs.MessageEmbed()
-      .setColor(bot.cfg.embed.okay)
-      .setAuthor(`Thank you for your contribution! Your donator role has been granted.`, Assets.getEmoji(`ICO_okay`).url);
+      .setColor(bot.cfg.colors.okay)
+      .setAuthor(`Thank you for your contribution! Your donator role has been granted.`, await Assets.getIcon(`ICO_check`, bot.cfg.colors.okay));
 
     m.channel.send({ embed: embed });
   } else {

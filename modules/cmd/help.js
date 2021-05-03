@@ -11,7 +11,7 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   description: {
-    short: `Find or view OptiBot commands.`
+    short: `Find or view Vector commands.`
   },
   args: [
     `[command]`,
@@ -26,7 +26,6 @@ metadata.run = async (m, args, data) => {
   const list = [];
   let query;
   let strict = false;
-  const userPerms = await bot.util.getPerms(data.member); // todo: move this to base command handler
 
   const parseQuery = (/((?<=").+?(?="))|([^"]+)/i).exec(m.cleanContent.substring(`${bot.prefix}${data.input.cmd} `.length));
 
@@ -55,8 +54,8 @@ metadata.run = async (m, args, data) => {
 
     if (list.length === 0) {
       embed = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.default)
-        .setAuthor(`OptiBot Index`, await Assets.getIcon(`ICO_docs`, bot.cfg.embed.default))
+        .setColor(bot.cfg.colors.default)
+        .setAuthor(`OptiBot Index`, await Assets.getIcon(`ICO_docs`, bot.cfg.colors.default))
         .setDescription(`Could not find any commands.`);
 
       if (title) embed.setTitle(title);
@@ -75,8 +74,8 @@ metadata.run = async (m, args, data) => {
 
       if (embed == null) {
         embed = new djs.MessageEmbed()
-          .setColor(bot.cfg.embed.default)
-          .setAuthor(`OptiBot Index | ${pages.length+1}/${pageLimit}`, await Assets.getIcon(`ICO_docs`, bot.cfg.embed.default))
+          .setColor(bot.cfg.colors.default)
+          .setAuthor(`OptiBot Index | ${pages.length+1}/${pageLimit}`, await Assets.getIcon(`ICO_docs`, bot.cfg.colors.default))
           .setDescription(`Use \`${bot.prefix}help <command>\` for details about a specific command.`);
         
         if (title) embed.setTitle(title);
@@ -110,8 +109,8 @@ metadata.run = async (m, args, data) => {
     const md = cmd.metadata;
 
     const embed = new djs.MessageEmbed()
-      .setColor(bot.cfg.embed.default)
-      .setAuthor(`OptiBot Index`, await Assets.getIcon(`ICO_docs`, bot.cfg.embed.default))
+      .setColor(bot.cfg.colors.default)
+      .setAuthor(`OptiBot Index`, await Assets.getIcon(`ICO_docs`, bot.cfg.colors.default))
       .setTitle(bot.prefix + md.name)
       .setDescription(md.description.long)
       .addField(`Usage Example(s)`, `\`\`\`\n${md.args.join(`\`\`\` \`\`\`\n`)}\`\`\``);

@@ -7,7 +7,7 @@ const bot = ob.memory.core.client;
 const log = ob.log;
 
 module.exports = async (m, mNew) => {
-  if (bot.pause) return;
+  if (!bot.available) return;
   if (m.type !== `DEFAULT` || m.system || m.author.system || m.author.bot) return;
 
   // handle command edits
@@ -43,15 +43,15 @@ module.exports = async (m, mNew) => {
     `(${timeago.format(m.createdAt)})`
   ];
 
-  logEntry.setColor(bot.cfg.embed.default)
-    .setIcon(await ob.Assets.getIcon(`ICO_pencil`, bot.cfg.embed.default))
+  logEntry.setColor(bot.cfg.colors.default)
+    .setIcon(await ob.Assets.getIcon(`ICO_pencil`, bot.cfg.colors.default))
     .setTitle(`Message Updated`, `Message Update Report`)
     .setDescription(desc.join(`\n`), desc.join(` `))
     .addSection(`Author`, m.author)
     .addSection(`Message Location`, m);
 
-  embed.setColor(bot.cfg.embed.warn)
-    .setAuthor(`Pinned Message Updated`, await ob.Assets.getIcon(`ICO_pencil`, bot.cfg.embed.warn))
+  embed.setColor(bot.cfg.colors.warn)
+    .setAuthor(`Pinned Message Updated`, await ob.Assets.getIcon(`ICO_pencil`, bot.cfg.colors.warn))
     .setTitle(`Message posted by ${m.author.tag}`)
     .setThumbnail(m.author.displayAvatarURL({ format: `png`, size: 64 }));
 

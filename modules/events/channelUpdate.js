@@ -6,7 +6,7 @@ const log = ob.log;
 
 module.exports = (oldc, newc) => {
   const now = new Date();
-  if (bot.pause) return;
+  if (!bot.available) return;
   if (oldc.type !== `text`) return;
   if (oldc.guild.id !== bot.mainGuild.id) return;
   if (bot.cfg.channels.nolog.some(id => [oldc.id, oldc.parentID].includes(id))) return;
@@ -14,13 +14,13 @@ module.exports = (oldc, newc) => {
   if (oldc.topic === newc.topic && oldc.name === newc.name) return;
 
   const logEntry = new ob.LogEntry({ time: now, channel: `other` })
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .setIcon(ob.Assets.getEmoji(`ICO_edit`).url)
     .setTitle(`Channel Updated`, `Channel Update Report`)
     .addSection(`Channel`, newc);
 
   const embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .setAuthor(`Channel Updated`, ob.Assets.getEmoji(`ICO_edit`).url);
 
   if (oldc.topic !== newc.topic) {

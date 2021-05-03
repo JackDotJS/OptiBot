@@ -68,7 +68,7 @@ metadata.run = (m, args, data) => {
       if (!result.target.roles.cache.has(match.role.id)) {
         result.target.roles.add(match.role.id, `Role granted by ${m.author.tag}`).then(() => {
           new LogEntry({ channel: `moderation` })
-            .setColor(bot.cfg.embed.okay)
+            .setColor(bot.cfg.colors.okay)
             .setIcon(Assets.getEmoji(`ICO_join`).url)
             .setTitle(`Member Role Granted`, `Member Role Grant Report`)
             .setThumbnail(result.target.user.displayAvatarURL({ format: `png` }))
@@ -78,7 +78,7 @@ metadata.run = (m, args, data) => {
             .addSection(`Role`, `${match.role}`)
             .submit().then(() => {
               const embed = new djs.MessageEmbed()
-                .setColor(bot.cfg.embed.okay)
+                .setColor(bot.cfg.colors.okay)
                 .setAuthor(`Role added`, Assets.getEmoji(`ICO_okay`).url)
                 .setDescription(`${result.target} has been given the ${match.role} role.`);
 
@@ -88,7 +88,7 @@ metadata.run = (m, args, data) => {
       } else {
         result.target.roles.remove(match.role.id, `Role removed by ${m.author.tag}`).then(() => {
           new LogEntry({ channel: `moderation` })
-            .setColor(bot.cfg.embed.error)
+            .setColor(bot.cfg.colors.error)
             .setIcon(Assets.getEmoji(`ICO_leave`).url)
             .setTitle(`Member Role Removed`, `Member Role Removal Report`)
             .setThumbnail(result.target.user.displayAvatarURL({ format: `png` }))
@@ -98,7 +98,7 @@ metadata.run = (m, args, data) => {
             .addSection(`Role`, `${match.role}`)
             .submit().then(() => {
               const embed = new djs.MessageEmbed()
-                .setColor(bot.cfg.embed.okay)
+                .setColor(bot.cfg.colors.okay)
                 .setAuthor(`Role removed`, Assets.getEmoji(`ICO_okay`).url)
                 .setDescription(`${result.target} no longer has the ${match.role} role.`);
 

@@ -1,6 +1,7 @@
 const memory = require(`../core/memory.js`);
 const djs = require(`discord.js`);
 const Assets = require(`../core/asset_manager.js`);
+const path = require(`path`);
 
 /**
  * Creates a simple, pre-formatted error message.
@@ -13,7 +14,7 @@ module.exports = async (err, data = {}) => {
   const log = bot.log;
 
   const embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.error);
+    .setColor(bot.cfg.colors.error);
 
   if (err instanceof Error) {
     log(err.stack, `error`);
@@ -24,11 +25,11 @@ module.exports = async (err, data = {}) => {
       err.toString()
     ];
 
-    if (bot.mode < 2) {
+    if (bot.mode === 0) {
       for (const line of lines) {
         if (line.includes(`node_modules`)) break;
 
-        let file = line.match(new RegExp(`${memory.core.root.drive}\\[^,]+\\d+:\\d+`));
+        let file = line.match(new RegExp(`${path.parse(process.cwd()).root}\\[^,]+\\d+:\\d+`));
         if (!file) continue;
         file = file[0];
 
@@ -40,7 +41,7 @@ module.exports = async (err, data = {}) => {
 
         let str = ``;
 
-        const fileshort = file.replace(memory.core.root.dir, `~`);
+        const fileshort = file.replace(process.cwd(), `~`);
 
         if (trace && trace !== file) {
           if (trace === `eval`) {
@@ -63,11 +64,11 @@ module.exports = async (err, data = {}) => {
       formatted = [...new Set(formatted)];
     }
 
-    embed.setAuthor(`Something went wrong.`, await Assets.getIcon(`ICO_x`, bot.cfg.embed.error))
+    embed.setAuthor(`Something went wrong.`, await Assets.getIcon(`ICO_x`, bot.cfg.colors.error))
       .setTitle(bot.cfg.messages.error[~~(Math.random() * bot.cfg.messages.error.length)])
       .setDescription(`\`\`\`diff\n- ${formatted.join(`\n-   at `)}\`\`\``);
   } else {
-    embed.setAuthor(err, await Assets.getIcon(`ICO_x`, bot.cfg.embed.error));
+    embed.setAuthor(err, await Assets.getIcon(`ICO_x`, bot.cfg.colors.error));
   }
 
   // log(util.inspect(data));

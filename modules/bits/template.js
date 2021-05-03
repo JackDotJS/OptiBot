@@ -29,7 +29,7 @@ metadata.validator = (m, member, authlvl) => {
 metadata.executable = (m, member, authlvl) => {
   const embed = new djs.MessageEmbed()
     .setAuthor(`Example MessageEmbed`)
-    .setColor(bot.cfg.embed.default);
+    .setColor(bot.cfg.colors.default);
 
   bot.send(m, { embed });
 };

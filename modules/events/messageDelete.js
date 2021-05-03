@@ -8,7 +8,7 @@ const log = ob.log;
 
 module.exports = (m) => {
   const now = new Date();
-  if (bot.pause) return;
+  if (!bot.available) return;
   if (m.channel.type === `dm`) return;
   if (m.type !== `DEFAULT` || m.system || m.author.system) return;
   if (m.author.system || m.author.bot) return;
@@ -76,7 +76,7 @@ module.exports = (m) => {
           `(${timeago.format(m.createdAt)})`
         ];
 
-        logEntry.setColor(bot.cfg.embed.error)
+        logEntry.setColor(bot.cfg.colors.error)
           .setIcon(ob.Assets.getEmoji(`ICO_trash`).url)
           .setTitle(`Message Deleted`, `Message Deletion Report`)
           .setDescription(desc.join(`\n`), desc.join(` `))

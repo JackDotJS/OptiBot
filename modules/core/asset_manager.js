@@ -29,55 +29,31 @@ module.exports = class OptiBotAssetsManager {
 
     log(`Loading assets...`, `info`);
 
-    bot.pause = true;
+    bot.setStatus(`LOADING`);
+    bot.available = false;
 
     const timeStart = new Date().getTime();
+
+    // stages = important stuff, runs first and foremost
+    // stagesNE = secondary, non-essential stages. continues to run AFTER returning
+
     const stages = [];
-    const stagesAsync = [];
+    const stagesNE = [];
     let totals = 0;
     let errors = 0;
-    let errorsAsync = 0;
+    let errorsNE = 0;
     let done = 0;
     let skipped = 0;
-    let skippedAsync = 0;
+    let skippedNE = 0;
 
     stages.push({
-      name: `OptiFine GuildMembers Pre-cacher`,
-      tiers: [true, false, false],
-      load: async () => {
-        await bot.mainGuild.members.fetch();
-        return;
-      }
-    });
-
-    stages.push({
-      name: `OptiBot File System Watcher`,
+      name: `File System Watcher`,
       tiers: [true, false, false],
       load: () => {
         return new Promise((resolve, reject) => {
-          // TODO: fix this garbage to only apply to ./bits, ./cmd, and ./util
-
-          /* const modules = fs.readdirSync(`./modules/`, { withFileTypes: true });
-
-            const files = [];
-
-            for (const dir of modules) {
-              log(dir);
-              if (!dir.isDirectory()) continue;
-
-              const subdir = fs.readdirSync(`./modules/${dir.name}`, { withFileTypes: true });
-
-              for (const modulefile of subdir) {
-                log(modulefile);
-                if (!modulefile.isFile()) continue;
-
-                files.push(`./modules/${dir.name}/${modulefile.name}`);
-              }
-            } */
-
           const watcher = chokidar.watch([
-            `./modules/bits`,
             `./modules/cmd`,
+            `./modules/events`,
             `./modules/util`
           ], { persistent: false });
 
@@ -103,7 +79,7 @@ module.exports = class OptiBotAssetsManager {
     });
 
     stages.push({
-      name: `OptiBot Module Reloader`,
+      name: `Module Cache Remover`,
       tiers: [false, true, false],
       load: async () => {
         for (const moddir of memory.assets.needReload) {
@@ -135,7 +111,7 @@ module.exports = class OptiBotAssetsManager {
           
           if (newcmd.constructor !== Command) continue;
           
-          if ([1,2].includes(bot.mode) && !newcmd.metadata.flags[`LITE`]) {
+          if (bot.mode === 1 && !newcmd.metadata.flags[`LITE`]) {
             log(`Unable to load command "${newcmd.metadata.name}" due to Lite mode.`, `warn`);
             continue;
           }
@@ -171,16 +147,16 @@ module.exports = class OptiBotAssetsManager {
       }
     });
 
-    stagesAsync.push({
-      name: `OptiBot Events Loader`,
-      tiers: [true, false, false],
+    stages.push({
+      name: `Event Handler Loader`,
+      tiers: [true, true, false],
       load: async () => {
         const events = fs.readdirSync(`./modules/events/`);
 
         for (const file of events) {
           const name = file.split(`.`)[0];
-          const event = require(`../events/${file}`);
-          bot.on(name, event);
+          bot.removeAllListeners(name); // ensures we dont attach multiple handlers to the same event after reloading
+          bot.on(name, require(`../events/${file}`));
           log(`Loaded event handler: ${name}`);
         }
 
@@ -188,19 +164,7 @@ module.exports = class OptiBotAssetsManager {
       }
     });
 
-    stagesAsync.push({
-      name: `Audit Log Pre-cacher`,
-      tiers: [true, false, false],
-      load: async () => {
-        const audit = await bot.mainGuild.fetchAuditLogs({ limit: 10, type: `MESSAGE_DELETE` });
-
-        memory.audit.log = [...audit.entries.values()];
-
-        return;
-      }
-    });
-
-    stagesAsync.push({
+    stagesNE.push({
       name: `Muted Member Pre-cacher`,
       tiers: [true, false, false],
       load: () => {
@@ -252,72 +216,7 @@ module.exports = class OptiBotAssetsManager {
       }
     });
 
-    stagesAsync.push({
-      name: `OptiBit Loader`,
-      tiers: [true, true, false],
-      load: () => {
-        return new Promise((resolve, reject) => {
-
-          // todo: refactor this code similar to command loader
-
-          const optibits = fs.readdirSync(`./modules/bits`);
-          let clear = false;
-
-          if (memory.assets.optibits.length > 0) {
-            memory.assets.optibits = [];
-            clear = true;
-          }
-
-          let i1 = 0;
-          (function loadBit() {
-            const bit = optibits[i1];
-            if (i1 + 1 > optibits.length) {
-              memory.assets.optibits.sort((a, b) => a.metadata.priority - b.metadata.priority);
-              log(memory.assets.optibits);
-              resolve();
-            } else
-            if (bit.endsWith(`.js`)) {
-              log(`processing: ${path.resolve(`./modules/bits/${bit}`)}`);
-
-              if (clear) {
-                log(`cache delete: ${require.resolve(path.resolve(`./modules/bits/${bit}`))}`);
-                delete require.cache[require.resolve(path.resolve(`./modules/bits/${bit}`))];
-              }
-
-              try {
-                const newbit = require(path.resolve(`./modules/bits/${bit}`));
-
-                if ((bot.mode === 1 || bot.mode === 2) && !newbit.metadata.flags[`LITE`]) {
-                  log(`Unable to load OptiBit "${newbit.metadata.name}" due to Lite mode.`, `warn`);
-                  i1++;
-                  loadBit();
-                } else
-                if (newbit.constructor === OptiBit) {
-                  memory.assets.optibits.push(newbit);
-                  log(`OptiBit registered: ${newbit.metadata.name}`);
-                  i1++;
-                  loadBit();
-                } else {
-                  bot.util.err(new TypeError(`Invalid OptiBit.`));
-                  i1++;
-                  loadBit();
-                }
-              }
-              catch (err) {
-                bot.util.err(err);
-                i1++;
-                loadBit();
-              }
-            } else {
-              i1++;
-              loadBit();
-            }
-          })();
-        });
-      }
-    });
-
-    stagesAsync.push({
+    stagesNE.push({
       name: `Scheduled Task Loader`,
       tiers: [true, false, false],
       load: async () => {
@@ -330,7 +229,7 @@ module.exports = class OptiBotAssetsManager {
 
           const task = require(`../tasks/${tasks[i].name}`);
 
-          if ([1,2].includes(bot.mode) && !task.lite) {
+          if (bot.mode === 1 && !task.lite) {
             log(`Unable to load task "${tasks[i]}" due to Lite mode.`, `warn`);
             continue;
           }
@@ -350,30 +249,14 @@ module.exports = class OptiBotAssetsManager {
       }
     });
 
-    if (bot.cfg.guilds.donator && bot.cfg.guilds.donator.length > 0) {
-      stagesAsync.push({
-        name: `Unverified Donator Checker`,
-        tiers: [true, false, false],
-        load: async () => {
-          const members = (await bot.guilds.cache.get(bot.cfg.guilds.donator).members.fetch()).filter(mem => mem.roles.cache.size === 1).array();
-  
-          for (const member of members) {
-            await bot.util.verifyDonator(member);
-          }
-  
-          return;
-        }
-      });
-    }
-
-    stagesAsync.push({
-      name: `Message Pre-Cacher`,
+    stagesNE.push({
+      name: `Pinned Message Pre-Cacher`,
       tiers: [true, false, false],
       load: async () => {
 
         //if (bot.mode === 0) return resolve();
 
-        const channels = bot.channels.cache.filter((c) => c.type === `text` && c.guild.id === bot.mainGuild.id && c.viewable).sort((a,b) => a.rawPosition - b.rawPosition).array();
+        const channels = bot.channels.cache.filter((c) => c.type === `text` && c.viewable).sort((a,b) => a.rawPosition - b.rawPosition).array();
 
         for (const channel of channels) {
           log(`fetching pinned messages from channel: #${channel.name} (${channel.id})`);
@@ -381,17 +264,11 @@ module.exports = class OptiBotAssetsManager {
           await channel.messages.fetchPinned(true);
         }
 
-        for (const channel of channels) {
-          log(`fetching regular messages from channel: #${channel.name} (${channel.id})`);
-
-          await channel.messages.fetch({ limit: 100 }, true);
-        }
-
         return;
       }
     });
 
-    totals = stages.length + stagesAsync.length;
+    totals = stages.length + stagesNE.length;
 
     for (const stage of stages) {
       log(`Loading assets... ${Math.round((100 * done) / totals)}%`, `info`);
@@ -435,11 +312,11 @@ module.exports = class OptiBotAssetsManager {
       `Errors: ${errors}`
     ].join(`\n`));
 
-    bot.pause = false;
+    bot.available = true;
 
     (async () => {
       // load secondary stages separately
-      for (const stage of stagesAsync) {
+      for (const stage of stagesNE) {
         log(`Loading assets... ${Math.round((100 * done) / totals)}%`, `info`);
 
         log(`done/totals = ${done}/${totals}`);
@@ -448,7 +325,7 @@ module.exports = class OptiBotAssetsManager {
         if (!stage.tiers[tier]) {
           log(`Skipping async stage "${stage.name}"`);
           done++;
-          skippedAsync++;
+          skippedNE++;
           continue; 
         }
 
@@ -464,20 +341,20 @@ module.exports = class OptiBotAssetsManager {
         catch(err) {
           bot.util.err(err);
           done++;
-          errorsAsync++;
+          errorsNE++;
         }
       }
 
-      log(`Secondary Assets loaded with ${errorsAsync} error(s)!`, `info`);
-      log(`Encountered ${errors + errorsAsync} total error(s) during setup.`, `info`);
+      log(`Secondary Assets loaded with ${errorsNE} error(s)!`, `info`);
+      log(`Encountered ${errors + errorsNE} total error(s) during setup.`, `info`);
       log([
         `Secondary Asset Loader finished.`,
-        `Stages: ${stagesAsync.length}`,
-        `Skipped: ${skippedAsync}`,
-        `Errors: ${errorsAsync}`,
+        `Stages: ${stagesNE.length}`,
+        `Skipped: ${skippedNE}`,
+        `Errors: ${errorsNE}`,
         `Total Stages: ${totals}`,
-        `Total Skipped: ${skipped + skippedAsync}`,
-        `Total Errors: ${errors + errorsAsync}`
+        `Total Skipped: ${skipped + skippedNE}`,
+        `Total Errors: ${errors + errorsNE}`
       ].join(`\n`));
     })();
 
@@ -553,7 +430,7 @@ module.exports = class OptiBotAssetsManager {
     if (Number.isInteger(parseInt(query))) {
       result = bot.emojis.cache.get(query);
     } else {
-      result = bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === query.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)));
+      result = bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === query.toLowerCase());
     }
 
     if (result) return result;
@@ -572,10 +449,10 @@ module.exports = class OptiBotAssetsManager {
 
     // item does not exist in cache
 
-    // incredibly basic cache system, only lasts while the bot is online
-    // todo: make this work off of database
+    // somewhat basic cache system, only lasts while the bot is online
+    // should this be made to cache urls to a persistent database?
     const submit = async (data, ext) => {
-      const cachemsg = await bot.send(bot.channels.cache.get(bot.cfg.channels.cache), { files: [ new djs.MessageAttachment(data, `image.${ext}`) ] });
+      const cachemsg = await bot.send(bot.channels.cache.get(bot.cfg.env.cacheID), { files: [ new djs.MessageAttachment(data, `image.${ext}`) ] });
 
       memory.assets.icons.push({
         q: query,

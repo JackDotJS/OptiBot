@@ -49,7 +49,7 @@ metadata.run = (m, args, data) => {
     }
 
     let embed = new djs.MessageEmbed()
-      .setColor(bot.cfg.embed.default)
+      .setColor(bot.cfg.colors.default)
       .setAuthor(`Vote Bonk`, Assets.getEmoji(`ICO_unban`).url)
       .setTitle(`Vote started.`)
       .setDescription(`Bonking: ${target} \nWaiting for ${bot.mainGuild.memberCount.toLocaleString()} votes...`)
@@ -62,7 +62,7 @@ metadata.run = (m, args, data) => {
         bot.setTimeout(() => {
           const total = bm.reactions.cache.get(bot.cfg.emoji.confirm);
           embed = new djs.MessageEmbed()
-            .setColor(bot.cfg.embed.error)
+            .setColor(bot.cfg.colors.error)
             .setAuthor(`Vote Bonk`, Assets.getEmoji(`ICO_ban`).url)
             .setTitle(`Vote ended.`)
             .addField(`Reason`, reason);

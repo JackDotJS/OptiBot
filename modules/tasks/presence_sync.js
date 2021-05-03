@@ -8,7 +8,7 @@ module.exports = {
   interval: 300000,
   lite: true,
   fn: () => {
-    if (!bot.pause && bot.ws.shards.size > 0 && bot.ws.shards.first().status === 0 && (ob.memory.presenceRetry < 3 || ob.memory.presenceHour !== new Date().getHours())) {
+    if (bot.ws.shards.size > 0 && bot.ws.shards.first().status === 0 && (ob.memory.presenceRetry < 3 || ob.memory.presenceHour !== new Date().getHours())) {
       log(`presence sync: updating`);
       bot.user.setPresence(ob.memory.presence);
       ob.memory.presenceRetry++;

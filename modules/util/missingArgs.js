@@ -10,7 +10,7 @@ module.exports = (m, metadata) => {
 
   const embed = new djs.MessageEmbed()
     .setAuthor(`Missing Arguments`, Assets.getEmoji(`ICO_warn`).url)
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .addField(`Usage`, `${md.args} \nFor more information, use \`${bot.prefix}help ${md.name}\``);
 
   bot.send(m, { embed });

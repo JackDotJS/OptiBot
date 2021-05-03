@@ -29,7 +29,7 @@ metadata.run = (m, args, data) => {
           } else {
             const embed = new djs.MessageEmbed()
               .setAuthor(`Are you sure?`, Assets.getEmoji(`ICO_warn`).url)
-              .setColor(bot.cfg.embed.default)
+              .setColor(bot.cfg.colors.default)
               .setDescription(`The following quote will be permanently removed from your OptiBot profile: \n> ${profile.ndata.quote}`);
 
             bot.send(m, { embed }).then(bres => {
@@ -42,7 +42,7 @@ metadata.run = (m, args, data) => {
                   bot.util.updateProfile(profile).then(() => {
                     const update = new djs.MessageEmbed()
                       .setAuthor(`Success`, Assets.getEmoji(`ICO_okay`).url)
-                      .setColor(bot.cfg.embed.okay)
+                      .setColor(bot.cfg.colors.okay)
                       .setDescription(`Your profile has been updated.`);
 
                     msg.edit({ embed: update }).then(() => bres.addControl);
@@ -50,14 +50,14 @@ metadata.run = (m, args, data) => {
                 } else if (res === 0) {
                   const update = new djs.MessageEmbed()
                     .setAuthor(`Cancelled`, Assets.getEmoji(`ICO_load`).url)
-                    .setColor(bot.cfg.embed.default)
+                    .setColor(bot.cfg.colors.default)
                     .setDescription(`Your profile has not been changed.`);
 
                   msg.edit({ embed: update }).then(() => bres.addControl);
                 } else {
                   const update = new djs.MessageEmbed()
                     .setAuthor(`Timed out`, Assets.getEmoji(`ICO_load`).url)
-                    .setColor(bot.cfg.embed.default)
+                    .setColor(bot.cfg.colors.default)
                     .setDescription(`Sorry, you didn't respond in time. Please try again.`);
 
                   msg.edit({ embed: update }).then(() => bres.addControl);
@@ -80,7 +80,7 @@ metadata.run = (m, args, data) => {
         } else {
           const embed = new djs.MessageEmbed()
             .setAuthor(`Are you sure?`, Assets.getEmoji(`ICO_warn`).url)
-            .setColor(bot.cfg.embed.default)
+            .setColor(bot.cfg.colors.default)
             .setDescription(`The following quote will be permanently removed from ${result.mention}'s OptiBot profile: \n> ${profile.ndata.quote}`);
 
           bot.send(m, { embed }).then(bres => {
@@ -88,7 +88,7 @@ metadata.run = (m, args, data) => {
             bot.util.confirm(m, msg).then(res => {
               if (res === 1) {
                 const logEntry = new LogEntry({ channel: `moderation` })
-                  .setColor(bot.cfg.embed.default)
+                  .setColor(bot.cfg.colors.default)
                   .setIcon(Assets.getEmoji(`ICO_warn`).url)
                   .setTitle(`Profile Quote Deleted`, `Profile Quote Deletion Report`)
                   .addSection(`Member`, result.target)
@@ -106,7 +106,7 @@ metadata.run = (m, args, data) => {
                 bot.util.updateProfile(profile).then(() => {
                   const update = new djs.MessageEmbed()
                     .setAuthor(`Success`, Assets.getEmoji(`ICO_okay`).url)
-                    .setColor(bot.cfg.embed.okay)
+                    .setColor(bot.cfg.colors.okay)
                     .setDescription(`${result.mention}'s profile has been updated.`);
 
                   msg.channel.stopTyping(true);
@@ -118,14 +118,14 @@ metadata.run = (m, args, data) => {
               } else if (res === 0) {
                 const update = new djs.MessageEmbed()
                   .setAuthor(`Cancelled`, Assets.getEmoji(`ICO_load`).url)
-                  .setColor(bot.cfg.embed.default)
+                  .setColor(bot.cfg.colors.default)
                   .setDescription(`${result.mention}'s profile has not been changed.`);
 
                 msg.edit({ embed: update }).then(() => bres.addControl);
               } else {
                 const update = new djs.MessageEmbed()
                   .setAuthor(`Timed out`, Assets.getEmoji(`ICO_load`).url)
-                  .setColor(bot.cfg.embed.default)
+                  .setColor(bot.cfg.colors.default)
                   .setDescription(`Sorry, you didn't respond in time. Please try again.`);
 
                 msg.edit({ embed: update }).then(() => bres.addControl);

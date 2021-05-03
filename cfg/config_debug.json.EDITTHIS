@@ -1,34 +1,12 @@
 {
-  "dev": {
+  "_env": {
     "devID": "",
+    "guild": "",
+    "cache": "",
+    "log": "",
     "exec": {
       "verbose": true,
       "inspectionDepth": 2
     }
-  },
-  "prefixes": [
-    ">",
-    "."
-  ],
-  "guilds": {
-    "optifine": null,
-    "optibot": "",
-    "donator": null
-  },
-  "channels": {
-    "bot": [],
-    "staff": [],
-    "blacklist": [],
-    "nomodify": [],
-    "nolog": [],
-    "log": {
-      "moderation": "",
-      "delete": "",
-      "joinleave": "",
-      "edit": "",
-      "misc": ""
-    },
-    "cache": "",
-    "faq": ""
   }
 }

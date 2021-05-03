@@ -23,7 +23,7 @@ metadata.run = (m, args, data) => {
   if (data.member.roles.cache.has(bot.cfg.roles.donatorColor)) {
     data.member.roles.remove(bot.cfg.roles.donatorColor, `Color toggled by user.`).then(() => {
       const embed = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.okay)
+        .setColor(bot.cfg.colors.okay)
         .setAuthor(`Donator color disabled.`, Assets.getEmoji(`ICO_okay`).url);
 
       bot.send(m, { embed });
@@ -31,7 +31,7 @@ metadata.run = (m, args, data) => {
   } else {
     data.member.roles.add(bot.cfg.roles.donatorColor, `Color toggled by user.`).then(() => {
       const embed = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.okay)
+        .setColor(bot.cfg.colors.okay)
         .setAuthor(`Donator color enabled.`, Assets.getEmoji(`ICO_okay`).url);
 
       bot.send(m, { embed });

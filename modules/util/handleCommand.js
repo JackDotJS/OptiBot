@@ -3,13 +3,13 @@ const djs = require(`discord.js`);
 const Assets = require(`../core/asset_manager.js`);
 const memory = require(`../core/memory.js`);
 
-module.exports = async (m, input) => {
+module.exports = async (m, input, gcfg) => {
   const bot = memory.core.client;
   const log = bot.log;
 
   const member = bot.mainGuild.members.cache.get(m.author.id);
 
-  const perms = await bot.util.getPerms(member);
+  const perms = await bot.util.getPerms(member, gcfg);
 
   if (bot.mode === 0 && !perms.has(`bypassCodeMode`)) return;
   if (bot.mode === 1 && !perms.has(`bypassLiteMode`)) return;
@@ -22,7 +22,7 @@ module.exports = async (m, input) => {
     const unknownCMD = async () => {
       const ratings = [];
   
-      memory.assets.commands.filter((thisCmd) => perms.has(thisCmd.metadata.name) && !thisCmd.metadata.flags[`HIDDEN`])
+      memory.assets.commands.filter((thisCmd) => perms.has(thisCmd.metadata.name) && !thisCmd.metadata.flags[`HIDDEN`] && (thisCmd.metadata.guilds.length === 0 || m.guild != null && thisCmd.metadata.guilds.includes(m.guild.id)))
         .forEach((thisCmd) => {
           const rating = {
             command: thisCmd.metadata.name,
@@ -46,8 +46,8 @@ module.exports = async (m, input) => {
       const closest = ratings[0];
   
       const embed = new djs.MessageEmbed()
-        .setAuthor(`Unknown command.`, await Assets.getIcon(`ICO_info`, bot.cfg.embed.default))
-        .setColor(bot.cfg.embed.default);
+        .setAuthor(`Unknown command.`, await Assets.getIcon(`ICO_info`, bot.cfg.colors.default))
+        .setColor(bot.cfg.colors.default);
   
       if (ratings.length > 0 && closest.distance > 0.5) {
         embed.setFooter(`${(closest.distance * 100).toFixed(1)}% match`);
@@ -103,25 +103,38 @@ module.exports = async (m, input) => {
       bot.send(m, content, { embed });
     };
 
-    const logChannel = () => {
-      if (m.channel.type === `dm`) return `DM`;
-      if (m.guild.id === bot.cfg.guilds.optifine) return `OF:#${m.channel.name}`;
-      if (m.guild.id === bot.cfg.guilds.optibot) return `OB:#${m.channel.name}`;
-      if (m.guild.id === bot.cfg.guilds.donator) return `DR:#${m.channel.name}`;
-    };
+    if (cmd == null || !cmd.metadata.flags[`NO_LOGGING`]) {
+      log([
 
-    const logInput = () => {
-      if (cmd != null) {
-        if (cmd.metadata.flags[`NO_LOGGING`]) return `${bot.prefix}${name} ${input.args.join(` `)}`.replace(/\S/gi, `*`);
-        if (cmd.metadata.flags[`NO_LOGGING_ARGS`]) return `${bot.prefix}${name} ${input.args.join(` `).replace(/\S/gi, `*`)}`;
-      }
+        (() => {
+          // get server name/id
+          if (m.channel.type === `dm`) return `SVR: Direct Message`;
+          return `SVR: #${m.guild.name} (${m.guild.id})`;
+        })(),
 
-      return `${bot.prefix}${name} ${input.args.join(` `)}`;
-    };
 
-    log(`[${logChannel()}] ${m.author.tag} (${m.author.id}) issued command: ${logInput()}`);
+        (() => {
+          // get channel name/id
+          if (m.channel.type === `dm`) return `LOC: Direct Message`;
+          return `LOC: #${m.channel.name} (${m.channel.id})`;
+        })(),
+
+
+        `USR: ${m.author.tag} (${m.author.id})`,
+
+
+        (() => {
+          // get input
+          if (cmd != null && cmd.metadata.flags[`NO_LOGGING_ARGS`]) return `${bot.prefix}${name} ${input.args.join(` `).replace(/\S/gi, `*`)}`;
+    
+          return `${bot.prefix}${name} ${input.args.join(` `)}`;
+        })()
+      ].join(`\n`), `info`);
+    }
   
     if (cmd == null) return unknownCMD();
+
+    if (cmd.metadata.guilds.length > 0 && (m.guild == null || !cmd.metadata.guilds.includes(m.guild.id))) return unknownCMD();
 
     if ((cmd.metadata.flags[`PERMS_REQUIRED`] || cmd.metadata.flags[`HIDDEN`]) && !perms.has(cmd.metadata.name)) {
       if (cmd.metadata.flags[`HIDDEN`]) {
@@ -159,11 +172,11 @@ module.exports = async (m, input) => {
       }
     }
 
-    m.channel.startTyping();
+    if (!cmd.metadata.flags[`NO_TYPER`]) m.channel.startTyping();
 
     bot.setTimeout(() => {
       try {
-        cmd.exec(m, input.args, { member, perms, input });
+        cmd.exec(m, input.args, { member, perms, input, gcfg });
       }
       catch (err) {
         m.channel.stopTyping();

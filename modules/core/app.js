@@ -1,19 +1,16 @@
-/**
- * OptiBot NX - Main Program
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- * Written by Kyle Edwards <wingedasterisk@gmail.com>, August 2020
- */
-
 if (!process.send) throw new Error(`Cannot run standalone.`);
 
 const util = require(`util`);
 const djs = require(`discord.js`);
-const ob = require(`./optibot.js`);
+const vb = require(`./modules.js`);
 
-const log = ob.log;
+const log = vb.log;
 
-const bot = new ob.Client({
-  //fetchAllMembers: true,
+const bot = new vb.Client({
+  messageCacheLifetime: 3600,
+  messageSweepInterval: 600,
+  messageCacheMaxSize: 100,
+  messageEditHistoryMaxSize: 3,
   presence: {
     status: `idle`,
     activity: {
@@ -22,31 +19,38 @@ const bot = new ob.Client({
     }
   },
   disableMentions: `everyone`
-}, parseInt(process.argv[2]), log);
+}, {
+  // vector bot options
+  mode: parseInt(process.argv[2]),
+  log
+});
 
-ob.memory.core.logfile = process.argv[3];
+vb.memory.core.logfile = process.argv[3];
 
 bot.util.setWindowTitle(`Connecting...`);
 
 bot.login(bot.keys.discord).catch(err => {
   bot.util.setWindowTitle(`Connection Failed.`);
   log(err, `fatal`);
-  process.exit(1);
+
+  log(`Failed to connect to Discord API. Shutting down in 5 minutes...`); // gives some time for the API to be restored
+
+  setTimeout(() => {
+    process.exit(1);
+  }, (1000 * 60 * 5));
 });
 
 const finalInit = () => {
-  if (ob.memory.firstBoot) {
-    ob.memory.firstBoot = false;
+  if (bot.firstBoot) {
+    bot.firstBoot = false;
   } else return;
 
   bot.util.setWindowTitle(`Loading Assets...`);
 
-  ob.Assets.load().then(async (time) => {
-    const now = new Date();
-    
+  vb.Assets.load().then(async (time) => {
     const width = 64; //inner width of box
 
-    async function mkbox(text, totalWidth) {
+    const mkbox = (text, totalWidth) => {
       const fstr = [];
       const normalized = [];
 
@@ -72,41 +76,32 @@ const finalInit = () => {
       fstr.push(`╰${`─`.repeat(width)}╯`);
 
       return fstr.join(`\n`);
-    }
+    };
 
-    const splash = bot.cfg.splash[~~(Math.random() * bot.cfg.splash.length)];
-
-    log(splash, `debug`);
-
-    log(await mkbox([
-      `OptiBot ${bot.version}`,
-      `(c) Kyle Edwards <wingedasterisk@gmail.com>, 2020`,
-      ``,
-      splash,
+    log(mkbox([
+      `Vector ${bot.version}`,
+      `https://github.com/JackDotJS/vector-bot`,
       ``,
       `Finished initialization in ~${process.uptime().toFixed(3)} seconds.`,
       `Assets loaded in ${time / 1000} seconds.`
     ].join(`\n`), width), `info`);
 
-    new ob.LogEntry({ time: now, console: false })
-      .setColor(bot.cfg.embed.default)
-      .setIcon(await ob.Assets.getIcon(`ICO_info`, bot.cfg.embed.default))
+    /* new vb.LogEntry({ console: false })
+      .setColor(bot.cfg.colors.default)
+      .setIcon(await vb.Assets.getIcon(`ICO_info`, bot.cfg.colors.default))
       .setThumbnail(bot.user.displayAvatarURL({ format: `png` }))
-      .setTitle(`OptiBot Initialized`, `OptiBot Initalization Time Report`)
+      .setTitle(`Vector Initialized`, `Vector Initalization Time Report`)
       .setHeader(`Version: ${bot.version}`)
       .setDescription(`Boot Time: ${process.uptime().toFixed(3)} second(s)`)
       .addSection(`Next Scheduled Restart`, bot.exitTime)
-      .addSection(`The following message was brought to you by Math.random()®`, {
-        data: `\`\`\`${splash}\`\`\``,
-        raw: splash
-      })
-      .submit(`misc`);
+      .submit(bot.cfg.env.logID); */
 
     process.send({
-      t: `OB_READY`
+      t: `APP_READY`
     });
 
-    bot.setBotStatus(1);
+    bot.setStatus(`ONLINE`);
+    bot.available = true;
     bot.util.setWindowTitle(null);
   }).catch(err => {
     bot.util.err(err);
@@ -120,8 +115,6 @@ const finalInit = () => {
 
 bot.on(`ready`, () => {
   log(`Successfully connected to Discord.`, `info`);
-
-  log(ob.memory.core);
 
   if (!bot.mainGuild.available) {
     bot.util.setWindowTitle(`Waiting for primary guild...`);
@@ -148,7 +141,7 @@ process.on(`message`, (data) => {
 
       channel.send(
         `<@&752056938753425488> ${(bot.cfg.dev != null) ? `<@${bot.cfg.dev.devID}>` : ``} oops lmao`,
-        new djs.MessageAttachment(Buffer.from(data.c), `optibot_crash_log.txt`)
+        new djs.MessageAttachment(Buffer.from(data.c), `vector_crash_log.txt`)
       ).catch(err => {
         bot.util.err(err);
 
@@ -164,8 +157,8 @@ process.on(`message`, (data) => {
       log(`got restart data`);
       bot.guilds.cache.get(data.c.guild).channels.cache.get(data.c.channel).messages.fetch(data.c.message).then(async msg => {
         const embed = new djs.MessageEmbed()
-          .setAuthor(`Restarted in ${((new Date().getTime() - msg.createdTimestamp) / 1000).toFixed(1)} seconds.`, await ob.Assets.getIcon(`ICO_check`, bot.cfg.embed.okay))
-          .setColor(bot.cfg.embed.okay);
+          .setAuthor(`Restarted in ${((new Date().getTime() - msg.createdTimestamp) / 1000).toFixed(1)} seconds.`, await vb.Assets.getIcon(`ICO_check`, bot.cfg.colors.okay))
+          .setColor(bot.cfg.colors.okay);
 
         msg.edit({ embed: embed });
       }).catch(bot.util.err);
@@ -180,7 +173,15 @@ process.on(`message`, (data) => {
 // Guild Unavailable
 ////////////////////////////////////////
 
-bot.on(`guildUnavailable`, guild => log(`Guild Unavailable! \nUnable to connect to "${guild.name}" \nGuild ID: ${guild.id}`, `warn`));
+bot.on(`guildUnavailable`, guild => {
+  log(`Guild Unavailable! \nUnable to connect to "${guild.name}" \nGuild ID: ${guild.id}`, `warn`);
+
+  if (guild.id === bot.mainGuild.id) {
+    bot.util.setWindowTitle(`Waiting for primary guild...`);
+    bot.available = false;
+    bot.setStatus(`UNAVAILABLE`);
+  }
+});
 
 ////////////////////////////////////////
 // Guild Update
@@ -189,8 +190,12 @@ bot.on(`guildUnavailable`, guild => log(`Guild Unavailable! \nUnable to connect 
 bot.on(`guildUpdate`, (oldg, newg) => {
   if (!oldg.available && newg.available) {
     log(`Guild available! \n"${newg.name}" has recovered. \nGuild ID: ${newg.id}`, `warn`);
+
     if (newg.id === bot.mainGuild.id) {
-      finalInit();
+      if (bot.firstBoot) return finalInit();
+      
+      bot.available = true;
+      bot.setStatus(`ONLINE`);
     }
   }
 });

@@ -45,7 +45,7 @@ metadata.run = (m, args, data) => {
   const bit = filtered[pageNum].metadata;
 
   const embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .setAuthor(`OptiBot Bits | Page ${pageNum + 1}/${filtered.length}`, Assets.getEmoji(`ICO_docs`).url)
     .setTitle(bit.name)
     .setDescription(bit.description);

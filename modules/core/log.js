@@ -13,7 +13,7 @@ module.exports = (message, level) => {
   }
 
   process.send({
-    t: `OB_LOG`,
+    t: `APP_LOG`,
     c: { message, level, file }
   });
 };

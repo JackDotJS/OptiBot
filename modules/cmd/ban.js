@@ -41,7 +41,7 @@ metadata.run = (m, args, data) => {
       if (err.stack.match(/unknown ban/i)) {
         const embed = new djs.MessageEmbed()
           .setAuthor(`Are you sure?`, Assets.getEmoji(`ICO_warn`).url)
-          .setColor(bot.cfg.embed.default)
+          .setColor(bot.cfg.colors.default)
           .setDescription(`The following user will be banned from the server: \n> ${result.mention} (${result.id})`)
           .addField(`Reason`, reason);
 
@@ -55,7 +55,7 @@ metadata.run = (m, args, data) => {
 
               bot.mainGuild.members.ban(result.target, { reason: reason }).then(() => {
                 const update = new djs.MessageEmbed()
-                  .setColor(bot.cfg.embed.okay)
+                  .setColor(bot.cfg.colors.okay)
                   .setAuthor(`Successfully banned user`, Assets.getEmoji(`ICO_okay`).url)
                   .setDescription(`${(result.type === `id`) ? `\`${result.target}\`` : result.target.toString()} has been banned.`)
                   .addField(`Reason`, reason);
@@ -65,14 +65,14 @@ metadata.run = (m, args, data) => {
             } else if (res === 0) {
               const update = new djs.MessageEmbed()
                 .setAuthor(`Cancelled`, Assets.getEmoji(`ICO_load`).url)
-                .setColor(bot.cfg.embed.default)
+                .setColor(bot.cfg.colors.default)
                 .setDescription(`User has not been banned.`);
 
               msg.edit({ embed: update }).then(() => bres.addControl);
             } else {
               const update = new djs.MessageEmbed()
                 .setAuthor(`Timed out`, Assets.getEmoji(`ICO_load`).url)
-                .setColor(bot.cfg.embed.default)
+                .setColor(bot.cfg.colors.default)
                 .setDescription(`Sorry, you didn't respond in time. Please try again.`);
 
               msg.edit({ embed: update }).then(() => bres.addControl);

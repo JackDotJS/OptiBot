@@ -5,7 +5,7 @@ const log = ob.log;
 
 module.exports = (member) => {
   const now = new Date();
-  if (bot.pause) return;
+  if (!bot.available) return;
 
   if (member.guild.id === bot.mainGuild.id) {
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -32,7 +32,7 @@ module.exports = (member) => {
     // eslint-disable-next-line no-inner-declarations
     function logEvent(muted) {
       const logEntry = new ob.LogEntry({ time: now, channel: `joinleave` })
-        .setColor(bot.cfg.embed.okay)
+        .setColor(bot.cfg.colors.okay)
         .setIcon(ob.Assets.getEmoji(`ICO_join`).url)
         .setThumbnail(member.user.displayAvatarURL({ format: `png` }))
         .setTitle(`Member Joined`, `New Member Report`)
@@ -51,9 +51,5 @@ module.exports = (member) => {
 
       logEntry.submit();
     }
-  } else if (member.guild.id === bot.cfg.guilds.donator) {
-    bot.util.verifyDonator(member).catch(err => {
-      bot.util.err(err);
-    });
   }
 };

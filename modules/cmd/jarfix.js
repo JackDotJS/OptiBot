@@ -18,7 +18,7 @@ const metadata = {
 
 metadata.run = m => {
   const embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .setAuthor(`Download Jarfix`, Assets.getEmoji(`ICO_jarfix`).url)
     .setTitle(`Jarfix is a program that will automatically set \`.jar\` files to open with Java.`)
     .addField(`Download Page`, `https://johann.loefflmann.net/jarfix`)

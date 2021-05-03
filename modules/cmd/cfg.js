@@ -1,5 +1,3 @@
-/* eslint-disable */
-// REMEMBER TO REMOVE THIS LINE WHEN COPYING THIS FILE
 const path = require(`path`);
 const util = require(`util`);
 const djs = require(`discord.js`);
@@ -10,16 +8,14 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  // aliases: [ `aliases` ],
+  aliases: [ `config` ],
   description: {
-    short: `Short description. Shows when viewed in the command list.`,
+    short: `Get or update bot settings for this server.`,
     long: `Long description. Shows when using \` ${bot.prefix}help ${path.parse(__filename).name} \``
   },
-  args: `[args]`,
-  guilds: [],
-  image: `IMG_args.png`,
-  dm: true,
-  flags: [ `HIDDEN`, `LITE` ],
+  args: `[file attachment]`,
+  dm: false,
+  flags: [ `PERMS_REQUIRED`, `LITE` ],
 };
 
 const exec = async (m, args, data) => {

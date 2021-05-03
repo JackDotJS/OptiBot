@@ -18,8 +18,8 @@ const metadata = {
 
 metadata.run = async (m) => {
   const embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
-    .setAuthor(`Light Theme`, await Assets.getIcon(`ICO_info`, bot.cfg.embed.default))
+    .setColor(bot.cfg.colors.default)
+    .setAuthor(`Light Theme`, await Assets.getIcon(`ICO_info`, bot.cfg.colors.default))
     .setTitle(`Please be respectful to light theme users!`)
     .setDescription(`For many people, light themes are a necessary feature for accessibility purposes. This especially applies to those with Astigmatism or Dyslexia, as it can be harder to read text depending on the lighting in their surroundings, among other conditions. Even if a user does not have any accessibility concerns, it's still well within their rights to use a light theme, because it can simply be their preference.`)
     .setFooter(`Respect other people's needs and choices!`);

@@ -193,11 +193,11 @@ metadata.run = m => {
     const finalEmbed = new djs.MessageEmbed();
 
     if (user != null) {
-      finalEmbed.setColor(bot.cfg.embed.okay)
+      finalEmbed.setColor(bot.cfg.colors.okay)
         .setAuthor(`Issue resolved`, Assets.getEmoji(`ICO_okay`).url)
         .setDescription(`Resolved by ${user}`);
     } else {
-      finalEmbed.setColor(bot.cfg.embed.error)
+      finalEmbed.setColor(bot.cfg.colors.error)
         .setAuthor(`Failed to get a response`, Assets.getEmoji(`ICO_error`).url)
         .setDescription(`This is taking longer than usual. We'll get back to you as soon as possible.`);
     }
@@ -227,7 +227,7 @@ metadata.run = m => {
     log(getDebugInfo(), `debug`);
 
     const embed = new djs.MessageEmbed()
-      .setColor(bot.cfg.embed.default)
+      .setColor(bot.cfg.colors.default)
       .setAuthor(`Moderator Request`, Assets.getEmoji(`ICO_bell`).url)
       .addField(
         `Information for Staff:`,

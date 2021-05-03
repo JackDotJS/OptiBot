@@ -48,7 +48,7 @@ metadata.run = (m, args, data) => {
 
       bot.util.updateProfile(profile).then(() => {
         new LogEntry({ channel: `moderation` })
-          .setColor(bot.cfg.embed.default)
+          .setColor(bot.cfg.colors.default)
           .setIcon(Assets.getEmoji(`ICO_docs`).url)
           .setTitle(`Moderation Note Created`, `Moderation Note Report`)
           .addSection(`Member`, result.target)
@@ -58,7 +58,7 @@ metadata.run = (m, args, data) => {
 
         const embed = new djs.MessageEmbed()
           .setAuthor(`Note added.`, Assets.getEmoji(`ICO_okay`).url)
-          .setColor(bot.cfg.embed.okay)
+          .setColor(bot.cfg.colors.okay)
           .setDescription(`User record has been updated.`)
           .addField(`Member`, `${result.mention} | ${result.tag}\n\`\`\`yaml\nID: ${result.id}\`\`\``)
           .addField(`Note`, reason);

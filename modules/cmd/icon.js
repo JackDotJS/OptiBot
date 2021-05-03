@@ -10,35 +10,35 @@ const log = bot.log;
 const metadata = {
   name: path.parse(__filename).name,
   description: {
-    short: `Display an OptiBot icon.`,
-    long: `Displays an OptiBot embed icon, with optional custom colors and rotation.`
+    short: `Display a Vector icon.`,
+    long: `Displays a Vector embed icon, with optional custom colors and rotation.`
   },
   args: `<icon name> [color] [angle]`,
   dm: true,
-  flags: [ `PERMS_REQUIRED`, `LITE` ],
+  flags: [ `DEVELOPER`, `LITE` ],
   run: null
 };
 
 metadata.run = async (m, args, data) => {
   if (!args[0]) return bot.util.err(`No icon specified.`, { m });
 
-  let color = bot.cfg.embed.default;
+  let color = bot.cfg.colors.default;
   let deg = 0;
 
   if (args[1] != null) {
     switch (args[1]) {
       case `okay`:
       case `green`:
-        color = bot.cfg.embed.okay;
+        color = bot.cfg.colors.okay;
         break;
       case `warn`:
       case `yellow`:
-        color = bot.cfg.embed.warn;
+        color = bot.cfg.colors.warn;
         break;
       case `err`:
       case `error`:
       case `red`:
-        color = bot.cfg.embed.error;
+        color = bot.cfg.colors.error;
         break;
       default:
         color = args[1];

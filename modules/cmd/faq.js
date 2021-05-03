@@ -17,7 +17,7 @@ const metadata = {
     `<query>`,
     `<discord message>`
   ],
-  dm: true,
+  dm: false,
   flags: [ `LITE` ],
   run: null
 };
@@ -113,7 +113,7 @@ metadata.run = (m, args, data) => {
         bot.util.err(`Could not find an answer to that question`, { m });
       } else {
         const embed = new djs.MessageEmbed()
-          .setColor(bot.cfg.embed.default)
+          .setColor(bot.cfg.colors.default)
           .setAuthor(`Frequently Asked Questions`, Assets.getEmoji(`ICO_faq`).url)
           .setTitle(best.q)
           .setFooter(`${(best.r * 100).toFixed(1)}% match during search.`);

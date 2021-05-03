@@ -17,7 +17,7 @@ const metadata = {
 
 metadata.run = m => {
   const embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .setAuthor(`SEUS Renewed Fix`, Assets.getEmoji(`ICO_sun`).url)
     .setTitle(`This is a quick fix specifically for Intel Integrated Graphics. If you have an NVIDIA or AMD graphics card, this will NOT help you. \n\nRemember: Never modify shaderpacks, unless you REALLY know what you're doing!`)
     .setDescription([

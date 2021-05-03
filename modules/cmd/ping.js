@@ -18,7 +18,7 @@ const metadata = {
 metadata.run = (m, args, data) => {
   const embed = new djs.MessageEmbed()
     .setAuthor((data.input.cmd === `pong`) ? `Pong...` : `Ping...`, Assets.getEmoji(`ICO_wifi`).url)
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .setDescription(`API Latency: ... \nMessage Latency: ...`);
 
   const timeStart = new Date().getTime();

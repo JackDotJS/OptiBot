@@ -8,11 +8,11 @@ module.exports = {
   time: ob.memory.core.client.exitTime.getTime() - new Date().getTime(),
   lite: true,
   fn: () => {
-    bot.pause = true;
-    bot.setBotStatus(-1);
+    bot.available = false;
+    bot.setStatus(`OFFLINE`);
 
     new ob.LogEntry({ time: new Date() })
-      .setColor(bot.cfg.embed.default)
+      .setColor(bot.cfg.colors.default)
       .setIcon(ob.Assets.getEmoji(`ICO_door`).url)
       .setTitle(`OptiBot is now restarting...`, `OptiBot Restart Report`)
       .submit().then(() => {

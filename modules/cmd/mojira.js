@@ -10,7 +10,7 @@ const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
-  // aliases: [ `aliases` ],
+  // aliases: ['aliases'],
   description: {
     short: `Short description. Shows when viewed in the command list.`,
     long: `Long description. Shows when using \` ${bot.prefix}help ${path.parse(__filename).name} \``

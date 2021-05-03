@@ -8,7 +8,7 @@ const log = ob.log;
 module.exports = (ms) => {
   const now = new Date();
 
-  if (bot.pause) return;
+  if (!bot.available) return;
 
   log(`messageDeleteBulk event fired`, `warn`); // testing #243
 
@@ -36,7 +36,7 @@ module.exports = (ms) => {
         `(${timeago.format(m.createdAt)})`
       ];
 
-      logEntry.setColor(bot.cfg.embed.error)
+      logEntry.setColor(bot.cfg.colors.error)
         .setIcon(ob.Assets.getEmoji(`ICO_trash`).url)
         .setTitle(`(Bulk ${i + 1}/${messages.length}) Message Deleted`, `Bulk Message ${i + 1}-${messages.length} Deletion Report`)
         .setDescription(desc.join(`\n`), desc.join(` `))

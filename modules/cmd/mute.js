@@ -204,7 +204,7 @@ metadata.run = (m, args, data) => {
         bot.util.updateProfile(profile).then(() => {
           const logInfo = () => {
             const embed = new djs.MessageEmbed()
-              .setColor(bot.cfg.embed.okay);
+              .setColor(bot.cfg.colors.okay);
 
             if (isUpdate) {
               embed.setAuthor(`Mute updated.`, Assets.getEmoji(`ICO_okay`).url);
@@ -232,7 +232,7 @@ metadata.run = (m, args, data) => {
             bot.send(m, { embed, userDelete: false });
 
             const logEntry = new LogEntry({ channel: `moderation` })
-              .setColor(bot.cfg.embed.default)
+              .setColor(bot.cfg.colors.default)
               .setIcon(Assets.getEmoji(`ICO_mute`).url)
               .addSection(`Member Muted`, result.target)
               .addSection(`Moderator Responsible`, m.author)

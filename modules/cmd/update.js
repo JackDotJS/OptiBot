@@ -21,7 +21,7 @@ metadata.run = (m) => {
 
   const embed = new djs.MessageEmbed()
     .setAuthor(`Are you sure?`, Assets.getEmoji(`ICO_warn`).url)
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .setDescription(`OptiBot will be forcefully updated to the latest version available on GitHub`);
 
   bot.send(m, { embed }).then(bres => {
@@ -30,14 +30,14 @@ metadata.run = (m) => {
     bot.util.confirm(m, msg).then(res => {
       if (res === 1) {
         new LogEntry()
-          .setColor(bot.cfg.embed.default)
+          .setColor(bot.cfg.colors.default)
           .setIcon(Assets.getEmoji(`ICO_door`).url)
           .setTitle(`OptiBot is being updated...`, `OptiBot Force Update Report`)
           .addSection(`Command Issuer`, m.author)
           .submit().then(() => {
             const embed = new djs.MessageEmbed()
               .setAuthor(`Updating. See you soon!`, Assets.getEmoji(`ICO_door`).url)
-              .setColor(bot.cfg.embed.default);
+              .setColor(bot.cfg.colors.default);
 
             msg.edit({ embed: embed }).then(() => {
               bot.exit(17);
@@ -48,14 +48,14 @@ metadata.run = (m) => {
       } else if (res === 0) {
         const update = new djs.MessageEmbed()
           .setAuthor(`Cancelled`, Assets.getEmoji(`ICO_load`).url)
-          .setColor(bot.cfg.embed.default)
+          .setColor(bot.cfg.colors.default)
           .setDescription(`OptiBot has not been updated.`);
 
         msg.edit({ embed: update }).then(() => bres.addControl);
       } else {
         const update = new djs.MessageEmbed()
           .setAuthor(`Timed out`, Assets.getEmoji(`ICO_load`).url)
-          .setColor(bot.cfg.embed.default)
+          .setColor(bot.cfg.colors.default)
           .setDescription(`Sorry, you didn't respond in time. Please try again.`);
 
         msg.edit({ embed: update }).then(() => bres.addControl);

@@ -148,7 +148,7 @@ metadata.run = (m, args, data) => {
           const cont = () => {
             const embed = new djs.MessageEmbed()
               .setAuthor(`Are you sure?`, Assets.getEmoji(`ICO_warn`).url)
-              .setColor(bot.cfg.embed.default)
+              .setColor(bot.cfg.colors.default)
               .setDescription([
                 `The following record entry will be updated:${Assets.getEmoji(`ICO_space`)}`,
                 `${entry.display.icon} ${entry.display.action}`,
@@ -181,7 +181,7 @@ metadata.run = (m, args, data) => {
                   profile.updateRecord(entry).then(() => {
                     bot.util.updateProfile(profile).then(() => {
                       new LogEntry({ channel: `moderation` })
-                        .setColor(bot.cfg.embed.default)
+                        .setColor(bot.cfg.colors.default)
                         .setIcon(Assets.getEmoji(`ICO_docs`).url)
                         .setTitle(`Record Entry Edited`, `Record Entry Edit Report`)
                         .addSection(`Member`, result.target)
@@ -192,7 +192,7 @@ metadata.run = (m, args, data) => {
                         .submit().then(() => {
                           const embed = new djs.MessageEmbed()
                             .setAuthor(`Record Entry Updated.`, Assets.getEmoji(`ICO_okay`).url)
-                            .setColor(bot.cfg.embed.okay)
+                            .setColor(bot.cfg.colors.okay)
                             .addField(`Record Entry`, [
                               `${entry.display.icon} ${entry.display.action}`,
                               `\`\`\`yaml\nID: ${entry.display.id}\`\`\``
@@ -207,14 +207,14 @@ metadata.run = (m, args, data) => {
                 } else if (res === 0) {
                   const update = new djs.MessageEmbed()
                     .setAuthor(`Cancelled`, Assets.getEmoji(`ICO_load`).url)
-                    .setColor(bot.cfg.embed.default)
+                    .setColor(bot.cfg.colors.default)
                     .setDescription(`${result.mention}'s profile has not been changed.`);
 
                   msg.edit({ embed: update }).then(() => bres.addControl);
                 } else {
                   const update = new djs.MessageEmbed()
                     .setAuthor(`Timed out`, Assets.getEmoji(`ICO_load`).url)
-                    .setColor(bot.cfg.embed.default)
+                    .setColor(bot.cfg.colors.default)
                     .setDescription(`Sorry, you didn't respond in time. Please try again.`);
 
                   msg.edit({ embed: update }).then(() => bres.addControl);

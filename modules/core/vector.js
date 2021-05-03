@@ -2,25 +2,21 @@ const fs = require(`fs`);
 const util = require(`util`);
 
 const djs = require(`discord.js`);
-const path = require(`path`);
 
 const Assets = require(`./asset_manager.js`);
 const memory = require(`./memory.js`);
 
-module.exports = class OptiBot extends djs.Client {
-  constructor(options, mode, log) {
-    super(options);
+module.exports = class Vector extends djs.Client {
+  constructor(djs_options, options) {
+    super(djs_options);
 
-    // i dont know why these things wont work without path.resolve (yes, even with the correct path)
-    // fuck you, node
+    const cfg = require(`../../cfg/config.json`);
 
-    let cfg = require(path.resolve(`./cfg/config.json`));
-
-    if (mode === 0) {
+    if (options.mode === 0) {
       // Load the real config first, but if the debug config has properties that differ from the real config, overwrite them to use the debug properties
-      const cfg_d = require(path.resolve(`./cfg/config_debug.json`));
+      const cfg_d = require(`../../cfg/config_debug.json`);
 
-      cfg = Object.assign(cfg, cfg_d);
+      Object.assign(cfg, cfg_d);
     }
 
     const exit = new Date();
@@ -30,16 +26,15 @@ module.exports = class OptiBot extends djs.Client {
       exit.setUTCDate(exit.getUTCDate() + 1);
     }
 
-    this.keys = require(path.resolve(`./cfg/keys.json`));
-    this.log = log;
+    this.keys = require(`../../cfg/keys.json`);
+    this.log = options.log;
     this.cfg = cfg;
-    this.mode = mode;
-    this.pause = true;
+    this.gcfg = require(`../../cfg/guild_config.json`);
+    this.mode = options.mode;
+    this.available = false;
+    this.firstBoot = true; // true until the bot finishes initial boot. used to prevent ready event from running more than once
     this.exitTime = exit;
-    this.locked = (mode === 0 || mode === 1);
-    this.prefix = cfg.prefixes[0]; // first in array is always default, but all others will be accepted during real usage.
-    this.prefixes = cfg.prefixes;
-    this.version = require(path.resolve(`./package.json`)).version;
+    this.version = require(`../../package.json`).version;
     this.util = require(`./util.js`);
 
     this.profiles = require(`./profile_manager.js`);
@@ -49,23 +44,22 @@ module.exports = class OptiBot extends djs.Client {
 
     Object.defineProperty(this, `mainGuild`, {
       get: () => {
-        if (this.cfg.guilds.optifine != null && this.cfg.guilds.optifine.length > 0) return this.guilds.cache.get(this.cfg.guilds.optifine);
-        return this.guilds.cache.get(this.cfg.guilds.optibot);
+        return this.guilds.cache.get(cfg._env.guild);
       }
     });
 
-    log(`client instance constructed`);
+    this.log(`client instance constructed`);
   }
 
   exit(code = 0) {
 
     /**
-         * 0 = standard shutdown
-         * 1 = error/crash
-         * 16 = requested restart
-         * 17 = requested update
-         * 18 = scheduled restart
-         */
+     * 0 = standard shutdown
+     * 1 = error/crash
+     * 16 = requested restart
+     * 17 = requested update
+     * 18 = scheduled restart
+     */
 
     this.destroy();
     this.util.setWindowTitle(`Shutting down...`);
@@ -75,7 +69,7 @@ module.exports = class OptiBot extends djs.Client {
     }, 500);
   }
 
-  setBotStatus(type) {
+  setStatus(type) {
     const bot = this;
 
     const pr = {
@@ -86,48 +80,48 @@ module.exports = class OptiBot extends djs.Client {
       }
     };
 
-    if (type === -1) {
-      // shutting down
-      pr.status = `invisible`;
-    } else
-    if (type === 0) {
-      // loading assets
-      pr.status = `idle`;
-      pr.activity.type = `WATCHING`;
-      pr.activity.name = `assets load 🔄`;
-    } else
-    if (type === 1) {
-      // default state
-      if (bot.mode === 0) {
-        // code mode
-        pr.status = `dnd`;
+    switch(type.toUpperCase()) {
+      case `OFFLINE`:
+        // shutting down
+        pr.status = `invisible`;
+        break;
+      case `LOADING`:
+        // loading assets
+        pr.status = `idle`;
+        pr.activity.type = `WATCHING`;
+        pr.activity.name = `assets load 🔄`;
+        break;
+      case `ONLINE`:
+        // default state
         pr.activity.type = `PLAYING`;
-        pr.activity.name = `Code Mode 💻`;
-      } else
-      if (bot.mode === 1 || bot.locked) {
-        // ultralight mode and mod mode
-        pr.status = `dnd`;
-        pr.activity.type = `PLAYING`;
-        pr.activity.name = `Mod Mode 🔒`;
-      } else
-      if (bot.mode === 2) {
-        // lite mode
+
+        bot.log(bot.mode);
+
+        switch(bot.mode) {
+          case 0:
+            // code mode
+            pr.status = `dnd`;
+            pr.activity.name = `Code Mode 💻`;
+            break;
+          case 1: 
+            // lite mode
+            pr.status = `idle`;
+            pr.activity.name = `Lite Mode ⚠️`;
+            break;
+          default:
+            pr.status = `online`;
+            pr.activity.name = `Ping me for information!`;
+        }
+        
+        break;
+      default:
+        // unavailable
         pr.status = `idle`;
         pr.activity.type = `PLAYING`;
-        pr.activity.name = `Lite Mode ⚠️`;
-      } else {
-        // normal
-        pr.status = `online`;
-        pr.activity.type = `LISTENING`;
-        pr.activity.name = `${bot.prefix}about`;
-      }
-    } else
-    if (type === 2) {
-      // cooldown active
-      pr.status = `idle`;
+        pr.activity.name = `Please stand by!`;
     }
 
-    if (pr.activity.name === null || pr.activity.type === null) {
+    if (pr.activity.name == null || pr.activity.type == null) {
       delete pr.activity;
     }
 

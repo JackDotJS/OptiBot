@@ -19,7 +19,7 @@ const metadata = {
 metadata.run = (m, args, data) => {
   const embed = new djs.MessageEmbed()
     .setAuthor(`Successfully beaned user`, Assets.getEmoji(`ICO_okay`).url)
-    .setColor(bot.cfg.embed.okay);
+    .setColor(bot.cfg.colors.okay);
 
   if (!args[0]) {
     const msgs = [

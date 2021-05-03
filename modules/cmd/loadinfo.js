@@ -95,8 +95,8 @@ metadata.run = async (m, args) => {
   // MUST BE CONVERTED FROM BASE64!!!!!!!!!!!!!!!
 
   const cembed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.warn)
-    .setAuthor(`Are you sure?`, await Assets.getIcon(`ICO_warn`, bot.cfg.embed.warn))
+    .setColor(bot.cfg.colors.warn)
+    .setAuthor(`Are you sure?`, await Assets.getIcon(`ICO_warn`, bot.cfg.colors.warn))
     .setDescription(`todo: add more text here`);
 
   const bm = await bot.send(m, { embed: cembed, delayControl: true });
@@ -229,20 +229,20 @@ metadata.run = async (m, args) => {
     switch (input) {
       case `default`:
       case `blue`:
-        color = bot.cfg.embed.default;
+        color = bot.cfg.colors.default;
         break;
       case `okay`:
       case `green`:
-        color = bot.cfg.embed.okay;
+        color = bot.cfg.colors.okay;
         break;
       case `warn`:
       case `yellow`:
-        color = bot.cfg.embed.warn;
+        color = bot.cfg.colors.warn;
         break;
       case `err`:
       case `error`:
       case `red`:
-        color = bot.cfg.embed.error;
+        color = bot.cfg.colors.error;
         break;
       default:
         color = input;
@@ -255,7 +255,7 @@ metadata.run = async (m, args) => {
       pageData.loadErrors.push(err.stack);
     }
 
-    return bot.cfg.embed.default;
+    return bot.cfg.colors.default;
   };
 
   for (const section of rawSections) {
@@ -361,7 +361,7 @@ metadata.run = async (m, args) => {
 
           if (embedData.embed.color == null) {
             if (pageData.opts.color == null) {
-              embedData.embed.setColor(bot.cfg.embed.default);
+              embedData.embed.setColor(bot.cfg.colors.default);
             } else {
               embedData.embed.setColor(resolveColor(pageData.opts.color));
             }
@@ -477,7 +477,7 @@ metadata.run = async (m, args) => {
 
       const resetEmbed = () => {
         embed = new djs.MessageEmbed()
-          .setColor((pageData.opts.color != null) ? resolveColor(pageData.opts.color) : bot.cfg.embed.default);
+          .setColor((pageData.opts.color != null) ? resolveColor(pageData.opts.color) : bot.cfg.colors.default);
       };
 
       resetEmbed();
@@ -535,7 +535,7 @@ metadata.run = async (m, args) => {
       }
 
       const finalEmbed = new djs.MessageEmbed()
-        .setColor((pageData.opts.color != null) ? resolveColor(pageData.opts.color) : bot.cfg.embed.default)
+        .setColor((pageData.opts.color != null) ? resolveColor(pageData.opts.color) : bot.cfg.colors.default)
         .setFooter(`Last Updated: ${now.toUTCString()}`)
         .setTimestamp(now);
 
@@ -544,7 +544,7 @@ metadata.run = async (m, args) => {
 
     if (pageData.opts.footer.mode === `JUMP_TO_START`) {
       const embed = new djs.MessageEmbed()
-        .setColor((pageData.opts.color != null) ? resolveColor(pageData.opts.color) : bot.cfg.embed.default)
+        .setColor((pageData.opts.color != null) ? resolveColor(pageData.opts.color) : bot.cfg.colors.default)
         .setDescription(`[Jump to Start](${footerData[0].url})`)
         .setFooter(`Last Updated: ${now.toUTCString()}`)
         .setTimestamp(now);

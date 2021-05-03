@@ -57,7 +57,7 @@ metadata.run = (m, args, data) => {
           ];
 
           let embed = new djs.MessageEmbed()
-            .setColor(bot.cfg.embed.default)
+            .setColor(bot.cfg.colors.default)
             .setTitle(result.tag);
 
           if (result.type !== `id`) {
@@ -95,7 +95,7 @@ metadata.run = (m, args, data) => {
                 footer.shift();
 
                 embed = new djs.MessageEmbed()
-                  .setColor(bot.cfg.embed.default)
+                  .setColor(bot.cfg.colors.default)
                   .setAuthor(title + ` | Single Entry`, Assets.getEmoji(`ICO_docs`).url)
                   .setTitle(`Case ID: ${entry.display.id} ${(entry.pardon) ? `(PARDONED)` : ``}`)
                   .setDescription(`${new Date(entry.date).toUTCString()} \n(${timeago.format(entry.date)})`)

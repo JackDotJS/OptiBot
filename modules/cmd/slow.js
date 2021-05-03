@@ -33,7 +33,7 @@ metadata.run = (m, args) => {
   } else {
     m.channel.setRateLimitPerUser((time.ms / 1000), `Slowmode set by ${m.author.tag} (${m.author.id})`).then(() => {
       new LogEntry({ channel: `moderation` })
-        .setColor(bot.cfg.embed.default)
+        .setColor(bot.cfg.colors.default)
         .setIcon(Assets.getEmoji(`ICO_time`).url)
         .setTitle(`Slowmode Time Updated`, `Slowmode Update Report`)
         .addSection(`Moderator Responsible`, m.author)
@@ -42,7 +42,7 @@ metadata.run = (m, args) => {
         .submit().then(() => {
           const embed = new djs.MessageEmbed()
             .setAuthor(`Slowmode ${(time.ms === 0) ? `disabled.` : `set to ${time.string}.`}`, Assets.getEmoji(`ICO_okay`).url)
-            .setColor(bot.cfg.embed.okay);
+            .setColor(bot.cfg.colors.okay);
 
           bot.send(m, { embed, userDelete: false });
         });

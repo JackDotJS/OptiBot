@@ -68,7 +68,7 @@ metadata.executable = m => {
     ].join(`\n`);
 
     const embed = new djs.MessageEmbed()
-      .setColor(bot.cfg.embed.default)
+      .setColor(bot.cfg.colors.default)
       .setAuthor(`Hidden Text Detected`, Assets.getEmoji(`ICO_warn`).url)
       .setFooter([
         `This detector was added to combat a recently discovered Discord exploit.`,
@@ -101,7 +101,7 @@ metadata.executable = m => {
             let image = null;
             let title = `Message posted`;
             const embed = new djs.MessageEmbed()
-              .setColor(bot.cfg.embed.default)
+              .setColor(bot.cfg.colors.default)
               //.setTitle((msg.member.nickname != null) ? `${msg.member.nickname} [${msg.author.tag}]` : msg.author.tag)
               .setThumbnail(msg.author.displayAvatarURL({ format: `png`, size: 64, dynamic: true }))
               .setFooter(`Quoted by ${m.author.tag}`);

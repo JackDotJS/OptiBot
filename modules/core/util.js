@@ -14,6 +14,6 @@ module.exports = {
   relativeTime: require(`../util/relativeTime`),
   unmuter: require(`../util/unmuter`),
   owo: require(`../util/owo`),
-  verifyDonator: require(`../util/verifyDonator`),
-  handleCommand: require(`../util/handleCommand`)
+  handleCommand: require(`../util/handleCommand`),
+  getGuildConfig: require(`../util/getGuildConfig`)
 };

@@ -38,7 +38,7 @@ metadata.run = (m, args, data) => {
 
   channel.updateOverwrite(bot.mainGuild.id, { SEND_MESSAGES: false }, `Channel locked by ${m.author.tag} (${m.author.id}) via ${bot.prefix}${data.input.cmd}`).then(() => {
     const logEntry = new LogEntry({ channel: `moderation` })
-      .setColor(bot.cfg.embed.default)
+      .setColor(bot.cfg.colors.default)
       .setIcon(Assets.getEmoji(`ICO_lock`).url)
       .setTitle(`Channel Locked`, `Channel Lock Report`)
       .addSection(`Channel`, channel)
@@ -47,7 +47,7 @@ metadata.run = (m, args, data) => {
 
     const embed = new djs.MessageEmbed()
       .setAuthor(`Channel locked.`, Assets.getEmoji(`ICO_okay`).url)
-      .setColor(bot.cfg.embed.okay)
+      .setColor(bot.cfg.colors.okay)
       .setDescription(`The ${channel} channel has been locked.`);
 
     bot.send(m, { embed, userDelete: false });

@@ -1,13 +1,17 @@
-const Database = require(`nedb`);
+const Database = require(`nedb-promises`);
+const path = require(`path`);
+
+console.log(path.parse(process.cwd()).root);
 
 const memory = {
   core: {
     client: {
-      // both of these are also defined in client.js
+      // these are also defined in vector.js
       keys: require(`../../cfg/keys.json`),
       log: console.log
-      // see client.js for additional properties that are added here during initialization
+      // see vector.js for additional properties that are added here during initialization
     },
+    logfile: null
   },
   assets: {
     needReload: [],
@@ -16,9 +20,8 @@ const memory = {
     icons: []
   },
   db: {
-    profiles: new Database({ filename: `./data/profiles.db`, autoload: true }), // optibot profiles
-    info: new Database({ filename: `./data/info.db`, autoload: true }), // info channel data
-    bl: new Database({ filename: `./data/blacklist.db`, autoload: true }), // blacklist
+    profiles: Database.create({ filename: `./data/profiles.db`, autoload: true }), // user data
+    guilds: Database.create({ filename: `./data/guilds.db`, autoload: true }), // guild data
   },
   li: 0, // date of last interaction
   presence: {
@@ -38,7 +41,6 @@ const memory = {
   rdel: [], // recent deletions
   rban: {}, // recent bans
   donatorInvites: {}, // donator invite cache
-  firstBoot: true // true until the bot finishes initial boot. used to prevent ready event from running more than once
 };
 
 module.exports = memory;

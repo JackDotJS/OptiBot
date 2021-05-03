@@ -16,14 +16,14 @@ const metadata = {
 
 metadata.run = m => {
   new LogEntry()
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .setIcon(Assets.getEmoji(`ICO_door`).url)
     .setTitle(`OptiBot is now restarting...`, `OptiBot Restart Report`)
     .addSection(`Command Issuer`, m.author)
     .submit().then(async () => {
       const embed = new djs.MessageEmbed()
-        .setAuthor(`Restarting...`, await Assets.getIcon(`ICO_loading`, bot.cfg.embed.default))
-        .setColor(bot.cfg.embed.default);
+        .setAuthor(`Restarting...`, await Assets.getIcon(`ICO_loading`, bot.cfg.colors.default))
+        .setColor(bot.cfg.colors.default);
 
       m.channel.send(embed).then((msg) => {
         if(msg.channel.type === `dm`) {
@@ -31,7 +31,7 @@ metadata.run = m => {
         }
 
         process.send({ 
-          t: `OB_RESTART`,
+          t: `APP_RESTART`,
           c: {
             guild: msg.guild.id,
             channel: msg.channel.id,

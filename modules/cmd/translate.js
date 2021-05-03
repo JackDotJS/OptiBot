@@ -36,7 +36,7 @@ metadata.run = (m, args, data) => {
         const embed = new djs.MessageEmbed()
           .setAuthor(`Translated Message`, Assets.getEmoji(`ICO_globe`).url)
           .setDescription(d[0][0][0])
-          .setColor(bot.cfg.embed.default)
+          .setColor(bot.cfg.colors.default)
           .addField(`Detected Language`, iso.getName(d[2]))
           .addField(`Message Source`, `[Direct URL](${source})`);
 

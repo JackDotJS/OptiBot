@@ -11,6 +11,7 @@ const metadata = {
     short: `Get some links to download OptiFine`,
     long: `Provides various links to download OptiFine.`
   },
+  guilds: [ bot.cfg.guilds.optifine ],
   dm: true,
   flags: [ `LITE` ],
   run: null
@@ -18,7 +19,7 @@ const metadata = {
 
 metadata.run = m => {
   const embed = new djs.MessageEmbed()
-    .setColor(bot.cfg.embed.default)
+    .setColor(bot.cfg.colors.default)
     .setAuthor(`Download OptiFine`, Assets.getEmoji(`ICO_of`).url)
     .setTitle(`https://optifine.net/downloads`)
     .addField(`Alternative`, `https://optifined.net/downloads`)

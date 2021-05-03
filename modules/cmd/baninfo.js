@@ -12,7 +12,7 @@ const metadata = {
     long: `Gets information on a given user's ban. Includes information from records, if available.`
   },
   args: `<discord member>`,
-  dm: true,
+  dm: false,
   flags: [ `STAFF_CHANNEL_ONLY`, `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
@@ -46,7 +46,7 @@ metadata.run = (m, args, data) => {
             }
 
             const embed = new djs.MessageEmbed()
-              .setColor(bot.cfg.embed.default)
+              .setColor(bot.cfg.colors.default)
               .setAuthor(`Ban Information`, Assets.getEmoji(`ICO_docs`).url)
               .setTitle(result.tag)
               .setDescription([

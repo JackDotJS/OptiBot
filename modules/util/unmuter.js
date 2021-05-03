@@ -20,7 +20,7 @@ module.exports = (id) => {
       if (user) type = (user.constructor === djs.User) ? `user` : `member`;
 
       const logEntry = new LogEntry({ channel: `moderation` })
-        .setColor(bot.cfg.embed.error)
+        .setColor(bot.cfg.colors.error)
         .setIcon(Assets.getEmoji(`ICO_error`).url)
         .setTitle(`Member Unmute Failure`, `Member Mute Removal Failure Report`)
         .setHeader(`An error occurred while trying to unmute a user.`)
@@ -105,7 +105,7 @@ module.exports = (id) => {
       }
 
       new LogEntry({ channel: `moderation` })
-        .setColor(bot.cfg.embed.default)
+        .setColor(bot.cfg.colors.default)
         .setIcon(Assets.getEmoji(`ICO_unmute`).url)
         .setTitle(`Member Unmuted`, `Member Mute Removal Report`)
         .setHeader(`Reason: Mute period expired.`)

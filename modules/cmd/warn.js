@@ -46,7 +46,7 @@ metadata.run = (m, args, data) => {
 
         bot.util.updateProfile(profile).then(() => {
           const logEntry = new LogEntry({ channel: `moderation` })
-            .setColor(bot.cfg.embed.default)
+            .setColor(bot.cfg.colors.default)
             .setIcon(Assets.getEmoji(`ICO_warn`).url)
             .setTitle(`Member Warned`, `Member Warning Report`)
             .addSection(`Member`, result.target)
@@ -59,7 +59,7 @@ metadata.run = (m, args, data) => {
 
           const embed = new djs.MessageEmbed()
             .setAuthor(`User warned`, Assets.getEmoji(`ICO_warn`).url)
-            .setColor(bot.cfg.embed.default)
+            .setColor(bot.cfg.colors.default)
             .setDescription(`${result.mention} has been warned.`);
 
           if (args[1]) {

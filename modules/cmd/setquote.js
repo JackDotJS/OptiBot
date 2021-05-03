@@ -34,7 +34,7 @@ metadata.run = (m, args, data) => {
       bot.util.updateProfile(profile).then(() => {
         const embed = new djs.MessageEmbed()
           .setAuthor(`Your profile has been updated`, Assets.getEmoji(`ICO_okay`).url)
-          .setColor(bot.cfg.embed.okay);
+          .setColor(bot.cfg.colors.okay);
 
         bot.send(m, { embed });
       }).catch(err => {

@@ -17,6 +17,7 @@ const metadata = {
     long: `Displays a given user's OptiFine cape and elytra, assuming they've donated and have their cape activated.`
   },
   args: `<minecraft username>`,
+  guilds: [ bot.cfg.guilds.optifine ],
   dm: true,
   flags: [ `BOT_CHANNEL_ONLY`, `LITE` ],
   run: null
@@ -193,7 +194,7 @@ metadata.run = (m, args, data) => {
       if (err) return bot.util.err(err, { m });
 
       const embed = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.default)
+        .setColor(bot.cfg.colors.default)
         .attachFiles([new djs.MessageAttachment(img, `cape.png`)])
         .setImage(`attachment://cape.png`)
         .setTitle(djs.Util.escapeMarkdown(player.name))

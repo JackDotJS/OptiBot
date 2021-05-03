@@ -17,7 +17,7 @@ const metadata = {
     `<discord member> [page #] ["full"]`,
     `<discord member> ["full"] [page #]`,
   ],
-  dm: true,
+  dm: false,
   flags: [ `STAFF_CHANNEL_ONLY`, `PERMS_REQUIRED`, `LITE` ],
   run: null
 };
@@ -82,7 +82,7 @@ metadata.run = (m, args, data) => {
         ];
 
         const embed = new djs.MessageEmbed()
-          .setColor(bot.cfg.embed.default)
+          .setColor(bot.cfg.colors.default)
           .setTitle(result.tag);
 
         if (result.type !== `id`) {

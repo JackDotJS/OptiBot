@@ -1,7 +1,7 @@
 @echo off
 setlocal
 :PROMPT
-SET /P AREYOUSURE=Force re-download OptiBot? (Y/[N])
+SET /P AREYOUSURE=Force re-download Vector? (Y/[N])
 IF /I "%AREYOUSURE%" NEQ "Y" GOTO END
 
 git fetch --all

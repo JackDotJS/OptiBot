@@ -68,7 +68,7 @@ metadata.run = (m, args, data) => {
 
               const embed = new djs.MessageEmbed()
                 .setAuthor(`Are you sure?`, Assets.getEmoji(`ICO_warn`).url)
-                .setColor(bot.cfg.embed.default)
+                .setColor(bot.cfg.colors.default)
                 .addField(`The following record entry will be dismissed:`, `${entry.display.icon} ${entry.display.action}\n> ${entry.reason.split(`\n`).join(`\n> `)}`)
                 .addField(`Pardon Reason`, reason);
 
@@ -82,7 +82,7 @@ metadata.run = (m, args, data) => {
                     profile.updateRecord(entry).then(() => {
                       bot.util.updateProfile(profile).then(() => {
                         new LogEntry({ channel: `moderation` })
-                          .setColor(bot.cfg.embed.default)
+                          .setColor(bot.cfg.colors.default)
                           .setIcon(Assets.getEmoji(`ICO_unban`).url)
                           .setTitle(`Record Entry Pardoned`, `Record Entry Pardon Report`)
                           .addSection(`Member`, result.target)
@@ -93,7 +93,7 @@ metadata.run = (m, args, data) => {
                           .submit().then(() => {
                             const update = new djs.MessageEmbed()
                               .setAuthor(`Success`, Assets.getEmoji(`ICO_okay`).url)
-                              .setColor(bot.cfg.embed.okay)
+                              .setColor(bot.cfg.colors.okay)
                               .setDescription(`Case ID ${entry.display.id} has been marked as pardoned.`)
                               .addField(`Pardon Reason`, reason);
 
@@ -104,14 +104,14 @@ metadata.run = (m, args, data) => {
                   } else if (res === 0) {
                     const update = new djs.MessageEmbed()
                       .setAuthor(`Cancelled`, Assets.getEmoji(`ICO_load`).url)
-                      .setColor(bot.cfg.embed.default)
+                      .setColor(bot.cfg.colors.default)
                       .setDescription(`Record entry has not been changed.`);
 
                     msg.edit({ embed: update }).then(() => bres.addControl);
                   } else {
                     const update = new djs.MessageEmbed()
                       .setAuthor(`Timed out`, Assets.getEmoji(`ICO_load`).url)
-                      .setColor(bot.cfg.embed.default)
+                      .setColor(bot.cfg.colors.default)
                       .setDescription(`Sorry, you didn't respond in time. Please try again.`);
 
                     msg.edit({ embed: update }).then(() => bres.addControl);

@@ -1,16 +1,13 @@
 {
-  "name": "optibot",
-  "version": "3.1.0-Y2",
-  "description": "Official OptiFine Discord Server bot.",
-  "homepage": "https://discord.gg/3mMpcwW",
-  "author": {
-    "name": "Kyle Edwards",
-    "email": "wingedasterisk@gmail.com"
-  },
+  "name": "vector-bot",
+  "version": "0.1.0-V1",
+  "description": "A Discord bot for advanced moderation and server management.",
+  "homepage": "https://discord.gg/s5nQBxFPp2",
   "repository": {
     "type": "git",
-    "url": "https://github.com/realjackasterisk/OptiBot"
+    "url": "https://github.com/JackDotJS/vector-bot"
   },
+  "license": "GPL-3.0-or-later",
   "scripts": {
     "start": "node index.js"
   },
@@ -25,12 +22,13 @@
     "jaro-winkler": "^0.2.8",
     "jimp": "^0.10.3",
     "nedb": "^1.8.0",
+    "nedb-promises": "^4.1.1",
+    "node-fetch": "^2.6.1",
     "request": "^2.88.0",
     "request-promise": "^4.2.5",
     "string-similarity": "^3.0.0",
     "timeago.js": "^4.0.2",
-    "ytdl-core": "^4.1.6",
-    "node-fetch": "^2.6.1"
+    "ytdl-core": "^4.1.6"
   },
   "devDependencies": {
     "eslint": "^7.9.0"

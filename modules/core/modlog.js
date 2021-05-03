@@ -126,7 +126,7 @@ module.exports = class LogEntry {
 
     if (this.data.publishing.embed) {
       const embed = new djs.MessageEmbed()
-        .setColor(bot.cfg.embed.default)
+        .setColor(bot.cfg.colors.default)
         .setTitle(`Loading...`);
 
       this.data.channel.send(embed).then(msg => {

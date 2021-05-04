@@ -29,9 +29,9 @@ const env = {
     output: process.stdout
   }),
   autostart: {
-    rph: 0,
+    rph: 0, // restarts per hour
     hour: 0,
-    interval: setInterval(() => {
+    interval: setInterval(() => { // the interval at which to reset the rph and hour counters (enough time has passed)
       const now = new Date().getHours();
       if (now !== env.autostart.hour) {
         env.autostart.rph = 0;
@@ -50,6 +50,7 @@ const env = {
   }
 };
 
+// Custom logging function which makes the console look ✨ pretty ✨
 const log = (m, lvl, file) => {
   const now = new Date();
   const t_hour = now.getUTCHours().toString().padStart(2, `0`);
@@ -79,13 +80,13 @@ const log = (m, lvl, file) => {
     if ([`fatal`, `error`, `warn`, `info`].includes(lvl.toLowerCase())) {
       entry.level.content = lvl.toUpperCase();
     }
-    
-    switch(lvl.toLowerCase()) {
-      case `fatal`: 
+
+    switch (lvl.toLowerCase()) {
+      case `fatal`:
         entry.level.color = chalk.inverse.bgRedBright;
         entry.message.color = chalk.redBright;
         break;
-      case `error`: 
+      case `error`:
         entry.level.color = chalk.red;
         entry.message.color = chalk.red;
         break;
@@ -180,16 +181,19 @@ const makeFiles = [
   `./data/guilds.db`
 ];
 
+// If there's an file missing that's required for the bot to run properly, error and exit.
 for (const item of required) {
   if (!fs.existsSync(item)) throw new Error(`Missing file or directory: ${item}`);
 }
 
+// if there's a folder that's required but can be made dynamically, make it here.
 for (const item of makeDirs) {
   if (!fs.existsSync(item)) {
     fs.mkdirSync(item);
   }
 }
 
+// If there's a file that's required but can be made dynamically, make it here.
 for (const item of makeFiles) {
   if (!fs.existsSync(item)) {
     fs.writeFileSync(item, ``);
@@ -200,14 +204,16 @@ if (typeof require(`./cfg/keys.json`).discord !== `string`) {
   throw new Error(`./cfg/keys.json - Missing Discord API token.`);
 }
 
+// setup process \o/ this is when the bot starts.
 (function setup() {
   (function q1() {
     console.clear();
 
+    // Skip the initial boot screen; set the bot's mode to indexOf('--skipsetup') + 1
     if (process.argv.includes(`--skipsetup`)) {
       env.mode = parseInt(process.argv.indexOf(`--skipsetup`) + 1);
       return preinit();
-    } 
+    }
 
     env.rl.question(`START VECTOR [Y/N]\n`, (res) => {
       if (res.trim().toLowerCase() === `y`) {
@@ -232,13 +238,13 @@ if (typeof require(`./cfg/keys.json`).discord !== `string`) {
 
     env.rl.question(`SET OPERATING MODE [0-2]\n`, (res) => {
       const mode = parseInt(res);
-  
+
       if (isNaN(mode) || mode < 0 || mode > 2) {
         q2();
       } else {
         env.mode = mode;
         if (mode === 0) env.log.level = 0;
-  
+
         env.rl.close();
         preinit();
       }
@@ -246,6 +252,7 @@ if (typeof require(`./cfg/keys.json`).discord !== `string`) {
   }
 })();
 
+// And here we go
 function preinit() {
   console.clear();
 
@@ -254,9 +261,10 @@ function preinit() {
   env.log.filename = new Date().toUTCString().replace(/[/\\?%*:|"<>]/g, `.`);
   env.log.stream = fs.createWriteStream(`./logs/${env.log.filename}.log`);
 
+  // If the bot has restarted more than 5 times in a few seconds, warn...
   if (env.autostart.rph > 5 && env.mode != 0) {
     log(`Pre-Init: Unusually high client reset count: ${env.autostart.rph}`, `warn`);
-    if (env.autostart.rph > 50) {
+    if (env.autostart.rph > 50) { // ... or eventually shut down after 50 restarts.
       log(`Pre-Init: Potential boot loop detected, shutting down for safety.`, `warn`);
       return exit(19, true, `FATAL`);
     }
@@ -336,6 +344,7 @@ function preinit() {
 function init() {
   log(`Launching Vector...`, `info`);
 
+  // Start the bot in a new process. This is essential for the auto-restart and RPH system.
   const bot = child.spawn(`node`, [`modules/core/app.js`, env.mode, env.log.filename], {
     stdio: [`pipe`, `pipe`, `pipe`, `ipc`]
   });
@@ -356,6 +365,7 @@ function init() {
     chunks_err = chunks_err.concat(data);
     log(data, `fatal`);
   });
+  // oopsala, seems the bot died.
   bot.stderr.on(`end`, () => {
     const content = Buffer.concat(chunks_err).toString();
     if (content.length > 0) log(content, `fatal`);
@@ -375,7 +385,7 @@ function init() {
         log(`Bot ready`);
         if (env.cr.logData != null) {
           // send crash data
-          bot.send({ 
+          bot.send({
             t: `BM_CRASHLOG`,
             c: env.cr.logData
           }, (err) => {
@@ -390,10 +400,10 @@ function init() {
           // send restart data
           bot.send({
             t: `BM_RESTART`,
-            c: env.r 
+            c: env.r
           }, (err) => {
             if (err) return log(`Failed to send restart data: ` + err.stack, `error`);
-              
+
             env.r.guild = null;
             env.r.channel = null;
             env.r.message = null;
@@ -429,52 +439,52 @@ function init() {
       postLog: false
     };
 
-    switch(code) {
-      case 0: 
+    switch (code) {
+      case 0:
         log(`Vector is now shutting down at user request.`, `info`);
         break;
-      case 1: 
+      case 1:
         log(`Vector seems to have crashed. Restarting...`, `info`);
         opts.exit = false;
         opts.note = `CRASH`;
         opts.postLog = true;
         if (env.mode === 0) opts.timeout = 5000;
         break;
-      case 2: 
+      case 2:
         log(`Bash Error.`, `fatal`);
         break;
-      case 3: 
+      case 3:
         log(`Internal JavaScript parse error.`, `fatal`);
         break;
-      case 4: 
+      case 4:
         log(`Internal JavaScript Evaluation Failure.`, `fatal`);
         break;
-      case 5: 
+      case 5:
         log(`Fatal Error.`, `fatal`);
         break;
-      case 6: 
+      case 6:
         log(`Non-function Internal Exception Handler.`, `fatal`);
         break;
-      case 7: 
+      case 7:
         log(`Internal Exception Handler Run-Time Failure.`, `fatal`);
         break;
-      case 8: 
+      case 8:
         log(`Uncaught exception.`, `fatal`);
         break;
-      case 9: 
+      case 9:
         log(`Invalid Launch Argument(s).`, `fatal`);
         break;
-      case 10: 
+      case 10:
         log(`Internal JavaScript Run-Time Failure.`, `fatal`);
         break;
-      case 12: 
+      case 12:
         log(`Invalid Debug Argument(s).`, `fatal`);
         break;
-      case 16: 
+      case 16:
         log(`Vector is now restarting at user request...`, `info`);
         opts.exit = false;
         break;
-      case 17: 
+      case 17:
         if (env.mode === 0) {
           log(`Vector cannot be updated in mode 0. Restarting...`, `info`);
           opts.exit = false;
@@ -516,7 +526,7 @@ function exit(code, stop, note, postLog) {
     }
 
     if (postLog) env.cr.logData = fs.readFileSync(logDir, `utf8`);
-    
+
     if (stop) {
       process.exit(code);
     } else {

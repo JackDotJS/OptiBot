@@ -7,3 +7,4 @@ Here you'll find some very basic rules that if followed, will make development o
     * For example: **do** `jarfix: updated the link` and **don't** `someBODY once TOLD ME`
 3. If there is a massive and breaking change, **don't commit it to master.** Instead, create a new branch with the new change and open a PR.
     * This is so that we're all aware of what the change is and we can update our own codebases accordingly
+4. Comment your code like your life depends on it. This has been a big issue in the past where the code isn't immediately readable. Doing this will help future contributors, including yourself.

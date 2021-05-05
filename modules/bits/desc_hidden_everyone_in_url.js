@@ -1,4 +1,4 @@
-const { OptiBit } = require(`../core/optibot.js`);
+const { OptiBit } = require(`../core/modules.js`);
 
 /**
  * This file only exists to retain a visible description for the hidden URL detection part of url_handler.js

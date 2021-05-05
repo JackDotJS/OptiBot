@@ -1,4 +1,4 @@
-const { OptiBit, Assets, memory } = require(`../core/optibot.js`);
+const { OptiBit, Assets, memory } = require(`../core/modules.js`);
 
 const bot = memory.core.client;
 

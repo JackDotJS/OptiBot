@@ -1,6 +1,6 @@
 const request = require(`request`);
 const djs = require(`discord.js`);
-const { OptiBit, memory, Assets } = require(`../core/optibot.js`);
+const { OptiBit, memory, Assets } = require(`../core/modules.js`);
 
 const bot = memory.core.client;
 const log = bot.log;

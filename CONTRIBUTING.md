@@ -3,7 +3,7 @@ Here you'll find some very basic rules that if followed, will make development o
 
 1. First and foremost, don't push massive amounts of work in a single commit. Work on bits a pieces at a time, and commit them separately.
     * This helps with keeping track of what new features were added or changed, as well as helping to find bugs if they appear.
-2. Make sure your commit messages are clear and concise.
+2. Make sure your commit messages are clear and concise. This also extends to the commit descriptions (if applicable)
     * ✅ **DO:** `jarfix: updated the link` 
     * ❌ **DON'T** `someBODY once TOLD ME`
     * ✅ **DO:** `owo: fixed guild setting synchronization`

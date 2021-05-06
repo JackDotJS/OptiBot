@@ -1,7 +1,7 @@
 const util = require(`util`);
 const djs = require(`discord.js`);
 const timeago = require(`timeago.js`);
-const ob = require(`../core/OptiBot.js`);
+const ob = require(`../core/modules.js`);
 
 const bot = ob.memory.core.client;
 const log = ob.log;

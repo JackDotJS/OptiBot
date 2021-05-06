@@ -3,7 +3,7 @@ const util = require(`util`);
 const djs = require(`discord.js`);
 const iso = require(`iso-639-1`);
 const request = require(`request`);
-const { Command, memory, Assets } = require(`../core/optibot.js`);
+const { Command, memory, Assets } = require(`../core/modules.js`);
 
 const bot = memory.core.client;
 const log = bot.log;

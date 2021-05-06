@@ -5,7 +5,7 @@ const util = require(`util`);
 const fileType = require(`file-type`);
 const fetch = require(`node-fetch`);
 const djs = require(`discord.js`);
-const { Command, memory, RecordEntry, LogEntry, Assets } = require(`../core/optibot.js`);
+const { Command, memory, RecordEntry, LogEntry, Assets } = require(`../core/modules.js`);
 
 const bot = memory.core.client;
 const log = bot.log;

@@ -3,7 +3,7 @@ const cstr = require(`string-similarity`);
 const wink = require(`jaro-winkler`);
 const util = require(`util`);
 const djs = require(`discord.js`);
-const { Command, memory, Assets } = require(`../core/optibot.js`);
+const { Command, memory, Assets } = require(`../core/modules.js`);
 
 const bot = memory.core.client;
 const log = bot.log;

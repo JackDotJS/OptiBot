@@ -1,7 +1,7 @@
 /* eslint-disable no-inner-declarations */
 const path = require(`path`);
 const djs = require(`discord.js`);
-const { Command, memory, RecordEntry, LogEntry, Assets } = require(`../core/optibot.js`);
+const { Command, memory, RecordEntry, LogEntry, Assets } = require(`../core/modules.js`);
 
 const bot = memory.core.client;
 

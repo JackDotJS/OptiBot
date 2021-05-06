@@ -1,7 +1,7 @@
 const path = require(`path`);
 const djs = require(`discord.js`);
 const sim = require(`string-similarity`);
-const { Command, memory, LogEntry, Assets } = require(`../core/optibot.js`);
+const { Command, memory, LogEntry, Assets } = require(`../core/modules.js`);
 
 const bot = memory.core.client;
 const log = bot.log;

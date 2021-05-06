@@ -1,5 +1,5 @@
 const path = require(`path`);
-const { Command, memory } = require(`../core/optibot.js`);
+const { Command, memory } = require(`../core/modules.js`);
 
 const bot = memory.core.client;
 const log = bot.log;

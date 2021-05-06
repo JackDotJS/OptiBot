@@ -1,4 +1,4 @@
-const ob = require(`../core/OptiBot.js`);
+const ob = require(`../core/modules.js`);
 const util = require(`util`);
 
 const bot = ob.memory.core.client;

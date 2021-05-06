@@ -2,7 +2,7 @@ const path = require(`path`);
 const fs = require(`fs`);
 const djs = require(`discord.js`);
 const AZip = require(`adm-zip`);
-const { Command, memory } = require(`../core/optibot.js`);
+const { Command, memory } = require(`../core/modules.js`);
 
 const bot = memory.core.client;
 

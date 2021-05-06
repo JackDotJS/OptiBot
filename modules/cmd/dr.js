@@ -2,7 +2,7 @@ const util = require(`util`);
 const path = require(`path`);
 const djs = require(`discord.js`);
 const fetch = require(`node-fetch`);
-const { Command, memory, Assets } = require(`../core/optibot.js`);
+const { Command, memory, Assets } = require(`../core/modules.js`);
 
 const bot = memory.core.client;
 const log = bot.log;

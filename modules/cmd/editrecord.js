@@ -23,7 +23,8 @@ const metadata = {
   },
   args: `<discord member> <case ID> <property> [new value]`,
   dm: false,
-  flags: [ `STRICT`, `PERMS_REQUIRED`, `STAFF_CHANNEL_ONLY`, `LITE`],
+  flags: [ `STRICT`, `STAFF_CHANNEL_ONLY`, `LITE` ],
+  dperm: `MANAGE_GUILD`,
   run: null
 };
 

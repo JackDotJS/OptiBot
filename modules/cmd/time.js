@@ -13,7 +13,7 @@ const metadata = {
   },
   args: `<time>`,
   dm: true,
-  flags: [ `PERMS_REQUIRED` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

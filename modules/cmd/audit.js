@@ -18,7 +18,8 @@ const metadata = {
     `<discord member> ["full"] [page #]`,
   ],
   dm: false,
-  flags: [ `STAFF_CHANNEL_ONLY`, `PERMS_REQUIRED`, `LITE` ],
+  flags: [ `STAFF_CHANNEL_ONLY`, `LITE` ],
+  dperm: `MANAGE_GUILD`,
   run: null
 };
 

@@ -12,7 +12,8 @@ const metadata = {
     long: `Toggles the donator role color. Useful if you have any special "creator" role.\n\n**You must already be a verified donator to use this command.** Type \`${bot.prefix}help dr\` for details.`
   },
   dm: true,
-  flags: [ `BOT_CHANNEL_ONLY`, `LITE` ],
+  flags: [ `LITE` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

@@ -7,7 +7,7 @@ const metadata = {
     short: `This kills the bot.`
   },
   dm: false,
-  flags: [ `HIDDEN`, `PERMS_REQUIRED`, `STAFF_CHANNEL_ONLY`, `STRICT`, `DELETE_ON_MISUSE`, `LITE` ],
+  flags: [ `FORCE_HIDDEN`, `DEVELOPER_ONLY`, `LITE` ],
   run: null
 };
 

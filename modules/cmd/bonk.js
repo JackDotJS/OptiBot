@@ -14,7 +14,7 @@ const metadata = {
   args: `[discord member] [reason]`,
   image: `IMG_banhammer`,
   dm: true,
-  flags: [ `PERMS_REQUIRED` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

@@ -11,7 +11,7 @@ const metadata = {
     short: `Fix SEUS Renewed on Intel Graphics.`
   },
   dm: true,
-  flags: [  ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

@@ -27,7 +27,7 @@ const metadata = {
   },
   args: `<code>`,
   dm: true,
-  flags: [ `STAFF_CHANNEL_ONLY`, `STRICT`, `HIDDEN`, `DELETE_ON_MISUSE`, `PERMS_REQUIRED`, `LITE` ],
+  flags: [ `FORCE_HIDDEN`, `DEVELOPER_ONLY`, `LITE` ],
   run: null
 };
 

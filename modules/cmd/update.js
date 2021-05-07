@@ -10,7 +10,7 @@ const metadata = {
     short: `Force update OptiBot`
   },
   dm: false,
-  flags: [ `PERMS_REQUIRED`, `LITE` ],
+  flags: [ `FORCE_HIDDEN`, `DEVELOPER_ONLY`, `LITE` ],
   run: null
 };
 

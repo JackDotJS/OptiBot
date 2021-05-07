@@ -18,7 +18,8 @@ const metadata = {
     `<discord message>`
   ],
   dm: true,
-  flags: [ `PERMS_REQUIRED`, `LITE` ],
+  flags: [ `LITE` ],
+  dperm: `MANAGE_GUILD`,
   run: null
 };
 

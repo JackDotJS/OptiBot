@@ -19,6 +19,7 @@ const metadata = {
   args: `<channel> <file url>`,
   dm: false,
   flags: [ `STAFF_CHANNEL_ONLY`, `STRICT`, `DELETE_ON_MISUSE`, `LITE` ],
+  dperm: `MANAGE_GUILD`,
   run: null
 };
 

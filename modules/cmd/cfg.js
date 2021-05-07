@@ -15,7 +15,9 @@ const metadata = {
   },
   args: `[file attachment]`,
   dm: false,
-  flags: [ `PERMS_REQUIRED`, `LITE` ],
+  flags: [ `LITE` ],
+  dperm: `MANAGE_GUILD`,
+  run: null
 };
 
 const exec = async (m, args, data) => {

@@ -19,7 +19,8 @@ const metadata = {
   args: `<minecraft username>`,
   guilds: [ bot.cfg.guilds.optifine ],
   dm: true,
-  flags: [ `BOT_CHANNEL_ONLY`, `LITE` ],
+  flags: [ `LITE` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

@@ -9,7 +9,7 @@ const metadata = {
     short: `die`
   },
   dm: true,
-  flags: [ `HIDDEN`, `PERMS_REQUIRED` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

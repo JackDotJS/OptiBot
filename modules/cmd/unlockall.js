@@ -13,7 +13,8 @@ const metadata = {
     long: `Unlocks ALL channels in the server.`
   },
   dm: false,
-  flags: [ `PERMS_REQUIRED`, `LITE` ],
+  flags: [ `LITE` ],
+  dperm: `MANAGE_GUILD`,
   run: null
 };
 

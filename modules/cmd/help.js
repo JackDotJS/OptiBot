@@ -18,7 +18,8 @@ const metadata = {
     `[query]`
   ],
   dm: true,
-  flags: [ `BOT_CHANNEL_ONLY`, `LITE` ],
+  flags: [ `LITE` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

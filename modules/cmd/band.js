@@ -14,7 +14,9 @@ const metadata = {
   },
   guilds: [ bot.cfg.guilds.optifine ],
   dm: false,
-  flags: [ `HIDDEN`, `NO_TYPER` ],
+  flags: [ `NO_TYPER` ],
+  dperm: `SEND_MESSAGES`,
+  run: null
 };
 
 const exec = async (m, args, data) => {

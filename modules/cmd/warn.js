@@ -12,7 +12,8 @@ const metadata = {
   },
   args: `<discord member> [reason]`,
   dm: false,
-  flags: [ `PERMS_REQUIRED`, `LITE` ],
+  flags: [ `LITE` ],
+  dperm: `MANAGE_GUILD`,
   run: null
 };
 

@@ -13,7 +13,7 @@ const metadata = {
     long: `Reloads OptiBot assets, such as commands, OptiBits, core classes, and images.`
   },
   dm: true,
-  flags: [ `PERMS_REQUIRED`, `STAFF_CHANNEL_ONLY`, `LITE` ],
+  flags: [ `FORCE_HIDDEN`, `DEVELOPER_ONLY`, `LITE` ],
   run: null
 };
 

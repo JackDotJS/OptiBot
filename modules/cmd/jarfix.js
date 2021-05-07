@@ -13,6 +13,7 @@ const metadata = {
   },
   dm: true,
   flags: [ `LITE` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

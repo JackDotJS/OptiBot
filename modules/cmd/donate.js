@@ -13,6 +13,7 @@ const metadata = {
   guilds: [ bot.cfg.guilds.optifine ],
   dm: false,
   flags: [ `LITE` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

@@ -17,7 +17,7 @@ const metadata = {
     `1 [discord message]`
   ],
   dm: true,
-  flags: [ `PERMS_REQUIRED` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

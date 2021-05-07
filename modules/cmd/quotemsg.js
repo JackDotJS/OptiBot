@@ -15,6 +15,8 @@ const metadata = {
   args: `<discord message>`,
   dm: true,
   flags: [ `LITE` ],
+  dperm: `SEND_MESSAGES`,
+  run: null
 };
 
 const exec = async (m, args, data) => {

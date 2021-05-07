@@ -11,7 +11,7 @@ const metadata = {
   },
   args: `<text>`,
   dm: true,
-  flags: [ `BOT_CHANNEL_ONLY` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

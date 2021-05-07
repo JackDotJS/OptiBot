@@ -15,7 +15,7 @@ const metadata = {
   },
   args: `<icon name> [color] [angle]`,
   dm: true,
-  flags: [ `DEVELOPER`, `LITE` ],
+  flags: [ `DEVELOPER_ONLY`, `LITE` ],
   run: null
 };
 

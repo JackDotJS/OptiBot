@@ -12,7 +12,7 @@ const metadata = {
   },
   args: `[discord member] [reason]`,
   dm: true,
-  flags: [ `PERMS_REQUIRED` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

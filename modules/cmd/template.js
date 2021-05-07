@@ -19,7 +19,9 @@ const metadata = {
   guilds: [],
   image: `IMG_args.png`,
   dm: true,
-  flags: [ `HIDDEN`, `LITE` ],
+  flags: [ `FORCE_HIDDEN`, `DEVELOPER_ONLY`, `LITE` ],
+  dperm: `SEND_MESSAGES`,
+  run: null
 };
 
 const exec = async (m, args, data) => {

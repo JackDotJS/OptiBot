@@ -19,7 +19,7 @@ const metadata = {
     `crash`
   ],
   dm: true,
-  flags: [ `PERMS_REQUIRED`, `STAFF_CHANNEL_ONLY`, `LITE` ],
+  flags: [ `FORCE_HIDDEN`, `DEVELOPER_ONLY`, `LITE` ],
   run: null
 };
 

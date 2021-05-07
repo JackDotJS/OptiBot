@@ -25,7 +25,9 @@ const metadata = {
   guilds: [ bot.cfg.guilds.optifine ],
   dm: true,
   image: `IMG_token`,
-  flags: [ `DM_ONLY`, `STRICT`, `DELETE_ON_MISUSE`, `NO_LOGGING_ARGS`, `LITE` ]
+  flags: [ `DM_ONLY`, `STRICT`, `DELETE_ON_MISUSE`, `NO_LOGGING_ARGS`, `LITE` ],
+  dperm: `SEND_MESSAGES`,
+  run: null
 };
 
 const exec = async (m, args, data) => {

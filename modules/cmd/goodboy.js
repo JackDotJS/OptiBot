@@ -10,7 +10,8 @@ const metadata = {
     short: `Good boy!`
   },
   dm: true,
-  flags: [ `PERMS_REQUIRED`, `LITE` ],
+  flags: [ `LITE` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

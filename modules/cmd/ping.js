@@ -11,7 +11,8 @@ const metadata = {
     short: `Measure bot latency and response lag.`
   },
   dm: true,
-  flags: [ `PERMS_REQUIRED`, `LITE` ],
+  flags: [ `LITE` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

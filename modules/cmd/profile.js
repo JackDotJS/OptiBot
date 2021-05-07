@@ -16,7 +16,7 @@ const metadata = {
   },
   args: `[discord member]`,
   dm: true,
-  flags: [ `BOT_CHANNEL_ONLY` ],
+  dperm: `SEND_MESSAGES`,
   run: null
 };
 

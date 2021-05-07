@@ -25,6 +25,8 @@ module.exports = class Vector extends djs.Client {
     if (exit.getTime() - new Date().getTime() < 0) {
       exit.setUTCDate(exit.getUTCDate() + 1);
     }
+    
+    memory.core.client = this;
 
     this.keys = require(`../../cfg/keys.json`);
     this.log = options.log;
@@ -39,8 +41,6 @@ module.exports = class Vector extends djs.Client {
 
     this.profiles = require(`./profile_manager.js`);
     this.records = require(`./record_manager.js`);
-
-    memory.core.client = this;
 
     Object.defineProperty(this, `mainGuild`, {
       get: () => {

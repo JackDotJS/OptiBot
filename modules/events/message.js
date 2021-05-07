@@ -17,8 +17,8 @@ module.exports = async (m) => {
     bot.profiles.update(profile);
   }
 
-  const input = bot.util.parseInput(m.content);
-  const gcfg = bot.util.getGuildConfig(m.guild);
+  const gcfg = await bot.util.getGuildConfig(m.guild);
+  const input = await bot.util.parseInput(m.content, gcfg);
 
   if (input.valid) return bot.util.handleCommand(m, input, gcfg);
 

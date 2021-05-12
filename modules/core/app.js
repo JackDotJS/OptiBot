@@ -41,13 +41,13 @@ bot.login(bot.keys.discord).catch(err => {
 });
 
 const finalInit = () => {
-  if (bot.firstBoot) {
-    bot.firstBoot = false;
-  } else return;
+  if (!bot.firstBoot) return;
 
   bot.util.setWindowTitle(`Loading Assets...`);
 
   vb.Assets.load().then(async (time) => {
+    bot.firstBoot = false;
+
     const width = 64; //inner width of box
 
     const mkbox = (text, totalWidth) => {

@@ -10,20 +10,12 @@ const memory = require(`./memory.js`);
 const Command = require(`./command.js`);
 const OptiBit = require(`./bit.js`);
 
-module.exports = class OptiBotAssetsManager {
+module.exports = class AssetsManager {
   constructor() {
     throw new Error(`Why are you doing this? (Cannot instantiate this class.)`);
   }
 
-  static async load(tier = 0) {
-    /**
-     * type
-     * 
-     * 0 = everything
-     * 1 = commands, optibits, utilities, and images
-     * 2 = only images
-     */
-
+  static async load() {
     const bot = memory.core.client;
     const log = bot.log;
 
@@ -48,7 +40,7 @@ module.exports = class OptiBotAssetsManager {
 
     stages.push({
       name: `File System Watcher`,
-      tiers: [true, false, false],
+      allowRerun: false,
       load: () => {
         return new Promise((resolve, reject) => {
           const watcher = chokidar.watch([
@@ -80,7 +72,7 @@ module.exports = class OptiBotAssetsManager {
 
     stages.push({
       name: `Module Cache Remover`,
-      tiers: [false, true, false],
+      allowRerun: true,
       load: async () => {
         for (const moddir of memory.assets.needReload) {
           log(`Invalidating cache for module: ${moddir}`, `warn`);
@@ -94,7 +86,7 @@ module.exports = class OptiBotAssetsManager {
 
     stages.push({
       name: `Command Loader`,
-      tiers: [true, true, false],
+      allowRerun: true,
       load: async () => {
         const commands = fs.readdirSync(`./modules/cmd`, { withFileTypes: true });
 
@@ -149,7 +141,7 @@ module.exports = class OptiBotAssetsManager {
 
     stages.push({
       name: `Event Handler Loader`,
-      tiers: [true, true, false],
+      allowRerun: true,
       load: async () => {
         const events = fs.readdirSync(`./modules/events/`);
 
@@ -166,7 +158,7 @@ module.exports = class OptiBotAssetsManager {
 
     stagesNE.push({
       name: `Muted Member Pre-cacher`,
-      tiers: [true, false, false],
+      allowRerun: false,
       load: () => {
         return new Promise((resolve, reject) => {
           memory.db.profiles.find({ 'edata.mute': { $exists: true }, format: 3 }, async (err, docs) => {
@@ -218,7 +210,7 @@ module.exports = class OptiBotAssetsManager {
 
     stagesNE.push({
       name: `Scheduled Task Loader`,
-      tiers: [true, false, false],
+      allowRerun: false,
       load: async () => {
         const tasks = fs.readdirSync(`./modules/tasks`, { withFileTypes: true });
 
@@ -251,7 +243,7 @@ module.exports = class OptiBotAssetsManager {
 
     stagesNE.push({
       name: `Pinned Message Pre-Cacher`,
-      tiers: [true, false, false],
+      allowRerun: false,
       load: async () => {
 
         //if (bot.mode === 0) return resolve();
@@ -274,9 +266,8 @@ module.exports = class OptiBotAssetsManager {
       log(`Loading assets... ${Math.round((100 * done) / totals)}%`, `info`);
 
       log(`done/totals = ${done}/${totals}`);
-      log(`stage.tiers[tier] = ${stage.tiers[tier]}`);
 
-      if (!stage.tiers[tier]) {
+      if (!stage.allowRerun && !bot.firstBoot) {
         log(`Skipping stage "${stage.name}"`);
         done++;
         skipped++;
@@ -320,9 +311,8 @@ module.exports = class OptiBotAssetsManager {
         log(`Loading assets... ${Math.round((100 * done) / totals)}%`, `info`);
 
         log(`done/totals = ${done}/${totals}`);
-        log(`stage.tiers[${tier}] = ${stage.tiers[tier]}`);
   
-        if (!stage.tiers[tier]) {
+        if (!stage.allowRerun && !bot.firstBoot) {
           log(`Skipping async stage "${stage.name}"`);
           done++;
           skippedNE++;

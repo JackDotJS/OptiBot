@@ -37,7 +37,7 @@ metadata.run = m => {
         const embed2 = new djs.MessageEmbed()
           .setColor(bot.cfg.colors.okay);
 
-        Assets.load(1).then(async (time) => {
+        Assets.load().then(async (time) => {
           embed2.setAuthor(`Assets successfully reset in ${time / 1000} seconds.`, await Assets.getIcon(`ICO_check`, bot.cfg.colors.okay));
           log(`Assets successfully reset in ${time / 1000} seconds.`, `info`);
 

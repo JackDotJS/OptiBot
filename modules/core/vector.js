@@ -44,7 +44,7 @@ module.exports = class Vector extends djs.Client {
 
     Object.defineProperty(this, `mainGuild`, {
       get: () => {
-        return this.guilds.cache.get(cfg._env.guild);
+        return this.guilds.cache.get(cfg.env.guild);
       }
     });
 

@@ -52,9 +52,9 @@ metadata.run = (m, args, data) => {
         bot.util.err(`Nice try.`, { m });
       } else if (result.id === bot.user.id) {
         bot.util.err(`You have no power here.`, { m });
-      } else if (bot.util.getAuthlvl(result.target) > 0) {
+      } else /* if (bot.util.getAuthlvl(result.target) > 0) {
         bot.util.err(`That user is too powerful to be muted.`, { m });
-      } else {
+      } else  */{
         s2(result);
       }
     });

@@ -32,9 +32,9 @@ metadata.run = (m, args, data) => {
     if (result.id === bot.user.id) {
       return bot.util.err(`You have no power here, fool.`, { m });
     }
-    if (bot.util.getAuthlvl(result.target) > 0) {
+    /* if (bot.util.getAuthlvl(result.target) > 0) {
       return bot.util.err(`That user is too powerful to be banned.`, { m });
-    }
+    } */
 
     bot.mainGuild.fetchBan(result.id).then(() => {
       bot.util.err(`${result.mention} has already been banned.`, { m });

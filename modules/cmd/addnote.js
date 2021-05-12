@@ -26,7 +26,7 @@ metadata.run = (m, args, data) => {
   bot.util.parseTarget(m, 0, args[0], data.member).then((result) => {
     if (!result) return bot.util.err(`You must specify a valid user.`, { m });
     if (result.type === `notfound`) return bot.util.err(`Unable to find a user.`, { m });
-    if (bot.util.getAuthlvl(result.target) > data.authlvl) return bot.util.err(`You are not strong enough to add notes to this user.`, { m });
+    //if (bot.util.getAuthlvl(result.target) > data.authlvl) return bot.util.err(`You are not strong enough to add notes to this user.`, { m });
     if (result.id === m.author.id || result.id === bot.user.id) return bot.util.err(`Nice try.`, { m });
 
     const reason = m.content.substring(`${bot.prefix}${data.input.cmd} ${args[0]} `.length);

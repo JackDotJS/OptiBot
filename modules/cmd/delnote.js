@@ -27,9 +27,9 @@ metadata.run = (m, args, data) => {
       bot.util.err(`You must specify a valid user.`, { m });
     } else if (result.type === `notfound`) {
       bot.util.err(`Unable to find a user.`, { m });
-    } else if (bot.util.getAuthlvl(result.target) > data.authlvl) {
+    } else /* if (bot.util.getAuthlvl(result.target) > data.authlvl) {
       bot.util.err(`You are not strong enough to modify this user's record.`, { m });
-    } else if (result.id === m.author.id || result.id === bot.user.id) {
+    } else  */if (result.id === m.author.id || result.id === bot.user.id) {
       bot.util.err(`Nice try.`, { m });
     } else {
       bot.util.getProfile(result.id, false).then(profile => {

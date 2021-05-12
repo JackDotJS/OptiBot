@@ -29,9 +29,9 @@ metadata.run = (m, args, data) => {
       bot.util.err(`Nice try.`, { m });
     } else if (result.id === bot.user.id) {
       bot.util.err(`:(`, { m });
-    } else if (bot.util.getAuthlvl(result.target) > data.authlvl) {
+    } else /* if (bot.util.getAuthlvl(result.target) > data.authlvl) {
       bot.util.err(`That user is too powerful to be warned.`, { m });
-    } else {
+    } else  */{
       bot.util.getProfile(result.id, true).then(profile => {
         if (!profile.edata.record) profile.edata.record = [];
         const reason = m.content.substring(`${bot.prefix}${data.input.cmd} ${args[0]} `.length);

@@ -43,9 +43,9 @@ metadata.run = (m, args, data) => {
       bot.util.err(`Unable to find a user.`, { m });
     } else if (result.target.user.id === m.author.id || result.target.user.id === bot.user.id) {
       bot.util.err(`Nice try.`, { m });
-    } else if (bot.util.getAuthlvl(result.target) > data.authlvl) {
+    } else /* if (bot.util.getAuthlvl(result.target) > data.authlvl) {
       bot.util.err(`You aren't powerful enough to update this user's roles.`, { m });
-    } else {
+    } else  */{
       const roles = bot.guilds.cache.get(bot.cfg.guilds.optifine).roles.cache.array();
       const match = {
         role: null,

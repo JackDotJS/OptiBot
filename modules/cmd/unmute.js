@@ -32,9 +32,9 @@ metadata.run = (m, args, data) => {
         bot.util.err(`If you're muted, how are you even using this command?`, { m });
       } else if (result.id === bot.user.id) {
         bot.util.err(`I'm a bot. Why would I even be muted?`, { m });
-      } else if (bot.util.getAuthlvl(result.target) > 0) {
+      } else /* if (bot.util.getAuthlvl(result.target) > 0) {
         bot.util.err(`That user is too powerful to be muted in the first place.`, { m });
-      } else if (result.type === `member` && !result.target.roles.cache.has(bot.cfg.roles.muted)) {
+      } else  */if (result.type === `member` && !result.target.roles.cache.has(bot.cfg.roles.muted)) {
         bot.util.err(`That user has not been muted.`, { m });
       } else {
         s2(result);

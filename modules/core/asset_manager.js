@@ -442,7 +442,7 @@ module.exports = class AssetsManager {
     // somewhat basic cache system, only lasts while the bot is online
     // should this be made to cache urls to a persistent database?
     const submit = async (data, ext) => {
-      const cachemsg = await bot.send(bot.channels.cache.get(bot.cfg.env.cacheID), { files: [ new djs.MessageAttachment(data, `image.${ext}`) ] });
+      const cachemsg = await bot.send(await bot.channels.fetch(bot.cfg.env.cache), { files: [ new djs.MessageAttachment(data, `image.${ext}`) ] });
 
       memory.assets.icons.push({
         q: query,

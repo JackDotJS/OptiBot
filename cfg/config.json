@@ -1,13 +1,16 @@
 {
   "env": {
-    "devID": null,
+    "developer": null,
     "exec": {
       "verbose": true,
       "inspectionDepth": 2
     },
-    "guildID": "627527422312710154",
-    "cacheID": "723385591017766945",
-    "logID": "829637754265665566"
+    "guild": "627527422312710154",
+    "cache": "723385591017766945",
+    "log": "829637754265665566"
+  },
+  "guilds": {
+    "optifine": "423430686880301056"
   },
   "colors": {
     "default": "#7289DA",

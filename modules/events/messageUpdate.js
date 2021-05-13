@@ -9,6 +9,7 @@ const log = ob.log;
 module.exports = async (m, mNew) => {
   if (!bot.available) return;
   if (m.type !== `DEFAULT` || m.system || m.author.system || m.author.bot) return;
+  if (bot.mode === 0 && m.author.id !== bot.cfg.env.developer) return;
 
   // handle command edits
   const input = bot.util.parseInput(mNew.content);

@@ -1,50 +1,44 @@
 const memory = require(`./memory.js`);
 const Profile = require(`./profile.js`);
 
-module.exports = class OptiBotProfileManager {
+module.exports = class UserProfileManager {
   constructor() {
     throw new Error(`Why are you doing this? (Cannot instantiate this class.)`);
   }
 
-  static get(id, create) {
+  static async get(id, create) {
     const bot = memory.core.client;
     const log = bot.log;
 
-    return new Promise((resolve, reject) => {
-      log(`get profile: ${id}`);
-      if (create) log(`allow new profile`);
+    log(`get profile: ${id}`);
+    if (create) log(`allow new profile`);
 
-      memory.db.profiles.find({ id, format: 3 }, (err, docs) => {
-        if (err) return reject(err);
-        
-        if (docs[0]) return resolve(new Profile(docs[0]));
-        
-        return resolve(new Profile({ id }));
-      });
-    });
+    const doc = await memory.db.profiles.findOne({ _id: id });
+
+    if (doc) return new Profile(doc);
+      
+    if (create) return new Profile({ _id: id });
+
+    return null;
   }
 
-  static update(data) {
+  static async update(data) {
     const bot = memory.core.client;
     const log = bot.log;
 
-    return new Promise((resolve, reject) => {
-      if (!(data instanceof Profile)) return reject(new TypeError(`OptiBot profile not provided.`));
+    if (!(data instanceof Profile)) return new TypeError(`OptiBot profile not provided.`);
 
-      const profile = data.raw;
+    const profile = data.raw;
 
-      if (Object.keys(profile.ndata).length === 0 && Object.keys(profile.edata).length === 1 && profile.edata.lastSeen != null) {
-        log(`no data worth saving`);
-        return resolve(data);
-      }
+    if (Object.keys(profile.ndata).length === 0 && Object.keys(profile.edata).length === 1 && profile.edata.lastSeen != null) {
+      log(`no data worth saving`);
+      return data;
+    }
 
-      log(`update profile: ${profile.id}`);
+    log(`update profile: ${profile._id}`);
 
-      memory.db.profiles.update({ id: profile.id }, profile, { upsert: true }, (err) => {
-        if (err) return reject(err);
+    await memory.db.profiles.update({ _id: profile._id }, profile, { upsert: true });
 
-        return resolve(data);
-      });
-    });
+    return data;
   }
 };

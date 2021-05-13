@@ -97,34 +97,80 @@
   "perms": [
     {
       "type": "PERM",
-      "target": "MANAGE_SERVER",
+      "target": "MANAGE_GUILD",
       "nodes": [ "*" ],
+      "priority": 9999,
       "parent": null
     },
     {
-      "type": "DEFAULT",
-      "nodes": [ 
-        "cmd.about",
-        "cmd.band",
-        "cmd.bean",
-        "cmd.bonk",
-        "cmd.delquote",
-        "cmd.die",
-        "cmd.faq",
-        "cmd.goodboy",
-        "cmd.help",
-        "cmd.icon",
-        "cmd.light",
-        "cmd.mock",
-        "cmd.modping",
-        "cmd.owo",
-        "cmd.profile",
-        "cmd.quotemsg",
-        "cmd.setquote",
-        "cmd.shitcord",
-        "cmd.target",
-        "cmd.time"
-      ]
+      "type": "USER",
+      "target": "812403974997147658",
+      "nodes": [ "*" ],
+      "priority": 100,
+      "parent": null
+    },
+    {
+      "type": "PERM",
+      "target": "MANAGE_CHANNELS",
+      "nodes": [ "*" ],
+      "priority": 100,
+      "parent": null
+    },
+    {
+      "type": "PERM",
+      "target": "KICK_MEMBERS",
+      "nodes": [ "*" ],
+      "priority": 50,
+      "parent": null
+    },
+    {
+      "type": "ROLE",
+      "target": "1234567890",
+      "nodes": [ "*" ],
+      "priority": 50,
+      "parent": null
+    },
+    {
+      "type": "USER",
+      "target": "1234567890",
+      "nodes": [ "*" ],
+      "priority": 1,
+      "parent": null
+    },
+    {
+      "type": "ROLE",
+      "target": "1234567890",
+      "nodes": [ "*" ],
+      "priority": 1,
+      "parent": null
+    },
+    {
+      "type": "PERM",
+      "target": "1234567890",
+      "nodes": [ "*" ],
+      "priority": 1,
+      "parent": null
+    },
+    {
+      "type": "USER",
+      "target": "1234567890",
+      "nodes": [ "*" ],
+      "priority": 2,
+      "parent": null
+    },
+    {
+      "type": "ROLE",
+      "target": "1234567890",
+      "nodes": [ "*" ],
+      "priority": 2,
+      "parent": null
+    },
+    {
+      "type": "PERM",
+      "target": "1234567890",
+      "nodes": [ "*" ],
+      "priority": 2,
+      "parent": null
     }
   ]
 }

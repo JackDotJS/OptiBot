@@ -11,7 +11,7 @@ module.exports = class OptiBotProfile {
 
     if (data instanceof OptiBotProfile) data = data.raw;
 
-    this.id = null;
+    this._id = null;
     this.format = 3;
     this.ndata = {}; // normal data
     this.edata = { // essential data
@@ -19,17 +19,17 @@ module.exports = class OptiBotProfile {
     };
 
     if (data != null && data.constructor === Object) {
-      if (data.id != null && typeof data.id === `string`) this.id = data.id;
+      if (data._id != null && typeof data._id === `string`) this._id = data._id;
       if (data.ndata != null && data.ndata.constructor === Object) this.ndata = data.ndata;
       if (data.edata != null && data.edata.constructor === Object) this.edata = data.edata;
     }
 
-    if (this.id == null) throw new Error(`Profile ID must be specified.`);
+    if (this._id == null) throw new Error(`Profile ID must be specified.`);
 
     Object.defineProperty(this, `raw`, {
       get: () => {
         return {
-          id: this.id,
+          _id: this._id,
           format: this.format,
           ndata: this.ndata,
           edata: this.edata

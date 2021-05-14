@@ -72,6 +72,8 @@
         "member_kick": null,
         "member_join": null,
         "member_leave": null,
+        "record_note_add": null,
+        "record_note_delete": null,
         "record_update": null,
         "record_pardon": null,
         "message_delete": null,

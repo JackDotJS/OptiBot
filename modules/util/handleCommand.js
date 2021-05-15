@@ -3,13 +3,11 @@ const djs = require(`discord.js`);
 const Assets = require(`../core/asset_manager.js`);
 const memory = require(`../core/memory.js`);
 
-module.exports = async (m, input, gcfg) => {
+module.exports = async (m, input, gcfg, perms) => {
   const bot = memory.core.client;
   const log = bot.log;
 
   const member = bot.mainGuild.members.cache.get(m.author.id);
-
-  const perms = await bot.util.getPerms(member, gcfg);
 
   if (bot.mode === 0 && !perms.has(`bypassCodeMode`)) return;
   if (bot.mode === 1 && !perms.has(`bypassLiteMode`)) return;

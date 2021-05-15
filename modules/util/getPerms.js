@@ -1,16 +1,21 @@
 const djs = require(`discord.js`);
 const memory = require(`../core/memory.js`);
 
-module.exports = async (member, gcfg) => {
+module.exports = async (user, gcfg) => {
   const bot = memory.core.client;
   const log = bot.log; 
 
   const guildPerms = gcfg.perms;
 
-  member = await member.fetch(); // just in case
+  let member = null;
+  let maxlvl = 0;
+
+  if (user instanceof djs.GuildMember) {
+    member = await user.fetch(); // just in case
+    user = member.user;
+  }
 
   const perms = {
-    maxlvl: 0,
     nodes: [],
     has: (q) => {
       if (typeof q !== `string`) return null;
@@ -38,19 +43,30 @@ module.exports = async (member, gcfg) => {
     return typeSort;
   });
 
-  const apply = (group) => {
-    // todo: get all parent groups and add them in order of highest parent first
+  const apply = (group, rec) => {
+    if (group.name != null) rec.push(group.name); // if this group has a name, add it to recursion check
 
-    for (const node of group) {
+    if (group.priority > maxlvl) maxlvl = group.priority; // set maxlvl to this groups priority level if it's higher
+
+    if (group.parent != null) {
+      // go through guild perms to find the given parent.
+      // parents will always be applied first.
+      for (const pgroup of guildPerms) {
+        // apply parent group if it exists, and only if it hasn't already been referenced by another group in this tree
+        if (pgroup.name === group.parent && !rec.includes(pgroup.name)) apply(pgroup, rec);
+      }
+    }
+
+    for (const node of group.nodes) {
       if (perms.nodes.includes(node)) continue; // this node has already been added
 
-      if (node === `!*` && group.priority > perms.maxlvl) {
+      if (node === `!*` && group.priority > maxlvl) {
         // remove all nodes
         perms.nodes = [];
         return;
       }
 
-      if (node.startsWith(`!`) && perms.nodes.includes(node.substring(1)) && group.priority >= perms.maxlvl) {
+      if (node.startsWith(`!`) && perms.nodes.includes(node.substring(1)) && group.priority >= maxlvl) {
         // remove previously added node
         perms.nodes.splice(perms.nodes.indexOf(node.substring(1)), 1);
         continue;
@@ -60,7 +76,7 @@ module.exports = async (member, gcfg) => {
     }
   };
 
-  if (member.hasPermission(`ADMINISTRATOR`, { checkAdmin: true, checkOwner: true }) || member.user.id === bot.cfg.env.developer) {
+  if (user.id === bot.cfg.env.developer || member != null && member.hasPermission(`ADMINISTRATOR`, { checkAdmin: true, checkOwner: true })) {
     // member is an server admin, server owner, or bot developer
     // skip calculation of all permissions
     perms.nodes.push(`*`);
@@ -68,18 +84,26 @@ module.exports = async (member, gcfg) => {
   }
 
   for (const group of guildPerms) {
+    const recursionCheck = []; // list of named groups in this tree. prevents circular dependencies for permission groups
+
+    if (member == null && group.type === `PERM` && group.target === `SEND_MESSAGES`) {
+      // allows DM commands to work
+      apply(group, recursionCheck);
+      continue;
+    }
+
     switch (group.type) {
       case `USER`:
-        if (group.target === member.user.id) apply(group);
+        if (group.target === user.id) apply(group, recursionCheck);
         break;
       case `ROLE`:
-        if (member.roles.cache.has(group.target)) apply(group);
+        if (member.roles.cache.has(group.target)) apply(group, recursionCheck);
         break;
       case `PERM`:
-        if (member.hasPermission(group.target)) apply(group);
+        if (member.hasPermission(group.target)) apply(group, recursionCheck);
         break;
       default:
-        apply(group);
+        apply(group, recursionCheck);
     }
   }
 

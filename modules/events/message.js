@@ -21,11 +21,13 @@ module.exports = async (m) => {
   }
 
   const gcfg = await bot.util.getGuildConfig(m.guild);
+  const perms = await bot.util.getPerms(m.member || m.author, gcfg);
   const input = await bot.util.parseInput(m.content, gcfg);
 
   if (input.valid) {
     log(input);
-    return bot.util.handleCommand(m, input, gcfg);
+    log(perms);
+    return bot.util.handleCommand(m, input, gcfg, perms);
   }
 
   /////////////////////////////////////////////////////////////

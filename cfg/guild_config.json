@@ -98,6 +98,7 @@
   },
   "perms": [
     {
+      "name": null,
       "type": "PERM",
       "target": "MANAGE_GUILD",
       "nodes": [ "*" ],
@@ -105,6 +106,7 @@
       "parent": null
     },
     {
+      "name": null,
       "type": "USER",
       "target": "812403974997147658",
       "nodes": [ "*" ],
@@ -112,6 +114,7 @@
       "parent": null
     },
     {
+      "name": null,
       "type": "PERM",
       "target": "MANAGE_CHANNELS",
       "nodes": [ "*" ],
@@ -119,6 +122,7 @@
       "parent": null
     },
     {
+      "name": null,
       "type": "PERM",
       "target": "KICK_MEMBERS",
       "nodes": [ "*" ],
@@ -126,6 +130,7 @@
       "parent": null
     },
     {
+      "name": null,
       "type": "ROLE",
       "target": "1234567890",
       "nodes": [ "*" ],
@@ -133,6 +138,7 @@
       "parent": null
     },
     {
+      "name": null,
       "type": "USER",
       "target": "1234567890",
       "nodes": [ "*" ],
@@ -140,6 +146,7 @@
       "parent": null
     },
     {
+      "name": null,
       "type": "ROLE",
       "target": "1234567890",
       "nodes": [ "*" ],
@@ -147,6 +154,7 @@
       "parent": null
     },
     {
+      "name": null,
       "type": "PERM",
       "target": "1234567890",
       "nodes": [ "*" ],
@@ -154,6 +162,7 @@
       "parent": null
     },
     {
+      "name": null,
       "type": "USER",
       "target": "1234567890",
       "nodes": [ "*" ],
@@ -161,6 +170,7 @@
       "parent": null
     },
     {
+      "name": null,
       "type": "ROLE",
       "target": "1234567890",
       "nodes": [ "*" ],
@@ -168,6 +178,7 @@
       "parent": null
     },
     {
+      "name": null,
       "type": "PERM",
       "target": "1234567890",
       "nodes": [ "*" ],

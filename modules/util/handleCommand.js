@@ -7,37 +7,64 @@ module.exports = async (m, input, gcfg, perms) => {
   const bot = memory.core.client;
   const log = bot.log;
 
-  const member = bot.mainGuild.members.cache.get(m.author.id);
-
-  if (bot.mode === 0 && !perms.has(`bypassCodeMode`)) return;
-  if (bot.mode === 1 && !perms.has(`bypassLiteMode`)) return;
+  const member = m.member;
 
   let allowRetry = true;
 
+  const cmdinfo = (md) => {
+    // performs various checks on the given command with the user and guildconfig and returns the results
+    // this mainly exists to reduce repeating ourselves throughout the rest of this file
+    // there's probably a better way to do this idk
+
+    const permCheck = perms.has(`cmd.${md.name}`);
+    const forceHiddenCheck = !md.flags.includes(`FORCE_HIDDEN`);
+    const devOnlyCheck = !md.flags.includes(`DEVELOPER_ONLY`);
+    const guildCheck = (md.guilds.length === 0 || m.guild != null && md.guilds.includes(m.guild.id));
+
+    const gcfgHidden = gcfg.commands.hidden.includes(md.name);
+    const gcfgHiddenCheck = (!gcfgHidden || gcfgHidden && perms.has(`bypassHidden`));
+    const gcfgBotChannelCheck = gcfg.commands.bot_channel_only.includes(md.name);
+    const gcfgDisabledCheck = !gcfg.commands.disabled.includes(md.name);
+
+    return {
+      permCheck,
+      forceHiddenCheck,
+      devOnlyCheck,
+      guildCheck,
+      gcfgHiddenCheck,
+      gcfgBotChannelCheck,
+      gcfgDisabledCheck
+    };
+  };
+
   const tryCommand = async (name) => {
     const cmd = Assets.getCommand(name);
+    const info = (cmd != null) ? cmdinfo(cmd.metadata) : null;
 
     const unknownCMD = async () => {
       const ratings = [];
   
-      memory.assets.commands.filter((thisCmd) => perms.has(thisCmd.metadata.name) && !thisCmd.metadata.flags[`HIDDEN`] && (thisCmd.metadata.guilds.length === 0 || m.guild != null && thisCmd.metadata.guilds.includes(m.guild.id)))
-        .forEach((thisCmd) => {
-          const rating = {
-            command: thisCmd.metadata.name,
-            alias: null,
-            distance: wink(name, thisCmd.metadata.name)
-          };
-  
-          for (const alias of thisCmd.metadata.aliases) {
-            const adist = wink(name, alias);
-            if (adist > rating.distance) {
-              rating.distance = adist;
-              rating.alias = alias;
-            }
+      memory.assets.commands.filter((thisCmd) => {
+        const infoThisCmd = cmdinfo(thisCmd.metadata);
+
+        return infoThisCmd.permCheck && infoThisCmd.forceHiddenCheck && infoThisCmd.devOnlyCheck && infoThisCmd.guildCheck && infoThisCmd.gcfgHiddenCheck && infoThisCmd.gcfgDisabledCheck;
+      }).forEach((thisCmd) => {
+        const rating = {
+          command: thisCmd.metadata.name,
+          alias: null,
+          distance: wink(name, thisCmd.metadata.name)
+        };
+
+        for (const alias of thisCmd.metadata.aliases) {
+          const adist = wink(name, alias);
+          if (adist > rating.distance) {
+            rating.distance = adist;
+            rating.alias = alias;
           }
-  
-          ratings.push(rating);
-        });
+        }
+
+        ratings.push(rating);
+      });
   
       ratings.sort((a, b) => b.distance - a.distance);
   
@@ -51,13 +78,13 @@ module.exports = async (m, input, gcfg, perms) => {
         embed.setFooter(`${(closest.distance * 100).toFixed(1)}% match`);
   
         if (closest.alias !== null) {
-          embed.setDescription(`Perhaps you meant \`${bot.prefix}${closest.alias}\`? (Alias of \`${bot.prefix}${closest.command}\`)`);
+          embed.setDescription(`Perhaps you meant \`${gcfg.commands.prefixes[0]}${closest.alias}\`? (Alias of \`${gcfg.commands.prefixes[0]}${closest.command}\`)`);
         } else {
-          embed.setDescription(`Perhaps you meant \`${bot.prefix}${closest.command}\`?`);
+          embed.setDescription(`Perhaps you meant \`${gcfg.commands.prefixes[0]}${closest.command}\`?`);
         }
       } else {
         allowRetry = false;
-        embed.setDescription(`Type \`${bot.prefix}help\` for a list of commands.`);
+        embed.setDescription(`Type \`${gcfg.commands.prefixes[0]}help\` for a list of commands.`);
       }
   
       const bm = await bot.send(m, { embed, delayControl: true });
@@ -90,8 +117,8 @@ module.exports = async (m, input, gcfg, perms) => {
           .setImage(`attachment://image.png`);
       }
   
-      if (cmd.metadata.flags[`DELETE_ON_MISUSE`]) {
-        m.delete({ reason: `User misused "${bot.prefix}${cmd.metadata.name}" command.` }).catch(err => {
+      if (cmd.metadata.flags.includes(`DELETE_ON_MISUSE`)) {
+        m.delete({ reason: `User misused "${gcfg.commands.prefixes[0]}${cmd.metadata.name}" command.` }).catch(err => {
           bot.util.err(err);
         });
 
@@ -101,7 +128,7 @@ module.exports = async (m, input, gcfg, perms) => {
       bot.send(m, content, { embed });
     };
 
-    if (cmd == null || !cmd.metadata.flags[`NO_LOGGING`]) {
+    if (cmd == null || !cmd.metadata.flags.includes(`NO_LOGGING`)) {
       log([
 
         (() => {
@@ -123,19 +150,23 @@ module.exports = async (m, input, gcfg, perms) => {
 
         (() => {
           // get input
-          if (cmd != null && cmd.metadata.flags[`NO_LOGGING_ARGS`]) return `${bot.prefix}${name} ${input.args.join(` `).replace(/\S/gi, `*`)}`;
+          if (cmd != null && cmd.metadata.flags.includes(`NO_LOGGING_ARGS`)) return `${gcfg.commands.prefixes[0]}${name} ${input.args.join(` `).replace(/\S/gi, `*`)}`;
     
-          return `${bot.prefix}${name} ${input.args.join(` `)}`;
+          return `${gcfg.commands.prefixes[0]}${name} ${input.args.join(` `)}`;
         })()
       ].join(`\n`), `info`);
     }
   
-    if (cmd == null) return unknownCMD();
+    // command doesnt exist
+    // command is not allowed to be used in this server
+    if (cmd == null || !info.guildCheck) return unknownCMD();
 
-    if (cmd.metadata.guilds.length > 0 && (m.guild == null || !cmd.metadata.guilds.includes(m.guild.id))) return unknownCMD();
+    if (info.gcfgDisabledCheck) {
+      return checkMisuse(`Sorry, this command has been disabled in this server.`);
+    }
 
-    if ((cmd.metadata.flags[`PERMS_REQUIRED`] || cmd.metadata.flags[`HIDDEN`]) && !perms.has(cmd.metadata.name)) {
-      if (cmd.metadata.flags[`HIDDEN`]) {
+    if (!info.permCheck) {
+      if (info.gcfgHidden) {
         return unknownCMD();
       } else {
         return checkMisuse(`You do not have permission to use this command.`);
@@ -146,31 +177,42 @@ module.exports = async (m, input, gcfg, perms) => {
       return checkMisuse(`This command cannot be used in DMs (Direct Messages).`);
     }
 
-    if (cmd.metadata.flags[`DM_ONLY`] && m.channel.type !== `dm`) {
-      return checkMisuse(`This command can only be used in DMs (Direct Messages).`, Assets.getImage(`IMG_dm`));
+    if (m.channel.type !== `dm`) {
+      if (cmd.metadata.flags.includes(`DM_ONLY`)) {
+        return checkMisuse(`This command can only be used in DMs (Direct Messages).`, Assets.getImage(`IMG_dm`));
+      }
+  
+      if (info.gcfgBotChannelCheck) {
+        // this command is listed in the guild config as bot_channel_only
+        if (!perms.has(`bypassChannels`) || cmd.metadata.flags.includes(`STRICT`)) {
+          // user does not have the bypasschannels permission
+          // this command is strictly bot channel only
+          if (!gcfg.channels.bot.some(id => [m.channel.id, m.channel.parentID].includes(id))) {
+            // this channel is NOT one of this server's designated bot channels.
+            if (cmd.metadata.dm) {
+              checkMisuse(`This command can only be used in DMs (Direct Messages) OR bot command channels.`);
+            } else {
+              checkMisuse(`This command can only be used in bot command channels.`);
+            }
+  
+            return;
+          }
+        }
+      }
+  
+      if (cmd.metadata.flags.includes(`STAFF_CHANNEL_ONLY`)) {
+        if (!perms.has(`*`) || cmd.metadata.flags.includes(`STRICT`)) {
+          // user does not have admin or star permission
+          // this command is strictly staff channel only
+          if (!gcfg.channels.staff.some(id => [m.channel.id, m.channel.parentID].includes(id))) {
+            // this channel is NOT one of this server's designated staff-only channels.
+            return checkMisuse(`This command can only be used in staff-only channels.`);
+          }
+        }
+      }
     }
 
-    if (cmd.metadata.flags[`BOT_CHANNEL_ONLY`] && !perms.has(`bypassChannels`)) {
-      if (cmd.metadata.dm && m.channel.type !== `dm` && !bot.cfg.channels.bot.some(id => [m.channel.id, m.channel.parentID].includes(id))) {
-        return checkMisuse(`This command can only be used in DMs (Direct Messages) OR the #optibot channel.`);
-      }
-
-      if (!cmd.metadata.dm && !bot.cfg.channels.bot.some(id => [m.channel.id, m.channel.parentID].includes(id))) {
-        return checkMisuse(`This command can only be used in the #optibot channel.`);
-      }
-    }
-
-    if (cmd.metadata.flags[`STAFF_CHANNEL_ONLY`] && !perms.has(`*`)) {
-      if (cmd.metadata.dm && m.channel.type !== `dm` && !bot.cfg.channels.staff.some(id => [m.channel.id, m.channel.parentID].includes(id))) {
-        return checkMisuse(`This command can only be used in DMs (Direct Messages) OR any staff-only channel.`);
-      }
-
-      if (!cmd.metadata.dm && !bot.cfg.channels.staff.some(id => [m.channel.id, m.channel.parentID].includes(id))) {
-        return checkMisuse(`This command can only be used in staff-only channels.`);
-      }
-    }
-
-    if (!cmd.metadata.flags[`NO_TYPER`]) m.channel.startTyping();
+    if (!cmd.metadata.flags.includes(`NO_TYPER`)) m.channel.startTyping();
 
     bot.setTimeout(() => {
       try {

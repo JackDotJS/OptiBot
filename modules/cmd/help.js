@@ -28,7 +28,7 @@ metadata.run = async (m, args, data) => {
   let query;
   let strict = false;
 
-  const parseQuery = (/((?<=").+?(?="))|([^"]+)/i).exec(m.cleanContent.substring(`${bot.prefix}${data.input.cmd} `.length));
+  const parseQuery = (/((?<=").+?(?="))|([^"]+)/i).exec(m.cleanContent.substring(`${data.gcfg.commands.prefixes[0]}${data.input.cmd} `.length));
 
   if (parseQuery != null) {
     if (parseQuery[1] != null) {
@@ -56,7 +56,7 @@ metadata.run = async (m, args, data) => {
     if (list.length === 0) {
       embed = new djs.MessageEmbed()
         .setColor(bot.cfg.colors.default)
-        .setAuthor(`OptiBot Index`, await Assets.getIcon(`ICO_docs`, bot.cfg.colors.default))
+        .setAuthor(`Vector Index`, await Assets.getIcon(`ICO_docs`, bot.cfg.colors.default))
         .setDescription(`Could not find any commands.`);
 
       if (title) embed.setTitle(title);
@@ -76,14 +76,14 @@ metadata.run = async (m, args, data) => {
       if (embed == null) {
         embed = new djs.MessageEmbed()
           .setColor(bot.cfg.colors.default)
-          .setAuthor(`OptiBot Index | ${pages.length+1}/${pageLimit}`, await Assets.getIcon(`ICO_docs`, bot.cfg.colors.default))
-          .setDescription(`Use \`${bot.prefix}help <command>\` for details about a specific command.`);
+          .setAuthor(`Vector Index | ${pages.length+1}/${pageLimit}`, await Assets.getIcon(`ICO_docs`, bot.cfg.colors.default))
+          .setDescription(`Use \`${data.gcfg.commands.prefixes[0]}help <command>\` for details about a specific command.`);
         
         if (title) embed.setTitle(title);
       }
 
       embed.addField(
-        `${bot.prefix}${cmd.metadata.name}`,
+        `${data.gcfg.commands.prefixes[0]}${cmd.metadata.name}`,
         `${cmd.metadata.description.short}`,
         hasScore
       );
@@ -111,13 +111,13 @@ metadata.run = async (m, args, data) => {
 
     const embed = new djs.MessageEmbed()
       .setColor(bot.cfg.colors.default)
-      .setAuthor(`OptiBot Index`, await Assets.getIcon(`ICO_docs`, bot.cfg.colors.default))
-      .setTitle(bot.prefix + md.name)
+      .setAuthor(`Vector Index`, await Assets.getIcon(`ICO_docs`, bot.cfg.colors.default))
+      .setTitle(data.gcfg.commands.prefixes[0] + md.name)
       .setDescription(md.description.long)
       .addField(`Usage Example(s)`, `\`\`\`\n${md.args.join(`\`\`\` \`\`\`\n`)}\`\`\``);
 
     if (md.aliases.length > 0) {
-      embed.addField(`Aliases`, `\`\`\`${bot.prefix}${md.aliases.join(`, ${bot.prefix}`)}\`\`\``);
+      embed.addField(`Aliases`, `\`\`\`${data.gcfg.commands.prefixes[0]}${md.aliases.join(`, ${data.gcfg.commands.prefixes[0]}`)}\`\`\``);
     }
 
     if (md.image) {
@@ -131,7 +131,7 @@ metadata.run = async (m, args, data) => {
   // todo: filter commands
   for (const cmd of memory.assets.commands) {
     if (cmd.metadata.flags[`PERMS_REQUIRED`] && !data.perms.has(`*`)) continue;
-    if (cmd.metadata.flags[`HIDDEN`] && !data.perms.has(`bypassHidden`)) continue;
+    if (data.gcfg.commands.hidden.includes(cmd.metadata.name) && !data.perms.has(`cmd.help.bypassHidden`)) continue;
 
     if (query == null) {
       list.push({ cmd });

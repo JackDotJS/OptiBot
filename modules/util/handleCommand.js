@@ -17,14 +17,14 @@ module.exports = async (m, input, gcfg, perms) => {
     // there's probably a better way to do this idk
 
     const permCheck = perms.has(`cmd.${md.name}`);
-    const forceHiddenCheck = !md.flags.includes(`FORCE_HIDDEN`);
-    const devOnlyCheck = !md.flags.includes(`DEVELOPER_ONLY`);
+    const forceHiddenCheck = md.flags.includes(`FORCE_HIDDEN`);
+    const devOnlyCheck = md.flags.includes(`DEVELOPER_ONLY`);
     const guildCheck = (md.guilds.length === 0 || m.guild != null && md.guilds.includes(m.guild.id));
 
     const gcfgHidden = gcfg.commands.hidden.includes(md.name);
     const gcfgHiddenCheck = (!gcfgHidden || gcfgHidden && perms.has(`bypassHidden`));
     const gcfgBotChannelCheck = gcfg.commands.bot_channel_only.includes(md.name);
-    const gcfgDisabledCheck = !gcfg.commands.disabled.includes(md.name);
+    const gcfgDisabledCheck = gcfg.commands.disabled.includes(md.name);
 
     return {
       permCheck,
@@ -47,7 +47,7 @@ module.exports = async (m, input, gcfg, perms) => {
       memory.assets.commands.filter((thisCmd) => {
         const infoThisCmd = cmdinfo(thisCmd.metadata);
 
-        return infoThisCmd.permCheck && infoThisCmd.forceHiddenCheck && infoThisCmd.devOnlyCheck && infoThisCmd.guildCheck && infoThisCmd.gcfgHiddenCheck && infoThisCmd.gcfgDisabledCheck;
+        return infoThisCmd.permCheck && !infoThisCmd.forceHiddenCheck && !infoThisCmd.devOnlyCheck && infoThisCmd.guildCheck && infoThisCmd.gcfgHiddenCheck && !infoThisCmd.gcfgDisabledCheck;
       }).forEach((thisCmd) => {
         const rating = {
           command: thisCmd.metadata.name,
@@ -165,7 +165,7 @@ module.exports = async (m, input, gcfg, perms) => {
       return checkMisuse(`Sorry, this command has been disabled in this server.`);
     }
 
-    if (!info.permCheck) {
+    if (!info.permCheck || info.devOnlyCheck && m.author.id !== bot.cfg.env.developer) {
       if (info.gcfgHidden) {
         return unknownCMD();
       } else {

@@ -3,12 +3,13 @@ const djs = require(`discord.js`);
 const { Command, memory, Assets } = require(`../core/modules.js`);
 
 const bot = memory.core.client;
+const log = bot.log;
 
 const metadata = {
   name: path.parse(__filename).name,
   description: {
-    short: `A quick introduction to OptiBot.`,
-    long: `Provides a quick introduction to OptiBot.`
+    short: `A quick introduction to Vector.`,
+    long: `Provides a quick introduction to Vector.`
   },
   dm: true,
   flags: [ `LITE` ],
@@ -17,16 +18,15 @@ const metadata = {
 };
 
 metadata.run = async (m, args, data) => {
-  const desc = data.cfg.splash[~~(Math.random() * data.cfg.splash.length)];
-
   const embed = new djs.MessageEmbed()
-    .setColor(data.cfg.colors.default)
-    .setAuthor(`About`, await Assets.getIcon(`ICO_info`, data.cfg.colors.default))
+    .setColor(data.gcfg.colors.default)
+    .setAuthor(`About`, await Assets.getIcon(`ICO_info`, data.gcfg.colors.default))
     .setThumbnail(bot.user.displayAvatarURL({ format: `png`, size: 64 }))
-    .setTitle(`The official OptiFine Discord server bot. \n\n`)
-    .setDescription(desc.join(`\n`))
-    .addField(`View Commands`, `\`\`\`${data.cfg.prefixes[0]}help\`\`\``, true)
-    .addField(`View Details`, `\`\`\`${data.cfg.prefixes[0]}help <command>\`\`\``, true)
+    .setTitle(`Vector: The Server Management Bot`)
+    .setURL(`https://github.com/JackDotJS/vector-bot`)
+    .setDescription(data.gcfg.splash[~~(Math.random() * data.gcfg.splash.length)])
+    .addField(`List Commands`, `\`\`\`${data.gcfg.commands.prefixes[0]}help\`\`\``, true)
+    .addField(`Command Information`, `\`\`\`${data.gcfg.commands.prefixes[0]}help <command>\`\`\``, true)
     .setFooter([
       `Version: ${bot.version}`,
       `Session Uptime: ${uptime(process.uptime() * 1000)}`

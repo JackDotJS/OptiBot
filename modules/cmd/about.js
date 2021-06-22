@@ -26,7 +26,8 @@ metadata.run = async (m, args, data) => {
     .setURL(`https://github.com/JackDotJS/vector-bot`)
     .setDescription(data.gcfg.splash[~~(Math.random() * data.gcfg.splash.length)])
     .addField(`List Commands`, `\`\`\`${data.gcfg.commands.prefixes[0]}help\`\`\``, true)
-    .addField(`Command Information`, `\`\`\`${data.gcfg.commands.prefixes[0]}help <command>\`\`\``, true)
+    .addField(`Search Commands`, `\`\`\`${data.gcfg.commands.prefixes[0]}help <query>\`\`\``, true)
+    .addField(`Command Information`, `\`\`\`${data.gcfg.commands.prefixes[0]}help <command>\`\`\``)
     .setFooter([
       `Version: ${bot.version}`,
       `Session Uptime: ${uptime(process.uptime() * 1000)}`

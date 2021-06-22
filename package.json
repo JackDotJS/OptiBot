@@ -21,7 +21,6 @@
     "iso-639-1": "^2.1.9",
     "jaro-winkler": "^0.2.8",
     "jimp": "^0.16.1",
-    "nedb": "^1.8.0",
     "nedb-promises": "^5.0.0",
     "node-fetch": "^2.6.1",
     "request": "^2.88.0",

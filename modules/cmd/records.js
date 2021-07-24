@@ -234,7 +234,7 @@ metadata.run = (m, args, data) => {
                   return next();
                 }
 
-                const reason = `> **${(entry.action !== 0) ? `Reason` : `Note Contents`}:**${Assets.getEmoji(`ICO_space`)}\n> ${entry.pardon.reason.split(`\n`).join(`\n> `)}`;
+                const reason = `> **${(entry.action !== 0) ? `Reason` : `Note Contents`}:**${Assets.getEmoji(`ICO_space`)}\n> ${(entry.pardon.reason ? entry.pardon.reason : "No reason provided.").split(`\n`).join(`\n> `)}`;
 
                 details.push(
                   `**Pardoned By:** <@${entry.pardon.admin}>`,
@@ -247,7 +247,7 @@ metadata.run = (m, args, data) => {
                   details.push(reason);
                 }
               } else {
-                const reason = `> **${(entry.action !== 0) ? `Reason` : `Note Contents`}:**${Assets.getEmoji(`ICO_space`)}\n> ${entry.reason.split(`\n`).join(`\n> `)}`;
+                const reason = `> **${(entry.action !== 0) ? `Reason` : `Note Contents`}:**${Assets.getEmoji(`ICO_space`)}\n> ${(entry.reason ? entry.reason : "No reason provided.").split(`\n`).join(`\n> `)}`;
 
                 details.push(
                   `**Moderator:** <@${entry.moderator}>`,

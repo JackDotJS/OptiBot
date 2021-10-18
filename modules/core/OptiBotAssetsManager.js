@@ -658,7 +658,7 @@ module.exports = class OptiBotAssetsManager {
     }
 
     if (result) return result;
-    return bot.emojis.cache.find(emoji => emoji.name.toLowerCase() === 'ICO_default'.toLowerCase() && (emoji.guild.id === bot.cfg.guilds.optibot || bot.cfg.guilds.emoji.includes(emoji.guild.id)));
+    return bot.emojis.cache.get(`899670566330581072`);
   }
 
   static getImage(query) {

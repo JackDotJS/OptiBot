@@ -20,6 +20,12 @@ metadata.run = (m, args, data) => {
 
   if (args[0]) {
     const match = djs.MessageMentions.CHANNELS_PATTERN.exec(args[0]);
+
+    // I cannot begin to explain in mere words how fucking angry i was to find out
+    // that i had to do THIS to stop the above regex method from randomly returning null.
+    // i genuinely wish everyone who designed this language suffers a slow and painful death.
+    djs.MessageMentions.CHANNELS_PATTERN.lastIndex = 0;
+
     if (match != null) {
       channel = bot.channels.cache.get(match[1]);
     } else if (parseInt(args[0]) >= 1420070400000) {

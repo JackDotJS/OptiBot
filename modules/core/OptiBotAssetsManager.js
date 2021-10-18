@@ -426,36 +426,6 @@ module.exports = class OptiBotAssetsManager {
       });
 
       stagesAsync.push({
-        name: 'Unverified Donator Checker',
-        tiers: [true, false, false],
-        load: () => {
-          return new Promise((resolve, reject) => {
-            bot.guilds.cache.get(bot.cfg.guilds.donator).members.fetch().then((mem) => {
-              const members = [...mem.values()];
-
-              let i = -1;
-              (function nextMember() {
-                i++;
-                if (i >= members.length) return resolve();
-
-                const member = members[i];
-
-                if (member.roles.cache.size === 1) {
-                  OBUtil.verifyDonator(member).then(() => {
-                    nextMember();
-                  }).catch(err => {
-                    OBUtil.err(err);
-                    nextMember();
-                  });
-                }
-              })();
-
-            });
-          });
-        }
-      });
-
-      stagesAsync.push({
         name: 'Message Pre-Cacher',
         tiers: [true, false, false],
         load: () => {
@@ -477,7 +447,7 @@ module.exports = class OptiBotAssetsManager {
                 }
               }
 
-              if (channel.type === 'text' && channel.guild.id === bot.mainGuild.id) {
+              if (channel.type === 'text' && channel.guild.id === bot.mainGuild.id && channel.viewable) {
                 log(`[${i}] fetching from channel: ${channel.id}`);
 
                 channel.messages.fetch({ limit: bot.cfg.init.cacheLimit }, true).then(() => {

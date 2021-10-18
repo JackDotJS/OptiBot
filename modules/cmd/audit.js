@@ -140,7 +140,7 @@ metadata.run = (m, args, data) => {
         (function addEntry() {
           const entry = new RecordEntry(modlog[i]);
           const details = [
-            `**Case ID: [${entry.display.id}](${m.url.replace(/\/\d+$/, '')})**`
+            `**Case ID: ${entry.display.id}**`
           ];
 
           function next() {

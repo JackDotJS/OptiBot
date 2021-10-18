@@ -71,7 +71,9 @@ metadata.run = (m, args, data) => {
 
           let title = 'Member Records';
 
-          if (!profile || !profile.edata.record) {
+          log(profile.edata.record);
+
+          if (!profile || !profile.edata.record || profile.edata.record.length === 0) {
             embed.setAuthor(title, Assets.getEmoji('ICO_docs').url)
               .addField('Record Statistics', 'This user has no known record.')
               .setFooter(footer.join('\n'));
@@ -84,7 +86,7 @@ metadata.run = (m, args, data) => {
 
             profile.getRecord(caseid).then(entry => {
               if (!entry) {
-                OBUtil.err(`Unable to find case ID "${caseid}".`, { m });
+                OBUtil.err(`Unable to find case ID "${args[1]}".`, { m });
               } else {
                 log(util.inspect(entry));
 
@@ -173,10 +175,7 @@ metadata.run = (m, args, data) => {
             }
 
             stats.push(
-              `**Pardoned Entries**: ${pardonedCount.toLocaleString()}`,
-              `**Violation Marks (Maximum)**: ${points.maximum.toLocaleString()}/${bot.cfg.points.userMax.toLocaleString()} ${(points.maximum >= bot.cfg.points.userMax) ? Assets.getEmoji('ICO_warn').toString() : ''}`,
-              `**Violation Marks (Current)**: ${points.current.toLocaleString()}/${bot.cfg.points.userMax.toLocaleString()} ${(points.current >= bot.cfg.points.userMax) ? Assets.getEmoji('ICO_warn').toString() : ''}`,
-              `**Violation Marks (Minimum)**: ${points.minimum.toLocaleString()}/${bot.cfg.points.userMax.toLocaleString()} ${(points.minimum >= bot.cfg.points.userMax) ? Assets.getEmoji('ICO_warn').toString() : ''}`
+              `**Pardoned Entries**: ${pardonedCount.toLocaleString()}`
             );
 
             let i = (pageNum > 1) ? (perPage * (pageNum - 1)) : 0;
@@ -185,7 +184,7 @@ metadata.run = (m, args, data) => {
             (function addEntry() {
               const entry = new RecordEntry(record[i]);
               const details = [
-                `**Case ID: [${entry.display.id}](${m.url.replace(/\/\d+$/, '')})**`
+                `**Case ID: ${entry.display.id}**`
               ];
 
               function next() {
@@ -245,7 +244,7 @@ metadata.run = (m, args, data) => {
                 }
               } else {
                 entry.reason = (entry.reason == null) ? `No reason provided.` : entry.reason
-                
+
                 const reason = `> **${(entry.action !== 0) ? 'Reason' : 'Note Contents'}:**${Assets.getEmoji('ICO_space')}\n> ${entry.reason.split('\n').join('\n> ')}`;
 
                 details.push(

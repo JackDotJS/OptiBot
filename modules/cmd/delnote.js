@@ -35,7 +35,7 @@ metadata.run = (m, args, data) => {
         }
 
         profile.getRecord(args[1]).then((entry) => {
-          if (!entry || !entry.index) {
+          if (!entry) {
             return OBUtil.err(`Unable to find case ID "${args[1]}".`, { m });
           }
 

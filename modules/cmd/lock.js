@@ -19,11 +19,16 @@ metadata.run = (m, args, data) => {
   let channel = m.channel;
 
   if (args[0]) {
-    if (djs.MessageMentions.CHANNELS_PATTERN.exec(args[0]) != null) {
-      channel = args[0].mentions.channels.first();
+    const match = djs.MessageMentions.CHANNELS_PATTERN.exec(args[0]);
+    if (match != null) {
+      channel = bot.channels.cache.get(match[1]);
     } else if (parseInt(args[0]) >= 1420070400000) {
-      channel = bot.channels.cache.get(args[0]) || m.channel;
+      channel = bot.channels.cache.get(args[0]);
     }
+  }
+
+  if (channel == null) {
+    return OBUtil.err(`Invalid channel.`, { m: m });
   }
 
   if (bot.cfg.channels.nomodify.some(id => [channel.id, channel.parentID].includes(id)) || channel.guild.id != bot.mainGuild.id) {

@@ -38,6 +38,8 @@ module.exports = class LogEntry {
 
     data.channel = bot.guilds.cache.get(bot.cfg.guilds.log).channels.cache.get(data.channel);
 
+    if (data.channel == null) throw new Error(`Invalid Log Channel`);
+
     data.embed.setFooter(`Click on embed title to download plaintext report.\nEvent logged on ${data.time.toUTCString()}`)
       .setTimestamp(data.time);
 

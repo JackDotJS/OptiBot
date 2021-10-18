@@ -19,7 +19,7 @@ metadata.run = m => {
     .setColor(bot.cfg.embed.default)
     .setAuthor('Download Java', Assets.getEmoji('ICO_java').url)
     .setTitle('https://www.java.com')
-    .setDescription('Looking for AdoptOpenJDK? **(Advanced users only!)**\nhttps://adoptopenjdk.net/');
+    .setDescription('[Looking for Adoptium?](https://adoptium.net/) (Previously known as AdoptOpenJDK)');
 
   m.channel.send(embed).then(bm => OBUtil.afterSend(bm, m.author.id));
 };

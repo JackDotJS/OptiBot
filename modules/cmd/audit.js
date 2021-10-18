@@ -56,14 +56,17 @@ metadata.run = (m, args, data) => {
 
           let i = 0;
           (function checkRecord() {
-            for (const entry of docs[i].edata.record) {
-              if (entry.moderator === result.id) {
-                entry.userid = docs[i].id;
-                logs.push(entry);
+            if (docs[i] != null && docs[i].edata.record.length > 0) {
+              for (const entry of docs[i].edata.record) {
+                if (entry.moderator === result.id) {
+                  entry.userid = docs[i].id;
+                  logs.push(entry);
+                }
               }
             }
+            
             i++;
-            if (i === docs.length) {
+            if (i >= docs.length) {
               logs.sort((a, b) => a.date - b.date);
 
               log(logs);

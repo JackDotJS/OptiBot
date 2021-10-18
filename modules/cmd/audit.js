@@ -180,7 +180,6 @@ metadata.run = (m, args, data) => {
               }
               return next();
             }
-
             const reason = `> **${(entry.action !== 0) ? 'Reason' : 'Note Contents'}:**${Assets.getEmoji('ICO_space')}\n> ${entry.pardon.reason.split('\n').join('\n> ')}`;
 
             details.push(
@@ -194,6 +193,8 @@ metadata.run = (m, args, data) => {
               details.push(reason);
             }
           } else {
+            entry.reason = (entry.reason == null) ? `No reason provided.` : entry.reason
+
             const reason = `> **${(entry.action !== 0) ? 'Reason' : 'Note Contents'}:**${Assets.getEmoji('ICO_space')}\n> ${entry.reason.split('\n').join('\n> ')}`;
 
             details.push(
